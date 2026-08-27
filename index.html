@@ -1,107 +1,656 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DESTA PLAY</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DESTA PLAY</title>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: white;
-            text-align: center;
-        }
+:root{
+  --bg:#07111f;
+  --card:#101d2f;
+  --card2:#16263b;
+  --text:#fff;
+  --muted:#8ea0b8;
+  --gold:#f5c451;
+  --green:#35d07f;
+  --red:#ff5c6c;
+  --blue:#4da3ff;
+}
 
-        .header {
-            padding: 25px 15px;
-        }
+body{
+  margin:0;
+  background:
+    radial-gradient(circle at 50% -10%,#203b59 0,#07111f 45%);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+  min-height:100vh;
+}
 
-        .logo {
-            font-size: 32px;
-            font-weight: bold;
-        }
+button{
+  font:inherit;
+  cursor:pointer;
+}
 
-        .subtitle {
-            color: #94a3b8;
-            margin-top: 6px;
-        }
+.app{
+  max-width:520px;
+  margin:auto;
+  min-height:100vh;
+  padding-bottom:85px;
+}
 
-        .balance {
-            margin: 15px;
-            padding: 18px;
-            border-radius: 16px;
-            background: #1e293b;
-        }
+.header{
+  padding:22px 18px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
 
-        .balance-number {
-            font-size: 28px;
-            font-weight: bold;
-            margin-top: 8px;
-        }
+.brand{
+  font-size:25px;
+  font-weight:900;
+  letter-spacing:.5px;
+}
 
-        .games {
-            padding: 10px 15px;
-        }
+.brand span{color:var(--gold)}
 
-        .game {
-            width: 100%;
-            margin: 10px 0;
-            padding: 18px;
-            border: none;
-            border-radius: 15px;
-            background: #334155;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-        }
+.profile{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:var(--card2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
 
-        .game:active {
-            transform: scale(0.98);
-        }
+.balance{
+  margin:8px 15px 18px;
+  padding:20px;
+  border-radius:22px;
+  background:linear-gradient(135deg,#172c45,#0e1a2b);
+  border:1px solid #27405e;
+  box-shadow:0 12px 35px #0005;
+}
 
-        .footer {
-            margin: 25px;
-            color: #64748b;
-            font-size: 13px;
-        }
-    </style>
+.balance-label{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.balance-value{
+  font-size:30px;
+  font-weight:900;
+  margin-top:6px;
+}
+
+.demo{
+  color:var(--gold);
+  font-size:11px;
+  margin-top:5px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+
+.section-title{
+  padding:0 17px;
+  margin:22px 0 10px;
+  font-size:18px;
+  font-weight:800;
+}
+
+.games{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  padding:0 15px;
+}
+
+.game-card{
+  min-height:145px;
+  border:1px solid #263c55;
+  border-radius:20px;
+  background:linear-gradient(145deg,#15273d,#0d1929);
+  color:white;
+  padding:18px;
+  text-align:left;
+  transition:.15s;
+}
+
+.game-card:active{
+  transform:scale(.97);
+}
+
+.game-icon{
+  font-size:38px;
+  margin-bottom:12px;
+}
+
+.game-name{
+  font-weight:900;
+  font-size:17px;
+}
+
+.game-description{
+  color:var(--muted);
+  font-size:11px;
+  margin-top:5px;
+}
+
+.menu{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  height:70px;
+  background:#091522ee;
+  backdrop-filter:blur(12px);
+  border-top:1px solid #24384f;
+  display:flex;
+  justify-content:center;
+  z-index:50;
+}
+
+.menu-inner{
+  max-width:520px;
+  width:100%;
+  display:flex;
+  justify-content:space-around;
+}
+
+.nav-btn{
+  background:none;
+  border:0;
+  color:var(--muted);
+  padding:8px 18px;
+  font-size:11px;
+}
+
+.nav-btn.active{color:var(--gold)}
+
+.nav-icon{
+  display:block;
+  font-size:21px;
+  margin-bottom:3px;
+}
+
+.page{display:none}
+.page.active{display:block}
+
+.back{
+  margin:16px;
+  border:0;
+  background:var(--card2);
+  color:white;
+  padding:10px 15px;
+  border-radius:12px;
+}
+
+.game-panel{
+  margin:10px 15px;
+  padding:18px;
+  background:var(--card);
+  border:1px solid #263c55;
+  border-radius:22px;
+}
+
+.game-title{
+  text-align:center;
+  font-size:25px;
+  font-weight:900;
+  margin:8px 0 4px;
+}
+
+.game-subtitle{
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.bet-row{
+  display:flex;
+  gap:8px;
+  margin:18px 0;
+}
+
+.bet{
+  flex:1;
+  background:var(--card2);
+  border:1px solid #304861;
+  color:white;
+  border-radius:12px;
+  padding:11px;
+}
+
+.primary{
+  width:100%;
+  padding:14px;
+  border:0;
+  border-radius:14px;
+  background:var(--gold);
+  color:#17120a;
+  font-weight:900;
+  margin-top:10px;
+}
+
+.secondary{
+  width:100%;
+  padding:13px;
+  border:1px solid #38516d;
+  border-radius:14px;
+  background:var(--card2);
+  color:white;
+  font-weight:700;
+  margin-top:9px;
+}
+
+.numbers{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin-top:18px;
+}
+
+.number{
+  aspect-ratio:1;
+  border-radius:12px;
+  border:1px solid #314963;
+  background:#17283d;
+  color:white;
+  font-weight:800;
+}
+
+.number.selected{
+  background:var(--gold);
+  color:#15100a;
+}
+
+.number.drawn{
+  background:var(--green);
+  color:#06140c;
+}
+
+.result{
+  margin-top:15px;
+  padding:14px;
+  border-radius:14px;
+  background:#0a1624;
+  text-align:center;
+  line-height:1.6;
+}
+
+.balls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+  margin:15px 0;
+}
+
+.ball{
+  width:43px;
+  height:43px;
+  border-radius:50%;
+  background:var(--gold);
+  color:#111;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-weight:900;
+}
+
+.bingo-board{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+  margin-top:18px;
+}
+
+.bingo-cell{
+  aspect-ratio:1;
+  background:#17283d;
+  border:1px solid #304861;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  font-weight:800;
+}
+
+.bingo-cell.hit{
+  background:var(--green);
+  color:#06140c;
+}
+
+.wheel{
+  width:230px;
+  height:230px;
+  border-radius:50%;
+  margin:25px auto;
+  border:8px solid #263c55;
+  background:conic-gradient(
+    #f5c451 0deg 45deg,
+    #274d70 45deg 90deg,
+    #35d07f 90deg 135deg,
+    #6d4d91 135deg 180deg,
+    #f5c451 180deg 225deg,
+    #274d70 225deg 270deg,
+    #35d07f 270deg 315deg,
+    #6d4d91 315deg 360deg
+  );
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:transform 3s cubic-bezier(.15,.8,.2,1);
+  box-shadow:0 15px 40px #0007;
+}
+
+.wheel-center{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:#101d2f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+}
+
+.pointer{
+  text-align:center;
+  font-size:28px;
+  margin-top:-12px;
+}
+
+.plane-area{
+  margin:20px 0;
+  height:230px;
+  border-radius:18px;
+  background:
+    linear-gradient(#10263d99,#10263d99),
+    radial-gradient(circle at 30% 20%,#254d6d,#071522 70%);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.plane{
+  font-size:55px;
+  transition:transform .1s linear;
+}
+
+.multiplier{
+  position:absolute;
+  font-size:43px;
+  font-weight:900;
+}
+
+.cashout{
+  background:var(--green);
+  color:#06140c;
+}
+
+.history-item{
+  display:flex;
+  justify-content:space-between;
+  padding:14px 4px;
+  border-bottom:1px solid #24384f;
+}
+
+.win{color:var(--green)}
+.loss{color:var(--red)}
+
+.profile-box{
+  margin:15px;
+  padding:20px;
+  border-radius:20px;
+  background:var(--card);
+  border:1px solid #263c55;
+}
+
+.setting{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:16px 0;
+  border-bottom:1px solid #26384d;
+}
+
+.switch{
+  width:48px;
+  height:26px;
+  border-radius:20px;
+  background:#34485f;
+  padding:3px;
+}
+
+.switch.on{background:var(--green)}
+
+.switch-dot{
+  width:20px;
+  height:20px;
+  background:white;
+  border-radius:50%;
+  transition:.2s;
+}
+
+.switch.on .switch-dot{transform:translateX(22px)}
+
+.small{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:85px;
+  transform:translateX(-50%);
+  background:#17283d;
+  border:1px solid #38516d;
+  padding:12px 18px;
+  border-radius:14px;
+  z-index:100;
+  display:none;
+  box-shadow:0 10px 30px #0008;
+}
+
+@media(max-width:360px){
+  .games{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
 
-    <div class="header">
-        <div class="logo">🎮 DESTA PLAY</div>
-        <div class="subtitle">Play • Have Fun • Enjoy</div>
+<div class="app">
+
+<header class="header">
+  <div class="brand">DESTA <span>PLAY</span></div>
+  <div class="profile" id="profileIcon">👤</div>
+</header>
+
+<!-- HOME -->
+<section id="home" class="page active">
+
+  <div class="balance">
+    <div class="balance-label">DEMO BALANCE</div>
+    <div class="balance-value">🪙 <span id="balance">1000</span> ETB</div>
+    <div class="demo">Virtual credits • Demo only</div>
+  </div>
+
+  <div class="section-title">Choose a game</div>
+
+  <div class="games">
+
+    <button class="game-card" onclick="openGame('keno')">
+      <div class="game-icon">🎱</div>
+      <div class="game-name">Keno</div>
+      <div class="game-description">Pick numbers & test your luck</div>
+    </button>
+
+    <button class="game-card" onclick="openGame('bingo')">
+      <div class="game-icon">🎟️</div>
+      <div class="game-name">Bingo</div>
+      <div class="game-description">Complete your pattern</div>
+    </button>
+
+    <button class="game-card" onclick="openGame('spin')">
+      <div class="game-icon">🎡</div>
+      <div class="game-name">Spin</div>
+      <div class="game-description">Spin the demo wheel</div>
+    </button>
+
+    <button class="game-card" onclick="openGame('aviator')">
+      <div class="game-icon">✈️</div>
+      <div class="game-name">Aviator</div>
+      <div class="game-description">Multiplier demo game</div>
+    </button>
+
+  </div>
+
+  <div class="section-title">Welcome</div>
+
+  <div class="game-panel">
+    <div style="font-weight:800">👋 <span id="welcomeName">Player</span></div>
+    <div class="small" style="margin-top:8px">
+      Welcome to DESTA PLAY. This version uses virtual demo credits.
     </div>
+  </div>
 
-    <div class="balance">
-        🪙 Demo Balance
-        <div class="balance-number">1,000 ETB</div>
-    </div>
+</section>
 
-    <div class="games">
 
-        <button class="game">🎱 Keno</button>
+<!-- KENO -->
+<section id="keno" class="page">
 
-        <button class="game">🎟️ Bingo</button>
+<button class="back" onclick="showPage('home')">← Back</button>
 
-        <button class="game">🎡 Spin</button>
+<div class="game-panel">
+  <div class="game-title">🎱 Keno</div>
+  <div class="game-subtitle">Choose 5 numbers from 1–30</div>
 
-        <button class="game">✈️ Aviator Demo</button>
+  <div class="bet-row">
+    <button class="bet" onclick="setBet(kenoBet,5,'keno')">5</button>
+    <button class="bet" onclick="setBet(kenoBet,10,'keno')">10</button>
+    <button class="bet" onclick="setBet(kenoBet,20,'keno')">20</button>
+    <button class="bet" onclick="setBet(kenoBet,50,'keno')">50</button>
+  </div>
 
-    </div>
+  <div class="small">Bet: <b id="kenoBetText">10 ETB</b></div>
 
-    <div class="footer">
-        DESTA PLAY — Demo Version
-    </div>
+  <div id="kenoNumbers" class="numbers"></div>
 
-</body>
-</html>
+  <button class="primary" onclick="playKeno()">DRAW NUMBERS</button>
+
+  <div id="kenoResult"></div>
+</div>
+
+</section>
+
+
+<!-- BINGO -->
+<section id="bingo" class="page">
+
+<button class="back" onclick="showPage('home')">← Back</button>
+
+<div class="game-panel">
+  <div class="game-title">🎟️ Bingo</div>
+  <div class="game-subtitle">Generate a card and draw numbers</div>
+
+  <div class="bet-row">
+    <button class="bet" onclick="bingoBet=5;updateBingoBet()">5 ETB</button>
+    <button class="bet" onclick="bingoBet=10;updateBingoBet()">10 ETB</button>
+    <button class="bet" onclick="bingoBet=20;updateBingoBet()">20 ETB</button>
+  </div>
+
+  <div class="small">Bet: <b id="bingoBetText">10 ETB</b></div>
+
+  <div id="bingoBoard" class="bingo-board"></div>
+
+  <button class="primary" onclick="playBingo()">DRAW 5 NUMBERS</button>
+
+  <div id="bingoResult"></div>
+</div>
+
+</section>
+
+
+<!-- SPIN -->
+<section id="spin" class="page">
+
+<button class="back" onclick="showPage('home')">← Back</button>
+
+<div class="game-panel">
+  <div class="game-title">🎡 Spin</div>
+  <div class="game-subtitle">Demo prize wheel</div>
+
+  <div class="wheel" id="wheel">
+    <div class="wheel-center">SPIN</div>
+  </div>
+
+  <div class="pointer">🔻</div>
+
+  <div class="bet-row">
+    <button class="bet" onclick="spinBet=5;updateSpinBet()">5</button>
+    <button class="bet" onclick="spinBet=10;updateSpinBet()">10</button>
+    <button class="bet" onclick="spinBet=20;updateSpinBet()">20</button>
+  </div>
+
+  <div class="small">Bet: <b id="spinBetText">10 ETB</b></div>
+
+  <button class="primary" onclick="playSpin()">SPIN WHEEL</button>
+
+  <div id="spinResult"></div>
+</div>
+
+</section>
+
+
+<!-- AVIATOR -->
+<section id="aviator" class="page">
+
+<button class="back" onclick="showPage('home')">← Back</button>
+
+<div class="game-panel">
+
+  <div class="game-title">✈️ Aviator Demo</div>
+  <div class="game-subtitle">Cash out before the demo round ends</div>
+
+  <div class="plane-area">
+    <div class="plane" id="plane">✈️</div>
+    <div class="multiplier" id="multiplier">1.00×</div>
+  </div>
+
+  <div class="bet-row">
+    <button class="bet" onclick="aviatorBet=5;updateAviatorBet()">5</button>
+    <button class="bet" onclick="aviatorBet=10;updateAviatorBet()">10</button>
+    <button class="bet" onclick="aviatorBet=20;updateAviatorBet()">20</button>
+  </div>
+
+  <div class="small">Bet: <b id="aviatorBetText">10 ETB</b></div>
+
+  <button id="aviatorButton" class="primary" onclick="startAviator()">
+    START ROUND
+  </button>
+
+  <div id="aviatorResult"></div>
+
+</div>
+</section>
+
+
+<!-- HISTORY -->
+<section id="history" class="page">
+
+<div class="section-title">📜 Game History</div>
+
+<div class="game-panel" id="historyList">
