@@ -175,6 +175,13 @@ button {
     color: #111;
     font-weight: 900;
     font-size: 15px;
+    transition: background 0.2s;
+}
+
+.primary:disabled {
+    background: #555;
+    color: #888;
+    cursor: not-allowed;
 }
 
 .secondary {
@@ -230,6 +237,7 @@ button {
     background: #17283c;
     color: white;
     font-weight: 900;
+    transition: transform 0.2s, background 0.2s;
 }
 
 .number.selected {
@@ -240,9 +248,51 @@ button {
 .number.drawn {
     background: #35d07f;
     color: #07150d;
+    transform: scale(1.08);
 }
 
-/* BINGO */
+/* BINGO ANIMATION & CARTELA */
+.bingo-draw-zone {
+    height: 70px;
+    margin-top: 15px;
+    background: #091522;
+    border: 1px solid #233a52;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.bingo-ball {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffffff, #e0e0e0);
+    color: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    animation: ballDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.bingo-ball .ball-letter {
+    font-size: 9px;
+    color: #d32f2f;
+    line-height: 1;
+}
+
+@keyframes ballDrop {
+    0% { transform: translateY(-60px) scale(0.3); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 .bingo-head,
 .bingo-board {
     display: grid;
@@ -251,10 +301,11 @@ button {
 }
 
 .bingo-head {
-    margin-top: 18px;
+    margin-top: 15px;
     color: #f4c44f;
     text-align: center;
     font-weight: 900;
+    font-size: 16px;
 }
 
 .bingo-board {
@@ -266,16 +317,19 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #17283c;
     border: 1px solid #314b66;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800;
+    transition: all 0.3s ease;
 }
 
 .bingo-cell.hit {
     background: #35d07f;
     color: #07150d;
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(53, 208, 127, 0.6);
 }
 
 .bingo-cell.free {
@@ -318,7 +372,7 @@ button {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 3s cubic-bezier(.12,.75,.2,1);
+    transition: transform 4s cubic-bezier(0.15, 0.9, 0.2, 1);
 }
 
 .wheel-center {
@@ -348,6 +402,7 @@ button {
 .multiplier {
     font-size: 44px;
     font-weight: 900;
+    z-index: 2;
 }
 
 .multiplier.crashed {
@@ -356,10 +411,11 @@ button {
 
 .plane {
     position: absolute;
-    left: 18%;
-    bottom: 30%;
-    font-size: 50px;
+    left: 10%;
+    bottom: 10%;
+    font-size: 44px;
     transition: transform 0.05s linear;
+    z-index: 1;
 }
 
 /* RESULT */
@@ -373,15 +429,8 @@ button {
     line-height: 1.8;
 }
 
-.win {
-    color: #35d07f;
-    font-weight: 900;
-}
-
-.loss {
-    color: #ff5b6b;
-    font-weight: 900;
-}
+.win { color: #35d07f; font-weight: 900; }
+.loss { color: #ff5b6b; font-weight: 900; }
 
 /* HISTORY */
 .history-item {
@@ -391,15 +440,8 @@ button {
     justify-content: space-between;
 }
 
-.history-game {
-    font-weight: 900;
-}
-
-.history-time {
-    color: #91a4bb;
-    font-size: 10px;
-    margin-top: 4px;
-}
+.history-game { font-weight: 900; }
+.history-time { color: #91a4bb; font-size: 10px; margin-top: 4px; }
 
 /* PROFILE */
 .profile {
@@ -438,20 +480,11 @@ button {
     font-size: 10px;
 }
 
-.nav-btn.active {
-    color: #f4c44f;
-}
-
-.nav-icon {
-    display: block;
-    font-size: 21px;
-    margin-bottom: 3px;
-}
+.nav-btn.active { color: #f4c44f; }
+.nav-icon { display: block; font-size: 21px; margin-bottom: 3px; }
 
 @media(max-width:360px) {
-    .games {
-        grid-template-columns: 1fr;
-    }
+    .games { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -479,13 +512,13 @@ button {
         <button type="button" class="game-card" id="kenoButton">
             <div class="game-icon">🎱</div>
             <div class="game-name">Keno</div>
-            <div class="game-description">Pick numbers and play a demo draw.</div>
+            <div class="game-description">Pick 5 numbers and watch the draw.</div>
         </button>
 
         <button type="button" class="game-card" id="bingoButton">
             <div class="game-icon">🎟️</div>
             <div class="game-name">Bingo</div>
-            <div class="game-description">Get your demo Bingo card.</div>
+            <div class="game-description">Animated B-I-N-G-O cartela draw.</div>
         </button>
 
         <button type="button" class="game-card" id="spinButton">
@@ -538,8 +571,8 @@ button {
 <section id="bingo" class="page">
     <button type="button" class="back" id="bingoBack">← Back</button>
     <div class="panel">
-        <div class="game-title">🎟️ Bingo</div>
-        <div class="game-subtitle">Generate a demo Bingo card</div>
+        <div class="game-title">🎟️ Bingo Cartela</div>
+        <div class="game-subtitle">Live Animated B-I-N-G-O Draw</div>
 
         <div class="bet-row">
             <button type="button" class="bet bingo-bet" data-value="5">5 ETB</button>
@@ -549,14 +582,19 @@ button {
 
         <div class="bet-label">Current bet: <b id="bingoBetText">10 ETB</b></div>
 
+        <!-- Animated Draw Dispenser Area -->
+        <div class="bingo-draw-zone" id="bingoDrawZone">
+            <span style="color:#627b97;font-size:12px;" id="bingoStatusText">Press DRAW to start</span>
+        </div>
+
         <div class="bingo-head">
             <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
         </div>
 
         <div id="bingoBoard" class="bingo-board"></div>
 
-        <button type="button" class="primary" id="playBingoButton">🎟️ DRAW 5 NUMBERS</button>
-        <button type="button" class="secondary" id="newBingoButton">🔄 NEW CARD</button>
+        <button type="button" class="primary" id="playBingoButton">🎟️ START BINGO DRAW</button>
+        <button type="button" class="secondary" id="newBingoButton">🔄 NEW CARTELA</button>
 
         <div id="bingoResult"></div>
     </div>
@@ -628,18 +666,10 @@ button {
 <section id="leaderboard" class="page">
     <div class="section-title">🏆 Demo Leaderboard</div>
     <div class="panel">
-        <div class="history-item">
-            <span>🥇 LuckyPlayer</span><b>2,450</b>
-        </div>
-        <div class="history-item">
-            <span>🥈 GameMaster</span><b>1,980</b>
-        </div>
-        <div class="history-item">
-            <span>🥉 AddisPlayer</span><b>1,750</b>
-        </div>
-        <div class="history-item">
-            <span>⭐ You</span><b id="leaderBalance">1,000</b>
-        </div>
+        <div class="history-item"><span>🥇 LuckyPlayer</span><b>2,450</b></div>
+        <div class="history-item"><span>🥈 GameMaster</span><b>1,980</b></div>
+        <div class="history-item"><span>🥉 AddisPlayer</span><b>1,750</b></div>
+        <div class="history-item"><span>⭐ You</span><b id="leaderBalance">1,000</b></div>
         <p style="color:#91a4bb;font-size:11px">Sample leaderboard for demonstration only.</p>
     </div>
 </section>
@@ -698,7 +728,10 @@ try {
 }
 
 var kenoBet = 10, bingoBet = 10, spinBet = 10, aviatorBet = 10;
-var selectedKeno = [], bingoCard = [];
+var selectedKeno = [];
+var bingoCardMatrix = []; // Store structured cartela
+var isAnimating = false;
+
 var aviatorRunning = false, aviatorTimer = null, aviatorMultiplier = 1, aviatorCrashPoint = 0;
 
 function saveData() {
@@ -729,6 +762,7 @@ function shuffle(array) {
 }
 
 function showPage(pageName) {
+    if (isAnimating) return;
     document.querySelectorAll(".page").forEach(function(page) {
         page.classList.remove("active");
     });
@@ -762,8 +796,9 @@ function setupNavigation() {
     document.getElementById("aviatorBack").addEventListener("click", function() { showPage("home"); });
 }
 
-/* KENO */
+/* KENO LOGIC & ANIMATION */
 function initKeno() {
+    if (isAnimating) return;
     selectedKeno = [];
     var container = document.getElementById("kenoNumbers");
     container.innerHTML = "";
@@ -775,6 +810,7 @@ function initKeno() {
         button.className = "number";
         button.textContent = i;
         button.addEventListener("click", function() {
+            if (isAnimating) return;
             var number = Number(this.textContent);
             if (selectedKeno.indexOf(number) !== -1) {
                 selectedKeno = selectedKeno.filter(function(n) { return n !== number; });
@@ -790,6 +826,7 @@ function initKeno() {
 }
 
 function playKeno() {
+    if (isAnimating) return;
     if (selectedKeno.length !== 5) {
         alert("Please select exactly 5 numbers.");
         return;
@@ -799,29 +836,47 @@ function playKeno() {
         return;
     }
     balance -= kenoBet;
+    updateBalance();
+    isAnimating = true;
+
+    var btn = document.getElementById("playKenoButton");
+    btn.disabled = true;
 
     var available = [];
     for (var i = 1; i <= 30; i++) available.push(i);
     var draw = shuffle(available).slice(0, 10);
     var hits = selectedKeno.filter(function(n) { return draw.indexOf(n) !== -1; }).length;
-    var multipliers = { 0: 0, 1: 0, 2: 0.5, 3: 2, 4: 8, 5: 25 };
-    var payout = Math.floor(kenoBet * multipliers[hits]);
 
-    balance += payout;
+    var step = 0;
+    var drawInterval = setInterval(function() {
+        if (step < draw.length) {
+            var drawnNum = draw[step];
+            document.querySelectorAll("#kenoNumbers .number").forEach(function(b) {
+                if (Number(b.textContent) === drawnNum) {
+                    b.classList.add("drawn");
+                }
+            });
+            step++;
+        } else {
+            clearInterval(drawInterval);
+            isAnimating = false;
+            btn.disabled = false;
 
-    document.querySelectorAll("#kenoNumbers .number").forEach(function(button) {
-        var number = Number(button.textContent);
-        if (draw.indexOf(number) !== -1) button.classList.add("drawn");
-    });
+            var multipliers = { 0: 0, 1: 0, 2: 0.5, 3: 2, 4: 8, 5: 25 };
+            var payout = Math.floor(kenoBet * multipliers[hits]);
+            balance += payout;
 
-    var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
-    document.getElementById("kenoResult").innerHTML = '<div class="result">Draw: <b>' + draw.sort(function(a,b){return a-b;}).join(", ") + '</b><br>Matches: <b>' + hits + '/5</b><br>' + message + '</div>';
-    addHistory("Keno", payout - kenoBet, hits + " matches");
+            var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
+            document.getElementById("kenoResult").innerHTML = '<div class="result">Draw: <b>' + draw.sort(function(a,b){return a-b;}).join(", ") + '</b><br>Matches: <b>' + hits + '/5</b><br>' + message + '</div>';
+            addHistory("Keno", payout - kenoBet, hits + " matches");
+        }
+    }, 250);
 }
 
 function setupKeno() {
     document.querySelectorAll(".keno-bet").forEach(function(button) {
         button.addEventListener("click", function() {
+            if (isAnimating) return;
             kenoBet = Number(button.getAttribute("data-value"));
             document.getElementById("kenoBetText").textContent = kenoBet + " ETB";
             document.querySelectorAll(".keno-bet").forEach(function(b) { b.classList.remove("selected"); });
@@ -832,57 +887,120 @@ function setupKeno() {
     document.getElementById("clearKenoButton").addEventListener("click", initKeno);
 }
 
-/* BINGO */
+/* BINGO CARTELA LOGIC & DRAW ANIMATION */
+function getBingoLetter(num) {
+    if (num <= 5) return 'B';
+    if (num <= 10) return 'I';
+    if (num <= 15) return 'N';
+    if (num <= 20) return 'G';
+    return 'O';
+}
+
 function initBingo() {
-    bingoCard = shuffle(Array.from({length: 25}, function(_, i) { return i + 1; }));
+    if (isAnimating) return;
     var board = document.getElementById("bingoBoard");
     board.innerHTML = "";
     document.getElementById("bingoResult").innerHTML = "";
+    document.getElementById("bingoDrawZone").innerHTML = '<span style="color:#627b97;font-size:12px;" id="bingoStatusText">Press DRAW to start</span>';
 
-    bingoCard.forEach(function(number, index) {
+    // Generate balanced columns for structured cartela
+    // B: 1-5, I: 6-10, N: 11-15, G: 16-20, O: 21-25
+    var cols = [
+        shuffle([1, 2, 3, 4, 5]).slice(0, 5),
+        shuffle([6, 7, 8, 9, 10]).slice(0, 5),
+        shuffle([11, 12, 13, 14, 15]).slice(0, 5),
+        shuffle([16, 17, 18, 19, 20]).slice(0, 5),
+        shuffle([21, 22, 23, 24, 25]).slice(0, 5)
+    ];
+
+    bingoCardMatrix = [];
+    for (var row = 0; row < 5; row++) {
+        for (var col = 0; col < 5; col++) {
+            if (row === 2 && col === 2) {
+                bingoCardMatrix.push({ number: 0, free: true });
+            } else {
+                bingoCardMatrix.push({ number: cols[col][row], free: false });
+            }
+        }
+    }
+
+    bingoCardMatrix.forEach(function(item) {
         var cell = document.createElement("div");
         cell.className = "bingo-cell";
-        if (index === 12) {
+        if (item.free) {
             cell.classList.add("free");
             cell.textContent = "FREE";
         } else {
-            cell.textContent = number;
+            cell.textContent = item.number;
+            cell.setAttribute("data-num", item.number);
         }
         board.appendChild(cell);
     });
 }
 
 function playBingo() {
+    if (isAnimating) return;
     if (balance < bingoBet) {
         alert("Not enough demo credits.");
         return;
     }
     balance -= bingoBet;
+    updateBalance();
+    isAnimating = true;
 
-    var draw = shuffle(Array.from({length: 25}, function(_, i) { return i + 1; })).slice(0, 5);
-    var hits = 0;
+    var btn = document.getElementById("playBingoButton");
+    btn.disabled = true;
 
-    document.querySelectorAll("#bingoBoard .bingo-cell").forEach(function(cell) {
-        var number = Number(cell.textContent);
-        if (number && draw.indexOf(number) !== -1) {
-            cell.classList.add("hit");
-            hits++;
+    var drawZone = document.getElementById("bingoDrawZone");
+    drawZone.innerHTML = ""; // Clear initial text
+
+    var pool = [];
+    for (var i = 1; i <= 25; i++) pool.push(i);
+    var drawnSequence = shuffle(pool).slice(0, 8); // Draw 8 balls sequentially
+
+    var step = 0;
+    var hitsCount = 0;
+
+    var interval = setInterval(function() {
+        if (step < drawnSequence.length) {
+            var num = drawnSequence[step];
+            var letter = getBingoLetter(num);
+
+            // Animated ball element drop
+            var ball = document.createElement("div");
+            ball.className = "bingo-ball";
+            ball.innerHTML = '<span class="ball-letter">' + letter + '</span>' + num;
+            drawZone.appendChild(ball);
+
+            // Highlight target cell on cartela
+            var matchingCell = document.querySelector('#bingoBoard .bingo-cell[data-num="' + num + '"]');
+            if (matchingCell) {
+                matchingCell.classList.add("hit");
+                hitsCount++;
+            }
+
+            step++;
+        } else {
+            clearInterval(interval);
+            isAnimating = false;
+            btn.disabled = false;
+
+            var payout = 0;
+            if (hitsCount >= 4) payout = bingoBet * 4;
+            else if (hitsCount >= 2) payout = bingoBet * 1.5;
+
+            balance += payout;
+            var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
+            document.getElementById("bingoResult").innerHTML = '<div class="result">Cartela Hits: <b>' + hitsCount + '</b><br>' + message + '</div>';
+            addHistory("Bingo", payout - bingoBet, hitsCount + " hits");
         }
-    });
-
-    var payout = 0;
-    if (hits >= 4) payout = bingoBet * 5;
-    else if (hits === 3) payout = bingoBet * 2;
-
-    balance += payout;
-    var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
-    document.getElementById("bingoResult").innerHTML = '<div class="result">Draw: <b>' + draw.join(", ") + '</b><br>Matches: <b>' + hits + '</b><br>' + message + '</div>';
-    addHistory("Bingo", payout - bingoBet, hits + " matches");
+    }, 700);
 }
 
 function setupBingo() {
     document.querySelectorAll(".bingo-bet").forEach(function(button) {
         button.addEventListener("click", function() {
+            if (isAnimating) return;
             bingoBet = Number(button.getAttribute("data-value"));
             document.getElementById("bingoBetText").textContent = bingoBet + " ETB";
             document.querySelectorAll(".bingo-bet").forEach(function(b) { b.classList.remove("selected"); });
@@ -893,10 +1011,11 @@ function setupBingo() {
     document.getElementById("newBingoButton").addEventListener("click", initBingo);
 }
 
-/* SPIN */
+/* SPIN LOGIC & ANIMATION */
 function setupSpin() {
     document.querySelectorAll(".spin-bet").forEach(function(button) {
         button.addEventListener("click", function() {
+            if (isAnimating) return;
             spinBet = Number(button.getAttribute("data-value"));
             document.getElementById("spinBetText").textContent = spinBet + " ETB";
             document.querySelectorAll(".spin-bet").forEach(function(b) { b.classList.remove("selected"); });
@@ -907,11 +1026,18 @@ function setupSpin() {
 }
 
 function playSpin() {
+    if (isAnimating) return;
     if (balance < spinBet) {
         alert("Not enough demo credits.");
         return;
     }
     balance -= spinBet;
+    updateBalance();
+    isAnimating = true;
+
+    var btn = document.getElementById("playSpinButton");
+    btn.disabled = true;
+
     var outcomes = [0, 0, 0.5, 1, 2, 3, 5, 10];
     var index = randomNumber(0, outcomes.length - 1);
     var multiplier = outcomes[index];
@@ -921,15 +1047,17 @@ function playSpin() {
     wheel.style.transform = "rotate(" + rotation + "deg)";
 
     setTimeout(function() {
+        isAnimating = false;
+        btn.disabled = false;
         var payout = Math.floor(spinBet * multiplier);
         balance += payout;
         var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
         document.getElementById("spinResult").innerHTML = '<div class="result">Result: <b>' + multiplier + '×</b><br>' + message + '</div>';
         addHistory("Spin", payout - spinBet, multiplier + "×");
-    }, 3100);
+    }, 4100);
 }
 
-/* AVIATOR */
+/* AVIATOR LOGIC & ANIMATION */
 function setupAviator() {
     document.querySelectorAll(".aviator-bet").forEach(function(button) {
         button.addEventListener("click", function() {
@@ -954,9 +1082,10 @@ function startAviator() {
         return;
     }
     balance -= aviatorBet;
+    updateBalance();
     aviatorRunning = true;
     aviatorMultiplier = 1;
-    aviatorCrashPoint = 1.5 + Math.random() * 6;
+    aviatorCrashPoint = 1.3 + Math.random() * 5;
 
     document.getElementById("aviatorResult").innerHTML = "";
     document.getElementById("aviatorMultiplier").classList.remove("crashed");
@@ -969,7 +1098,7 @@ function startAviator() {
 
         document.getElementById("aviatorMultiplier").textContent = aviatorMultiplier.toFixed(2) + "×";
         var plane = document.getElementById("plane");
-        plane.style.transform = "translate(" + (elapsed * 8) + "px,-" + (elapsed * 5) + "px)";
+        plane.style.transform = "translate(" + (elapsed * 12) + "px,-" + (elapsed * 8) + "px)";
 
         if (aviatorMultiplier >= aviatorCrashPoint) {
             crashAviator();
@@ -1019,7 +1148,7 @@ function renderHistory() {
     }).join("");
 }
 
-/* TELEGRAM USER */
+/* TELEGRAM USER INTEGRATION */
 function loadTelegramUser() {
     if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return;
     var user = tg.initDataUnsafe.user;
