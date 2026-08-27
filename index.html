@@ -11,460 +11,574 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
 :root{
-  --bg:#07111f;
-  --card:#101d2f;
-  --card2:#16263b;
-  --text:#fff;
-  --muted:#8ea0b8;
-  --gold:#f5c451;
-  --green:#35d07f;
-  --red:#ff5c6c;
-  --blue:#4da3ff;
+ --bg:#07111f;
+ --card:#101d2f;
+ --card2:#172940;
+ --line:#29415d;
+ --text:#fff;
+ --muted:#91a4bb;
+ --gold:#f4c44f;
+ --green:#35d07f;
+ --red:#ff5b6b;
+}
+
+html,body{
+ margin:0;
+ padding:0;
+ min-height:100%;
+ background:var(--bg);
+ color:var(--text);
+ font-family:Arial,Helvetica,sans-serif;
 }
 
 body{
-  margin:0;
-  background:
-    radial-gradient(circle at 50% -10%,#203b59 0,#07111f 45%);
-  color:var(--text);
-  font-family:Arial,sans-serif;
-  min-height:100vh;
+ background:
+ radial-gradient(circle at 50% -15%,#294c70 0,#07111f 48%);
 }
 
 button{
-  font:inherit;
-  cursor:pointer;
+ font-family:inherit;
 }
 
 .app{
-  max-width:520px;
-  margin:auto;
-  min-height:100vh;
-  padding-bottom:85px;
+ max-width:520px;
+ margin:auto;
+ min-height:100vh;
+ padding-bottom:80px;
 }
+
+/* HEADER */
 
 .header{
-  padding:22px 18px 10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+ height:72px;
+ padding:15px 17px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
 }
 
-.brand{
-  font-size:25px;
-  font-weight:900;
-  letter-spacing:.5px;
+.logo{
+ font-size:25px;
+ font-weight:900;
+ letter-spacing:.5px;
 }
 
-.brand span{color:var(--gold)}
-
-.profile{
-  width:42px;
-  height:42px;
-  border-radius:50%;
-  background:var(--card2);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
+.logo span{
+ color:var(--gold);
 }
+
+.avatar{
+ width:42px;
+ height:42px;
+ border-radius:50%;
+ background:var(--card2);
+ border:1px solid var(--line);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-weight:900;
+}
+
+/* BALANCE */
 
 .balance{
-  margin:8px 15px 18px;
-  padding:20px;
-  border-radius:22px;
-  background:linear-gradient(135deg,#172c45,#0e1a2b);
-  border:1px solid #27405e;
-  box-shadow:0 12px 35px #0005;
+ margin:5px 15px 20px;
+ padding:21px;
+ border-radius:22px;
+ background:
+ linear-gradient(135deg,#19324d,#0d1929);
+ border:1px solid #2b4866;
+ box-shadow:0 15px 40px #0006;
 }
 
 .balance-label{
-  color:var(--muted);
-  font-size:13px;
+ color:var(--muted);
+ font-size:12px;
+ text-transform:uppercase;
+ letter-spacing:1px;
 }
 
 .balance-value{
-  font-size:30px;
-  font-weight:900;
-  margin-top:6px;
+ margin-top:6px;
+ font-size:32px;
+ font-weight:900;
 }
 
-.demo{
-  color:var(--gold);
-  font-size:11px;
-  margin-top:5px;
-  text-transform:uppercase;
-  letter-spacing:1px;
+.demo-label{
+ color:var(--gold);
+ font-size:10px;
+ margin-top:5px;
+ letter-spacing:1px;
 }
+
+/* PAGES */
+
+.page{
+ display:none;
+}
+
+.page.active{
+ display:block;
+}
+
+/* TITLES */
 
 .section-title{
-  padding:0 17px;
-  margin:22px 0 10px;
-  font-size:18px;
-  font-weight:800;
+ margin:20px 17px 12px;
+ font-size:19px;
+ font-weight:900;
 }
 
+/* GAME CARDS */
+
 .games{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:12px;
-  padding:0 15px;
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:12px;
+ padding:0 15px;
 }
 
 .game-card{
-  min-height:145px;
-  border:1px solid #263c55;
-  border-radius:20px;
-  background:linear-gradient(145deg,#15273d,#0d1929);
-  color:white;
-  padding:18px;
-  text-align:left;
-  transition:.15s;
+ min-height:145px;
+ padding:18px;
+ border-radius:20px;
+ background:linear-gradient(145deg,#172a41,#0e1b2c);
+ border:1px solid var(--line);
+ color:white;
+ text-align:left;
 }
 
 .game-card:active{
-  transform:scale(.97);
+ transform:scale(.97);
 }
 
 .game-icon{
-  font-size:38px;
-  margin-bottom:12px;
+ font-size:37px;
+ margin-bottom:13px;
 }
 
 .game-name{
-  font-weight:900;
-  font-size:17px;
+ font-size:17px;
+ font-weight:900;
 }
 
-.game-description{
-  color:var(--muted);
-  font-size:11px;
-  margin-top:5px;
+.game-desc{
+ margin-top:6px;
+ color:var(--muted);
+ font-size:11px;
+ line-height:1.35;
 }
 
-.menu{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  height:70px;
-  background:#091522ee;
-  backdrop-filter:blur(12px);
-  border-top:1px solid #24384f;
-  display:flex;
-  justify-content:center;
-  z-index:50;
-}
+/* PANELS */
 
-.menu-inner{
-  max-width:520px;
-  width:100%;
-  display:flex;
-  justify-content:space-around;
-}
-
-.nav-btn{
-  background:none;
-  border:0;
-  color:var(--muted);
-  padding:8px 18px;
-  font-size:11px;
-}
-
-.nav-btn.active{color:var(--gold)}
-
-.nav-icon{
-  display:block;
-  font-size:21px;
-  margin-bottom:3px;
-}
-
-.page{display:none}
-.page.active{display:block}
-
-.back{
-  margin:16px;
-  border:0;
-  background:var(--card2);
-  color:white;
-  padding:10px 15px;
-  border-radius:12px;
-}
-
-.game-panel{
-  margin:10px 15px;
-  padding:18px;
-  background:var(--card);
-  border:1px solid #263c55;
-  border-radius:22px;
+.panel{
+ margin:12px 15px;
+ padding:18px;
+ border-radius:22px;
+ background:var(--card);
+ border:1px solid var(--line);
 }
 
 .game-title{
-  text-align:center;
-  font-size:25px;
-  font-weight:900;
-  margin:8px 0 4px;
+ text-align:center;
+ font-size:26px;
+ font-weight:900;
+ margin:4px 0;
 }
 
 .game-subtitle{
-  text-align:center;
-  color:var(--muted);
-  font-size:13px;
+ text-align:center;
+ color:var(--muted);
+ font-size:12px;
 }
 
-.bet-row{
-  display:flex;
-  gap:8px;
-  margin:18px 0;
-}
-
-.bet{
-  flex:1;
-  background:var(--card2);
-  border:1px solid #304861;
-  color:white;
-  border-radius:12px;
-  padding:11px;
-}
+/* BUTTONS */
 
 .primary{
-  width:100%;
-  padding:14px;
-  border:0;
-  border-radius:14px;
-  background:var(--gold);
-  color:#17120a;
-  font-weight:900;
-  margin-top:10px;
+ width:100%;
+ margin-top:14px;
+ padding:14px;
+ border:0;
+ border-radius:14px;
+ background:var(--gold);
+ color:#171208;
+ font-weight:900;
 }
 
 .secondary{
-  width:100%;
-  padding:13px;
-  border:1px solid #38516d;
-  border-radius:14px;
-  background:var(--card2);
-  color:white;
-  font-weight:700;
-  margin-top:9px;
+ width:100%;
+ margin-top:10px;
+ padding:13px;
+ border-radius:14px;
+ border:1px solid #39536e;
+ background:var(--card2);
+ color:white;
+ font-weight:800;
 }
 
+.back{
+ margin:15px;
+ padding:10px 15px;
+ border:0;
+ border-radius:12px;
+ background:var(--card2);
+ color:white;
+}
+
+/* BET */
+
+.bet-row{
+ display:flex;
+ gap:8px;
+ margin-top:18px;
+}
+
+.bet{
+ flex:1;
+ padding:11px 4px;
+ border-radius:12px;
+ border:1px solid #34506c;
+ background:var(--card2);
+ color:white;
+ font-weight:800;
+}
+
+.bet.selected{
+ border-color:var(--gold);
+ color:var(--gold);
+}
+
+.bet-label{
+ color:var(--muted);
+ font-size:12px;
+ margin-top:10px;
+}
+
+/* KENO */
+
 .numbers{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:8px;
-  margin-top:18px;
+ display:grid;
+ grid-template-columns:repeat(5,1fr);
+ gap:8px;
+ margin-top:18px;
 }
 
 .number{
-  aspect-ratio:1;
-  border-radius:12px;
-  border:1px solid #314963;
-  background:#17283d;
-  color:white;
-  font-weight:800;
+ aspect-ratio:1;
+ border-radius:12px;
+ border:1px solid #314b66;
+ background:#17283c;
+ color:white;
+ font-weight:900;
 }
 
 .number.selected{
-  background:var(--gold);
-  color:#15100a;
+ background:var(--gold);
+ color:#111;
+ border-color:var(--gold);
 }
 
 .number.drawn{
-  background:var(--green);
-  color:#06140c;
+ background:var(--green);
+ color:#07150d;
+ border-color:var(--green);
 }
+
+.number.selected.drawn{
+ box-shadow:0 0 0 3px white inset;
+}
+
+/* RESULT */
 
 .result{
-  margin-top:15px;
-  padding:14px;
-  border-radius:14px;
-  background:#0a1624;
-  text-align:center;
-  line-height:1.6;
+ margin-top:15px;
+ padding:15px;
+ border-radius:14px;
+ background:#091624;
+ border:1px solid #21384f;
+ text-align:center;
+ line-height:1.7;
 }
 
-.balls{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  justify-content:center;
-  margin:15px 0;
+.win{
+ color:var(--green);
+ font-weight:900;
 }
 
-.ball{
-  width:43px;
-  height:43px;
-  border-radius:50%;
-  background:var(--gold);
-  color:#111;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  font-weight:900;
+.loss{
+ color:var(--red);
+ font-weight:900;
 }
+
+/* BINGO */
 
 .bingo-board{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:6px;
-  margin-top:18px;
+ display:grid;
+ grid-template-columns:repeat(5,1fr);
+ gap:6px;
+ margin-top:18px;
+}
+
+.bingo-head{
+ display:grid;
+ grid-template-columns:repeat(5,1fr);
+ gap:6px;
+ margin-top:18px;
+ text-align:center;
+ font-weight:900;
+ color:var(--gold);
 }
 
 .bingo-cell{
-  aspect-ratio:1;
-  background:#17283d;
-  border:1px solid #304861;
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:13px;
-  font-weight:800;
+ aspect-ratio:1;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:#17283c;
+ border:1px solid #314b66;
+ border-radius:8px;
+ font-size:13px;
+ font-weight:800;
 }
 
 .bingo-cell.hit{
-  background:var(--green);
-  color:#06140c;
+ background:var(--green);
+ color:#07150d;
 }
 
-.wheel{
-  width:230px;
-  height:230px;
-  border-radius:50%;
-  margin:25px auto;
-  border:8px solid #263c55;
-  background:conic-gradient(
-    #f5c451 0deg 45deg,
-    #274d70 45deg 90deg,
-    #35d07f 90deg 135deg,
-    #6d4d91 135deg 180deg,
-    #f5c451 180deg 225deg,
-    #274d70 225deg 270deg,
-    #35d07f 270deg 315deg,
-    #6d4d91 315deg 360deg
-  );
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition:transform 3s cubic-bezier(.15,.8,.2,1);
-  box-shadow:0 15px 40px #0007;
+.bingo-cell.free{
+ background:var(--gold);
+ color:#111;
 }
 
-.wheel-center{
-  width:70px;
-  height:70px;
-  border-radius:50%;
-  background:#101d2f;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
+/* SPIN */
+
+.wheel-wrap{
+ position:relative;
+ width:250px;
+ margin:22px auto 5px;
 }
 
 .pointer{
-  text-align:center;
-  font-size:28px;
-  margin-top:-12px;
+ position:absolute;
+ top:-9px;
+ left:50%;
+ transform:translateX(-50%);
+ font-size:30px;
+ z-index:2;
 }
 
-.plane-area{
-  margin:20px 0;
-  height:230px;
-  border-radius:18px;
-  background:
-    linear-gradient(#10263d99,#10263d99),
-    radial-gradient(circle at 30% 20%,#254d6d,#071522 70%);
-  overflow:hidden;
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+.wheel{
+ width:230px;
+ height:230px;
+ margin:auto;
+ border-radius:50%;
+ border:8px solid #2a415b;
+ background:conic-gradient(
+  #f4c44f 0deg 45deg,
+  #244a6b 45deg 90deg,
+  #35d07f 90deg 135deg,
+  #7954a0 135deg 180deg,
+  #f4c44f 180deg 225deg,
+  #244a6b 225deg 270deg,
+  #35d07f 270deg 315deg,
+  #7954a0 315deg 360deg
+ );
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ transition:transform 3.2s cubic-bezier(.12,.75,.2,1);
+ box-shadow:0 15px 40px #0008;
+}
+
+.wheel-center{
+ width:72px;
+ height:72px;
+ border-radius:50%;
+ background:#101d2f;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-weight:900;
+}
+
+/* AVIATOR */
+
+.flight-area{
+ height:245px;
+ margin-top:18px;
+ border-radius:18px;
+ position:relative;
+ overflow:hidden;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:
+ radial-gradient(circle at 25% 25%,#285274,#10283d 35%,#071522 75%);
+}
+
+.flight-area:before{
+ content:"";
+ position:absolute;
+ width:150%;
+ height:2px;
+ background:#ffffff20;
+ transform:rotate(-20deg);
 }
 
 .plane{
-  font-size:55px;
-  transition:transform .1s linear;
+ font-size:55px;
+ position:absolute;
+ left:20%;
+ bottom:32%;
+ transition:transform .1s linear;
 }
 
 .multiplier{
-  position:absolute;
-  font-size:43px;
-  font-weight:900;
+ position:absolute;
+ font-size:45px;
+ font-weight:900;
+ top:35%;
 }
 
-.cashout{
-  background:var(--green);
-  color:#06140c;
+.crashed{
+ color:var(--red);
 }
+
+/* HISTORY */
 
 .history-item{
-  display:flex;
-  justify-content:space-between;
-  padding:14px 4px;
-  border-bottom:1px solid #24384f;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:14px 2px;
+ border-bottom:1px solid #253a51;
 }
 
-.win{color:var(--green)}
-.loss{color:var(--red)}
+.history-game{
+ font-weight:900;
+}
 
-.profile-box{
-  margin:15px;
-  padding:20px;
-  border-radius:20px;
-  background:var(--card);
-  border:1px solid #263c55;
+.history-time{
+ color:var(--muted);
+ font-size:10px;
+ margin-top:3px;
+}
+
+/* PROFILE */
+
+.profile-card{
+ margin:15px;
+ padding:20px;
+ border-radius:20px;
+ background:var(--card);
+ border:1px solid var(--line);
 }
 
 .setting{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:16px 0;
-  border-bottom:1px solid #26384d;
+ padding:16px 0;
+ border-bottom:1px solid #263a50;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+}
+
+.setting small{
+ display:block;
+ color:var(--muted);
+ margin-top:4px;
 }
 
 .switch{
-  width:48px;
-  height:26px;
-  border-radius:20px;
-  background:#34485f;
-  padding:3px;
+ width:48px;
+ height:27px;
+ padding:3px;
+ border:0;
+ border-radius:20px;
+ background:#3b5067;
 }
 
-.switch.on{background:var(--green)}
+.switch.on{
+ background:var(--green);
+}
 
 .switch-dot{
-  width:20px;
-  height:20px;
-  background:white;
-  border-radius:50%;
-  transition:.2s;
+ width:21px;
+ height:21px;
+ background:white;
+ border-radius:50%;
+ transition:.2s;
 }
 
-.switch.on .switch-dot{transform:translateX(22px)}
-
-.small{
-  color:var(--muted);
-  font-size:12px;
+.switch.on .switch-dot{
+ transform:translateX(21px);
 }
+
+/* NAV */
+
+.nav{
+ position:fixed;
+ bottom:0;
+ left:0;
+ right:0;
+ height:70px;
+ background:#091522ee;
+ backdrop-filter:blur(15px);
+ border-top:1px solid #263b52;
+ z-index:50;
+}
+
+.nav-inner{
+ max-width:520px;
+ height:100%;
+ margin:auto;
+ display:flex;
+ justify-content:space-around;
+ align-items:center;
+}
+
+.nav-btn{
+ border:0;
+ background:none;
+ color:var(--muted);
+ font-size:10px;
+ padding:7px 15px;
+}
+
+.nav-btn.active{
+ color:var(--gold);
+}
+
+.nav-icon{
+ display:block;
+ font-size:21px;
+ margin-bottom:3px;
+}
+
+/* TOAST */
 
 .toast{
-  position:fixed;
-  left:50%;
-  bottom:85px;
-  transform:translateX(-50%);
-  background:#17283d;
-  border:1px solid #38516d;
-  padding:12px 18px;
-  border-radius:14px;
-  z-index:100;
-  display:none;
-  box-shadow:0 10px 30px #0008;
+ display:none;
+ position:fixed;
+ z-index:100;
+ left:50%;
+ bottom:85px;
+ transform:translateX(-50%);
+ padding:12px 18px;
+ border-radius:14px;
+ background:#17283c;
+ border:1px solid #3a5570;
+ box-shadow:0 10px 30px #0008;
+ font-size:13px;
+ white-space:nowrap;
 }
 
+/* MOBILE */
+
 @media(max-width:360px){
-  .games{grid-template-columns:1fr}
+ .games{
+  grid-template-columns:1fr;
+ }
 }
 </style>
 </head>
@@ -473,184 +587,1619 @@ button{
 
 <div class="app">
 
+<!-- HEADER -->
+
 <header class="header">
-  <div class="brand">DESTA <span>PLAY</span></div>
-  <div class="profile" id="profileIcon">👤</div>
+ <div class="logo">DESTA <span>PLAY</span></div>
+ <div class="avatar" id="avatar">👤</div>
 </header>
 
+
 <!-- HOME -->
+
 <section id="home" class="page active">
 
-  <div class="balance">
-    <div class="balance-label">DEMO BALANCE</div>
-    <div class="balance-value">🪙 <span id="balance">1000</span> ETB</div>
-    <div class="demo">Virtual credits • Demo only</div>
+ <div class="balance">
+  <div class="balance-label">Demo Balance</div>
+  <div class="balance-value">
+   🪙 <span id="balance">1,000</span> ETB
   </div>
+  <div class="demo-label">VIRTUAL CREDITS • DEMO MODE</div>
+ </div>
 
-  <div class="section-title">Choose a game</div>
+ <div class="section-title">🎮 Games</div>
 
-  <div class="games">
+ <div class="games">
 
-    <button class="game-card" onclick="openGame('keno')">
-      <div class="game-icon">🎱</div>
-      <div class="game-name">Keno</div>
-      <div class="game-description">Pick numbers & test your luck</div>
-    </button>
+  <button class="game-card" onclick="openGame('keno')">
+   <div class="game-icon">🎱</div>
+   <div class="game-name">Keno</div>
+   <div class="game-desc">
+    Pick 5 numbers and draw 10 numbers.
+   </div>
+  </button>
 
-    <button class="game-card" onclick="openGame('bingo')">
-      <div class="game-icon">🎟️</div>
-      <div class="game-name">Bingo</div>
-      <div class="game-description">Complete your pattern</div>
-    </button>
+  <button class="game-card" onclick="openGame('bingo')">
+   <div class="game-icon">🎟️</div>
+   <div class="game-name">Bingo</div>
+   <div class="game-desc">
+    Get a card and match the drawn numbers.
+   </div>
+  </button>
 
-    <button class="game-card" onclick="openGame('spin')">
-      <div class="game-icon">🎡</div>
-      <div class="game-name">Spin</div>
-      <div class="game-description">Spin the demo wheel</div>
-    </button>
+  <button class="game-card" onclick="openGame('spin')">
+   <div class="game-icon">🎡</div>
+   <div class="game-name">Spin</div>
+   <div class="game-desc">
+    Spin the virtual prize wheel.
+   </div>
+  </button>
 
-    <button class="game-card" onclick="openGame('aviator')">
-      <div class="game-icon">✈️</div>
-      <div class="game-name">Aviator</div>
-      <div class="game-description">Multiplier demo game</div>
-    </button>
+  <button class="game-card" onclick="openGame('aviator')">
+   <div class="game-icon">✈️</div>
+   <div class="game-name">Aviator</div>
+   <div class="game-desc">
+    Start a demo flight and cash out.
+   </div>
+  </button>
 
-  </div>
+ </div>
 
-  <div class="section-title">Welcome</div>
+ <div class="section-title">👋 Welcome</div>
 
-  <div class="game-panel">
-    <div style="font-weight:800">👋 <span id="welcomeName">Player</span></div>
-    <div class="small" style="margin-top:8px">
-      Welcome to DESTA PLAY. This version uses virtual demo credits.
-    </div>
-  </div>
+ <div class="panel">
+  <b>Welcome, <span id="welcomeName">Player</span>!</b>
+
+  <p style="color:var(--muted);font-size:12px;line-height:1.6">
+   DESTA PLAY is currently a demonstration application.
+   All credits are virtual and have no cash value.
+  </p>
+ </div>
 
 </section>
 
 
 <!-- KENO -->
+
 <section id="keno" class="page">
 
-<button class="back" onclick="showPage('home')">← Back</button>
+ <button class="back" onclick="showPage('home')">← Back</button>
 
-<div class="game-panel">
+ <div class="panel">
+
   <div class="game-title">🎱 Keno</div>
-  <div class="game-subtitle">Choose 5 numbers from 1–30</div>
-
-  <div class="bet-row">
-    <button class="bet" onclick="setBet(kenoBet,5,'keno')">5</button>
-    <button class="bet" onclick="setBet(kenoBet,10,'keno')">10</button>
-    <button class="bet" onclick="setBet(kenoBet,20,'keno')">20</button>
-    <button class="bet" onclick="setBet(kenoBet,50,'keno')">50</button>
+  <div class="game-subtitle">
+   Choose exactly 5 numbers
   </div>
 
-  <div class="small">Bet: <b id="kenoBetText">10 ETB</b></div>
+  <div class="bet-row">
+
+   <button class="bet keno-bet" onclick="chooseKenoBet(5,this)">
+    5 ETB
+   </button>
+
+   <button class="bet keno-bet selected" onclick="chooseKenoBet(10,this)">
+    10 ETB
+   </button>
+
+   <button class="bet keno-bet" onclick="chooseKenoBet(20,this)">
+    20 ETB
+   </button>
+
+   <button class="bet keno-bet" onclick="chooseKenoBet(50,this)">
+    50 ETB
+   </button>
+
+  </div>
+
+  <div class="bet-label">
+   Current bet: <b id="kenoBetText">10 ETB</b>
+  </div>
 
   <div id="kenoNumbers" class="numbers"></div>
 
-  <button class="primary" onclick="playKeno()">DRAW NUMBERS</button>
+  <button class="primary" onclick="playKeno()">
+   🎱 DRAW NUMBERS
+  </button>
+
+  <button class="secondary" onclick="initKeno()">
+   🔄 CLEAR SELECTION
+  </button>
 
   <div id="kenoResult"></div>
-</div>
+
+ </div>
 
 </section>
 
 
 <!-- BINGO -->
+
 <section id="bingo" class="page">
 
-<button class="back" onclick="showPage('home')">← Back</button>
+ <button class="back" onclick="showPage('home')">← Back</button>
 
-<div class="game-panel">
+ <div class="panel">
+
   <div class="game-title">🎟️ Bingo</div>
-  <div class="game-subtitle">Generate a card and draw numbers</div>
 
-  <div class="bet-row">
-    <button class="bet" onclick="bingoBet=5;updateBingoBet()">5 ETB</button>
-    <button class="bet" onclick="bingoBet=10;updateBingoBet()">10 ETB</button>
-    <button class="bet" onclick="bingoBet=20;updateBingoBet()">20 ETB</button>
+  <div class="game-subtitle">
+   Generate a demo Bingo card
   </div>
 
-  <div class="small">Bet: <b id="bingoBetText">10 ETB</b></div>
+  <div class="bet-row">
+
+   <button class="bet bingo-bet" onclick="chooseBingoBet(5,this)">
+    5 ETB
+   </button>
+
+   <button class="bet bingo-bet selected" onclick="chooseBingoBet(10,this)">
+    10 ETB
+   </button>
+
+   <button class="bet bingo-bet" onclick="chooseBingoBet(20,this)">
+    20 ETB
+   </button>
+
+  </div>
+
+  <div class="bet-label">
+   Current bet: <b id="bingoBetText">10 ETB</b>
+  </div>
+
+  <div class="bingo-head">
+   <div>B</div>
+   <div>I</div>
+   <div>N</div>
+   <div>G</div>
+   <div>O</div>
+  </div>
 
   <div id="bingoBoard" class="bingo-board"></div>
 
-  <button class="primary" onclick="playBingo()">DRAW 5 NUMBERS</button>
+  <button class="primary" onclick="playBingo()">
+   🎟️ DRAW 5 NUMBERS
+  </button>
+
+  <button class="secondary" onclick="initBingo()">
+   🔄 NEW CARD
+  </button>
 
   <div id="bingoResult"></div>
-</div>
+
+ </div>
 
 </section>
 
 
 <!-- SPIN -->
+
 <section id="spin" class="page">
 
-<button class="back" onclick="showPage('home')">← Back</button>
+ <button class="back" onclick="showPage('home')">← Back</button>
 
-<div class="game-panel">
+ <div class="panel">
+
   <div class="game-title">🎡 Spin</div>
-  <div class="game-subtitle">Demo prize wheel</div>
 
-  <div class="wheel" id="wheel">
-    <div class="wheel-center">SPIN</div>
+  <div class="game-subtitle">
+   Spin the virtual demo wheel
   </div>
 
-  <div class="pointer">🔻</div>
+  <div class="wheel-wrap">
+
+   <div class="pointer">🔻</div>
+
+   <div class="wheel" id="wheel">
+    <div class="wheel-center">SPIN</div>
+   </div>
+
+  </div>
 
   <div class="bet-row">
-    <button class="bet" onclick="spinBet=5;updateSpinBet()">5</button>
-    <button class="bet" onclick="spinBet=10;updateSpinBet()">10</button>
-    <button class="bet" onclick="spinBet=20;updateSpinBet()">20</button>
+
+   <button class="bet spin-bet" onclick="chooseSpinBet(5,this)">
+    5 ETB
+   </button>
+
+   <button class="bet spin-bet selected" onclick="chooseSpinBet(10,this)">
+    10 ETB
+   </button>
+
+   <button class="bet spin-bet" onclick="chooseSpinBet(20,this)">
+    20 ETB
+   </button>
+
   </div>
 
-  <div class="small">Bet: <b id="spinBetText">10 ETB</b></div>
+  <div class="bet-label">
+   Current bet: <b id="spinBetText">10 ETB</b>
+  </div>
 
-  <button class="primary" onclick="playSpin()">SPIN WHEEL</button>
+  <button class="primary" onclick="playSpin()">
+   🎡 SPIN
+  </button>
 
   <div id="spinResult"></div>
-</div>
+
+ </div>
 
 </section>
 
 
 <!-- AVIATOR -->
+
 <section id="aviator" class="page">
 
-<button class="back" onclick="showPage('home')">← Back</button>
+ <button class="back" onclick="showPage('home')">← Back</button>
 
-<div class="game-panel">
+ <div class="panel">
 
   <div class="game-title">✈️ Aviator Demo</div>
-  <div class="game-subtitle">Cash out before the demo round ends</div>
 
-  <div class="plane-area">
-    <div class="plane" id="plane">✈️</div>
-    <div class="multiplier" id="multiplier">1.00×</div>
+  <div class="game-subtitle">
+   Cash out before the demo flight ends
+  </div>
+
+  <div class="flight-area">
+
+   <div class="multiplier" id="multiplier">
+    1.00×
+   </div>
+
+   <div class="plane" id="plane">
+    ✈️
+   </div>
+
   </div>
 
   <div class="bet-row">
-    <button class="bet" onclick="aviatorBet=5;updateAviatorBet()">5</button>
-    <button class="bet" onclick="aviatorBet=10;updateAviatorBet()">10</button>
-    <button class="bet" onclick="aviatorBet=20;updateAviatorBet()">20</button>
+
+   <button class="bet aviator-bet" onclick="chooseAviatorBet(5,this)">
+    5 ETB
+   </button>
+
+   <button class="bet aviator-bet selected" onclick="chooseAviatorBet(10,this)">
+    10 ETB
+   </button>
+
+   <button class="bet aviator-bet" onclick="chooseAviatorBet(20,this)">
+    20 ETB
+   </button>
+
   </div>
 
-  <div class="small">Bet: <b id="aviatorBetText">10 ETB</b></div>
+  <div class="bet-label">
+   Current bet: <b id="aviatorBetText">10 ETB</b>
+  </div>
 
-  <button id="aviatorButton" class="primary" onclick="startAviator()">
-    START ROUND
+  <button
+   id="aviatorButton"
+   class="primary"
+   onclick="startAviator()">
+   ✈️ START ROUND
   </button>
 
   <div id="aviatorResult"></div>
 
-</div>
+ </div>
+
 </section>
 
 
 <!-- HISTORY -->
+
 <section id="history" class="page">
 
-<div class="section-title">📜 Game History</div>
+ <div class="section-title">📜 Game History</div>
 
-<div class="game-panel" id="historyList">
+ <div class="panel" id="historyList">
+  <div style="color:var(--muted);font-size:12px">
+   No games played yet.
+  </div>
+ </div>
+
+</section>
+
+
+<!-- LEADERBOARD -->
+
+<section id="leaderboard" class="page">
+
+ <div class="section-title">🏆 Demo Leaderboard</div>
+
+ <div class="panel">
+
+  <div class="history-item">
+   <span>🥇 LuckyPlayer</span>
+   <b>2,450</b>
+  </div>
+
+  <div class="history-item">
+   <span>🥈 GameMaster</span>
+   <b>1,980</b>
+  </div>
+
+  <div class="history-item">
+   <span>🥉 AddisPlayer</span>
+   <b>1,750</b>
+  </div>
+
+  <div class="history-item">
+   <span>⭐ You</span>
+   <b id="leaderBalance">1,000</b>
+  </div>
+
+  <p style="color:var(--muted);font-size:11px;line-height:1.5">
+   Sample leaderboard for demonstration only.
+  </p>
+
+ </div>
+
+</section>
+
+
+<!-- PROFILE -->
+
+<section id="profile" class="page">
+
+ <div class="section-title">👤 Profile</div>
+
+ <div class="profile-card">
+
+  <div style="font-size:21px;font-weight:900" id="profileName">
+   Player
+  </div>
+
+  <div
+   id="profileUsername"
+   style="color:var(--muted);font-size:12px;margin-top:5px">
+   Telegram user
+  </div>
+
+  <div class="setting">
+
+   <div>
+    <b>🔊 Sound Effects</b>
+    <small>Game sounds</small>
+   </div>
+
+   <button
+    id="soundSwitch"
+    class="switch on"
+    onclick="toggleSound()">
+
+    <div class="switch-dot"></div>
+
+   </button>
+
+  </div>
+
+  <div class="setting">
+
+   <div>
+    <b>🎵 Music</b>
+    <small>Music control</small>
+   </div>
+
+   <button
+    id="musicSwitch"
+    class="switch on"
+    onclick="toggleMusic()">
+
+    <div class="switch-dot"></div>
+
+   </button>
+
+  </div>
+
+  <button class="secondary" onclick="resetDemo()">
+   ♻️ RESET DEMO
+  </button>
+
+ </div>
+
+</section>
+
+
+<!-- NAVIGATION -->
+
+<nav class="nav">
+
+ <div class="nav-inner">
+
+  <button
+   class="nav-btn active"
+   onclick="nav('home',this)">
+   <span class="nav-icon">🏠</span>
+   Home
+  </button>
+
+  <button
+   class="nav-btn"
+   onclick="nav('history',this)">
+   <span class="nav-icon">📜</span>
+   History
+  </button>
+
+  <button
+   class="nav-btn"
+   onclick="nav('leaderboard',this)">
+   <span class="nav-icon">🏆</span>
+   Ranks
+  </button>
+
+  <button
+   class="nav-btn"
+   onclick="nav('profile',this)">
+   <span class="nav-icon">👤</span>
+   Profile
+  </button>
+
+ </div>
+
+</nav>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+
+<script>
+
+/* ==============================
+   TELEGRAM
+============================== */
+
+const tg =
+ window.Telegram &&
+ window.Telegram.WebApp
+ ? window.Telegram.WebApp
+ : null;
+
+if(tg){
+
+ tg.ready();
+ tg.expand();
+
+ try{
+  tg.setHeaderColor("#07111f");
+  tg.setBackgroundColor("#07111f");
+ }catch(e){}
+
+}
+
+
+/* ==============================
+   VARIABLES
+============================== */
+
+let balance =
+ Number(localStorage.getItem("desta_balance") || 1000);
+
+let history =
+ JSON.parse(
+  localStorage.getItem("desta_history") || "[]"
+ );
+
+let kenoBet = 10;
+let bingoBet = 10;
+let spinBet = 10;
+let aviatorBet = 10;
+
+let selectedKeno = [];
+
+let bingoCard = [];
+
+let soundOn = true;
+let musicOn = true;
+
+let aviatorRunning = false;
+let aviatorTimer = null;
+let aviatorMultiplier = 1;
+
+
+/* ==============================
+   STORAGE
+============================== */
+
+function saveData(){
+
+ localStorage.setItem(
+  "desta_balance",
+  String(balance)
+ );
+
+ localStorage.setItem(
+  "desta_history",
+  JSON.stringify(history)
+ );
+
+ updateBalance();
+
+ renderHistory();
+
+}
+
+
+function updateBalance(){
+
+ document.getElementById("balance").textContent =
+  Math.floor(balance).toLocaleString();
+
+ document.getElementById("leaderBalance").textContent =
+  Math.floor(balance).toLocaleString();
+
+}
+
+
+/* ==============================
+   RANDOM
+============================== */
+
+function randomInt(min,max){
+
+ return Math.floor(
+  Math.random()*(max-min+1)
+ )+min;
+
+}
+
+
+function shuffle(array){
+
+ for(let i=array.length-1;i>0;i--){
+
+  let j=Math.floor(Math.random()*(i+1));
+
+  [array[i],array[j]] =
+  [array[j],array[i]];
+
+ }
+
+ return array;
+
+}
+
+
+/* ==============================
+   TOAST
+============================== */
+
+function toast(message){
+
+ const el=document.getElementById("toast");
+
+ el.textContent=message;
+
+ el.style.display="block";
+
+ setTimeout(()=>{
+  el.style.display="none";
+ },1800);
+
+}
+
+
+/* ==============================
+   SOUND
+============================== */
+
+function tone(frequency=500,duration=.1){
+
+ if(!soundOn) return;
+
+ try{
+
+  const AudioContext =
+   window.AudioContext ||
+   window.webkitAudioContext;
+
+  const ctx=new AudioContext();
+
+  const oscillator=ctx.createOscillator();
+  const gain=ctx.createGain();
+
+  oscillator.frequency.value=frequency;
+  oscillator.type="sine";
+
+  gain.gain.setValueAtTime(
+   .07,
+   ctx.currentTime
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+   .001,
+   ctx.currentTime+duration
+  );
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+
+  oscillator.start();
+
+  oscillator.stop(
+   ctx.currentTime+duration
+  );
+
+ }catch(e){}
+
+}
+
+
+/* ==============================
+   NAVIGATION
+============================== */
+
+function showPage(id){
+
+ document.querySelectorAll(".page")
+  .forEach(page=>{
+   page.classList.remove("active");
+  });
+
+ const page=document.getElementById(id);
+
+ if(page){
+  page.classList.add("active");
+ }
+
+ window.scrollTo(0,0);
+
+}
+
+
+function nav(id,button){
+
+ showPage(id);
+
+ document.querySelectorAll(".nav-btn")
+  .forEach(btn=>{
+   btn.classList.remove("active");
+  });
+
+ button.classList.add("active");
+
+}
+
+
+function openGame(id){
+
+ showPage(id);
+
+ if(id==="keno"){
+  initKeno();
+ }
+
+ if(id==="bingo"){
+  initBingo();
+ }
+
+}
+
+
+/* ==============================
+   TELEGRAM USER
+============================== */
+
+function loadTelegramUser(){
+
+ if(
+  !tg ||
+  !tg.initDataUnsafe ||
+  !tg.initDataUnsafe.user
+ ){
+  return;
+ }
+
+ const user=tg.initDataUnsafe.user;
+
+ const name =
+  [
+   user.first_name,
+   user.last_name
+  ]
+  .filter(Boolean)
+  .join(" ") || "Player";
+
+ document.getElementById(
+  "welcomeName"
+ ).textContent=name;
+
+ document.getElementById(
+  "profileName"
+ ).textContent=name;
+
+ document.getElementById(
+  "profileUsername"
+ ).textContent =
+  user.username
+  ? "@"+user.username
+  : "Telegram user";
+
+ document.getElementById(
+  "avatar"
+ ).textContent =
+  user.first_name
+  ? user.first_name.charAt(0).toUpperCase()
+  : "👤";
+
+}
+
+
+/* ==============================
+   HISTORY
+============================== */
+
+function addHistory(
+ game,
+ net,
+ details
+){
+
+ history.unshift({
+
+  game:game,
+
+  net:net,
+
+  details:details,
+
+  time:new Date().toLocaleTimeString()
+
+ });
+
+ if(history.length>50){
+  history.pop();
+ }
+
+ saveData();
+
+}
+
+
+function renderHistory(){
+
+ const box=
+  document.getElementById("historyList");
+
+ if(!history.length){
+
+  box.innerHTML=
+   `<div style="color:var(--muted);font-size:12px">
+    No games played yet.
+   </div>`;
+
+  return;
+
+ }
+
+ box.innerHTML=
+  history.map(item=>{
+
+   const cls=
+    item.net>=0
+    ? "win"
+    : "loss";
+
+   const sign=
+    item.net>=0
+    ? "+"
+    : "";
+
+   return `
+
+    <div class="history-item">
+
+     <div>
+
+      <div class="history-game">
+       ${item.game}
+      </div>
+
+      <div class="history-time">
+       ${item.details} • ${item.time}
+      </div>
+
+     </div>
+
+     <div class="${cls}">
+      ${sign}${item.net} ETB
+     </div>
+
+    </div>
+
+   `;
+
+  }).join("");
+
+}
+
+
+/* ==============================
+   KENO
+============================== */
+
+function chooseKenoBet(value,button){
+
+ kenoBet=value;
+
+ document.getElementById(
+  "kenoBetText"
+ ).textContent=value+" ETB";
+
+ document.querySelectorAll(".keno-bet")
+  .forEach(b=>b.classList.remove("selected"));
+
+ button.classList.add("selected");
+
+}
+
+
+function initKeno(){
+
+ selectedKeno=[];
+
+ const container=
+  document.getElementById("kenoNumbers");
+
+ container.innerHTML="";
+
+ for(let i=1;i<=30;i++){
+
+  const button=
+   document.createElement("button");
+
+  button.className="number";
+
+  button.textContent=i;
+
+  button.onclick=()=>{
+
+   if(
+    selectedKeno.includes(i)
+   ){
+
+    selectedKeno=
+     selectedKeno.filter(
+      n=>n!==i
+     );
+
+    button.classList.remove(
+     "selected"
+    );
+
+    return;
+
+   }
+
+   if(selectedKeno.length>=5){
+
+    toast("Choose only 5 numbers");
+
+    return;
+
+   }
+
+   selectedKeno.push(i);
+
+   button.classList.add(
+    "selected"
+   );
+
+   tone(500,.05);
+
+  };
+
+  container.appendChild(button);
+
+ }
+
+ document.getElementById(
+  "kenoResult"
+ ).innerHTML="";
+
+}
+
+
+function playKeno(){
+
+ if(selectedKeno.length!==5){
+
+  toast("Select exactly 5 numbers");
+
+  return;
+
+ }
+
+ if(balance<kenoBet){
+
+  toast("Not enough demo credits");
+
+  return;
+
+ }
+
+ balance-=kenoBet;
+
+ const draw=
+  shuffle(
+   Array.from(
+    {length:30},
+    (_,i)=>i+1
+   )
+  ).slice(0,10);
+
+ const hits=
+  selectedKeno.filter(
+   n=>draw.includes(n)
+  ).length;
+
+ /*
+   Transparent demo payout table.
+ */
+
+ const multiplier={
+
+  0:0,
+  1:0,
+  2:.5,
+  3:2,
+  4:8,
+  5:25
+
+ };
+
+ const payout=
+  Math.floor(
+   kenoBet*(multiplier[hits]||0)
+  );
+
+ balance+=payout;
+
+ document.querySelectorAll(
+  "#kenoNumbers .number"
+ ).forEach(button=>{
+
+  const n=
+   Number(button.textContent);
+
+  if(draw.includes(n)){
+
+   button.classList.add("drawn");
+
+  }
+
+ });
+
+ document.getElementById(
+  "kenoResult"
+ ).innerHTML=`
+
+  <div class="result">
+
+   Draw:
+   <b>
+    ${draw.sort((a,b)=>a-b).join(", ")}
+   </b>
+
+   <br>
+
+   Matches:
+   <b>${hits}/5</b>
+
+   <br>
+
+   ${
+    payout>0
+    ? `<span class="win">
+        🎉 Won ${payout} ETB
+       </span>`
+    : `<span class="loss">
+        No payout
+       </span>`
+   }
+
+  </div>
+
+ `;
+
+ addHistory(
+  "Keno",
+  payout-kenoBet,
+  hits+" matches"
+ );
+
+ tone(
+  payout>0 ? 850 : 200,
+  .2
+ );
+
+}
+
+
+/* ==============================
+   BINGO
+============================== */
+
+function chooseBingoBet(value,button){
+
+ bingoBet=value;
+
+ document.getElementById(
+  "bingoBetText"
+ ).textContent=value+" ETB";
+
+ document.querySelectorAll(".bingo-bet")
+  .forEach(b=>b.classList.remove("selected"));
+
+ button.classList.add("selected");
+
+}
+
+
+function initBingo(){
+
+ bingoCard=
+  shuffle(
+   Array.from(
+    {length:25},
+    (_,i)=>i+1
+   )
+  );
+
+ const board=
+  document.getElementById(
+   "bingoBoard"
+  );
+
+ board.innerHTML="";
+
+ bingoCard.forEach((number,index)=>{
+
+  const cell=
+   document.createElement("div");
+
+  cell.className="bingo-cell";
+
+  if(index===12){
+
+   cell.classList.add("free");
+
+   cell.textContent="FREE";
+
+  }else{
+
+   cell.textContent=number;
+
+  }
+
+  board.appendChild(cell);
+
+ });
+
+ document.getElementById(
+  "bingoResult"
+ ).innerHTML="";
+
+}
+
+
+function playBingo(){
+
+ if(balance<bingoBet){
+
+  toast("Not enough demo credits");
+
+  return;
+
+ }
+
+ balance-=bingoBet;
+
+ const draw=
+  shuffle(
+   Array.from(
+    {length:25},
+    (_,i)=>i+1
+   )
+  ).slice(0,5);
+
+ let hits=0;
+
+ document.querySelectorAll(
+  ".bingo-cell"
+ ).forEach(cell=>{
+
+  const value=
+   Number(cell.textContent);
+
+  if(
+   value &&
+   draw.includes(value)
+  ){
+
+   cell.classList.add("hit");
+
+   hits++;
+
+  }
+
+ });
+
+ /*
+   Simple transparent demo payout.
+ */
+
+ let payout=0;
+
+ if(hits>=4){
+
+  payout=bingoBet*5;
+
+ }else if(hits===3){
+
+  payout=bingoBet*2;
+
+ }
+
+ balance+=payout;
+
+ document.getElementById(
+  "bingoResult"
+ ).innerHTML=`
+
+  <div class="result">
+
+   Draw:
+   <b>${draw.join(", ")}</b>
+
+   <br>
+
+   Matches:
+   <b>${hits}</b>
+
+   <br>
+
+   ${
+    payout>0
+    ? `<span class="win">
+       🎉 Won ${payout} ETB
+       </span>`
+    : `<span class="loss">
+       No payout
+       </span>`
+   }
+
+  </div>
+
+ `;
+
+ addHistory(
+  "Bingo",
+  payout-bingoBet,
+  hits+" matches"
+ );
+
+ tone(
+  payout>0 ? 850 : 200,
+  .2
+ );
+
+}
+
+
+/* ==============================
+   SPIN
+============================== */
+
+function chooseSpinBet(value,button){
+
+ spinBet=value;
+
+ document.getElementById(
+  "spinBetText"
+ ).textContent=value+" ETB";
+
+ document.querySelectorAll(".spin-bet")
+  .forEach(b=>b.classList.remove("selected"));
+
+ button.classList.add("selected");
+
+}
+
+
+function playSpin(){
+
+ if(balance<spinBet){
+
+  toast("Not enough demo credits");
+
+  return;
+
+ }
+
+ balance-=spinBet;
+
+ const outcomes=[
+  0,
+  0,
+  .5,
+  1,
+  2,
+  3,
+  5,
+  10
+ ];
+
+ const index=
+  randomInt(
+   0,
+   outcomes.length-1
+  );
+
+ const multiplier=
+  outcomes[index];
+
+ const wheel=
+  document.getElementById("wheel");
+
+ const rotation=
+  1440+
+  index*(360/outcomes.length);
+
+ wheel.style.transform=
+  `rotate(${rotation}deg)`;
+
+ setTimeout(()=>{
+
+  const payout=
+   Math.floor(
+    spinBet*multiplier
+   );
+
+  balance+=payout;
+
+  document.getElementById(
+   "spinResult"
+  ).innerHTML=`
+
+   <div class="result">
+
+    Result:
+    <b>${multiplier}×</b>
+
+    <br>
+
+    ${
+     payout>0
+     ? `<span class="win">
+        🎉 Won ${payout} ETB
+        </span>`
+     : `<span class="loss">
+        No payout
+        </span>`
+    }
+
+   </div>
+
+  `;
+
+  addHistory(
+   "Spin",
+   payout-spinBet,
+   multiplier+"×"
+  );
+
+  tone(
+   payout>0 ? 900 : 200,
+   .2
+  );
+
+ },3200);
+
+}
+
+
+/* ==============================
+   AVIATOR
+============================== */
+
+function chooseAviatorBet(value,button){
+
+ aviatorBet=value;
+
+ document.getElementById(
+  "aviatorBetText"
+ ).textContent=value+" ETB";
+
+ document.querySelectorAll(
+  ".aviator-bet"
+ ).forEach(b=>{
+  b.classList.remove("selected");
+ });
+
+ button.classList.add("selected");
+
+}
+
+
+function startAviator(){
+
+ if(aviatorRunning){
+
+  cashoutAviator();
+
+  return;
+
+ }
+
+ if(balance<aviatorBet){
+
+  toast("Not enough demo credits");
+
+  return;
+
+ }
+
+ balance-=aviatorBet;
+
+ aviatorRunning=true;
+
+ aviatorMultiplier=1;
+
+ const button=
+  document.getElementById(
+   "aviatorButton"
+  );
+
+ button.textContent=
+  "💰 CASH OUT";
+
+ button.style.background=
+  "var(--green)";
+
+ document.getElementById(
+  "aviatorResult"
+ ).innerHTML="";
+
+ document.getElementById(
+  "multiplier"
+ ).classList.remove("crashed");
+
+ /*
+   The round's ending point is
+   generated independently before
+   the round begins.
+ */
+
+ const crashPoint=
+  Math.max(
+   1.05,
+   1.5+
+   Math.random()*7
+  );
+
+ const start=
+  Date.now();
+
+ aviatorTimer=
+  setInterval(()=>{
+
+   const elapsed=
+    (Date.now()-start)/1000;
+
+   aviatorMultiplier=
+    1+
+    elapsed*.35;
+
+   document.getElementById(
+    "multiplier"
+   ).textContent=
+    aviatorMultiplier.toFixed(2)+"×";
+
+   const plane=
+    document.getElementById("plane");
+
+   plane.style.transform=
+    `translate(${elapsed*8}px,-${elapsed*5}px)`;
+
+   if(
+    aviatorMultiplier>=crashPoint
+   ){
+
+    endAviator(
+     crashPoint
+    );
+
+   }
+
+  },50);
+
+}
+
+
+function endAviator(crashPoint){
+
+ clearInterval(
+  aviatorTimer
+ );
+
+ aviatorRunning=false;
+
+ const button=
+  document.getElementById(
+   "aviatorButton"
+  );
+
+ button.textContent=
+  "✈️ START ROUND";
+
+ button.style.background=
+  "";
+
+ document.getElementById(
+  "multiplier"
+ ).classList.add("crashed");
+
+ document.getElementById(
+  "aviatorResult"
+ ).innerHTML=`
+
+  <div class="result">
+
+   ✈️ Flight ended at
+   <b>${crashPoint.toFixed(2)}×</b>
+
+   <br>
+
+   <span class="loss">
+    No cash-out
+   </span>
+
+  </div>
+
+ `;
+
+ addHistory(
+  "Aviator",
+  -aviatorBet,
+  crashPoint.toFixed(2)+"×"
+ );
+
+ tone(180,.25);
+
+}
+
+
+function cashoutAviator(){
+
+ if(!aviatorRunning) return;
+
+ clearInterval(
+  aviatorTimer
+ );
+
+ aviatorRunning=false;
+
+ const payout=
+  Math.floor(
+   aviatorBet*
+   aviatorMultiplier
+  );
+
+ balance+=payout;
+
+ const button=
+  document.getElementById(
+   "aviatorButton"
+  );
+
+ button.textContent=
+  "✈️ START ROUND";
+
+ button.style.background="";
+
+ document.getElementById(
+  "aviatorResult"
+ ).innerHTML=`
+
+  <div class="result">
+
+   💰 Cashed out at
+   <b>
+    ${aviatorMultiplier.toFixed(2)}×
+   </b>
+
+   <br>
+
+   <span class="win">
+    Returned ${payout} ETB
+   </span>
+
+  </div>
+
+ `;
+
+ addHistory(
+  "Aviator",
+  payout-aviatorBet,
+  aviatorMultiplier.toFixed(2)+"×"
+ );
+
+ tone(900,.25);
+
+}
+
+
+/* ==============================
+   SETTINGS
+============================== */
+
+function toggleSound(){
+
+ soundOn=!soundOn;
+
+ document.getElementById(
+  "soundSwitch"
+ ).classList.toggle(
+  "on",
+  soundOn
+ );
+
+}
+
+
+function toggleMusic(){
+
+ musicOn=!musicOn;
+
+ document.getElementById(
+  "musicSwitch"
+ ).classList.toggle(
+  "on",
+  musicOn
+ );
+
+ toast(
+  musicOn
+  ? "Music enabled"
+  : "Music disabled"
+ );
+
+}
+
+
+function resetDemo(){
+
+ balance=1000;
+
+ history=[];
+
+ saveData();
+
+ toast(
+  "Demo balance reset to 1,000 ETB"
+ );
+
+}
+
+
+/* ==============================
+   START
+============================== */
+
+loadTelegramUser();
+
+updateBalance();
+
+renderHistory();
+
+initKeno();
+
+initBingo();
+
+</script>
+
+</body>
+</html>
