@@ -2,489 +2,472 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>DESTA PLAY</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Aura Keno</title>
+
 <style>
-* {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+:root{
+    --bg:#061b16;
+    --panel:#0b2b23;
+    --panel2:#10382d;
+    --gold:#e7b84f;
+    --gold2:#ffd66d;
+    --text:#f4f5ef;
+    --muted:#9fb5ad;
+    --green:#19c987;
+    --red:#ff5d68;
+    --blue:#45a8ff;
+    --border:rgba(231,184,79,.28);
 }
 
-body {
-    margin: 0;
-    background: #07111f;
-    color: white;
-    font-family: Arial, sans-serif;
-    user-select: none;
+*{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }
 
-button {
-    font-family: Arial, sans-serif;
-    cursor: pointer;
+body{
+    margin:0;
+    background:
+        radial-gradient(circle at 50% 0%,#123e30 0%,#061b16 42%,#03110e 100%);
+    color:var(--text);
+    font-family:Arial,Helvetica,sans-serif;
+    min-height:100vh;
 }
 
-.app {
-    max-width: 520px;
-    margin: auto;
-    min-height: 100vh;
-    padding-bottom: 90px;
+.app{
+    width:100%;
+    max-width:620px;
+    margin:auto;
+    padding-bottom:40px;
 }
 
-.header {
-    height: 70px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* HEADER */
+
+.header{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:rgba(5,25,20,.96);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    padding:14px 16px;
 }
 
-.logo {
-    font-size: 25px;
-    font-weight: 900;
+.header-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-.logo span {
-    color: #f4c44f;
+.logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
 }
 
-.avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #172940;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
+.logo-icon{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:linear-gradient(145deg,#ffe080,#bd8323);
+    color:#102018;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:21px;
+    font-weight:900;
 }
 
-.balance {
-    margin: 5px 15px 20px;
-    padding: 20px;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #19324d, #0d1929);
-    border: 1px solid #29415d;
+.logo-title{
+    font-size:20px;
+    font-weight:900;
+    letter-spacing:.5px;
 }
 
-.balance-label {
-    color: #91a4bb;
-    font-size: 12px;
+.logo-sub{
+    font-size:11px;
+    color:var(--muted);
+    margin-top:2px;
 }
 
-.balance-value {
-    font-size: 30px;
-    font-weight: 900;
-    margin-top: 6px;
+.balance{
+    background:linear-gradient(145deg,#163e31,#09251e);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:9px 13px;
+    text-align:right;
 }
 
-.demo {
-    color: #f4c44f;
-    font-size: 10px;
-    margin-top: 5px;
+.balance-label{
+    color:var(--muted);
+    font-size:10px;
 }
 
-.section-title {
-    margin: 20px 15px 12px;
-    font-size: 19px;
-    font-weight: 900;
+.balance-value{
+    color:var(--gold2);
+    font-size:18px;
+    font-weight:900;
 }
 
-.games {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 15px;
+/* CONTENT */
+
+.content{
+    padding:15px;
 }
 
-.game-card {
-    min-height: 145px;
-    padding: 18px;
-    border-radius: 20px;
-    border: 1px solid #29415d;
-    background: linear-gradient(145deg, #172a41, #0e1b2c);
-    color: white;
-    text-align: left;
+.hero{
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:20px;
+    background:
+        radial-gradient(circle at center,#1d573f,#08261e 62%,#051811);
+    text-align:center;
+    box-shadow:0 15px 45px rgba(0,0,0,.25);
 }
 
-.game-card:active {
-    transform: scale(.97);
+.hero h1{
+    margin:0;
+    color:var(--gold2);
+    font-size:34px;
 }
 
-.game-icon {
-    font-size: 38px;
-    margin-bottom: 12px;
+.hero p{
+    margin:8px 0 0;
+    color:var(--muted);
+    font-size:13px;
 }
 
-.game-name {
-    font-size: 17px;
-    font-weight: 900;
+/* TIMER */
+
+.timer-card{
+    margin-top:14px;
+    padding:15px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:18px;
 }
 
-.game-description {
-    margin-top: 6px;
-    color: #91a4bb;
-    font-size: 11px;
+.timer-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-.page {
-    display: none;
+.status{
+    font-size:13px;
+    font-weight:800;
 }
 
-.page.active {
-    display: block;
+.timer{
+    font-size:28px;
+    font-weight:900;
+    color:var(--gold2);
 }
 
-.panel {
-    margin: 15px;
-    padding: 18px;
-    border-radius: 20px;
-    background: #101d2f;
-    border: 1px solid #29415d;
+/* DRAW */
+
+.draw-box{
+    margin-top:14px;
+    background:rgba(8,36,29,.8);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:14px;
 }
 
-.game-title {
-    text-align: center;
-    font-size: 27px;
-    font-weight: 900;
+.draw-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
 }
 
-.game-subtitle {
-    text-align: center;
-    color: #91a4bb;
-    font-size: 12px;
-    margin-top: 5px;
+.draw-title strong{
+    font-size:15px;
 }
 
-.back {
-    margin: 15px;
-    padding: 11px 16px;
-    border: 0;
-    border-radius: 12px;
-    background: #172940;
-    color: white;
+.draw-count{
+    color:var(--gold2);
+    font-weight:900;
 }
 
-.primary {
-    width: 100%;
-    padding: 14px;
-    margin-top: 15px;
-    border: 0;
-    border-radius: 14px;
-    background: #f4c44f;
-    color: #111;
-    font-weight: 900;
-    font-size: 15px;
-    transition: background 0.2s;
+.draw-numbers{
+    min-height:68px;
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:4px 0;
 }
 
-.primary:disabled {
-    background: #555;
-    color: #888;
-    cursor: not-allowed;
+.draw-ball{
+    flex:0 0 52px;
+    height:52px;
+    border-radius:50%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(145deg,#e9be55,#9e6817);
+    color:#122118;
+    font-weight:900;
+    font-size:17px;
+    box-shadow:0 5px 15px rgba(0,0,0,.3);
+    animation:pop .25s ease;
 }
 
-.secondary {
-    width: 100%;
-    padding: 13px;
-    margin-top: 10px;
-    border: 1px solid #39536e;
-    border-radius: 14px;
-    background: #172940;
-    color: white;
-    font-weight: 800;
+@keyframes pop{
+    from{
+        transform:scale(.4);
+        opacity:0;
+    }
+    to{
+        transform:scale(1);
+        opacity:1;
+    }
 }
 
-.bet-row {
-    display: flex;
-    gap: 7px;
-    margin-top: 18px;
+/* GRID */
+
+.section{
+    margin-top:14px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:15px;
 }
 
-.bet {
-    flex: 1;
-    padding: 11px 3px;
-    border: 1px solid #34506c;
-    border-radius: 12px;
-    background: #172940;
-    color: white;
-    font-weight: 800;
+.section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
 }
 
-.bet.selected {
-    border-color: #f4c44f;
-    color: #f4c44f;
+.section-head h2{
+    margin:0;
+    font-size:17px;
 }
 
-.bet-label {
-    color: #91a4bb;
-    font-size: 12px;
-    margin-top: 10px;
+.counter{
+    color:var(--gold2);
+    font-weight:900;
 }
 
-/* KENO */
-.numbers {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    margin-top: 18px;
+.number-grid{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:7px;
 }
 
-.number {
-    aspect-ratio: 1;
-    border-radius: 12px;
-    border: 1px solid #314b66;
-    background: #17283c;
-    color: white;
-    font-weight: 900;
-    transition: transform 0.2s, background 0.2s;
+.number{
+    aspect-ratio:1;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;
+    background:#0e352b;
+    color:#eaf0ed;
+    font-weight:800;
+    cursor:pointer;
+    transition:.15s;
 }
 
-.number.selected {
-    background: #f4c44f;
-    color: #111;
+.number:hover{
+    transform:translateY(-1px);
 }
 
-.number.drawn {
-    background: #35d07f;
-    color: #07150d;
-    transform: scale(1.08);
+.number.selected{
+    background:linear-gradient(145deg,#f1c85d,#b87b1e);
+    color:#122018;
+    border-color:#ffe18a;
+    box-shadow:0 0 14px rgba(231,184,79,.35);
 }
 
-/* BINGO ANIMATION & CARTELA */
-.bingo-draw-zone {
-    height: 70px;
-    margin-top: 15px;
-    background: #091522;
-    border: 1px solid #233a52;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    overflow: hidden;
-    position: relative;
+.number.hit{
+    background:linear-gradient(145deg,#25e09b,#087a55);
+    color:white;
+    border-color:#42ffb9;
+    box-shadow:0 0 15px rgba(25,201,135,.45);
 }
 
-.bingo-ball {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ffffff, #e0e0e0);
-    color: #111;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 13px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    animation: ballDrop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.number.drawn{
+    opacity:.72;
 }
 
-.bingo-ball .ball-letter {
-    font-size: 9px;
-    color: #d32f2f;
-    line-height: 1;
+/* CONTROLS */
+
+.controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
 }
 
-@keyframes ballDrop {
-    0% { transform: translateY(-60px) scale(0.3); opacity: 0; }
-    100% { transform: translateY(0) scale(1); opacity: 1; }
+button{
+    font-family:inherit;
 }
 
-.bingo-head,
-.bingo-board {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
+.control-btn{
+    border:1px solid var(--border);
+    background:#12382e;
+    color:white;
+    padding:13px;
+    border-radius:13px;
+    font-weight:800;
+    cursor:pointer;
 }
 
-.bingo-head {
-    margin-top: 15px;
-    color: #f4c44f;
-    text-align: center;
-    font-weight: 900;
-    font-size: 16px;
+.control-btn:active{
+    transform:scale(.98);
 }
 
-.bingo-board {
-    margin-top: 7px;
+.control-btn.gold{
+    background:linear-gradient(145deg,#f1ca64,#b77b1f);
+    color:#132018;
 }
 
-.bingo-cell {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: #17283c;
-    border: 1px solid #314b66;
-    font-size: 14px;
-    font-weight: 800;
-    transition: all 0.3s ease;
+/* STAKE */
+
+.stake-row{
+    display:flex;
+    gap:8px;
 }
 
-.bingo-cell.hit {
-    background: #35d07f;
-    color: #07150d;
-    transform: scale(1.05);
-    box-shadow: 0 0 12px rgba(53, 208, 127, 0.6);
+.stake-input{
+    flex:1;
+    min-width:0;
+    background:#071d17;
+    border:1px solid var(--border);
+    color:white;
+    border-radius:12px;
+    padding:13px;
+    font-size:16px;
+    outline:none;
 }
 
-.bingo-cell.free {
-    background: #f4c44f;
-    color: #111;
+.bet-btn{
+    flex:1;
+    border:0;
+    border-radius:12px;
+    background:linear-gradient(145deg,#f2c85d,#b77b1d);
+    color:#102016;
+    font-weight:900;
+    font-size:15px;
 }
 
-/* SPIN */
-.wheel-wrap {
-    width: 250px;
-    margin: 25px auto;
-    position: relative;
+/* ODDS */
+
+.odds-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12px;
 }
 
-.pointer {
-    position: absolute;
-    z-index: 3;
-    left: 50%;
-    top: -12px;
-    transform: translateX(-50%);
-    font-size: 28px;
+.odds-table th{
+    color:var(--gold2);
+    text-align:left;
+    padding:8px 5px;
+    border-bottom:1px solid var(--border);
 }
 
-.wheel {
-    width: 230px;
-    height: 230px;
-    margin: auto;
-    border-radius: 50%;
-    border: 8px solid #29415d;
-    background: conic-gradient(
-        #f4c44f 0deg 45deg,
-        #244a6b 45deg 90deg,
-        #35d07f 90deg 135deg,
-        #7954a0 135deg 180deg,
-        #f4c44f 180deg 225deg,
-        #244a6b 225deg 270deg,
-        #35d07f 270deg 315deg,
-        #7954a0 315deg 360deg
-    );
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: transform 4s cubic-bezier(0.15, 0.9, 0.2, 1);
+.odds-table td{
+    padding:8px 5px;
+    border-bottom:1px solid rgba(255,255,255,.05);
 }
 
-.wheel-center {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    background: #101d2f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
+.odds-table tr:last-child td{
+    border-bottom:0;
 }
 
-/* AVIATOR */
-.flight {
-    height: 240px;
-    margin-top: 18px;
-    border-radius: 18px;
-    background: radial-gradient(circle at 25% 25%, #285274, #10283d 40%, #071522 75%);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.multiplier {
-    font-size: 44px;
-    font-weight: 900;
-    z-index: 2;
-}
-
-.multiplier.crashed {
-    color: #ff5b6b;
-}
-
-.plane {
-    position: absolute;
-    left: 10%;
-    bottom: 10%;
-    font-size: 44px;
-    transition: transform 0.05s linear;
-    z-index: 1;
+.win{
+    color:#43e9a9;
+    font-weight:900;
 }
 
 /* RESULT */
-.result {
-    margin-top: 15px;
-    padding: 15px;
-    border-radius: 14px;
-    background: #091624;
-    border: 1px solid #21384f;
-    text-align: center;
-    line-height: 1.8;
+
+.result{
+    margin-top:14px;
+    border-radius:18px;
+    padding:18px;
+    text-align:center;
+    display:none;
 }
 
-.win { color: #35d07f; font-weight: 900; }
-.loss { color: #ff5b6b; font-weight: 900; }
+.result.win{
+    display:block;
+    background:rgba(25,201,135,.12);
+    border:1px solid rgba(25,201,135,.4);
+}
+
+.result.lose{
+    display:block;
+    background:rgba(255,93,104,.08);
+    border:1px solid rgba(255,93,104,.3);
+}
+
+.result-title{
+    font-size:25px;
+    font-weight:900;
+}
+
+.result-detail{
+    color:var(--muted);
+    margin-top:5px;
+}
+
+.result-payout{
+    color:var(--gold2);
+    font-size:24px;
+    font-weight:900;
+    margin-top:8px;
+}
 
 /* HISTORY */
-.history-item {
-    padding: 14px 0;
-    border-bottom: 1px solid #263b52;
-    display: flex;
-    justify-content: space-between;
+
+.history-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,.05);
 }
 
-.history-game { font-weight: 900; }
-.history-time { color: #91a4bb; font-size: 10px; margin-top: 4px; }
-
-/* PROFILE */
-.profile {
-    margin: 15px;
-    padding: 20px;
-    border-radius: 20px;
-    background: #101d2f;
-    border: 1px solid #29415d;
+.history-item:last-child{
+    border-bottom:0;
 }
 
-/* NAV */
-.nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 70px;
-    background: rgba(9,21,34,.96);
-    border-top: 1px solid #263b52;
-    z-index: 100;
+.history-left{
+    font-size:12px;
 }
 
-.nav-inner {
-    max-width: 520px;
-    height: 100%;
-    margin: auto;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+.history-id{
+    color:var(--muted);
+    margin-top:3px;
 }
 
-.nav-btn {
-    border: 0;
-    background: none;
-    color: #91a4bb;
-    font-size: 10px;
+.history-win{
+    color:#42e7a6;
+    font-weight:900;
 }
 
-.nav-btn.active { color: #f4c44f; }
-.nav-icon { display: block; font-size: 21px; margin-bottom: 3px; }
+.history-loss{
+    color:#ff747c;
+    font-weight:900;
+}
 
-@media(max-width:360px) {
-    .games { grid-template-columns: 1fr; }
+/* RESPONSIVE */
+
+@media(max-width:430px){
+    .number-grid{
+        gap:5px;
+    }
+
+    .number{
+        border-radius:8px;
+        font-size:12px;
+    }
+
+    .hero h1{
+        font-size:28px;
+    }
 }
 </style>
 </head>
@@ -494,699 +477,1493 @@ button {
 <div class="app">
 
 <header class="header">
-    <div class="logo">DESTA <span>PLAY</span></div>
-    <div class="avatar" id="avatar">👤</div>
-</header>
+    <div class="header-row">
 
-<!-- HOME -->
-<section id="home" class="page active">
-    <div class="balance">
-        <div class="balance-label">DEMO BALANCE</div>
-        <div class="balance-value">🪙 <span id="balance">1,000</span> ETB</div>
-        <div class="demo">VIRTUAL CREDITS • DEMO MODE</div>
-    </div>
+        <div class="logo">
+            <div class="logo-icon">K</div>
 
-    <div class="section-title">🎮 Games</div>
-
-    <div class="games">
-        <button type="button" class="game-card" id="kenoButton">
-            <div class="game-icon">🎱</div>
-            <div class="game-name">Keno</div>
-            <div class="game-description">Pick 5 numbers and watch the draw.</div>
-        </button>
-
-        <button type="button" class="game-card" id="bingoButton">
-            <div class="game-icon">🎟️</div>
-            <div class="game-name">Bingo</div>
-            <div class="game-description">Animated B-I-N-G-O cartela draw.</div>
-        </button>
-
-        <button type="button" class="game-card" id="spinButton">
-            <div class="game-icon">🎡</div>
-            <div class="game-name">Spin</div>
-            <div class="game-description">Spin the virtual prize wheel.</div>
-        </button>
-
-        <button type="button" class="game-card" id="aviatorButton">
-            <div class="game-icon">✈️</div>
-            <div class="game-name">Aviator</div>
-            <div class="game-description">Play a virtual flight demo.</div>
-        </button>
-    </div>
-
-    <div class="section-title">👋 Welcome</div>
-    <div class="panel">
-        <b>Welcome, <span id="welcomeName">Player</span>!</b>
-        <p style="color:#91a4bb;font-size:12px;line-height:1.6">
-            DESTA PLAY is a demonstration application. All credits are virtual and have no cash value.
-        </p>
-    </div>
-</section>
-
-<!-- KENO -->
-<section id="keno" class="page">
-    <button type="button" class="back" id="kenoBack">← Back</button>
-    <div class="panel">
-        <div class="game-title">🎱 Keno</div>
-        <div class="game-subtitle">Choose exactly 5 numbers</div>
-
-        <div class="bet-row">
-            <button type="button" class="bet keno-bet" data-value="5">5 ETB</button>
-            <button type="button" class="bet keno-bet selected" data-value="10">10 ETB</button>
-            <button type="button" class="bet keno-bet" data-value="20">20 ETB</button>
-            <button type="button" class="bet keno-bet" data-value="50">50 ETB</button>
-        </div>
-
-        <div class="bet-label">Current bet: <b id="kenoBetText">10 ETB</b></div>
-        <div id="kenoNumbers" class="numbers"></div>
-
-        <button type="button" class="primary" id="playKenoButton">🎱 DRAW NUMBERS</button>
-        <button type="button" class="secondary" id="clearKenoButton">🔄 CLEAR SELECTION</button>
-
-        <div id="kenoResult"></div>
-    </div>
-</section>
-
-<!-- BINGO -->
-<section id="bingo" class="page">
-    <button type="button" class="back" id="bingoBack">← Back</button>
-    <div class="panel">
-        <div class="game-title">🎟️ Bingo Cartela</div>
-        <div class="game-subtitle">Live Animated B-I-N-G-O Draw</div>
-
-        <div class="bet-row">
-            <button type="button" class="bet bingo-bet" data-value="5">5 ETB</button>
-            <button type="button" class="bet bingo-bet selected" data-value="10">10 ETB</button>
-            <button type="button" class="bet bingo-bet" data-value="20">20 ETB</button>
-        </div>
-
-        <div class="bet-label">Current bet: <b id="bingoBetText">10 ETB</b></div>
-
-        <!-- Animated Draw Dispenser Area -->
-        <div class="bingo-draw-zone" id="bingoDrawZone">
-            <span style="color:#627b97;font-size:12px;" id="bingoStatusText">Press DRAW to start</span>
-        </div>
-
-        <div class="bingo-head">
-            <div>B</div><div>I</div><div>N</div><div>G</div><div>O</div>
-        </div>
-
-        <div id="bingoBoard" class="bingo-board"></div>
-
-        <button type="button" class="primary" id="playBingoButton">🎟️ START BINGO DRAW</button>
-        <button type="button" class="secondary" id="newBingoButton">🔄 NEW CARTELA</button>
-
-        <div id="bingoResult"></div>
-    </div>
-</section>
-
-<!-- SPIN -->
-<section id="spin" class="page">
-    <button type="button" class="back" id="spinBack">← Back</button>
-    <div class="panel">
-        <div class="game-title">🎡 Spin</div>
-        <div class="game-subtitle">Spin the virtual demo wheel</div>
-
-        <div class="wheel-wrap">
-            <div class="pointer">🔻</div>
-            <div class="wheel" id="wheel">
-                <div class="wheel-center">SPIN</div>
+            <div>
+                <div class="logo-title">AURA KENO</div>
+                <div class="logo-sub">80 Numbers • 20 Draws</div>
             </div>
         </div>
 
-        <div class="bet-row">
-            <button type="button" class="bet spin-bet" data-value="5">5 ETB</button>
-            <button type="button" class="bet spin-bet selected" data-value="10">10 ETB</button>
-            <button type="button" class="bet spin-bet" data-value="20">20 ETB</button>
+        <div class="balance">
+            <div class="balance-label">BALANCE</div>
+            <div class="balance-value">
+                <span id="balance">1000.00</span> ETB
+            </div>
         </div>
 
-        <div class="bet-label">Current bet: <b id="spinBetText">10 ETB</b></div>
-
-        <button type="button" class="primary" id="playSpinButton">🎡 SPIN</button>
-
-        <div id="spinResult"></div>
     </div>
+</header>
+
+
+<main class="content">
+
+<section class="hero">
+    <h1>🎱 KENO</h1>
+    <p>
+        Choose 5–10 numbers from 1–80.
+        Exactly 20 numbers will be drawn.
+    </p>
 </section>
 
-<!-- AVIATOR -->
-<section id="aviator" class="page">
-    <button type="button" class="back" id="aviatorBack">← Back</button>
-    <div class="panel">
-        <div class="game-title">✈️ Aviator</div>
-        <div class="game-subtitle">Virtual demo flight</div>
 
-        <div class="flight">
-            <div id="aviatorMultiplier" class="multiplier">1.00×</div>
-            <div id="plane" class="plane">✈️</div>
+<section class="timer-card">
+
+    <div class="timer-top">
+
+        <div>
+            <div class="status" id="gameStatus">
+                BETTING OPEN
+            </div>
+
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">
+                Choose your numbers before the draw
+            </div>
         </div>
 
-        <div class="bet-row">
-            <button type="button" class="bet aviator-bet" data-value="5">5 ETB</button>
-            <button type="button" class="bet aviator-bet selected" data-value="10">10 ETB</button>
-            <button type="button" class="bet aviator-bet" data-value="20">20 ETB</button>
+        <div class="timer" id="timer">
+            01:00
         </div>
 
-        <div class="bet-label">Current bet: <b id="aviatorBetText">10 ETB</b></div>
-
-        <button type="button" class="primary" id="aviatorActionButton">✈️ START ROUND</button>
-
-        <div id="aviatorResult"></div>
     </div>
+
 </section>
 
-<!-- HISTORY -->
-<section id="history" class="page">
-    <div class="section-title">📜 Game History</div>
-    <div class="panel" id="historyList">
-        <div style="color:#91a4bb;font-size:12px">No games played yet.</div>
+
+<section class="draw-box">
+
+    <div class="draw-title">
+
+        <strong>DRAWN NUMBERS</strong>
+
+        <div class="draw-count">
+            <span id="drawCount">0</span>/20
+        </div>
+
     </div>
+
+    <div class="draw-numbers" id="drawNumbers">
+        <span style="color:#78938b;font-size:12px">
+            Waiting for draw...
+        </span>
+    </div>
+
 </section>
 
-<!-- LEADERBOARD -->
-<section id="leaderboard" class="page">
-    <div class="section-title">🏆 Demo Leaderboard</div>
-    <div class="panel">
-        <div class="history-item"><span>🥇 LuckyPlayer</span><b>2,450</b></div>
-        <div class="history-item"><span>🥈 GameMaster</span><b>1,980</b></div>
-        <div class="history-item"><span>🥉 AddisPlayer</span><b>1,750</b></div>
-        <div class="history-item"><span>⭐ You</span><b id="leaderBalance">1,000</b></div>
-        <p style="color:#91a4bb;font-size:11px">Sample leaderboard for demonstration only.</p>
+
+<section class="section">
+
+    <div class="section-head">
+
+        <h2>SELECT NUMBERS</h2>
+
+        <div class="counter">
+            <span id="selectedCount">0</span>/10
+        </div>
+
     </div>
+
+    <div class="number-grid" id="numberGrid"></div>
+
 </section>
 
-<!-- PROFILE -->
-<section id="profile" class="page">
-    <div class="section-title">👤 Profile</div>
-    <div class="profile">
-        <div style="font-size:21px;font-weight:900" id="profileName">Player</div>
-        <div style="color:#91a4bb;font-size:12px;margin-top:5px" id="profileUsername">Telegram user</div>
 
-        <button type="button" class="secondary" id="resetButton">♻️ RESET DEMO BALANCE</button>
+<section class="section">
+
+    <div class="section-head">
+        <h2>QUICK SELECT</h2>
     </div>
+
+    <div class="controls">
+
+        <button class="control-btn" onclick="autoPick()">
+            🎯 AUTO PICK
+        </button>
+
+        <button class="control-btn" onclick="clearSelection()">
+            ✕ CLEAR
+        </button>
+
+    </div>
+
 </section>
 
-<!-- NAVIGATION -->
-<nav class="nav">
-    <div class="nav-inner">
-        <button type="button" class="nav-btn active" data-page="home">
-            <span class="nav-icon">🏠</span>Home
-        </button>
-        <button type="button" class="nav-btn" data-page="history">
-            <span class="nav-icon">📜</span>History
-        </button>
-        <button type="button" class="nav-btn" data-page="leaderboard">
-            <span class="nav-icon">🏆</span>Ranks
-        </button>
-        <button type="button" class="nav-btn" data-page="profile">
-            <span class="nav-icon">👤</span>Profile
-        </button>
+
+<section class="section">
+
+    <div class="section-head">
+        <h2>STAKE</h2>
+        <span style="color:var(--muted);font-size:11px">
+            Minimum 1 ETB
+        </span>
     </div>
-</nav>
+
+    <div class="stake-row">
+
+        <input
+            id="stake"
+            class="stake-input"
+            type="number"
+            min="1"
+            step="1"
+            value="10"
+            placeholder="Stake"
+        >
+
+        <button
+            id="playBtn"
+            class="bet-btn"
+            onclick="startRound()">
+            PLAY
+        </button>
+
+    </div>
+
+</section>
+
+
+<section class="section">
+
+    <div class="section-head">
+
+        <h2>ODDS & PAYOUTS</h2>
+
+        <span style="color:#43e9a9;font-size:11px;font-weight:900">
+            TARGET RTP 80%
+        </span>
+
+    </div>
+
+    <div style="overflow-x:auto">
+
+        <table class="odds-table">
+
+            <thead>
+                <tr>
+                    <th>SPOTS</th>
+                    <th>MATCH</th>
+                    <th>PROBABILITY</th>
+                    <th>PAYOUT</th>
+                </tr>
+            </thead>
+
+            <tbody id="oddsBody"></tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<div id="result" class="result">
+
+    <div class="result-title" id="resultTitle"></div>
+
+    <div class="result-detail" id="resultDetail"></div>
+
+    <div class="result-payout" id="resultPayout"></div>
 
 </div>
 
+
+<section class="section">
+
+    <div class="section-head">
+        <h2>ROUND HISTORY</h2>
+    </div>
+
+    <div id="history"></div>
+
+</section>
+
+</main>
+
+</div>
+
+
 <script>
-var tg = null;
-try {
-    if (window.Telegram && window.Telegram.WebApp) {
-        tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+
+/*
+============================================================
+AURA KENO ENGINE
+============================================================
+
+RULES
+
+• Number pool: 1–80
+• Player picks: 5–10
+• Draw: exactly 20 unique numbers
+• Draw is WITHOUT replacement
+• Draw is independent of player's selected numbers
+• Payout is based only on number of catches
+• Target theoretical RTP: 80%
+• Theoretical house edge: 20%
+
+IMPORTANT:
+
+This standalone browser version is NOT a secure
+real-money gambling engine.
+
+For real-money deployment:
+
+RNG
+BET VALIDATION
+WALLET
+PAYOUT
+ROUND RESULT
+ROUND ID
+
+must be controlled by a trusted backend.
+
+============================================================
+*/
+
+
+const FIELD_SIZE = 80;
+const DRAW_COUNT = 20;
+const MIN_SPOTS = 5;
+const MAX_SPOTS = 10;
+
+const BETTING_TIME = 60;
+const DRAW_INTERVAL = 1200;
+
+const TARGET_RTP = 0.80;
+
+
+/*
+------------------------------------------------------------
+BASE PAY TABLE
+
+The base structure gives larger prizes to rarer catches.
+
+We mathematically scale the complete table to TARGET_RTP.
+
+That means the draw probabilities stay unchanged while
+the payout table determines the theoretical return.
+------------------------------------------------------------
+*/
+
+const BASE_TABLES = {
+
+    5:{
+        3:2,
+        4:18,
+        5:410
+    },
+
+    6:{
+        3:1,
+        4:7,
+        5:57,
+        6:1100
+    },
+
+    7:{
+        3:1,
+        4:5,
+        5:11,
+        6:100,
+        7:2000
+    },
+
+    8:{
+        4:2,
+        5:15,
+        6:50,
+        7:300,
+        8:10000
+    },
+
+    9:{
+        4:2,
+        5:5,
+        6:20,
+        7:100,
+        8:2000,
+        9:25000
+    },
+
+    10:{
+        0:5,
+        5:2,
+        6:10,
+        7:50,
+        8:500,
+        9:5000,
+        10:100000
     }
-} catch (error) {
-    console.log("Telegram WebApp error:", error);
+
+};
+
+
+/*
+------------------------------------------------------------
+GAME STATE
+------------------------------------------------------------
+*/
+
+let selected = new Set();
+
+let drawn = [];
+
+let roundRunning = false;
+
+let bettingTimer = null;
+
+let drawTimer = null;
+
+let secondsLeft = BETTING_TIME;
+
+let currentStake = 0;
+
+let roundNumber = 1;
+
+
+/*
+------------------------------------------------------------
+BALANCE
+
+This is ONLY local browser storage.
+
+It is NOT a real-money wallet.
+------------------------------------------------------------
+*/
+
+let balance =
+    Number(localStorage.getItem("auraKenoBalance"));
+
+if(!Number.isFinite(balance)){
+    balance = 1000;
+    localStorage.setItem(
+        "auraKenoBalance",
+        balance.toFixed(2)
+    );
 }
 
-var balance = Number(localStorage.getItem("desta_balance"));
-if (!balance || balance < 0) balance = 1000;
 
-var historyData = [];
-try {
-    historyData = JSON.parse(localStorage.getItem("desta_history") || "[]");
-} catch (error) {
-    historyData = [];
+/*
+------------------------------------------------------------
+DOM
+------------------------------------------------------------
+*/
+
+const balanceEl =
+    document.getElementById("balance");
+
+const selectedCountEl =
+    document.getElementById("selectedCount");
+
+const numberGrid =
+    document.getElementById("numberGrid");
+
+const drawNumbers =
+    document.getElementById("drawNumbers");
+
+const drawCount =
+    document.getElementById("drawCount");
+
+const timerEl =
+    document.getElementById("timer");
+
+const gameStatus =
+    document.getElementById("gameStatus");
+
+const playBtn =
+    document.getElementById("playBtn");
+
+const resultBox =
+    document.getElementById("result");
+
+const resultTitle =
+    document.getElementById("resultTitle");
+
+const resultDetail =
+    document.getElementById("resultDetail");
+
+const resultPayout =
+    document.getElementById("resultPayout");
+
+const oddsBody =
+    document.getElementById("oddsBody");
+
+const historyEl =
+    document.getElementById("history");
+
+
+/*
+------------------------------------------------------------
+DISPLAY BALANCE
+------------------------------------------------------------
+*/
+
+function updateBalance(){
+
+    balanceEl.textContent =
+        balance.toFixed(2);
+
+    localStorage.setItem(
+        "auraKenoBalance",
+        balance.toFixed(2)
+    );
 }
 
-var kenoBet = 10, bingoBet = 10, spinBet = 10, aviatorBet = 10;
-var selectedKeno = [];
-var bingoCardMatrix = []; // Store structured cartela
-var isAnimating = false;
 
-var aviatorRunning = false, aviatorTimer = null, aviatorMultiplier = 1, aviatorCrashPoint = 0;
+/*
+------------------------------------------------------------
+CREATE NUMBER GRID
+------------------------------------------------------------
+*/
 
-function saveData() {
-    localStorage.setItem("desta_balance", String(balance));
-    localStorage.setItem("desta_history", JSON.stringify(historyData));
-    updateBalance();
-    renderHistory();
-}
+function createGrid(){
 
-function updateBalance() {
-    document.getElementById("balance").textContent = Math.floor(balance).toLocaleString();
-    document.getElementById("leaderBalance").textContent = Math.floor(balance).toLocaleString();
-}
+    numberGrid.innerHTML = "";
 
-function randomNumber(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+    for(let n=1;n<=FIELD_SIZE;n++){
 
-function shuffle(array) {
-    var result = array.slice();
-    for (var i = result.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = result[i];
-        result[i] = result[j];
-        result[j] = temp;
+        const button =
+            document.createElement("button");
+
+        button.className = "number";
+
+        button.textContent = n;
+
+        button.dataset.number = n;
+
+        button.onclick =
+            () => toggleNumber(n);
+
+        numberGrid.appendChild(button);
     }
+}
+
+
+/*
+------------------------------------------------------------
+SELECT NUMBER
+------------------------------------------------------------
+*/
+
+function toggleNumber(number){
+
+    if(roundRunning){
+        return;
+    }
+
+    if(selected.has(number)){
+
+        selected.delete(number);
+
+    }else{
+
+        if(selected.size >= MAX_SPOTS){
+
+            alert(
+                "Maximum selection is 10 numbers."
+            );
+
+            return;
+        }
+
+        selected.add(number);
+    }
+
+    updateGrid();
+    updateOdds();
+}
+
+
+/*
+------------------------------------------------------------
+UPDATE GRID
+------------------------------------------------------------
+*/
+
+function updateGrid(){
+
+    const buttons =
+        numberGrid.querySelectorAll(".number");
+
+    buttons.forEach(button=>{
+
+        const n =
+            Number(button.dataset.number);
+
+        button.classList.toggle(
+            "selected",
+            selected.has(n)
+        );
+
+        button.classList.toggle(
+            "hit",
+            drawn.includes(n) &&
+            selected.has(n)
+        );
+
+        button.classList.toggle(
+            "drawn",
+            drawn.includes(n)
+        );
+    });
+
+    selectedCountEl.textContent =
+        selected.size;
+}
+
+
+/*
+------------------------------------------------------------
+CLEAR
+------------------------------------------------------------
+*/
+
+function clearSelection(){
+
+    if(roundRunning){
+        return;
+    }
+
+    selected.clear();
+
+    updateGrid();
+    updateOdds();
+}
+
+
+/*
+------------------------------------------------------------
+AUTO PICK
+------------------------------------------------------------
+*/
+
+function autoPick(){
+
+    if(roundRunning){
+        return;
+    }
+
+    selected.clear();
+
+    const numbers =
+        randomUniqueNumbers(
+            FIELD_SIZE,
+            5 + secureRandomInt(6)
+        );
+
+    numbers.forEach(n=>selected.add(n));
+
+    updateGrid();
+    updateOdds();
+}
+
+
+/*
+------------------------------------------------------------
+SECURE RANDOM INTEGER
+
+Uses browser Web Crypto API.
+------------------------------------------------------------
+*/
+
+function secureRandomInt(max){
+
+    if(max <= 0){
+        throw new Error("Invalid random range.");
+    }
+
+    const maxUint =
+        0xFFFFFFFF;
+
+    const limit =
+        maxUint -
+        (maxUint % max);
+
+    const array =
+        new Uint32Array(1);
+
+    let value;
+
+    do{
+
+        crypto.getRandomValues(array);
+
+        value = array[0];
+
+    }while(value >= limit);
+
+    return value % max;
+}
+
+
+/*
+------------------------------------------------------------
+UNIQUE RANDOM NUMBERS
+------------------------------------------------------------
+*/
+
+function randomUniqueNumbers(
+    max,
+    count
+){
+
+    const pool =
+        Array.from(
+            {length:max},
+            (_,i)=>i+1
+        );
+
+    /*
+    Fisher-Yates shuffle
+    */
+
+    for(let i=pool.length-1;i>0;i--){
+
+        const j =
+            secureRandomInt(i+1);
+
+        [
+            pool[i],
+            pool[j]
+        ] =
+        [
+            pool[j],
+            pool[i]
+        ];
+    }
+
+    return pool.slice(0,count);
+}
+
+
+/*
+------------------------------------------------------------
+COMBINATIONS
+
+C(n,k)
+------------------------------------------------------------
+*/
+
+function combinations(n,k){
+
+    if(k<0 || k>n){
+        return 0;
+    }
+
+    k =
+        Math.min(k,n-k);
+
+    let result = 1;
+
+    for(
+        let i=1;
+        i<=k;
+        i++
+    ){
+
+        result =
+            result *
+            (n-k+i) /
+            i;
+    }
+
     return result;
 }
 
-function showPage(pageName) {
-    if (isAnimating) return;
-    document.querySelectorAll(".page").forEach(function(page) {
-        page.classList.remove("active");
-    });
-    var target = document.getElementById(pageName);
-    if (target) target.classList.add("active");
-    window.scrollTo(0, 0);
 
-    document.querySelectorAll(".nav-btn").forEach(function(button) {
-        button.classList.remove("active");
-        if (button.getAttribute("data-page") === pageName) {
-            button.classList.add("active");
-        }
-    });
+/*
+------------------------------------------------------------
+HYPERGEOMETRIC PROBABILITY
+
+P(K=k)
+
+C(N,k) * C(80-N,20-k)
+-----------------------------------------------
+             C(80,20)
+------------------------------------------------
+*/
+
+function probability(
+    spots,
+    catches
+){
+
+    if(
+        catches < 0 ||
+        catches > spots ||
+        catches > DRAW_COUNT ||
+        DRAW_COUNT-catches >
+        FIELD_SIZE-spots
+    ){
+
+        return 0;
+    }
+
+    const numerator =
+        combinations(
+            spots,
+            catches
+        ) *
+        combinations(
+            FIELD_SIZE-spots,
+            DRAW_COUNT-catches
+        );
+
+    const denominator =
+        combinations(
+            FIELD_SIZE,
+            DRAW_COUNT
+        );
+
+    return numerator / denominator;
 }
 
-function setupNavigation() {
-    document.querySelectorAll(".nav-btn").forEach(function(button) {
-        button.addEventListener("click", function() {
-            showPage(button.getAttribute("data-page"));
+
+/*
+------------------------------------------------------------
+BASE RTP
+------------------------------------------------------------
+*/
+
+function baseRTP(spots){
+
+    const table =
+        BASE_TABLES[spots];
+
+    let rtp = 0;
+
+    Object.keys(table)
+        .forEach(match=>{
+
+            const k =
+                Number(match);
+
+            rtp +=
+                probability(
+                    spots,
+                    k
+                ) *
+                table[k];
         });
-    });
 
-    document.getElementById("kenoButton").addEventListener("click", function() { showPage("keno"); initKeno(); });
-    document.getElementById("bingoButton").addEventListener("click", function() { showPage("bingo"); initBingo(); });
-    document.getElementById("spinButton").addEventListener("click", function() { showPage("spin"); });
-    document.getElementById("aviatorButton").addEventListener("click", function() { showPage("aviator"); });
-
-    document.getElementById("kenoBack").addEventListener("click", function() { showPage("home"); });
-    document.getElementById("bingoBack").addEventListener("click", function() { showPage("home"); });
-    document.getElementById("spinBack").addEventListener("click", function() { showPage("home"); });
-    document.getElementById("aviatorBack").addEventListener("click", function() { showPage("home"); });
+    return rtp;
 }
 
-/* KENO LOGIC & ANIMATION */
-function initKeno() {
-    if (isAnimating) return;
-    selectedKeno = [];
-    var container = document.getElementById("kenoNumbers");
-    container.innerHTML = "";
-    document.getElementById("kenoResult").innerHTML = "";
 
-    for (var i = 1; i <= 30; i++) {
-        var button = document.createElement("button");
-        button.type = "button";
-        button.className = "number";
-        button.textContent = i;
-        button.addEventListener("click", function() {
-            if (isAnimating) return;
-            var number = Number(this.textContent);
-            if (selectedKeno.indexOf(number) !== -1) {
-                selectedKeno = selectedKeno.filter(function(n) { return n !== number; });
-                this.classList.remove("selected");
+/*
+------------------------------------------------------------
+RTP SCALING
+
+Every paytable is scaled so:
+
+Expected payout = 0.80 × stake
+------------------------------------------------------------
+*/
+
+function scaleFactor(spots){
+
+    const rtp =
+        baseRTP(spots);
+
+    return TARGET_RTP / rtp;
+}
+
+
+/*
+------------------------------------------------------------
+FINAL PAYOUT MULTIPLIER
+------------------------------------------------------------
+*/
+
+function payoutMultiplier(
+    spots,
+    matches
+){
+
+    const table =
+        BASE_TABLES[spots];
+
+    if(
+        !Object.prototype.hasOwnProperty
+        .call(table,matches)
+    ){
+
+        return 0;
+    }
+
+    return (
+        table[matches] *
+        scaleFactor(spots)
+    );
+}
+
+
+/*
+------------------------------------------------------------
+FORMAT PROBABILITY
+------------------------------------------------------------
+*/
+
+function formatProbability(p){
+
+    if(p <= 0){
+        return "—";
+    }
+
+    const percent =
+        p * 100;
+
+    if(percent >= 0.01){
+        return percent.toFixed(2) + "%";
+    }
+
+    return (
+        "1 in " +
+        Math.round(1/p).toLocaleString()
+    );
+}
+
+
+/*
+------------------------------------------------------------
+ODDS TABLE
+
+Shows all 5–10 spot possibilities.
+------------------------------------------------------------
+*/
+
+function updateOdds(){
+
+    const spots =
+        selected.size;
+
+    if(
+        spots < MIN_SPOTS ||
+        spots > MAX_SPOTS
+    ){
+
+        oddsBody.innerHTML = `
+            <tr>
+                <td colspan="4"
+                    style="text-align:center;color:#8ea69f">
+                    Select 5–10 numbers to see
+                    your exact payout table.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    oddsBody.innerHTML = "";
+
+    const table =
+        BASE_TABLES[spots];
+
+    /*
+    Show paying outcomes only.
+    */
+
+    Object.keys(table)
+        .map(Number)
+        .sort((a,b)=>b-a)
+        .forEach(matches=>{
+
+            const p =
+                probability(
+                    spots,
+                    matches
+                );
+
+            const multiplier =
+                payoutMultiplier(
+                    spots,
+                    matches
+                );
+
+            const tr =
+                document.createElement("tr");
+
+            tr.innerHTML = `
+
+                <td>
+                    ${spots}
+                </td>
+
+                <td class="win">
+                    ${matches}
+                </td>
+
+                <td>
+                    ${formatProbability(p)}
+                </td>
+
+                <td class="win">
+                    ${multiplier.toFixed(2)}x
+                </td>
+
+            `;
+
+            oddsBody.appendChild(tr);
+        });
+
+}
+
+
+/*
+------------------------------------------------------------
+START ROUND
+
+Player must select 5–10 numbers.
+------------------------------------------------------------
+*/
+
+function startRound(){
+
+    if(roundRunning){
+        return;
+    }
+
+    if(
+        selected.size < MIN_SPOTS ||
+        selected.size > MAX_SPOTS
+    ){
+
+        alert(
+            "Choose between 5 and 10 numbers."
+        );
+
+        return;
+    }
+
+    const stake =
+        Number(
+            document.getElementById("stake").value
+        );
+
+    if(
+        !Number.isFinite(stake) ||
+        stake <= 0
+    ){
+
+        alert(
+            "Enter a valid stake."
+        );
+
+        return;
+    }
+
+    if(stake > balance){
+
+        alert(
+            "Insufficient balance."
+        );
+
+        return;
+    }
+
+
+    /*
+    Deduct stake before round.
+    */
+
+    currentStake = stake;
+
+    balance -= stake;
+
+    updateBalance();
+
+
+    /*
+    Reset round.
+    */
+
+    drawn = [];
+
+    roundRunning = true;
+
+    secondsLeft = BETTING_TIME;
+
+    clearResult();
+
+    updateGrid();
+
+    drawNumbers.innerHTML = `
+        <span style="color:#78938b;font-size:12px">
+            Drawing will begin shortly...
+        </span>
+    `;
+
+    drawCount.textContent = "0";
+
+    playBtn.disabled = true;
+
+    playBtn.style.opacity = ".5";
+
+    gameStatus.textContent =
+        "BET LOCKED";
+
+    timerEl.textContent =
+        "01:00";
+
+
+    /*
+    The selected ticket is now locked.
+
+    A real-money backend should store a signed
+    server-side ticket here.
+    */
+
+    startBettingCountdown();
+}
+
+
+/*
+------------------------------------------------------------
+BETTING COUNTDOWN
+
+The requested 1-minute period.
+------------------------------------------------------------
+*/
+
+function startBettingCountdown(){
+
+    clearInterval(bettingTimer);
+
+    bettingTimer =
+        setInterval(()=>{
+
+            secondsLeft--;
+
+            timerEl.textContent =
+                formatTime(secondsLeft);
+
+            if(secondsLeft <= 0){
+
+                clearInterval(
+                    bettingTimer
+                );
+
+                beginDraw();
+            }
+
+        },1000);
+}
+
+
+/*
+------------------------------------------------------------
+FORMAT TIME
+------------------------------------------------------------
+*/
+
+function formatTime(seconds){
+
+    const m =
+        Math.floor(seconds/60);
+
+    const s =
+        seconds % 60;
+
+    return (
+        String(m).padStart(2,"0") +
+        ":" +
+        String(s).padStart(2,"0")
+    );
+}
+
+
+/*
+------------------------------------------------------------
+BEGIN DRAW
+
+Exactly 20 unique numbers are generated.
+
+No number can repeat.
+------------------------------------------------------------
+*/
+
+function beginDraw(){
+
+    gameStatus.textContent =
+        "DRAW IN PROGRESS";
+
+    timerEl.textContent =
+        "DRAW";
+
+    drawNumbers.innerHTML = "";
+
+    /*
+    IMPORTANT:
+
+    The complete 20-number draw is generated
+    independently from the player's selection.
+    */
+
+    const completeDraw =
+        randomUniqueNumbers(
+            FIELD_SIZE,
+            DRAW_COUNT
+        );
+
+    let index = 0;
+
+    clearInterval(drawTimer);
+
+    drawTimer =
+        setInterval(()=>{
+
+            if(index >= DRAW_COUNT){
+
+                clearInterval(drawTimer);
+
+                finishRound();
+
                 return;
             }
-            if (selectedKeno.length >= 5) return;
-            selectedKeno.push(number);
-            this.classList.add("selected");
-        });
-        container.appendChild(button);
-    }
+
+            const number =
+                completeDraw[index];
+
+            drawn.push(number);
+
+            showDrawNumber(number);
+
+            index++;
+
+        },DRAW_INTERVAL);
 }
 
-function playKeno() {
-    if (isAnimating) return;
-    if (selectedKeno.length !== 5) {
-        alert("Please select exactly 5 numbers.");
-        return;
-    }
-    if (balance < kenoBet) {
-        alert("Not enough demo credits.");
-        return;
-    }
-    balance -= kenoBet;
-    updateBalance();
-    isAnimating = true;
 
-    var btn = document.getElementById("playKenoButton");
-    btn.disabled = true;
+/*
+------------------------------------------------------------
+SHOW DRAWN NUMBER
+------------------------------------------------------------
+*/
 
-    var available = [];
-    for (var i = 1; i <= 30; i++) available.push(i);
-    var draw = shuffle(available).slice(0, 10);
-    var hits = selectedKeno.filter(function(n) { return draw.indexOf(n) !== -1; }).length;
+function showDrawNumber(number){
 
-    var step = 0;
-    var drawInterval = setInterval(function() {
-        if (step < draw.length) {
-            var drawnNum = draw[step];
-            document.querySelectorAll("#kenoNumbers .number").forEach(function(b) {
-                if (Number(b.textContent) === drawnNum) {
-                    b.classList.add("drawn");
-                }
-            });
-            step++;
-        } else {
-            clearInterval(drawInterval);
-            isAnimating = false;
-            btn.disabled = false;
+    /*
+    Remove waiting text.
+    */
 
-            var multipliers = { 0: 0, 1: 0, 2: 0.5, 3: 2, 4: 8, 5: 25 };
-            var payout = Math.floor(kenoBet * multipliers[hits]);
-            balance += payout;
-
-            var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
-            document.getElementById("kenoResult").innerHTML = '<div class="result">Draw: <b>' + draw.sort(function(a,b){return a-b;}).join(", ") + '</b><br>Matches: <b>' + hits + '/5</b><br>' + message + '</div>';
-            addHistory("Keno", payout - kenoBet, hits + " matches");
-        }
-    }, 250);
-}
-
-function setupKeno() {
-    document.querySelectorAll(".keno-bet").forEach(function(button) {
-        button.addEventListener("click", function() {
-            if (isAnimating) return;
-            kenoBet = Number(button.getAttribute("data-value"));
-            document.getElementById("kenoBetText").textContent = kenoBet + " ETB";
-            document.querySelectorAll(".keno-bet").forEach(function(b) { b.classList.remove("selected"); });
-            button.classList.add("selected");
-        });
-    });
-    document.getElementById("playKenoButton").addEventListener("click", playKeno);
-    document.getElementById("clearKenoButton").addEventListener("click", initKeno);
-}
-
-/* BINGO CARTELA LOGIC & DRAW ANIMATION */
-function getBingoLetter(num) {
-    if (num <= 5) return 'B';
-    if (num <= 10) return 'I';
-    if (num <= 15) return 'N';
-    if (num <= 20) return 'G';
-    return 'O';
-}
-
-function initBingo() {
-    if (isAnimating) return;
-    var board = document.getElementById("bingoBoard");
-    board.innerHTML = "";
-    document.getElementById("bingoResult").innerHTML = "";
-    document.getElementById("bingoDrawZone").innerHTML = '<span style="color:#627b97;font-size:12px;" id="bingoStatusText">Press DRAW to start</span>';
-
-    // Generate balanced columns for structured cartela
-    // B: 1-5, I: 6-10, N: 11-15, G: 16-20, O: 21-25
-    var cols = [
-        shuffle([1, 2, 3, 4, 5]).slice(0, 5),
-        shuffle([6, 7, 8, 9, 10]).slice(0, 5),
-        shuffle([11, 12, 13, 14, 15]).slice(0, 5),
-        shuffle([16, 17, 18, 19, 20]).slice(0, 5),
-        shuffle([21, 22, 23, 24, 25]).slice(0, 5)
-    ];
-
-    bingoCardMatrix = [];
-    for (var row = 0; row < 5; row++) {
-        for (var col = 0; col < 5; col++) {
-            if (row === 2 && col === 2) {
-                bingoCardMatrix.push({ number: 0, free: true });
-            } else {
-                bingoCardMatrix.push({ number: cols[col][row], free: false });
-            }
-        }
+    if(drawn.length === 1){
+        drawNumbers.innerHTML = "";
     }
 
-    bingoCardMatrix.forEach(function(item) {
-        var cell = document.createElement("div");
-        cell.className = "bingo-cell";
-        if (item.free) {
-            cell.classList.add("free");
-            cell.textContent = "FREE";
-        } else {
-            cell.textContent = item.number;
-            cell.setAttribute("data-num", item.number);
-        }
-        board.appendChild(cell);
-    });
+    const ball =
+        document.createElement("div");
+
+    ball.className =
+        "draw-ball";
+
+    ball.textContent =
+        number;
+
+    drawNumbers.appendChild(ball);
+
+    drawCount.textContent =
+        drawn.length;
+
+    /*
+    Scroll to newest number.
+    */
+
+    drawNumbers.scrollLeft =
+        drawNumbers.scrollWidth;
+
+    updateGrid();
 }
 
-function playBingo() {
-    if (isAnimating) return;
-    if (balance < bingoBet) {
-        alert("Not enough demo credits.");
-        return;
-    }
-    balance -= bingoBet;
-    updateBalance();
-    isAnimating = true;
 
-    var btn = document.getElementById("playBingoButton");
-    btn.disabled = true;
+/*
+------------------------------------------------------------
+FINISH ROUND
 
-    var drawZone = document.getElementById("bingoDrawZone");
-    drawZone.innerHTML = ""; // Clear initial text
+After EXACTLY 20 numbers.
+------------------------------------------------------------
+*/
 
-    var pool = [];
-    for (var i = 1; i <= 25; i++) pool.push(i);
-    var drawnSequence = shuffle(pool).slice(0, 8); // Draw 8 balls sequentially
+function finishRound(){
 
-    var step = 0;
-    var hitsCount = 0;
+    gameStatus.textContent =
+        "ROUND COMPLETE";
 
-    var interval = setInterval(function() {
-        if (step < drawnSequence.length) {
-            var num = drawnSequence[step];
-            var letter = getBingoLetter(num);
+    timerEl.textContent =
+        "DONE";
 
-            // Animated ball element drop
-            var ball = document.createElement("div");
-            ball.className = "bingo-ball";
-            ball.innerHTML = '<span class="ball-letter">' + letter + '</span>' + num;
-            drawZone.appendChild(ball);
 
-            // Highlight target cell on cartela
-            var matchingCell = document.querySelector('#bingoBoard .bingo-cell[data-num="' + num + '"]');
-            if (matchingCell) {
-                matchingCell.classList.add("hit");
-                hitsCount++;
-            }
+    /*
+    Count player's catches.
+    */
 
-            step++;
-        } else {
-            clearInterval(interval);
-            isAnimating = false;
-            btn.disabled = false;
+    const matches =
+        [...selected]
+            .filter(
+                number =>
+                    drawn.includes(number)
+            )
+            .length;
 
-            var payout = 0;
-            if (hitsCount >= 4) payout = bingoBet * 4;
-            else if (hitsCount >= 2) payout = bingoBet * 1.5;
 
-            balance += payout;
-            var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
-            document.getElementById("bingoResult").innerHTML = '<div class="result">Cartela Hits: <b>' + hitsCount + '</b><br>' + message + '</div>';
-            addHistory("Bingo", payout - bingoBet, hitsCount + " hits");
-        }
-    }, 700);
-}
+    const spots =
+        selected.size;
 
-function setupBingo() {
-    document.querySelectorAll(".bingo-bet").forEach(function(button) {
-        button.addEventListener("click", function() {
-            if (isAnimating) return;
-            bingoBet = Number(button.getAttribute("data-value"));
-            document.getElementById("bingoBetText").textContent = bingoBet + " ETB";
-            document.querySelectorAll(".bingo-bet").forEach(function(b) { b.classList.remove("selected"); });
-            button.classList.add("selected");
-        });
-    });
-    document.getElementById("playBingoButton").addEventListener("click", playBingo);
-    document.getElementById("newBingoButton").addEventListener("click", initBingo);
-}
 
-/* SPIN LOGIC & ANIMATION */
-function setupSpin() {
-    document.querySelectorAll(".spin-bet").forEach(function(button) {
-        button.addEventListener("click", function() {
-            if (isAnimating) return;
-            spinBet = Number(button.getAttribute("data-value"));
-            document.getElementById("spinBetText").textContent = spinBet + " ETB";
-            document.querySelectorAll(".spin-bet").forEach(function(b) { b.classList.remove("selected"); });
-            button.classList.add("selected");
-        });
-    });
-    document.getElementById("playSpinButton").addEventListener("click", playSpin);
-}
+    /*
+    Calculate payout.
+    */
 
-function playSpin() {
-    if (isAnimating) return;
-    if (balance < spinBet) {
-        alert("Not enough demo credits.");
-        return;
-    }
-    balance -= spinBet;
-    updateBalance();
-    isAnimating = true;
+    const multiplier =
+        payoutMultiplier(
+            spots,
+            matches
+        );
 
-    var btn = document.getElementById("playSpinButton");
-    btn.disabled = true;
 
-    var outcomes = [0, 0, 0.5, 1, 2, 3, 5, 10];
-    var index = randomNumber(0, outcomes.length - 1);
-    var multiplier = outcomes[index];
+    const payout =
+        currentStake *
+        multiplier;
 
-    var wheel = document.getElementById("wheel");
-    var rotation = 1440 + index * (360 / outcomes.length);
-    wheel.style.transform = "rotate(" + rotation + "deg)";
 
-    setTimeout(function() {
-        isAnimating = false;
-        btn.disabled = false;
-        var payout = Math.floor(spinBet * multiplier);
+    /*
+    Credit payout.
+    */
+
+    if(payout > 0){
+
         balance += payout;
-        var message = payout > 0 ? '<span class="win">🎉 Won ' + payout + ' ETB</span>' : '<span class="loss">No payout</span>';
-        document.getElementById("spinResult").innerHTML = '<div class="result">Result: <b>' + multiplier + '×</b><br>' + message + '</div>';
-        addHistory("Spin", payout - spinBet, multiplier + "×");
-    }, 4100);
-}
 
-/* AVIATOR LOGIC & ANIMATION */
-function setupAviator() {
-    document.querySelectorAll(".aviator-bet").forEach(function(button) {
-        button.addEventListener("click", function() {
-            if (aviatorRunning) return;
-            aviatorBet = Number(button.getAttribute("data-value"));
-            document.getElementById("aviatorBetText").textContent = aviatorBet + " ETB";
-            document.querySelectorAll(".aviator-bet").forEach(function(b) { b.classList.remove("selected"); });
-            button.classList.add("selected");
-        });
-    });
-    document.getElementById("aviatorActionButton").addEventListener("click", aviatorAction);
-}
-
-function aviatorAction() {
-    if (aviatorRunning) cashoutAviator();
-    else startAviator();
-}
-
-function startAviator() {
-    if (balance < aviatorBet) {
-        alert("Not enough demo credits.");
-        return;
     }
-    balance -= aviatorBet;
+
+
     updateBalance();
-    aviatorRunning = true;
-    aviatorMultiplier = 1;
-    aviatorCrashPoint = 1.3 + Math.random() * 5;
 
-    document.getElementById("aviatorResult").innerHTML = "";
-    document.getElementById("aviatorMultiplier").classList.remove("crashed");
-    document.getElementById("aviatorActionButton").textContent = "💰 CASH OUT";
+    showResult(
+        spots,
+        matches,
+        multiplier,
+        payout
+    );
 
-    var startTime = Date.now();
-    aviatorTimer = setInterval(function() {
-        var elapsed = (Date.now() - startTime) / 1000;
-        aviatorMultiplier = 1 + elapsed * 0.35;
+    addHistory(
+        spots,
+        matches,
+        currentStake,
+        payout
+    );
 
-        document.getElementById("aviatorMultiplier").textContent = aviatorMultiplier.toFixed(2) + "×";
-        var plane = document.getElementById("plane");
-        plane.style.transform = "translate(" + (elapsed * 12) + "px,-" + (elapsed * 8) + "px)";
 
-        if (aviatorMultiplier >= aviatorCrashPoint) {
-            crashAviator();
+    /*
+    Unlock for next round.
+    */
+
+    roundRunning = false;
+
+    playBtn.disabled = false;
+
+    playBtn.style.opacity = "1";
+
+    playBtn.textContent =
+        "PLAY AGAIN";
+
+    currentStake = 0;
+
+    updateGrid();
+
+    /*
+    New betting round can begin after
+    the player presses PLAY AGAIN.
+    */
+
+}
+
+
+/*
+------------------------------------------------------------
+RESULT
+------------------------------------------------------------
+*/
+
+function showResult(
+    spots,
+    matches,
+    multiplier,
+    payout
+){
+
+    resultBox.className =
+        "result";
+
+    if(payout > 0){
+
+        resultBox.classList.add("win");
+
+        resultTitle.textContent =
+            "🎉 WIN";
+
+        resultDetail.textContent =
+            `${matches} of ${spots} numbers matched`;
+
+        resultPayout.textContent =
+            `+${payout.toFixed(2)} ETB`;
+
+    }else{
+
+        resultBox.classList.add("lose");
+
+        resultTitle.textContent =
+            "NO WIN";
+
+        resultDetail.textContent =
+            `${matches} of ${spots} numbers matched`;
+
+        resultPayout.textContent =
+            "0.00 ETB";
+    }
+
+}
+
+
+/*
+------------------------------------------------------------
+CLEAR RESULT
+------------------------------------------------------------
+*/
+
+function clearResult(){
+
+    resultBox.className =
+        "result";
+
+    resultTitle.textContent = "";
+
+    resultDetail.textContent = "";
+
+    resultPayout.textContent = "";
+}
+
+
+/*
+------------------------------------------------------------
+HISTORY
+
+Local browser history only.
+------------------------------------------------------------
+*/
+
+function addHistory(
+    spots,
+    matches,
+    stake,
+    payout
+){
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "history-item";
+
+    const id =
+        "K" +
+        String(roundNumber)
+            .padStart(6,"0");
+
+    roundNumber++;
+
+    const profit =
+        payout - stake;
+
+    item.innerHTML = `
+
+        <div class="history-left">
+
+            <strong>
+                ${id}
+            </strong>
+
+            <div class="history-id">
+                ${spots} spots •
+                ${matches} matches •
+                Stake ${stake.toFixed(2)} ETB
+            </div>
+
+        </div>
+
+        <div class="${
+            payout > 0
+                ? "history-win"
+                : "history-loss"
+        }">
+
+            ${
+                payout > 0
+                ? "+" + payout.toFixed(2)
+                : "LOSS"
+            }
+
+        </div>
+    `;
+
+    historyEl.prepend(item);
+
+    /*
+    Keep last 20 rounds.
+    */
+
+    while(historyEl.children.length > 20){
+
+        historyEl.removeChild(
+            historyEl.lastChild
+        );
+    }
+
+}
+
+
+/*
+------------------------------------------------------------
+INITIALIZE
+------------------------------------------------------------
+*/
+
+createGrid();
+
+updateBalance();
+
+updateOdds();
+
+timerEl.textContent =
+    "01:00";
+
+gameStatus.textContent =
+    "BETTING OPEN";
+
+
+/*
+------------------------------------------------------------
+PREVENT ACCIDENTAL DOUBLE PLAY
+------------------------------------------------------------
+*/
+
+window.addEventListener(
+    "beforeunload",
+    event => {
+
+        if(roundRunning){
+
+            event.preventDefault();
+
+            event.returnValue =
+                "";
         }
-    }, 50);
-}
 
-function crashAviator() {
-    clearInterval(aviatorTimer);
-    aviatorRunning = false;
-    document.getElementById("aviatorMultiplier").classList.add("crashed");
-    document.getElementById("aviatorMultiplier").textContent = aviatorCrashPoint.toFixed(2) + "×";
-    document.getElementById("aviatorActionButton").textContent = "✈️ START ROUND";
-    document.getElementById("aviatorResult").innerHTML = '<div class="result">✈️ Flight ended at <b>' + aviatorCrashPoint.toFixed(2) + '×</b><br><span class="loss">No cash-out</span></div>';
-    addHistory("Aviator", -aviatorBet, aviatorCrashPoint.toFixed(2) + "×");
-}
-
-function cashoutAviator() {
-    if (!aviatorRunning) return;
-    clearInterval(aviatorTimer);
-    aviatorRunning = false;
-    var payout = Math.floor(aviatorBet * aviatorMultiplier);
-    balance += payout;
-
-    document.getElementById("aviatorActionButton").textContent = "✈️ START ROUND";
-    document.getElementById("aviatorResult").innerHTML = '<div class="result">💰 Cashed out at <b>' + aviatorMultiplier.toFixed(2) + '×</b><br><span class="win">Returned ' + payout + ' ETB</span></div>';
-    addHistory("Aviator", payout - aviatorBet, aviatorMultiplier.toFixed(2) + "×");
-}
-
-/* HISTORY */
-function addHistory(game, net, details) {
-    historyData.unshift({ game: game, net: net, details: details, time: new Date().toLocaleTimeString() });
-    if (historyData.length > 50) historyData.pop();
-    saveData();
-}
-
-function renderHistory() {
-    var box = document.getElementById("historyList");
-    if (!historyData.length) {
-        box.innerHTML = '<div style="color:#91a4bb;font-size:12px">No games played yet.</div>';
-        return;
     }
-    box.innerHTML = historyData.map(function(item) {
-        var resultClass = item.net >= 0 ? "win" : "loss";
-        var sign = item.net >= 0 ? "+" : "";
-        return '<div class="history-item"><div><div class="history-game">' + item.game + '</div><div class="history-time">' + item.details + ' • ' + item.time + '</div></div><div class="' + resultClass + '">' + sign + item.net + ' ETB</div></div>';
-    }).join("");
-}
+);
 
-/* TELEGRAM USER INTEGRATION */
-function loadTelegramUser() {
-    if (!tg || !tg.initDataUnsafe || !tg.initDataUnsafe.user) return;
-    var user = tg.initDataUnsafe.user;
-    var name = [user.first_name, user.last_name].filter(Boolean).join(" ") || "Player";
-
-    document.getElementById("welcomeName").textContent = name;
-    document.getElementById("profileName").textContent = name;
-    document.getElementById("profileUsername").textContent = user.username ? "@" + user.username : "Telegram user";
-    document.getElementById("avatar").textContent = user.first_name ? user.first_name.charAt(0).toUpperCase() : "👤";
-}
-
-function resetDemo() {
-    balance = 1000;
-    historyData = [];
-    saveData();
-    alert("Demo balance reset to 1,000 ETB.");
-}
-
-function startApp() {
-    setupNavigation();
-    setupKeno();
-    setupBingo();
-    setupSpin();
-    setupAviator();
-    document.getElementById("resetButton").addEventListener("click", resetDemo);
-
-    loadTelegramUser();
-    updateBalance();
-    renderHistory();
-    initKeno();
-    initBingo();
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", startApp);
-} else {
-    startApp();
-}
 </script>
 
 </body>
