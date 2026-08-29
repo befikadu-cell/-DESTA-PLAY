@@ -3,421 +3,555 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 
-<title>Aura Keno</title>
+<title>DESTA PLAY</title>
 
 <style>
-:root{
-    --bg:#061b16;
-    --panel:#0b2b23;
-    --panel2:#10382d;
-    --gold:#e7b84f;
-    --gold2:#ffd66d;
-    --text:#f4f5ef;
-    --muted:#9fb5ad;
-    --green:#19c987;
-    --red:#ff5d68;
-    --blue:#45a8ff;
-    --border:rgba(231,184,79,.28);
-}
-
 *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
 }
 
-body{
+html,body{
     margin:0;
-    background:
-        radial-gradient(circle at 50% 0%,#123e30 0%,#061b16 42%,#03110e 100%);
-    color:var(--text);
+    padding:0;
+    background:#06111d;
+    color:#fff;
     font-family:Arial,Helvetica,sans-serif;
-    min-height:100vh;
 }
 
-.app{
-    width:100%;
-    max-width:620px;
-    margin:auto;
-    padding-bottom:40px;
-}
-
-/* HEADER */
-
-.header{
-    position:sticky;
-    top:0;
-    z-index:20;
-    background:rgba(5,25,20,.96);
-    backdrop-filter:blur(14px);
-    border-bottom:1px solid var(--border);
-    padding:14px 16px;
-}
-
-.header-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.logo{
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-
-.logo-icon{
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    background:linear-gradient(145deg,#ffe080,#bd8323);
-    color:#102018;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:21px;
-    font-weight:900;
-}
-
-.logo-title{
-    font-size:20px;
-    font-weight:900;
-    letter-spacing:.5px;
-}
-
-.logo-sub{
-    font-size:11px;
-    color:var(--muted);
-    margin-top:2px;
-}
-
-.balance{
-    background:linear-gradient(145deg,#163e31,#09251e);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:9px 13px;
-    text-align:right;
-}
-
-.balance-label{
-    color:var(--muted);
-    font-size:10px;
-}
-
-.balance-value{
-    color:var(--gold2);
-    font-size:18px;
-    font-weight:900;
-}
-
-/* CONTENT */
-
-.content{
-    padding:15px;
-}
-
-.hero{
-    border:1px solid var(--border);
-    border-radius:22px;
-    padding:20px;
-    background:
-        radial-gradient(circle at center,#1d573f,#08261e 62%,#051811);
-    text-align:center;
-    box-shadow:0 15px 45px rgba(0,0,0,.25);
-}
-
-.hero h1{
-    margin:0;
-    color:var(--gold2);
-    font-size:34px;
-}
-
-.hero p{
-    margin:8px 0 0;
-    color:var(--muted);
-    font-size:13px;
-}
-
-/* TIMER */
-
-.timer-card{
-    margin-top:14px;
-    padding:15px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:18px;
-}
-
-.timer-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.status{
-    font-size:13px;
-    font-weight:800;
-}
-
-.timer{
-    font-size:28px;
-    font-weight:900;
-    color:var(--gold2);
-}
-
-/* DRAW */
-
-.draw-box{
-    margin-top:14px;
-    background:rgba(8,36,29,.8);
-    border:1px solid var(--border);
-    border-radius:18px;
-    padding:14px;
-}
-
-.draw-title{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-}
-
-.draw-title strong{
-    font-size:15px;
-}
-
-.draw-count{
-    color:var(--gold2);
-    font-weight:900;
-}
-
-.draw-numbers{
-    min-height:68px;
-    display:flex;
-    gap:8px;
-    overflow-x:auto;
-    padding:4px 0;
-}
-
-.draw-ball{
-    flex:0 0 52px;
-    height:52px;
-    border-radius:50%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:linear-gradient(145deg,#e9be55,#9e6817);
-    color:#122118;
-    font-weight:900;
-    font-size:17px;
-    box-shadow:0 5px 15px rgba(0,0,0,.3);
-    animation:pop .25s ease;
-}
-
-@keyframes pop{
-    from{
-        transform:scale(.4);
-        opacity:0;
-    }
-    to{
-        transform:scale(1);
-        opacity:1;
-    }
-}
-
-/* GRID */
-
-.section{
-    margin-top:14px;
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:20px;
-    padding:15px;
-}
-
-.section-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:12px;
-}
-
-.section-head h2{
-    margin:0;
-    font-size:17px;
-}
-
-.counter{
-    color:var(--gold2);
-    font-weight:900;
-}
-
-.number-grid{
-    display:grid;
-    grid-template-columns:repeat(8,1fr);
-    gap:7px;
-}
-
-.number{
-    aspect-ratio:1;
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:10px;
-    background:#0e352b;
-    color:#eaf0ed;
-    font-weight:800;
-    cursor:pointer;
-    transition:.15s;
-}
-
-.number:hover{
-    transform:translateY(-1px);
-}
-
-.number.selected{
-    background:linear-gradient(145deg,#f1c85d,#b87b1e);
-    color:#122018;
-    border-color:#ffe18a;
-    box-shadow:0 0 14px rgba(231,184,79,.35);
-}
-
-.number.hit{
-    background:linear-gradient(145deg,#25e09b,#087a55);
-    color:white;
-    border-color:#42ffb9;
-    box-shadow:0 0 15px rgba(25,201,135,.45);
-}
-
-.number.drawn{
-    opacity:.72;
-}
-
-/* CONTROLS */
-
-.controls{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
+body{
+    user-select:none;
 }
 
 button{
     font-family:inherit;
 }
 
-.control-btn{
-    border:1px solid var(--border);
-    background:#12382e;
-    color:white;
-    padding:13px;
-    border-radius:13px;
-    font-weight:800;
-    cursor:pointer;
+.app{
+    width:100%;
+    max-width:540px;
+    margin:auto;
+    min-height:100vh;
+    padding-bottom:90px;
 }
 
-.control-btn:active{
-    transform:scale(.98);
-}
+/* HEADER */
 
-.control-btn.gold{
-    background:linear-gradient(145deg,#f1ca64,#b77b1f);
-    color:#132018;
-}
-
-/* STAKE */
-
-.stake-row{
+.header{
+    height:70px;
+    padding:14px 16px;
     display:flex;
-    gap:8px;
+    align-items:center;
+    justify-content:space-between;
 }
 
-.stake-input{
-    flex:1;
-    min-width:0;
-    background:#071d17;
-    border:1px solid var(--border);
-    color:white;
-    border-radius:12px;
-    padding:13px;
-    font-size:16px;
-    outline:none;
+.logo{
+    font-size:25px;
+    font-weight:1000;
+    letter-spacing:.5px;
 }
 
-.bet-btn{
-    flex:1;
+.logo span{
+    color:#f4c44f;
+}
+
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#172a40;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* BALANCE */
+
+.balance{
+    margin:5px 15px 20px;
+    padding:20px;
+    border-radius:20px;
+    background:linear-gradient(135deg,#19334f,#0c1827);
+    border:1px solid #29425c;
+}
+
+.balance-label{
+    color:#8fa5bb;
+    font-size:11px;
+}
+
+.balance-value{
+    margin-top:5px;
+    font-size:30px;
+    font-weight:1000;
+}
+
+.balance-note{
+    color:#f4c44f;
+    font-size:10px;
+    margin-top:5px;
+}
+
+/* GENERAL */
+
+.section-title{
+    margin:20px 15px 12px;
+    font-size:19px;
+    font-weight:900;
+}
+
+.panel{
+    margin:15px;
+    padding:18px;
+    border-radius:20px;
+    background:#101e30;
+    border:1px solid #29425c;
+}
+
+.page{
+    display:none;
+}
+
+.page.active{
+    display:block;
+}
+
+.game-title{
+    text-align:center;
+    font-size:28px;
+    font-weight:1000;
+}
+
+.game-subtitle{
+    text-align:center;
+    margin-top:5px;
+    color:#8fa5bb;
+    font-size:12px;
+}
+
+.back{
+    margin:15px;
+    padding:11px 16px;
     border:0;
     border-radius:12px;
-    background:linear-gradient(145deg,#f2c85d,#b77b1d);
-    color:#102016;
+    background:#172b42;
+    color:#fff;
+    font-weight:bold;
+}
+
+/* GAME CARDS */
+
+.games{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    padding:0 15px;
+}
+
+.game-card{
+    min-height:150px;
+    padding:18px;
+    border-radius:20px;
+    border:1px solid #29425c;
+    background:linear-gradient(145deg,#172b42,#0d1a2a);
+    color:#fff;
+    text-align:left;
+    transition:.15s;
+}
+
+.game-card:active{
+    transform:scale(.96);
+}
+
+.game-icon{
+    font-size:38px;
+    margin-bottom:12px;
+}
+
+.game-name{
+    font-size:17px;
     font-weight:900;
+}
+
+.game-description{
+    color:#8fa5bb;
+    font-size:11px;
+    margin-top:6px;
+    line-height:1.4;
+}
+
+/* BUTTONS */
+
+.primary{
+    width:100%;
+    padding:14px;
+    margin-top:15px;
+    border:0;
+    border-radius:14px;
+    background:#f4c44f;
+    color:#111;
+    font-weight:1000;
     font-size:15px;
+}
+
+.primary:disabled{
+    background:#555;
+    color:#999;
+}
+
+.secondary{
+    width:100%;
+    padding:13px;
+    margin-top:10px;
+    border:1px solid #395570;
+    border-radius:14px;
+    background:#172b42;
+    color:#fff;
+    font-weight:900;
+}
+
+/* BETS */
+
+.bet-row{
+    display:flex;
+    gap:7px;
+    margin-top:18px;
+}
+
+.bet{
+    flex:1;
+    padding:11px 2px;
+    border:1px solid #34516c;
+    border-radius:12px;
+    background:#172b42;
+    color:#fff;
+    font-weight:900;
+}
+
+.bet.selected{
+    border-color:#f4c44f;
+    color:#f4c44f;
+}
+
+.bet-label{
+    margin-top:10px;
+    color:#8fa5bb;
+    font-size:12px;
 }
 
 /* ODDS */
 
-.odds-table{
-    width:100%;
-    border-collapse:collapse;
+.odds{
+    margin-top:14px;
+    padding:12px;
+    border-radius:14px;
+    background:#091625;
+    border:1px solid #223b53;
+}
+
+.odds-title{
+    font-size:13px;
+    font-weight:900;
+    margin-bottom:8px;
+}
+
+.odds-row{
+    display:flex;
+    justify-content:space-between;
+    padding:5px 0;
+    color:#9bb0c5;
+    font-size:11px;
+}
+
+.odds-row b{
+    color:#fff;
+}
+
+/* KENO */
+
+.numbers{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:7px;
+    margin-top:18px;
+}
+
+.number{
+    aspect-ratio:1;
+    border-radius:10px;
+    border:1px solid #304a64;
+    background:#17283c;
+    color:#fff;
+    font-weight:900;
+}
+
+.number.selected{
+    background:#f4c44f;
+    color:#111;
+    border-color:#f4c44f;
+}
+
+.number.drawn{
+    background:#35d07f;
+    color:#07150d;
+    border-color:#35d07f;
+    transform:scale(1.06);
+}
+
+.number.selected.drawn{
+    background:#ff9f43;
+    color:#111;
+    border-color:#ff9f43;
+}
+
+.keno-counter{
+    text-align:center;
+    margin-top:12px;
+    color:#9bb0c5;
     font-size:12px;
 }
 
-.odds-table th{
-    color:var(--gold2);
-    text-align:left;
-    padding:8px 5px;
-    border-bottom:1px solid var(--border);
+.timer{
+    text-align:center;
+    margin-top:15px;
+    padding:12px;
+    border-radius:14px;
+    background:#091625;
+    border:1px solid #223b53;
+    font-size:20px;
+    font-weight:1000;
 }
 
-.odds-table td{
-    padding:8px 5px;
-    border-bottom:1px solid rgba(255,255,255,.05);
-}
-
-.odds-table tr:last-child td{
-    border-bottom:0;
+.result{
+    margin-top:15px;
+    padding:15px;
+    border-radius:14px;
+    background:#091625;
+    border:1px solid #223b53;
+    text-align:center;
+    line-height:1.8;
 }
 
 .win{
-    color:#43e9a9;
+    color:#35d07f;
+    font-weight:1000;
+}
+
+.loss{
+    color:#ff5b6b;
+    font-weight:1000;
+}
+
+/* BINGO */
+
+.bingo-count-control{
+    display:flex;
+    gap:8px;
+    margin-top:15px;
+}
+
+.bingo-count-control button{
+    flex:1;
+    padding:12px 4px;
+    border:1px solid #34516c;
+    background:#172b42;
+    color:white;
+    border-radius:12px;
     font-weight:900;
 }
 
-/* RESULT */
+.bingo-count-control button.selected{
+    border-color:#f4c44f;
+    color:#f4c44f;
+}
 
-.result{
-    margin-top:14px;
-    border-radius:18px;
-    padding:18px;
+.cartela-list{
+    margin-top:15px;
+}
+
+.cartela{
+    margin-bottom:15px;
+    padding:12px;
+    border-radius:17px;
+    background:#091625;
+    border:1px solid #29425c;
+}
+
+.cartela-title{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-weight:1000;
+    font-size:13px;
+}
+
+.bingo-head,
+.bingo-board{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:5px;
+}
+
+.bingo-head div{
     text-align:center;
-    display:none;
+    color:#f4c44f;
+    font-weight:1000;
+    padding:5px;
 }
 
-.result.win{
-    display:block;
-    background:rgba(25,201,135,.12);
-    border:1px solid rgba(25,201,135,.4);
-}
-
-.result.lose{
-    display:block;
-    background:rgba(255,93,104,.08);
-    border:1px solid rgba(255,93,104,.3);
-}
-
-.result-title{
-    font-size:25px;
+.bingo-cell{
+    aspect-ratio:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    background:#17283c;
+    border:1px solid #304a64;
+    font-size:13px;
     font-weight:900;
 }
 
-.result-detail{
-    color:var(--muted);
-    margin-top:5px;
+.bingo-cell.marked{
+    background:#35d07f;
+    color:#06150c;
+    border-color:#35d07f;
 }
 
-.result-payout{
-    color:var(--gold2);
-    font-size:24px;
+.bingo-cell.free{
+    background:#f4c44f;
+    color:#111;
+}
+
+.bingo-cell.winner{
+    background:#ff9f43;
+    color:#111;
+    box-shadow:0 0 15px #ff9f43;
+}
+
+.draw-zone{
+    margin-top:15px;
+    min-height:76px;
+    border-radius:15px;
+    background:#07121e;
+    border:1px solid #29425c;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    overflow:hidden;
+    padding:10px;
+    flex-wrap:wrap;
+}
+
+.bingo-ball{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    background:#f1f1f1;
+    color:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    font-weight:1000;
+    animation:ballIn .35s ease;
+}
+
+.ball-letter{
+    font-size:9px;
+    color:#d52d2d;
+}
+
+@keyframes ballIn{
+    from{
+        transform:translateY(-60px) scale(.3);
+        opacity:0;
+    }
+    to{
+        transform:translateY(0) scale(1);
+        opacity:1;
+    }
+}
+
+.bingo-progress{
+    text-align:center;
+    margin-top:10px;
+    color:#9bb0c5;
+    font-size:12px;
+}
+
+/* AVIATOR */
+
+.flight{
+    height:250px;
+    margin-top:18px;
+    border-radius:20px;
+    background:
+        radial-gradient(circle at 25% 20%,#2c6287,#15344d 42%,#071522 80%);
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.multiplier{
+    font-size:45px;
+    font-weight:1000;
+    z-index:2;
+}
+
+.multiplier.crashed{
+    color:#ff5b6b;
+}
+
+.plane{
+    position:absolute;
+    left:8%;
+    bottom:12%;
+    font-size:43px;
+    z-index:1;
+}
+
+.flight-line{
+    position:absolute;
+    left:-20%;
+    bottom:-30%;
+    width:150%;
+    height:100%;
+    border-top:3px solid rgba(255,255,255,.25);
+    transform:rotate(-22deg);
+}
+
+/* DICE */
+
+.dice-area{
+    margin:25px auto;
+    display:flex;
+    justify-content:center;
+    gap:15px;
+}
+
+.die{
+    width:85px;
+    height:85px;
+    border-radius:18px;
+    background:#f2f2f2;
+    color:#111;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:42px;
+    font-weight:1000;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+}
+
+.dice-result{
+    text-align:center;
+    font-size:18px;
     font-weight:900;
-    margin-top:8px;
 }
 
 /* HISTORY */
@@ -425,48 +559,81 @@ button{
 .history-item{
     display:flex;
     justify-content:space-between;
+    padding:13px 0;
+    border-bottom:1px solid #263d54;
+}
+
+.history-game{
+    font-weight:900;
+}
+
+.history-time{
+    color:#8fa5bb;
+    font-size:10px;
+    margin-top:4px;
+}
+
+/* NAV */
+
+.nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    height:70px;
+    background:rgba(7,17,29,.97);
+    border-top:1px solid #263d54;
+    z-index:100;
+}
+
+.nav-inner{
+    max-width:540px;
+    height:100%;
+    margin:auto;
+    display:flex;
     align-items:center;
-    padding:10px 0;
-    border-bottom:1px solid rgba(255,255,255,.05);
+    justify-content:space-around;
 }
 
-.history-item:last-child{
-    border-bottom:0;
+.nav-btn{
+    border:0;
+    background:none;
+    color:#8fa5bb;
+    font-size:10px;
 }
 
-.history-left{
-    font-size:12px;
+.nav-btn.active{
+    color:#f4c44f;
 }
 
-.history-id{
-    color:var(--muted);
-    margin-top:3px;
+.nav-icon{
+    display:block;
+    font-size:21px;
+    margin-bottom:3px;
 }
 
-.history-win{
-    color:#42e7a6;
-    font-weight:900;
+.notice{
+    margin:15px;
+    padding:12px;
+    border-radius:13px;
+    background:#101e30;
+    border:1px solid #29425c;
+    color:#9bb0c5;
+    font-size:11px;
+    line-height:1.5;
 }
 
-.history-loss{
-    color:#ff747c;
-    font-weight:900;
-}
+@media(max-width:360px){
+    .games{
+        grid-template-columns:1fr;
+    }
 
-/* RESPONSIVE */
-
-@media(max-width:430px){
-    .number-grid{
+    .numbers{
         gap:5px;
     }
 
     .number{
-        border-radius:8px;
-        font-size:12px;
-    }
-
-    .hero h1{
-        font-size:28px;
+        font-size:11px;
     }
 }
 </style>
@@ -477,1492 +644,1873 @@ button{
 <div class="app">
 
 <header class="header">
-    <div class="header-row">
-
-        <div class="logo">
-            <div class="logo-icon">K</div>
-
-            <div>
-                <div class="logo-title">AURA KENO</div>
-                <div class="logo-sub">80 Numbers • 20 Draws</div>
-            </div>
-        </div>
-
-        <div class="balance">
-            <div class="balance-label">BALANCE</div>
-            <div class="balance-value">
-                <span id="balance">1000.00</span> ETB
-            </div>
-        </div>
-
-    </div>
+    <div class="logo">DESTA <span>PLAY</span></div>
+    <div class="avatar">D</div>
 </header>
 
+<!-- HOME -->
 
-<main class="content">
+<section id="home" class="page active">
 
-<section class="hero">
-    <h1>🎱 KENO</h1>
-    <p>
-        Choose 5–10 numbers from 1–80.
-        Exactly 20 numbers will be drawn.
-    </p>
-</section>
+    <div class="balance">
+        <div class="balance-label">PLAYER BALANCE</div>
+        <div class="balance-value">
+            🪙 <span id="balance">1000</span> ETB
+        </div>
+        <div class="balance-note">DESTA PLAY</div>
+    </div>
 
+    <div class="section-title">🎮 Games</div>
 
-<section class="timer-card">
+    <div class="games">
 
-    <div class="timer-top">
-
-        <div>
-            <div class="status" id="gameStatus">
-                BETTING OPEN
+        <button class="game-card" id="openKeno">
+            <div class="game-icon">🎱</div>
+            <div class="game-name">Keno</div>
+            <div class="game-description">
+                Choose up to 10 numbers from 1–80.
             </div>
+        </button>
 
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">
-                Choose your numbers before the draw
+        <button class="game-card" id="openBingo">
+            <div class="game-icon">🎟️</div>
+            <div class="game-name">Bingo</div>
+            <div class="game-description">
+                Choose multiple unique cartelas.
             </div>
-        </div>
-
-        <div class="timer" id="timer">
-            01:00
-        </div>
-
-    </div>
-
-</section>
-
-
-<section class="draw-box">
-
-    <div class="draw-title">
-
-        <strong>DRAWN NUMBERS</strong>
-
-        <div class="draw-count">
-            <span id="drawCount">0</span>/20
-        </div>
-
-    </div>
-
-    <div class="draw-numbers" id="drawNumbers">
-        <span style="color:#78938b;font-size:12px">
-            Waiting for draw...
-        </span>
-    </div>
-
-</section>
-
-
-<section class="section">
-
-    <div class="section-head">
-
-        <h2>SELECT NUMBERS</h2>
-
-        <div class="counter">
-            <span id="selectedCount">0</span>/10
-        </div>
-
-    </div>
-
-    <div class="number-grid" id="numberGrid"></div>
-
-</section>
-
-
-<section class="section">
-
-    <div class="section-head">
-        <h2>QUICK SELECT</h2>
-    </div>
-
-    <div class="controls">
-
-        <button class="control-btn" onclick="autoPick()">
-            🎯 AUTO PICK
         </button>
 
-        <button class="control-btn" onclick="clearSelection()">
-            ✕ CLEAR
+        <button class="game-card" id="openAviator">
+            <div class="game-icon">✈️</div>
+            <div class="game-name">Aviator</div>
+            <div class="game-description">
+                Independent flying multiplier game.
+            </div>
+        </button>
+
+        <button class="game-card" id="openDice">
+            <div class="game-icon">🎲</div>
+            <div class="game-name">Dice</div>
+            <div class="game-description">
+                Roll two virtual dice.
+            </div>
         </button>
 
     </div>
 
-</section>
+    <div class="section-title">ℹ️ Desta Play</div>
 
-
-<section class="section">
-
-    <div class="section-head">
-        <h2>STAKE</h2>
-        <span style="color:var(--muted);font-size:11px">
-            Minimum 1 ETB
-        </span>
-    </div>
-
-    <div class="stake-row">
-
-        <input
-            id="stake"
-            class="stake-input"
-            type="number"
-            min="1"
-            step="1"
-            value="10"
-            placeholder="Stake"
-        >
-
-        <button
-            id="playBtn"
-            class="bet-btn"
-            onclick="startRound()">
-            PLAY
-        </button>
-
+    <div class="notice">
+        Each game uses its own independent game logic.
+        Results are generated randomly in this browser version.
     </div>
 
 </section>
 
 
-<section class="section">
+<!-- KENO -->
 
-    <div class="section-head">
+<section id="keno" class="page">
 
-        <h2>ODDS & PAYOUTS</h2>
+<button class="back" id="kenoBack">← Back</button>
 
-        <span style="color:#43e9a9;font-size:11px;font-weight:900">
-            TARGET RTP 80%
-        </span>
+<div class="panel">
 
-    </div>
+<div class="game-title">🎱 Desta Keno</div>
 
-    <div style="overflow-x:auto">
+<div class="game-subtitle">
+Choose up to 10 numbers • 1–80 • Maximum 20 drawn
+</div>
 
-        <table class="odds-table">
+<div class="bet-row">
+<button class="bet kenoBet" data-value="5">5 ETB</button>
+<button class="bet kenoBet selected" data-value="10">10 ETB</button>
+<button class="bet kenoBet" data-value="20">20 ETB</button>
+<button class="bet kenoBet" data-value="50">50 ETB</button>
+</div>
 
-            <thead>
-                <tr>
-                    <th>SPOTS</th>
-                    <th>MATCH</th>
-                    <th>PROBABILITY</th>
-                    <th>PAYOUT</th>
-                </tr>
-            </thead>
+<div class="bet-label">
+Bet: <b id="kenoBetText">10 ETB</b>
+</div>
 
-            <tbody id="oddsBody"></tbody>
+<div class="odds">
 
-        </table>
+<div class="odds-title">Keno payout table</div>
 
-    </div>
-
-</section>
-
-
-<div id="result" class="result">
-
-    <div class="result-title" id="resultTitle"></div>
-
-    <div class="result-detail" id="resultDetail"></div>
-
-    <div class="result-payout" id="resultPayout"></div>
+<div class="odds-row"><span>1–2 matches</span><b>0×</b></div>
+<div class="odds-row"><span>3 matches</span><b>2×</b></div>
+<div class="odds-row"><span>4 matches</span><b>6×</b></div>
+<div class="odds-row"><span>5 matches</span><b>15×</b></div>
+<div class="odds-row"><span>6 matches</span><b>30×</b></div>
+<div class="odds-row"><span>7 matches</span><b>60×</b></div>
+<div class="odds-row"><span>8 matches</span><b>120×</b></div>
+<div class="odds-row"><span>9 matches</span><b>250×</b></div>
+<div class="odds-row"><span>10 matches</span><b>500×</b></div>
 
 </div>
 
+<div class="timer">
+Next draw: <span id="kenoTimer">60</span>s
+</div>
 
-<section class="section">
+<div class="keno-counter">
+Selected:
+<span id="kenoSelectedCount">0</span>/10
+</div>
 
-    <div class="section-head">
-        <h2>ROUND HISTORY</h2>
-    </div>
+<div id="kenoNumbers" class="numbers"></div>
 
-    <div id="history"></div>
+<button class="primary" id="kenoDraw">
+DRAW 20 NUMBERS
+</button>
+
+<button class="secondary" id="kenoClear">
+CLEAR SELECTION
+</button>
+
+<div id="kenoResult"></div>
+
+</div>
+</section>
+
+
+<!-- BINGO -->
+
+<section id="bingo" class="page">
+
+<button class="back" id="bingoBack">← Back</button>
+
+<div class="panel">
+
+<div class="game-title">🎟️ Desta Bingo</div>
+
+<div class="game-subtitle">
+75-ball Bingo • Multiple unique cartelas
+</div>
+
+<div class="bingo-count-control">
+
+<button class="cardCount selected" data-count="1">1</button>
+<button class="cardCount" data-count="2">2</button>
+<button class="cardCount" data-count="3">3</button>
+<button class="cardCount" data-count="5">5</button>
+<button class="cardCount" data-count="10">10</button>
+
+</div>
+
+<div class="bet-row">
+<button class="bet bingoBet" data-value="5">5 ETB</button>
+<button class="bet bingoBet selected" data-value="10">10 ETB</button>
+<button class="bet bingoBet" data-value="20">20 ETB</button>
+</div>
+
+<div class="bet-label">
+Bet per cartela:
+<b id="bingoBetText">10 ETB</b>
+</div>
+
+<button class="secondary" id="generateCards">
+GENERATE CARTELAS
+</button>
+
+<div class="draw-zone" id="bingoDrawZone">
+Waiting for draw...
+</div>
+
+<div class="bingo-progress">
+Balls drawn:
+<b id="bingoDrawCount">0</b>/75
+</div>
+
+<div id="cartelaList" class="cartela-list"></div>
+
+<button class="primary" id="startBingo">
+START BINGO DRAW
+</button>
+
+<button class="secondary" id="newBingo">
+NEW CARTELAS
+</button>
+
+<div id="bingoResult"></div>
+
+</div>
+</section>
+
+
+<!-- AVIATOR -->
+
+<section id="aviator" class="page">
+
+<button class="back" id="aviatorBack">← Back</button>
+
+<div class="panel">
+
+<div class="game-title">✈️ Desta Aviator</div>
+
+<div class="game-subtitle">
+Independent crash-game mechanic
+</div>
+
+<div class="flight">
+
+<div class="flight-line"></div>
+
+<div id="aviatorMultiplier" class="multiplier">
+1.00×
+</div>
+
+<div id="plane" class="plane">
+✈️
+</div>
+
+</div>
+
+<div class="bet-row">
+
+<button class="bet aviatorBet" data-value="5">5 ETB</button>
+<button class="bet aviatorBet selected" data-value="10">10 ETB</button>
+<button class="bet aviatorBet" data-value="20">20 ETB</button>
+
+</div>
+
+<div class="bet-label">
+Bet: <b id="aviatorBetText">10 ETB</b>
+</div>
+
+<button class="primary" id="aviatorAction">
+✈️ START ROUND
+</button>
+
+<div id="aviatorResult"></div>
+
+</div>
+</section>
+
+
+<!-- DICE -->
+
+<section id="dice" class="page">
+
+<button class="back" id="diceBack">← Back</button>
+
+<div class="panel">
+
+<div class="game-title">🎲 Desta Dice</div>
+
+<div class="game-subtitle">
+Roll two virtual dice
+</div>
+
+<div class="bet-row">
+
+<button class="bet diceBet" data-value="5">5 ETB</button>
+<button class="bet diceBet selected" data-value="10">10 ETB</button>
+<button class="bet diceBet" data-value="20">20 ETB</button>
+
+</div>
+
+<div class="bet-label">
+Bet: <b id="diceBetText">10 ETB</b>
+</div>
+
+<div class="odds">
+
+<div class="odds-title">Dice odds</div>
+
+<div class="odds-row">
+<span>Exact 7</span>
+<b>5×</b>
+</div>
+
+<div class="odds-row">
+<span>High 8–12</span>
+<b>1.8×</b>
+</div>
+
+<div class="odds-row">
+<span>Low 2–6</span>
+<b>1.8×</b>
+</div>
+
+</div>
+
+<div class="dice-area">
+
+<div class="die" id="die1">⚄</div>
+<div class="die" id="die2">⚄</div>
+
+</div>
+
+<div class="dice-result" id="diceText">
+Ready
+</div>
+
+<button class="primary" id="rollDice">
+🎲 ROLL DICE
+</button>
+
+<div id="diceResult"></div>
+
+</div>
+</section>
+
+
+<!-- HISTORY -->
+
+<section id="history" class="page">
+
+<div class="section-title">
+📜 Game History
+</div>
+
+<div class="panel" id="historyList">
+No games played yet.
+</div>
 
 </section>
 
-</main>
+
+<!-- PROFILE -->
+
+<section id="profile" class="page">
+
+<div class="section-title">
+👤 Profile
+</div>
+
+<div class="panel">
+
+<div style="font-size:22px;font-weight:1000">
+Desta Player
+</div>
+
+<div style="color:#8fa5bb;font-size:12px;margin-top:5px">
+Game account
+</div>
+
+<button class="secondary" id="resetBalance">
+RESET BALANCE
+</button>
+
+</div>
+
+</section>
+
+
+<!-- NAVIGATION -->
+
+<nav class="nav">
+
+<div class="nav-inner">
+
+<button class="nav-btn active" data-page="home">
+<span class="nav-icon">🏠</span>
+Home
+</button>
+
+<button class="nav-btn" data-page="history">
+<span class="nav-icon">📜</span>
+History
+</button>
+
+<button class="nav-btn" data-page="profile">
+<span class="nav-icon">👤</span>
+Profile
+</button>
+
+</div>
+
+</nav>
 
 </div>
 
 
 <script>
 
-/*
-============================================================
-AURA KENO ENGINE
-============================================================
+/* =========================================================
+   DESTA PLAY
+   MAIN STATE
+========================================================= */
 
-RULES
+let balance =
+Number(localStorage.getItem("destaBalance") || 1000);
 
-• Number pool: 1–80
-• Player picks: 5–10
-• Draw: exactly 20 unique numbers
-• Draw is WITHOUT replacement
-• Draw is independent of player's selected numbers
-• Payout is based only on number of catches
-• Target theoretical RTP: 80%
-• Theoretical house edge: 20%
+let historyData =
+JSON.parse(localStorage.getItem("destaHistory") || "[]");
 
-IMPORTANT:
-
-This standalone browser version is NOT a secure
-real-money gambling engine.
-
-For real-money deployment:
-
-RNG
-BET VALIDATION
-WALLET
-PAYOUT
-ROUND RESULT
-ROUND ID
-
-must be controlled by a trusted backend.
-
-============================================================
-*/
+let globalBusy=false;
 
 
-const FIELD_SIZE = 80;
-const DRAW_COUNT = 20;
-const MIN_SPOTS = 5;
-const MAX_SPOTS = 10;
+/* =========================================================
+   UTILITIES
+========================================================= */
 
-const BETTING_TIME = 60;
-const DRAW_INTERVAL = 1200;
+function save(){
 
-const TARGET_RTP = 0.80;
+localStorage.setItem(
+"destaBalance",
+String(balance)
+);
+
+localStorage.setItem(
+"destaHistory",
+JSON.stringify(historyData)
+);
+
+updateBalance();
+renderHistory();
+
+}
+
+function updateBalance(){
+
+document.getElementById("balance")
+.textContent =
+Math.floor(balance).toLocaleString();
+
+}
+
+function rand(min,max){
+
+return Math.floor(
+Math.random()*(max-min+1)
+)+min;
+
+}
+
+function shuffle(arr){
+
+let a=arr.slice();
+
+for(let i=a.length-1;i>0;i--){
+
+let j=rand(0,i);
+
+[a[i],a[j]]=
+[a[j],a[i]];
+
+}
+
+return a;
+
+}
+
+function addHistory(game,net,details){
+
+historyData.unshift({
+
+game,
+net,
+details,
+time:new Date().toLocaleTimeString()
+
+});
+
+if(historyData.length>100){
+
+historyData.pop();
+
+}
+
+save();
+
+}
+
+function showPage(id){
+
+document.querySelectorAll(".page")
+.forEach(p=>p.classList.remove("active"));
+
+document.getElementById(id)
+.classList.add("active");
+
+document.querySelectorAll(".nav-btn")
+.forEach(btn=>{
+
+btn.classList.toggle(
+"active",
+btn.dataset.page===id
+);
+
+});
+
+window.scrollTo(0,0);
+
+}
 
 
-/*
-------------------------------------------------------------
-BASE PAY TABLE
+/* =========================================================
+   NAVIGATION
+========================================================= */
 
-The base structure gives larger prizes to rarer catches.
+document.querySelectorAll(".nav-btn")
+.forEach(btn=>{
 
-We mathematically scale the complete table to TARGET_RTP.
+btn.addEventListener("click",()=>{
 
-That means the draw probabilities stay unchanged while
-the payout table determines the theoretical return.
-------------------------------------------------------------
-*/
+showPage(btn.dataset.page);
 
-const BASE_TABLES = {
+});
 
-    5:{
-        3:2,
-        4:18,
-        5:410
-    },
+});
 
-    6:{
-        3:1,
-        4:7,
-        5:57,
-        6:1100
-    },
+document.getElementById("openKeno")
+.onclick=()=>{
+showPage("keno");
+initKeno();
+};
 
-    7:{
-        3:1,
-        4:5,
-        5:11,
-        6:100,
-        7:2000
-    },
+document.getElementById("openBingo")
+.onclick=()=>{
+showPage("bingo");
+generateBingoCards();
+};
 
-    8:{
-        4:2,
-        5:15,
-        6:50,
-        7:300,
-        8:10000
-    },
+document.getElementById("openAviator")
+.onclick=()=>{
+showPage("aviator");
+};
 
-    9:{
-        4:2,
-        5:5,
-        6:20,
-        7:100,
-        8:2000,
-        9:25000
-    },
+document.getElementById("openDice")
+.onclick=()=>{
+showPage("dice");
+};
 
-    10:{
-        0:5,
-        5:2,
-        6:10,
-        7:50,
-        8:500,
-        9:5000,
-        10:100000
-    }
+document.getElementById("kenoBack")
+.onclick=()=>showPage("home");
+
+document.getElementById("bingoBack")
+.onclick=()=>showPage("home");
+
+document.getElementById("aviatorBack")
+.onclick=()=>showPage("home");
+
+document.getElementById("diceBack")
+.onclick=()=>showPage("home");
+
+
+/* =========================================================
+   KENO
+   1–80
+   MAXIMUM 10 PLAYER PICKS
+   EXACTLY 20 DRAWN
+========================================================= */
+
+let kenoBet=10;
+let kenoSelected=[];
+let kenoTimer=60;
+let kenoCountdown=null;
+
+const kenoMultipliers={
+
+3:2,
+4:6,
+5:15,
+6:30,
+7:60,
+8:120,
+9:250,
+10:500
 
 };
 
 
-/*
-------------------------------------------------------------
-GAME STATE
-------------------------------------------------------------
-*/
+function initKeno(){
 
-let selected = new Set();
+clearInterval(kenoCountdown);
 
-let drawn = [];
+kenoSelected=[];
 
-let roundRunning = false;
+const box=
+document.getElementById("kenoNumbers");
 
-let bettingTimer = null;
+box.innerHTML="";
 
-let drawTimer = null;
+for(let n=1;n<=80;n++){
 
-let secondsLeft = BETTING_TIME;
+const btn=
+document.createElement("button");
 
-let currentStake = 0;
+btn.className="number";
 
-let roundNumber = 1;
+btn.textContent=n;
 
+btn.onclick=()=>{
 
-/*
-------------------------------------------------------------
-BALANCE
+if(globalBusy)return;
 
-This is ONLY local browser storage.
+if(kenoSelected.includes(n)){
 
-It is NOT a real-money wallet.
-------------------------------------------------------------
-*/
+kenoSelected=
+kenoSelected.filter(x=>x!==n);
 
-let balance =
-    Number(localStorage.getItem("auraKenoBalance"));
+btn.classList.remove("selected");
 
-if(!Number.isFinite(balance)){
-    balance = 1000;
-    localStorage.setItem(
-        "auraKenoBalance",
-        balance.toFixed(2)
-    );
+}else{
+
+if(kenoSelected.length>=10)return;
+
+kenoSelected.push(n);
+
+btn.classList.add("selected");
+
 }
 
+document.getElementById(
+"kenoSelectedCount"
+).textContent=
+kenoSelected.length;
 
-/*
-------------------------------------------------------------
-DOM
-------------------------------------------------------------
-*/
+};
 
-const balanceEl =
-    document.getElementById("balance");
+box.appendChild(btn);
 
-const selectedCountEl =
-    document.getElementById("selectedCount");
-
-const numberGrid =
-    document.getElementById("numberGrid");
-
-const drawNumbers =
-    document.getElementById("drawNumbers");
-
-const drawCount =
-    document.getElementById("drawCount");
-
-const timerEl =
-    document.getElementById("timer");
-
-const gameStatus =
-    document.getElementById("gameStatus");
-
-const playBtn =
-    document.getElementById("playBtn");
-
-const resultBox =
-    document.getElementById("result");
-
-const resultTitle =
-    document.getElementById("resultTitle");
-
-const resultDetail =
-    document.getElementById("resultDetail");
-
-const resultPayout =
-    document.getElementById("resultPayout");
-
-const oddsBody =
-    document.getElementById("oddsBody");
-
-const historyEl =
-    document.getElementById("history");
-
-
-/*
-------------------------------------------------------------
-DISPLAY BALANCE
-------------------------------------------------------------
-*/
-
-function updateBalance(){
-
-    balanceEl.textContent =
-        balance.toFixed(2);
-
-    localStorage.setItem(
-        "auraKenoBalance",
-        balance.toFixed(2)
-    );
 }
 
-
-/*
-------------------------------------------------------------
-CREATE NUMBER GRID
-------------------------------------------------------------
-*/
-
-function createGrid(){
-
-    numberGrid.innerHTML = "";
-
-    for(let n=1;n<=FIELD_SIZE;n++){
-
-        const button =
-            document.createElement("button");
-
-        button.className = "number";
-
-        button.textContent = n;
-
-        button.dataset.number = n;
-
-        button.onclick =
-            () => toggleNumber(n);
-
-        numberGrid.appendChild(button);
-    }
-}
-
-
-/*
-------------------------------------------------------------
-SELECT NUMBER
-------------------------------------------------------------
-*/
-
-function toggleNumber(number){
-
-    if(roundRunning){
-        return;
-    }
-
-    if(selected.has(number)){
-
-        selected.delete(number);
-
-    }else{
-
-        if(selected.size >= MAX_SPOTS){
-
-            alert(
-                "Maximum selection is 10 numbers."
-            );
-
-            return;
-        }
-
-        selected.add(number);
-    }
-
-    updateGrid();
-    updateOdds();
-}
-
-
-/*
-------------------------------------------------------------
-UPDATE GRID
-------------------------------------------------------------
-*/
-
-function updateGrid(){
-
-    const buttons =
-        numberGrid.querySelectorAll(".number");
-
-    buttons.forEach(button=>{
-
-        const n =
-            Number(button.dataset.number);
-
-        button.classList.toggle(
-            "selected",
-            selected.has(n)
-        );
-
-        button.classList.toggle(
-            "hit",
-            drawn.includes(n) &&
-            selected.has(n)
-        );
-
-        button.classList.toggle(
-            "drawn",
-            drawn.includes(n)
-        );
-    });
-
-    selectedCountEl.textContent =
-        selected.size;
-}
-
-
-/*
-------------------------------------------------------------
-CLEAR
-------------------------------------------------------------
-*/
-
-function clearSelection(){
-
-    if(roundRunning){
-        return;
-    }
-
-    selected.clear();
-
-    updateGrid();
-    updateOdds();
-}
-
-
-/*
-------------------------------------------------------------
-AUTO PICK
-------------------------------------------------------------
-*/
-
-function autoPick(){
-
-    if(roundRunning){
-        return;
-    }
-
-    selected.clear();
-
-    const numbers =
-        randomUniqueNumbers(
-            FIELD_SIZE,
-            5 + secureRandomInt(6)
-        );
-
-    numbers.forEach(n=>selected.add(n));
-
-    updateGrid();
-    updateOdds();
-}
-
-
-/*
-------------------------------------------------------------
-SECURE RANDOM INTEGER
-
-Uses browser Web Crypto API.
-------------------------------------------------------------
-*/
-
-function secureRandomInt(max){
-
-    if(max <= 0){
-        throw new Error("Invalid random range.");
-    }
-
-    const maxUint =
-        0xFFFFFFFF;
-
-    const limit =
-        maxUint -
-        (maxUint % max);
-
-    const array =
-        new Uint32Array(1);
-
-    let value;
-
-    do{
-
-        crypto.getRandomValues(array);
-
-        value = array[0];
-
-    }while(value >= limit);
-
-    return value % max;
-}
-
-
-/*
-------------------------------------------------------------
-UNIQUE RANDOM NUMBERS
-------------------------------------------------------------
-*/
-
-function randomUniqueNumbers(
-    max,
-    count
-){
-
-    const pool =
-        Array.from(
-            {length:max},
-            (_,i)=>i+1
-        );
-
-    /*
-    Fisher-Yates shuffle
-    */
-
-    for(let i=pool.length-1;i>0;i--){
-
-        const j =
-            secureRandomInt(i+1);
-
-        [
-            pool[i],
-            pool[j]
-        ] =
-        [
-            pool[j],
-            pool[i]
-        ];
-    }
-
-    return pool.slice(0,count);
-}
-
-
-/*
-------------------------------------------------------------
-COMBINATIONS
-
-C(n,k)
-------------------------------------------------------------
-*/
-
-function combinations(n,k){
-
-    if(k<0 || k>n){
-        return 0;
-    }
-
-    k =
-        Math.min(k,n-k);
-
-    let result = 1;
-
-    for(
-        let i=1;
-        i<=k;
-        i++
-    ){
-
-        result =
-            result *
-            (n-k+i) /
-            i;
-    }
-
-    return result;
-}
-
-
-/*
-------------------------------------------------------------
-HYPERGEOMETRIC PROBABILITY
-
-P(K=k)
-
-C(N,k) * C(80-N,20-k)
------------------------------------------------
-             C(80,20)
-------------------------------------------------
-*/
-
-function probability(
-    spots,
-    catches
-){
-
-    if(
-        catches < 0 ||
-        catches > spots ||
-        catches > DRAW_COUNT ||
-        DRAW_COUNT-catches >
-        FIELD_SIZE-spots
-    ){
-
-        return 0;
-    }
-
-    const numerator =
-        combinations(
-            spots,
-            catches
-        ) *
-        combinations(
-            FIELD_SIZE-spots,
-            DRAW_COUNT-catches
-        );
-
-    const denominator =
-        combinations(
-            FIELD_SIZE,
-            DRAW_COUNT
-        );
-
-    return numerator / denominator;
-}
-
-
-/*
-------------------------------------------------------------
-BASE RTP
-------------------------------------------------------------
-*/
-
-function baseRTP(spots){
-
-    const table =
-        BASE_TABLES[spots];
-
-    let rtp = 0;
-
-    Object.keys(table)
-        .forEach(match=>{
-
-            const k =
-                Number(match);
-
-            rtp +=
-                probability(
-                    spots,
-                    k
-                ) *
-                table[k];
-        });
-
-    return rtp;
-}
-
-
-/*
-------------------------------------------------------------
-RTP SCALING
-
-Every paytable is scaled so:
-
-Expected payout = 0.80 × stake
-------------------------------------------------------------
-*/
-
-function scaleFactor(spots){
-
-    const rtp =
-        baseRTP(spots);
-
-    return TARGET_RTP / rtp;
-}
-
-
-/*
-------------------------------------------------------------
-FINAL PAYOUT MULTIPLIER
-------------------------------------------------------------
-*/
-
-function payoutMultiplier(
-    spots,
-    matches
-){
-
-    const table =
-        BASE_TABLES[spots];
-
-    if(
-        !Object.prototype.hasOwnProperty
-        .call(table,matches)
-    ){
-
-        return 0;
-    }
-
-    return (
-        table[matches] *
-        scaleFactor(spots)
-    );
-}
-
-
-/*
-------------------------------------------------------------
-FORMAT PROBABILITY
-------------------------------------------------------------
-*/
-
-function formatProbability(p){
-
-    if(p <= 0){
-        return "—";
-    }
-
-    const percent =
-        p * 100;
-
-    if(percent >= 0.01){
-        return percent.toFixed(2) + "%";
-    }
-
-    return (
-        "1 in " +
-        Math.round(1/p).toLocaleString()
-    );
-}
-
-
-/*
-------------------------------------------------------------
-ODDS TABLE
-
-Shows all 5–10 spot possibilities.
-------------------------------------------------------------
-*/
-
-function updateOdds(){
-
-    const spots =
-        selected.size;
-
-    if(
-        spots < MIN_SPOTS ||
-        spots > MAX_SPOTS
-    ){
-
-        oddsBody.innerHTML = `
-            <tr>
-                <td colspan="4"
-                    style="text-align:center;color:#8ea69f">
-                    Select 5–10 numbers to see
-                    your exact payout table.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    oddsBody.innerHTML = "";
-
-    const table =
-        BASE_TABLES[spots];
-
-    /*
-    Show paying outcomes only.
-    */
-
-    Object.keys(table)
-        .map(Number)
-        .sort((a,b)=>b-a)
-        .forEach(matches=>{
-
-            const p =
-                probability(
-                    spots,
-                    matches
-                );
-
-            const multiplier =
-                payoutMultiplier(
-                    spots,
-                    matches
-                );
-
-            const tr =
-                document.createElement("tr");
-
-            tr.innerHTML = `
-
-                <td>
-                    ${spots}
-                </td>
-
-                <td class="win">
-                    ${matches}
-                </td>
-
-                <td>
-                    ${formatProbability(p)}
-                </td>
-
-                <td class="win">
-                    ${multiplier.toFixed(2)}x
-                </td>
-
-            `;
-
-            oddsBody.appendChild(tr);
-        });
+document.getElementById(
+"kenoResult"
+).innerHTML="";
+
+startKenoCountdown();
 
 }
 
 
-/*
-------------------------------------------------------------
-START ROUND
+function startKenoCountdown(){
 
-Player must select 5–10 numbers.
-------------------------------------------------------------
-*/
+kenoTimer=60;
 
-function startRound(){
+document.getElementById(
+"kenoTimer"
+).textContent=kenoTimer;
 
-    if(roundRunning){
-        return;
-    }
+kenoCountdown=
+setInterval(()=>{
 
-    if(
-        selected.size < MIN_SPOTS ||
-        selected.size > MAX_SPOTS
-    ){
+kenoTimer--;
 
-        alert(
-            "Choose between 5 and 10 numbers."
-        );
+document.getElementById(
+"kenoTimer"
+).textContent=kenoTimer;
 
-        return;
-    }
+if(kenoTimer<=0){
 
-    const stake =
-        Number(
-            document.getElementById("stake").value
-        );
+clearInterval(kenoCountdown);
 
-    if(
-        !Number.isFinite(stake) ||
-        stake <= 0
-    ){
-
-        alert(
-            "Enter a valid stake."
-        );
-
-        return;
-    }
-
-    if(stake > balance){
-
-        alert(
-            "Insufficient balance."
-        );
-
-        return;
-    }
-
-
-    /*
-    Deduct stake before round.
-    */
-
-    currentStake = stake;
-
-    balance -= stake;
-
-    updateBalance();
-
-
-    /*
-    Reset round.
-    */
-
-    drawn = [];
-
-    roundRunning = true;
-
-    secondsLeft = BETTING_TIME;
-
-    clearResult();
-
-    updateGrid();
-
-    drawNumbers.innerHTML = `
-        <span style="color:#78938b;font-size:12px">
-            Drawing will begin shortly...
-        </span>
-    `;
-
-    drawCount.textContent = "0";
-
-    playBtn.disabled = true;
-
-    playBtn.style.opacity = ".5";
-
-    gameStatus.textContent =
-        "BET LOCKED";
-
-    timerEl.textContent =
-        "01:00";
-
-
-    /*
-    The selected ticket is now locked.
-
-    A real-money backend should store a signed
-    server-side ticket here.
-    */
-
-    startBettingCountdown();
 }
 
-
-/*
-------------------------------------------------------------
-BETTING COUNTDOWN
-
-The requested 1-minute period.
-------------------------------------------------------------
-*/
-
-function startBettingCountdown(){
-
-    clearInterval(bettingTimer);
-
-    bettingTimer =
-        setInterval(()=>{
-
-            secondsLeft--;
-
-            timerEl.textContent =
-                formatTime(secondsLeft);
-
-            if(secondsLeft <= 0){
-
-                clearInterval(
-                    bettingTimer
-                );
-
-                beginDraw();
-            }
-
-        },1000);
-}
-
-
-/*
-------------------------------------------------------------
-FORMAT TIME
-------------------------------------------------------------
-*/
-
-function formatTime(seconds){
-
-    const m =
-        Math.floor(seconds/60);
-
-    const s =
-        seconds % 60;
-
-    return (
-        String(m).padStart(2,"0") +
-        ":" +
-        String(s).padStart(2,"0")
-    );
-}
-
-
-/*
-------------------------------------------------------------
-BEGIN DRAW
-
-Exactly 20 unique numbers are generated.
-
-No number can repeat.
-------------------------------------------------------------
-*/
-
-function beginDraw(){
-
-    gameStatus.textContent =
-        "DRAW IN PROGRESS";
-
-    timerEl.textContent =
-        "DRAW";
-
-    drawNumbers.innerHTML = "";
-
-    /*
-    IMPORTANT:
-
-    The complete 20-number draw is generated
-    independently from the player's selection.
-    */
-
-    const completeDraw =
-        randomUniqueNumbers(
-            FIELD_SIZE,
-            DRAW_COUNT
-        );
-
-    let index = 0;
-
-    clearInterval(drawTimer);
-
-    drawTimer =
-        setInterval(()=>{
-
-            if(index >= DRAW_COUNT){
-
-                clearInterval(drawTimer);
-
-                finishRound();
-
-                return;
-            }
-
-            const number =
-                completeDraw[index];
-
-            drawn.push(number);
-
-            showDrawNumber(number);
-
-            index++;
-
-        },DRAW_INTERVAL);
-}
-
-
-/*
-------------------------------------------------------------
-SHOW DRAWN NUMBER
-------------------------------------------------------------
-*/
-
-function showDrawNumber(number){
-
-    /*
-    Remove waiting text.
-    */
-
-    if(drawn.length === 1){
-        drawNumbers.innerHTML = "";
-    }
-
-    const ball =
-        document.createElement("div");
-
-    ball.className =
-        "draw-ball";
-
-    ball.textContent =
-        number;
-
-    drawNumbers.appendChild(ball);
-
-    drawCount.textContent =
-        drawn.length;
-
-    /*
-    Scroll to newest number.
-    */
-
-    drawNumbers.scrollLeft =
-        drawNumbers.scrollWidth;
-
-    updateGrid();
-}
-
-
-/*
-------------------------------------------------------------
-FINISH ROUND
-
-After EXACTLY 20 numbers.
-------------------------------------------------------------
-*/
-
-function finishRound(){
-
-    gameStatus.textContent =
-        "ROUND COMPLETE";
-
-    timerEl.textContent =
-        "DONE";
-
-
-    /*
-    Count player's catches.
-    */
-
-    const matches =
-        [...selected]
-            .filter(
-                number =>
-                    drawn.includes(number)
-            )
-            .length;
-
-
-    const spots =
-        selected.size;
-
-
-    /*
-    Calculate payout.
-    */
-
-    const multiplier =
-        payoutMultiplier(
-            spots,
-            matches
-        );
-
-
-    const payout =
-        currentStake *
-        multiplier;
-
-
-    /*
-    Credit payout.
-    */
-
-    if(payout > 0){
-
-        balance += payout;
-
-    }
-
-
-    updateBalance();
-
-    showResult(
-        spots,
-        matches,
-        multiplier,
-        payout
-    );
-
-    addHistory(
-        spots,
-        matches,
-        currentStake,
-        payout
-    );
-
-
-    /*
-    Unlock for next round.
-    */
-
-    roundRunning = false;
-
-    playBtn.disabled = false;
-
-    playBtn.style.opacity = "1";
-
-    playBtn.textContent =
-        "PLAY AGAIN";
-
-    currentStake = 0;
-
-    updateGrid();
-
-    /*
-    New betting round can begin after
-    the player presses PLAY AGAIN.
-    */
+},1000);
 
 }
 
 
-/*
-------------------------------------------------------------
-RESULT
-------------------------------------------------------------
-*/
+document.querySelectorAll(".kenoBet")
+.forEach(btn=>{
 
-function showResult(
-    spots,
-    matches,
-    multiplier,
-    payout
-){
+btn.onclick=()=>{
 
-    resultBox.className =
-        "result";
+if(globalBusy)return;
 
-    if(payout > 0){
+kenoBet=
+Number(btn.dataset.value);
 
-        resultBox.classList.add("win");
+document.getElementById(
+"kenoBetText"
+).textContent=
+kenoBet+" ETB";
 
-        resultTitle.textContent =
-            "🎉 WIN";
+document.querySelectorAll(".kenoBet")
+.forEach(x=>
+x.classList.remove("selected")
+);
 
-        resultDetail.textContent =
-            `${matches} of ${spots} numbers matched`;
+btn.classList.add("selected");
 
-        resultPayout.textContent =
-            `+${payout.toFixed(2)} ETB`;
+};
 
-    }else{
-
-        resultBox.classList.add("lose");
-
-        resultTitle.textContent =
-            "NO WIN";
-
-        resultDetail.textContent =
-            `${matches} of ${spots} numbers matched`;
-
-        resultPayout.textContent =
-            "0.00 ETB";
-    }
-
-}
+});
 
 
-/*
-------------------------------------------------------------
-CLEAR RESULT
-------------------------------------------------------------
-*/
+document.getElementById("kenoClear")
+.onclick=()=>{
 
-function clearResult(){
+if(!globalBusy)initKeno();
 
-    resultBox.className =
-        "result";
-
-    resultTitle.textContent = "";
-
-    resultDetail.textContent = "";
-
-    resultPayout.textContent = "";
-}
+};
 
 
-/*
-------------------------------------------------------------
-HISTORY
+document.getElementById("kenoDraw")
+.onclick=playKeno;
 
-Local browser history only.
-------------------------------------------------------------
-*/
 
-function addHistory(
-    spots,
-    matches,
-    stake,
-    payout
-){
+function playKeno(){
 
-    const item =
-        document.createElement("div");
+if(globalBusy)return;
 
-    item.className =
-        "history-item";
+if(kenoSelected.length<1){
 
-    const id =
-        "K" +
-        String(roundNumber)
-            .padStart(6,"0");
+alert("Choose at least 1 number.");
 
-    roundNumber++;
-
-    const profit =
-        payout - stake;
-
-    item.innerHTML = `
-
-        <div class="history-left">
-
-            <strong>
-                ${id}
-            </strong>
-
-            <div class="history-id">
-                ${spots} spots •
-                ${matches} matches •
-                Stake ${stake.toFixed(2)} ETB
-            </div>
-
-        </div>
-
-        <div class="${
-            payout > 0
-                ? "history-win"
-                : "history-loss"
-        }">
-
-            ${
-                payout > 0
-                ? "+" + payout.toFixed(2)
-                : "LOSS"
-            }
-
-        </div>
-    `;
-
-    historyEl.prepend(item);
-
-    /*
-    Keep last 20 rounds.
-    */
-
-    while(historyEl.children.length > 20){
-
-        historyEl.removeChild(
-            historyEl.lastChild
-        );
-    }
+return;
 
 }
 
+if(balance<kenoBet){
 
-/*
-------------------------------------------------------------
-INITIALIZE
-------------------------------------------------------------
-*/
+alert("Not enough balance.");
 
-createGrid();
+return;
+
+}
+
+clearInterval(kenoCountdown);
+
+balance-=kenoBet;
 
 updateBalance();
 
-updateOdds();
+globalBusy=true;
 
-timerEl.textContent =
-    "01:00";
+const buttons=
+document.querySelectorAll(
+"#kenoNumbers .number"
+);
 
-gameStatus.textContent =
-    "BETTING OPEN";
+buttons.forEach(b=>
+b.classList.remove("drawn")
+);
+
+let pool=[];
+
+for(let i=1;i<=80;i++)
+pool.push(i);
+
+const drawn=
+shuffle(pool).slice(0,20);
+
+let index=0;
+
+const interval=
+setInterval(()=>{
+
+const number=drawn[index];
+
+buttons[number-1]
+.classList.add("drawn");
+
+index++;
+
+if(index>=20){
+
+clearInterval(interval);
+
+finishKeno(drawn);
+
+}
+
+},250);
+
+}
+
+
+function finishKeno(drawn){
+
+let hits=
+kenoSelected.filter(
+n=>drawn.includes(n)
+).length;
+
+let multiplier=
+kenoMultipliers[hits]||0;
+
+let payout=
+Math.floor(kenoBet*multiplier);
+
+balance+=payout;
+
+let message=
+payout>0
+?
+`<span class="win">
+🎉 WIN ${payout} ETB
+</span>`
+:
+`<span class="loss">
+NO WIN
+</span>`;
+
+document.getElementById(
+"kenoResult"
+).innerHTML=`
+
+<div class="result">
+
+Drawn:
+<b>${drawn.join(", ")}</b>
+
+<br>
+
+Matches:
+<b>${hits}/${kenoSelected.length}</b>
+
+<br>
+
+${message}
+
+</div>
+`;
+
+addHistory(
+"Desta Keno",
+payout-kenoBet,
+`${hits} matches`
+);
+
+globalBusy=false;
+
+startKenoCountdown();
+
+}
+
+
+/* =========================================================
+   BINGO
+   75 BALL
+   MULTIPLE UNIQUE CARTELAS
+========================================================= */
+
+let bingoBet=10;
+let bingoCardCount=1;
+let bingoCards=[];
+let bingoDraw=[];
+let bingoDrawIndex=0;
+let bingoTimer=null;
+
+
+document.querySelectorAll(".cardCount")
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+if(globalBusy)return;
+
+bingoCardCount=
+Number(btn.dataset.count);
+
+document.querySelectorAll(".cardCount")
+.forEach(x=>
+x.classList.remove("selected")
+);
+
+btn.classList.add("selected");
+
+generateBingoCards();
+
+};
+
+});
+
+
+document.querySelectorAll(".bingoBet")
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+if(globalBusy)return;
+
+bingoBet=
+Number(btn.dataset.value);
+
+document.getElementById(
+"bingoBetText"
+).textContent=
+bingoBet+" ETB";
+
+document.querySelectorAll(".bingoBet")
+.forEach(x=>
+x.classList.remove("selected")
+);
+
+btn.classList.add("selected");
+
+};
+
+});
+
+
+function bingoColumnRange(col){
+
+return [
+
+[1,15],
+[16,30],
+[31,45],
+[46,60],
+[61,75]
+
+][col];
+
+}
 
 
 /*
-------------------------------------------------------------
-PREVENT ACCIDENTAL DOUBLE PLAY
-------------------------------------------------------------
+Generate a valid 75-ball card.
+Each card has a different configuration.
 */
 
-window.addEventListener(
-    "beforeunload",
-    event => {
+function generateOneBingoCard(){
 
-        if(roundRunning){
+let card=[];
 
-            event.preventDefault();
+for(let col=0;col<5;col++){
 
-            event.returnValue =
-                "";
-        }
+let [min,max]=
+bingoColumnRange(col);
 
-    }
+let numbers=[];
+
+for(let n=min;n<=max;n++)
+numbers.push(n);
+
+numbers=shuffle(numbers);
+
+for(let row=0;row<5;row++){
+
+if(col===2 && row===2){
+
+card.push({
+number:null,
+marked:true,
+free:true
+});
+
+}else{
+
+card.push({
+
+number:numbers[row],
+marked:false,
+free:false
+
+});
+
+}
+
+}
+
+}
+
+return card;
+
+}
+
+
+function cardSignature(card){
+
+return card
+.map(c=>c.free?"FREE":c.number)
+.join("-");
+
+}
+
+
+function generateBingoCards(){
+
+if(globalBusy)return;
+
+bingoCards=[];
+
+let signatures=
+new Set();
+
+while(
+bingoCards.length<
+bingoCardCount
+){
+
+let card=
+generateOneBingoCard();
+
+let signature=
+cardSignature(card);
+
+if(!signatures.has(signature)){
+
+signatures.add(signature);
+
+bingoCards.push(card);
+
+}
+
+}
+
+renderBingoCards();
+
+document.getElementById(
+"bingoDrawZone"
+).innerHTML=
+"Waiting for draw...";
+
+document.getElementById(
+"bingoDrawCount"
+).textContent="0";
+
+document.getElementById(
+"bingoResult"
+).innerHTML="";
+
+}
+
+
+function renderBingoCards(){
+
+const container=
+document.getElementById("cartelaList");
+
+container.innerHTML="";
+
+bingoCards.forEach(
+(card,cardIndex)=>{
+
+const wrapper=
+document.createElement("div");
+
+wrapper.className="cartela";
+
+wrapper.id=
+"cartela-"+cardIndex;
+
+wrapper.innerHTML=`
+
+<div class="cartela-title">
+
+<span>
+Cartela #${String(cardIndex+1)
+.padStart(4,"0")}
+</span>
+
+<span>
+${bingoBet} ETB
+</span>
+
+</div>
+
+<div class="bingo-head">
+
+<div>B</div>
+<div>I</div>
+<div>N</div>
+<div>G</div>
+<div>O</div>
+
+</div>
+
+<div class="bingo-board"></div>
+
+`;
+
+const board=
+wrapper.querySelector(".bingo-board");
+
+card.forEach((cell,index)=>{
+
+const div=
+document.createElement("div");
+
+div.className="bingo-cell";
+
+if(cell.free){
+
+div.classList.add("free");
+
+div.textContent="FREE";
+
+}else{
+
+div.textContent=cell.number;
+
+div.dataset.index=index;
+
+}
+
+board.appendChild(div);
+
+});
+
+container.appendChild(wrapper);
+
+});
+
+}
+
+
+/* Bingo win pattern:
+   any complete row,
+   column,
+   or diagonal.
+*/
+
+function bingoHasLine(card){
+
+const lines=[
+
+[0,1,2,3,4],
+[5,6,7,8,9],
+[10,11,12,13,14],
+[15,16,17,18,19],
+[20,21,22,23,24],
+
+[0,5,10,15,20],
+[1,6,11,16,21],
+[2,7,12,17,22],
+[3,8,13,18,23],
+[4,9,14,19,24],
+
+[0,6,12,18,24],
+[4,8,12,16,20]
+
+];
+
+return lines.some(line=>
+line.every(i=>card[i].marked)
 );
+
+}
+
+
+function markBingoNumber(number){
+
+bingoCards.forEach(
+(card,cardIndex)=>{
+
+card.forEach(
+(cell,cellIndex)=>{
+
+if(cell.number===number){
+
+cell.marked=true;
+
+const el=
+document.querySelector(
+`#cartela-${cardIndex}
+ .bingo-cell[data-index="${cellIndex}"]`
+);
+
+if(el){
+
+el.classList.add("marked");
+
+}
+
+}
+
+});
+
+});
+
+}
+
+
+document.getElementById("generateCards")
+.onclick=generateBingoCards;
+
+document.getElementById("newBingo")
+.onclick=generateBingoCards;
+
+document.getElementById("startBingo")
+.onclick=startBingo;
+
+
+function startBingo(){
+
+if(globalBusy)return;
+
+let totalCost=
+bingoBet*bingoCardCount;
+
+if(balance<totalCost){
+
+alert(
+`You need ${totalCost} ETB.`
+);
+
+return;
+
+}
+
+balance-=totalCost;
+
+updateBalance();
+
+globalBusy=true;
+
+bingoDraw=
+shuffle(
+Array.from(
+{length:75},
+(_,i)=>i+1
+)
+);
+
+bingoDrawIndex=0;
+
+document.getElementById(
+"bingoResult"
+).innerHTML="";
+
+document.getElementById(
+"bingoDrawZone"
+).innerHTML="";
+
+const interval=
+setInterval(()=>{
+
+if(bingoDrawIndex>=75){
+
+clearInterval(interval);
+
+finishBingo(null);
+
+return;
+
+}
+
+const number=
+bingoDraw[bingoDrawIndex];
+
+bingoDrawIndex++;
+
+let letter=
+number<=15?"B":
+number<=30?"I":
+number<=45?"N":
+number<=60?"G":"O";
+
+const ball=
+document.createElement("div");
+
+ball.className="bingo-ball";
+
+ball.innerHTML=
+`
+<span class="ball-letter">
+${letter}
+</span>
+${number}
+`;
+
+const zone=
+document.getElementById(
+"bingoDrawZone"
+);
+
+zone.innerHTML="";
+
+zone.appendChild(ball);
+
+document.getElementById(
+"bingoDrawCount"
+).textContent=
+bingoDrawIndex;
+
+markBingoNumber(number);
+
+let winnerIndex=
+bingoCards.findIndex(
+card=>bingoHasLine(card)
+);
+
+if(winnerIndex!==-1){
+
+clearInterval(interval);
+
+finishBingo(winnerIndex);
+
+}
+
+},700);
+
+}
+
+
+function finishBingo(winnerIndex){
+
+globalBusy=false;
+
+if(winnerIndex===null){
+
+document.getElementById(
+"bingoResult"
+).innerHTML=
+`
+<div class="result">
+No Bingo was completed.
+</div>
+`;
+
+addHistory(
+"Desta Bingo",
+-(bingoBet*bingoCardCount),
+"No Bingo"
+);
+
+return;
+
+}
+
+/*
+Each selected cartela participates independently.
+*/
+
+const prize=
+bingoBet*bingoCardCount*2;
+
+balance+=prize;
+
+const card=
+document.querySelector(
+"#cartela-"+winnerIndex
+);
+
+if(card){
+
+card.querySelectorAll(
+".bingo-cell.marked"
+).forEach(x=>
+x.classList.add("winner")
+);
+
+}
+
+document.getElementById(
+"bingoResult"
+).innerHTML=
+`
+<div class="result">
+
+🎉 <span class="win">
+BINGO!
+</span>
+
+<br>
+
+Winning cartela:
+<b>
+#${String(winnerIndex+1)
+.padStart(4,"0")}
+</b>
+
+<br>
+
+Balls drawn:
+<b>${bingoDrawIndex}</b>
+
+<br>
+
+<span class="win">
+Prize: ${prize} ETB
+</span>
+
+</div>
+`;
+
+addHistory(
+"Desta Bingo",
+prize-(bingoBet*bingoCardCount),
+`Cartela #${winnerIndex+1}`
+);
+
+}
+
+
+/* =========================================================
+   AVIATOR
+   COMPLETELY SEPARATE GAME ENGINE
+========================================================= */
+
+let aviatorBet=10;
+let aviatorRunning=false;
+let aviatorTimer=null;
+let aviatorMultiplier=1;
+let aviatorCrash=0;
+
+
+document.querySelectorAll(".aviatorBet")
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+if(aviatorRunning)return;
+
+aviatorBet=
+Number(btn.dataset.value);
+
+document.getElementById(
+"aviatorBetText"
+).textContent=
+aviatorBet+" ETB";
+
+document.querySelectorAll(".aviatorBet")
+.forEach(x=>
+x.classList.remove("selected")
+);
+
+btn.classList.add("selected");
+
+};
+
+});
+
+
+document.getElementById(
+"aviatorAction"
+).onclick=()=>{
+
+if(aviatorRunning){
+
+cashoutAviator();
+
+}else{
+
+startAviator();
+
+}
+
+};
+
+
+function startAviator(){
+
+if(balance<aviatorBet){
+
+alert("Not enough balance.");
+
+return;
+
+}
+
+balance-=aviatorBet;
+
+updateBalance();
+
+aviatorRunning=true;
+
+aviatorMultiplier=1;
+
+/*
+Independent crash point.
+*/
+
+aviatorCrash=
+1.10+
+Math.random()*4.90;
+
+document.getElementById(
+"aviatorMultiplier"
+).classList.remove("crashed");
+
+document.getElementById(
+"aviatorResult"
+).innerHTML="";
+
+document.getElementById(
+"aviatorAction"
+).textContent=
+"💰 CASH OUT";
+
+const start=
+Date.now();
+
+aviatorTimer=
+setInterval(()=>{
+
+const elapsed=
+(Date.now()-start)/1000;
+
+aviatorMultiplier=
+1+elapsed*.35;
+
+document.getElementById(
+"aviatorMultiplier"
+).textContent=
+aviatorMultiplier.toFixed(2)+"×";
+
+document.getElementById(
+"plane"
+).style.transform=
+`translate(${elapsed*15}px,-${elapsed*8}px)`;
+
+if(
+aviatorMultiplier>=aviatorCrash
+){
+
+crashAviator();
+
+}
+
+},50);
+
+}
+
+
+function crashAviator(){
+
+clearInterval(aviatorTimer);
+
+aviatorRunning=false;
+
+document.getElementById(
+"aviatorMultiplier"
+).classList.add("crashed");
+
+document.getElementById(
+"aviatorMultiplier"
+).textContent=
+aviatorCrash.toFixed(2)+"×";
+
+document.getElementById(
+"aviatorAction"
+).textContent=
+"✈️ START ROUND";
+
+document.getElementById(
+"aviatorResult"
+).innerHTML=
+`
+<div class="result">
+
+Flight ended at
+<b>${aviatorCrash.toFixed(2)}×</b>
+
+<br>
+
+<span class="loss">
+No cash-out
+</span>
+
+</div>
+`;
+
+addHistory(
+"Desta Aviator",
+-aviatorBet,
+aviatorCrash.toFixed(2)+"×"
+);
+
+}
+
+
+function cashoutAviator(){
+
+if(!aviatorRunning)return;
+
+clearInterval(aviatorTimer);
+
+aviatorRunning=false;
+
+let payout=
+Math.floor(
+aviatorBet*aviatorMultiplier
+);
+
+balance+=payout;
+
+document.getElementById(
+"aviatorAction"
+).textContent=
+"✈️ START ROUND";
+
+document.getElementById(
+"aviatorResult"
+).innerHTML=
+`
+<div class="result">
+
+💰 Cashed out at
+<b>${aviatorMultiplier.toFixed(2)}×</b>
+
+<br>
+
+<span class="win">
+Returned ${payout} ETB
+</span>
+
+</div>
+`;
+
+addHistory(
+"Desta Aviator",
+payout-aviatorBet,
+aviatorMultiplier.toFixed(2)+"×"
+);
+
+}
+
+
+/* =========================================================
+   DICE
+========================================================= */
+
+let diceBet=10;
+
+
+document.querySelectorAll(".diceBet")
+.forEach(btn=>{
+
+btn.onclick=()=>{
+
+if(globalBusy)return;
+
+diceBet=
+Number(btn.dataset.value);
+
+document.getElementById(
+"diceBetText"
+).textContent=
+diceBet+" ETB";
+
+document.querySelectorAll(".diceBet")
+.forEach(x=>
+x.classList.remove("selected")
+);
+
+btn.classList.add("selected");
+
+};
+
+});
+
+
+const diceFaces=[
+"⚀","⚁","⚂","⚃","⚄","⚅"
+];
+
+
+document.getElementById("rollDice")
+.onclick=rollDice;
+
+
+function rollDice(){
+
+if(globalBusy)return;
+
+if(balance<diceBet){
+
+alert("Not enough balance.");
+
+return;
+
+}
+
+balance-=diceBet;
+
+updateBalance();
+
+globalBusy=true;
+
+let animationCount=0;
+
+const die1=
+document.getElementById("die1");
+
+const die2=
+document.getElementById("die2");
+
+const animation=
+setInterval(()=>{
+
+die1.textContent=
+diceFaces[rand(0,5)];
+
+die2.textContent=
+diceFaces[rand(0,5)];
+
+animationCount++;
+
+if(animationCount>=12){
+
+clearInterval(animation);
+
+finishDice();
+
+}
+
+},100);
+
+}
+
+
+function finishDice(){
+
+const a=rand(1,6);
+const b=rand(1,6);
+
+document.getElementById("die1")
+.textContent=diceFaces[a-1];
+
+document.getElementById("die2")
+.textContent=diceFaces[b-1];
+
+const total=a+b;
+
+let multiplier=0;
+let description="";
+
+if(total===7){
+
+multiplier=5;
+description="Exact 7";
+
+}else if(total>=8){
+
+multiplier=1.8;
+description="High";
+
+}else{
+
+multiplier=1.8;
+description="Low";
+
+}
+
+const payout=
+Math.floor(diceBet*multiplier);
+
+balance+=payout;
+
+document.getElementById(
+"diceText"
+).textContent=
+`Total: ${total} • ${description}`;
+
+document.getElementById(
+"diceResult"
+).innerHTML=
+`
+<div class="result">
+
+Roll:
+<b>${a} + ${b} = ${total}</b>
+
+<br>
+
+${
+payout>0
+?
+`<span class="win">
+WIN ${payout} ETB
+</span>`
+:
+`<span class="loss">
+LOSE
+</span>`
+}
+
+</div>
+`;
+
+addHistory(
+"Desta Dice",
+payout-diceBet,
+`${a}+${b}=${total}`
+);
+
+globalBusy=false;
+
+}
+
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+function renderHistory(){
+
+const box=
+document.getElementById("historyList");
+
+if(!historyData.length){
+
+box.innerHTML=
+`<div style="color:#8fa5bb">
+No games played yet.
+</div>`;
+
+return;
+
+}
+
+box.innerHTML=
+historyData.map(item=>{
+
+const cls=
+item.net>=0?"win":"loss";
+
+const sign=
+item.net>=0?"+":"";
+
+return `
+
+<div class="history-item">
+
+<div>
+
+<div class="history-game">
+${item.game}
+</div>
+
+<div class="history-time">
+${item.details}
+•
+${item.time}
+</div>
+
+</div>
+
+<div class="${cls}">
+${sign}${item.net} ETB
+</div>
+
+</div>
+
+`;
+
+}).join("");
+
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+document.getElementById(
+"resetBalance"
+).onclick=()=>{
+
+balance=1000;
+
+historyData=[];
+
+save();
+
+alert("Balance reset to 1,000 ETB.");
+
+};
+
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+updateBalance();
+
+renderHistory();
+
+generateBingoCards();
+
+initKeno();
 
 </script>
 
