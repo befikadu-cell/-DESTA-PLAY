@@ -16,7 +16,7 @@ const { shuffle } = require("../utils/random");
 | G = 46-60
 | O = 61-75
 |
-| Center N3 = FREE
+| CENTER = FREE
 |
 |--------------------------------------------------------------------------
 */
@@ -69,18 +69,20 @@ const COLUMN_LETTERS = [
 | Deterministic random generator
 |--------------------------------------------------------------------------
 |
-| Cartela #1 always produces the same card.
-| Cartela #2 always produces the same card.
+| Cartela #1 always has the same configuration.
+| Cartela #2 always has the same configuration.
 | ...
-| Cartela #120 always produces the same card.
+| Cartela #120 always has the same configuration.
 |
 |--------------------------------------------------------------------------
 */
 
 function seededRandom(seed) {
+
     let value = seed >>> 0;
 
     return function () {
+
         value += 0x6D2B79F5;
 
         let t = value;
@@ -105,18 +107,19 @@ function seededRandom(seed) {
 
 /*
 |--------------------------------------------------------------------------
-| Generate seed for cartela
+| Cartela seed
 |--------------------------------------------------------------------------
 */
 
 function cartelaSeed(cartelaNumber) {
 
-    const hash = crypto
-        .createHash("sha256")
-        .update(
-            `DESTA-PLAY-BINGO-CARTELA-${cartelaNumber}`
-        )
-        .digest();
+    const hash =
+        crypto
+            .createHash("sha256")
+            .update(
+                `DESTA-PLAY-BINGO-CARTELA-${cartelaNumber}`
+            )
+            .digest();
 
     return hash.readUInt32BE(0);
 }
@@ -138,9 +141,10 @@ function seededShuffle(array, random) {
         i--
     ) {
 
-        const j = Math.floor(
-            random() * (i + 1)
-        );
+        const j =
+            Math.floor(
+                random() * (i + 1)
+            );
 
         [
             result[i],
@@ -157,7 +161,7 @@ function seededShuffle(array, random) {
 
 /*
 |--------------------------------------------------------------------------
-| Generate column numbers
+| Generate one Bingo column
 |--------------------------------------------------------------------------
 */
 
@@ -183,7 +187,9 @@ function generateColumn(
         random
     )
         .slice(0, count)
-        .sort((a, b) => a - b);
+        .sort(
+            (a, b) => a - b
+        );
 }
 
 
@@ -193,7 +199,9 @@ function generateColumn(
 |--------------------------------------------------------------------------
 */
 
-function validateCartelaNumber(cartelaNumber) {
+function validateCartelaNumber(
+    cartelaNumber
+) {
 
     const number =
         Number(cartelaNumber);
@@ -203,6 +211,7 @@ function validateCartelaNumber(cartelaNumber) {
         number < 1 ||
         number > TOTAL_CARTELAS
     ) {
+
         throw new Error(
             `Cartela number must be between 1 and ${TOTAL_CARTELAS}`
         );
@@ -214,11 +223,13 @@ function validateCartelaNumber(cartelaNumber) {
 
 /*
 |--------------------------------------------------------------------------
-| Generate fixed cartela
+| Generate one fixed Cartela
 |--------------------------------------------------------------------------
 */
 
-function generateCartela(cartelaNumber) {
+function generateCartela(
+    cartelaNumber
+) {
 
     const number =
         validateCartelaNumber(
@@ -232,14 +243,16 @@ function generateCartela(cartelaNumber) {
 
     const card =
         Array.from(
-            { length: BINGO_SIZE },
+            {
+                length: BINGO_SIZE
+            },
             () =>
                 Array(BINGO_SIZE)
         );
 
 
     /*
-     * Generate each column independently.
+     * B, I, N, G, O
      */
 
     for (
@@ -253,9 +266,10 @@ function generateCartela(cartelaNumber) {
             max
         ] = COLUMN_RANGES[column];
 
+
         /*
-         * N column only needs four numbers
-         * because the center is FREE.
+         * N column has only four numbers
+         * because its center is FREE.
          */
 
         const count =
@@ -274,14 +288,6 @@ function generateCartela(cartelaNumber) {
 
         if (column === 2) {
 
-            /*
-             * N column:
-             *
-             * rows 0,1 = numbers
-             * row 2   = FREE
-             * rows 3,4 = numbers
-             */
-
             let numberIndex = 0;
 
             for (
@@ -291,9 +297,12 @@ function generateCartela(cartelaNumber) {
             ) {
 
                 if (row === 2) {
+
                     card[row][column] =
                         "FREE";
+
                 } else {
+
                     card[row][column] =
                         numbers[numberIndex];
 
@@ -308,6 +317,7 @@ function generateCartela(cartelaNumber) {
                 row < 5;
                 row++
             ) {
+
                 card[row][column] =
                     numbers[row];
             }
@@ -324,7 +334,7 @@ function generateCartela(cartelaNumber) {
 
 /*
 |--------------------------------------------------------------------------
-| Validate card structure
+| Validate generated card
 |--------------------------------------------------------------------------
 */
 
@@ -351,6 +361,7 @@ function validateCard(card) {
         }
     }
 
+
     /*
      * Center must be FREE.
      */
@@ -363,7 +374,7 @@ function validateCard(card) {
 
 
     /*
-     * Check column ranges.
+     * Check every column.
      */
 
     for (
@@ -388,7 +399,9 @@ function validateCard(card) {
             const value =
                 card[row][column];
 
-            if (value === "FREE") {
+            if (
+                value === "FREE"
+            ) {
                 continue;
             }
 
@@ -403,8 +416,10 @@ function validateCard(card) {
             values.push(value);
         }
 
+
         /*
-         * No duplicate number inside a column.
+         * No duplicate number
+         * inside one column.
          */
 
         if (
@@ -438,7 +453,9 @@ function validateCard(card) {
             const value =
                 card[row][column];
 
-            if (value !== "FREE") {
+            if (
+                value !== "FREE"
+            ) {
                 allNumbers.push(value);
             }
         }
@@ -453,7 +470,7 @@ function validateCard(card) {
 
 /*
 |--------------------------------------------------------------------------
-| Generate all 120 permanent cartelas
+| Generate all 120 fixed Cartelas
 |--------------------------------------------------------------------------
 */
 
@@ -474,15 +491,12 @@ function generateAllCartelas() {
             generateCartela(number);
 
 
-        /*
-         * Every generated card must be valid.
-         */
-
         if (
             !validateCard(
                 cartela.card
             )
         ) {
+
             throw new Error(
                 `Invalid Bingo configuration for Cartela #${number}`
             );
@@ -490,8 +504,8 @@ function generateAllCartelas() {
 
 
         /*
-         * Every cartela configuration
-         * must be different.
+         * Ensure no two cartelas have
+         * exactly the same configuration.
          */
 
         const signature =
@@ -502,8 +516,9 @@ function generateAllCartelas() {
         if (
             signatures.has(signature)
         ) {
+
             throw new Error(
-                `Duplicate Bingo configuration detected: Cartela #${number}`
+                `Duplicate Bingo configuration detected for Cartela #${number}`
             );
         }
 
@@ -519,7 +534,7 @@ function generateAllCartelas() {
 
 /*
 |--------------------------------------------------------------------------
-| Permanent cartela collection
+| Permanent Cartela collection
 |--------------------------------------------------------------------------
 */
 
@@ -529,11 +544,13 @@ const CARTELAS =
 
 /*
 |--------------------------------------------------------------------------
-| Get one cartela
+| Get a Cartela
 |--------------------------------------------------------------------------
 */
 
-function getCartela(cartelaNumber) {
+function getCartela(
+    cartelaNumber
+) {
 
     const number =
         validateCartelaNumber(
@@ -546,28 +563,30 @@ function getCartela(cartelaNumber) {
 
 /*
 |--------------------------------------------------------------------------
-| Get available cartela numbers
+| Available Cartela numbers
 |--------------------------------------------------------------------------
 */
 
 function getAvailableCartelas() {
 
     return Array.from(
-        { length: TOTAL_CARTELAS },
-        (_, index) => index + 1
+        {
+            length: TOTAL_CARTELAS
+        },
+        (_, index) =>
+            index + 1
     );
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Generate automatic draw order
+| Generate automatic Bingo draw
 |--------------------------------------------------------------------------
 |
 | Every number 1-75 appears exactly once.
 |
-| This is generated by the server.
-| The player cannot control the draw.
+| The PLAYER never controls this.
 |
 |--------------------------------------------------------------------------
 */
@@ -581,6 +600,7 @@ function generateDrawOrder() {
         number <= BINGO_NUMBERS;
         number++
     ) {
+
         numbers.push(number);
     }
 
@@ -590,7 +610,7 @@ function generateDrawOrder() {
 
 /*
 |--------------------------------------------------------------------------
-| Convert number to B-I-N-G-O call
+| Determine B-I-N-G-O letter
 |--------------------------------------------------------------------------
 */
 
@@ -604,10 +624,12 @@ function getCallLetter(number) {
         value < 1 ||
         value > 75
     ) {
+
         throw new Error(
             "Bingo number must be between 1 and 75"
         );
     }
+
 
     if (value <= 15) {
         return "B";
@@ -631,25 +653,99 @@ function getCallLetter(number) {
 
 /*
 |--------------------------------------------------------------------------
-| Create B-I-N-G-O call
+| Create Bingo call
+|--------------------------------------------------------------------------
+|
+| Example:
+|
+| {
+|   number: 4,
+|   letter: "B",
+|   display: "B-4",
+|   voiceText: "B, 4"
+| }
+|
 |--------------------------------------------------------------------------
 */
 
 function createCall(number) {
 
+    const value =
+        Number(number);
+
+    const letter =
+        getCallLetter(value);
+
     return {
-        number,
+
+        number:
+            value,
+
         letter:
-            getCallLetter(number),
+            letter,
+
         display:
-            `${getCallLetter(number)}-${number}`
+            `${letter}-${value}`,
+
+        /*
+         * Frontend can pass this to
+         * SpeechSynthesisUtterance.
+         */
+
+        voiceText:
+            `${letter}, ${value}`,
+
+        /*
+         * Amharic voice text.
+         *
+         * The frontend may use this when
+         * the player selected Amharic.
+         */
+
+        voiceTextAm:
+            getAmharicVoiceText(
+                letter,
+                value
+            )
     };
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| Create round
+| Amharic voice text
+|--------------------------------------------------------------------------
+|
+| We provide the text to the frontend.
+| Actual speech voice depends on the
+| player's device/browser.
+|--------------------------------------------------------------------------
+*/
+
+function getAmharicVoiceText(
+    letter,
+    number
+) {
+
+    const amharicLetters = {
+        B: "ቢ",
+        I: "አይ",
+        N: "ኤን",
+        G: "ጂ",
+        O: "ኦ"
+    };
+
+    const letterText =
+        amharicLetters[letter] ||
+        letter;
+
+    return `${letterText} ${number}`;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Create Bingo round
 |--------------------------------------------------------------------------
 */
 
@@ -657,9 +753,6 @@ function createRound() {
 
     const now =
         Date.now();
-
-    const drawOrder =
-        generateDrawOrder();
 
     return {
 
@@ -698,25 +791,33 @@ function createRound() {
         maxSlots:
             MAX_SLOTS,
 
+
         /*
-         * Internal server-only draw sequence.
+         * Server-only random draw order.
          *
-         * NEVER send this whole array to the browser.
+         * DO NOT send this to the browser.
          */
 
-        drawOrder,
+        drawOrder:
+            generateDrawOrder(),
 
-        drawIndex: 0,
+        drawIndex:
+            0,
 
-        drawnNumbers: [],
+        drawnNumbers:
+            [],
 
-        calls: [],
+        calls:
+            [],
 
-        currentCall: null,
+        currentCall:
+            null,
 
-        players: {},
+        players:
+            {},
 
-        winner: null,
+        winner:
+            null,
 
         createdAt:
             new Date(now)
@@ -727,7 +828,7 @@ function createRound() {
 
 /*
 |--------------------------------------------------------------------------
-| Can place a bet
+| Can place bet
 |--------------------------------------------------------------------------
 */
 
@@ -747,13 +848,14 @@ function canPlaceBet(round) {
 
 /*
 |--------------------------------------------------------------------------
-| Start drawing
+| Start automatic drawing
 |--------------------------------------------------------------------------
 */
 
 function startDrawing(round) {
 
     if (!round) {
+
         throw new Error(
             "Bingo round not found"
         );
@@ -762,6 +864,7 @@ function startDrawing(round) {
     if (
         round.status !== "BETTING"
     ) {
+
         throw new Error(
             "Bingo betting is not active"
         );
@@ -771,6 +874,7 @@ function startDrawing(round) {
         Date.now() <
         round.bettingEndsAt
     ) {
+
         throw new Error(
             "Betting period has not ended"
         );
@@ -791,10 +895,9 @@ function startDrawing(round) {
 | Draw next number
 |--------------------------------------------------------------------------
 |
-| IMPORTANT:
-| This function is for server.js.
+| SERVER ONLY.
 |
-| The player NEVER calls this.
+| The player has no Draw button.
 |
 |--------------------------------------------------------------------------
 */
@@ -802,6 +905,7 @@ function startDrawing(round) {
 function drawNextNumber(round) {
 
     if (!round) {
+
         throw new Error(
             "Bingo round not found"
         );
@@ -810,6 +914,7 @@ function drawNextNumber(round) {
     if (
         round.status !== "DRAWING"
     ) {
+
         throw new Error(
             "Bingo is not currently drawing"
         );
@@ -819,6 +924,7 @@ function drawNextNumber(round) {
         round.drawIndex >=
         round.drawOrder.length
     ) {
+
         throw new Error(
             "All Bingo numbers have been drawn"
         );
@@ -837,6 +943,10 @@ function drawNextNumber(round) {
     );
 
 
+    /*
+     * Create the complete call object.
+     */
+
     const call =
         createCall(number);
 
@@ -847,6 +957,19 @@ function drawNextNumber(round) {
     round.currentCall =
         call;
 
+
+    /*
+     * This object is returned to server.js.
+     *
+     * server.js sends it to the frontend.
+     *
+     * The frontend then:
+     *
+     * 1. Displays B-4
+     * 2. Animates the ball
+     * 3. Speaks "B, 4"
+     *
+     */
 
     return call;
 }
@@ -876,7 +999,57 @@ function wasNumberCalled(
 
 /*
 |--------------------------------------------------------------------------
-| Get player's selected cartela
+| Create player state
+|--------------------------------------------------------------------------
+*/
+
+function createPlayer(
+    playerId,
+    cartelaNumber
+) {
+
+    if (!playerId) {
+
+        throw new Error(
+            "Player ID is required"
+        );
+    }
+
+    const cartela =
+        getCartela(
+            cartelaNumber
+        );
+
+
+    return {
+
+        playerId,
+
+        cartelaNumber:
+            cartela.number,
+
+        /*
+         * Manual marks.
+         *
+         * FREE starts marked.
+         */
+
+        markedPositions: [
+            "2-2"
+        ],
+
+        bingoClaimed:
+            false,
+
+        bingoResult:
+            null
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Get player's Cartela
 |--------------------------------------------------------------------------
 */
 
@@ -896,65 +1069,11 @@ function getPlayerCartela(
 
 /*
 |--------------------------------------------------------------------------
-| Create player
+| Player manually marks a number
 |--------------------------------------------------------------------------
 |
-| This does NOT handle payment.
-| It only creates the player's Bingo state.
-|
-|--------------------------------------------------------------------------
-*/
-
-function createPlayer(
-    playerId,
-    cartelaNumber
-) {
-
-    if (!playerId) {
-        throw new Error(
-            "Player ID is required"
-        );
-    }
-
-    const cartela =
-        getCartela(
-            cartelaNumber
-        );
-
-    return {
-
-        playerId,
-
-        cartelaNumber:
-            cartela.number,
-
-        /*
-         * Manual marks.
-         *
-         * Center FREE starts marked.
-         */
-
-        markedPositions: [
-            "2-2"
-        ],
-
-        bingoClaimed:
-            false,
-
-        bingoResult:
-            null
-    };
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Mark a position manually
-|--------------------------------------------------------------------------
-|
-| The player taps a square.
-|
-| The number MUST have already been called.
+| The frontend calls this when the player
+| taps a number on their Cartela.
 |
 |--------------------------------------------------------------------------
 */
@@ -967,6 +1086,7 @@ function markPosition(
 ) {
 
     if (!round) {
+
         throw new Error(
             "Bingo round not found"
         );
@@ -975,16 +1095,19 @@ function markPosition(
     if (
         round.status !== "DRAWING"
     ) {
+
         throw new Error(
-            "The Bingo round is not active"
+            WAITING_MESSAGE
         );
     }
 
     if (!player) {
+
         throw new Error(
             "Player not found"
         );
     }
+
 
     if (
         !Number.isInteger(row) ||
@@ -994,6 +1117,7 @@ function markPosition(
         column < 0 ||
         column > 4
     ) {
+
         throw new Error(
             "Invalid Bingo position"
         );
@@ -1001,7 +1125,7 @@ function markPosition(
 
 
     /*
-     * FREE square.
+     * FREE square is always marked.
      */
 
     if (
@@ -1013,14 +1137,21 @@ function markPosition(
             !player.markedPositions
                 .includes("2-2")
         ) {
+
             player.markedPositions
                 .push("2-2");
         }
 
         return {
-            success: true,
-            marked: true,
-            free: true
+
+            success:
+                true,
+
+            marked:
+                true,
+
+            free:
+                true
         };
     }
 
@@ -1035,8 +1166,8 @@ function markPosition(
 
 
     /*
-     * Only numbers actually called
-     * by the game engine can be marked.
+     * Player cannot mark a number
+     * before it has been called.
      */
 
     if (
@@ -1047,8 +1178,13 @@ function markPosition(
     ) {
 
         return {
-            success: false,
-            marked: false,
+
+            success:
+                false,
+
+            marked:
+                false,
+
             error:
                 "This number has not been called yet."
         };
@@ -1060,23 +1196,18 @@ function markPosition(
 
 
     /*
-     * Toggle the mark.
-     *
-     * This allows the player to correct
-     * an accidental tap.
+     * If already marked,
+     * allow the player to undo it.
      */
 
     const existingIndex =
         player.markedPositions
             .indexOf(position);
 
+
     if (
         existingIndex !== -1
     ) {
-
-        /*
-         * Don't allow FREE to be removed.
-         */
 
         player.markedPositions
             .splice(
@@ -1085,8 +1216,12 @@ function markPosition(
             );
 
         return {
-            success: true,
-            marked: false
+
+            success:
+                true,
+
+            marked:
+                false
         };
     }
 
@@ -1094,7 +1229,832 @@ function markPosition(
     player.markedPositions
         .push(position);
 
+
     return {
-        success: true,
-        marked: true,
+
+        success:
+            true,
+
+        marked:
+            true,
+
         number:
+            value,
+
+        position
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Convert marked positions to Set
+|--------------------------------------------------------------------------
+*/
+
+function markedPositionSet(
+    markedPositions
+) {
+
+    if (
+        !Array.isArray(
+            markedPositions
+        )
+    ) {
+
+        return new Set();
+    }
+
+    return new Set(
+        markedPositions.map(
+            position =>
+                String(position)
+        )
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Check complete line
+|--------------------------------------------------------------------------
+*/
+
+function lineIsComplete(
+    positions,
+    marked
+) {
+
+    return positions.every(
+        position =>
+            marked.has(position)
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Find winning pattern
+|--------------------------------------------------------------------------
+*/
+
+function getWinningPattern(
+    player
+) {
+
+    const marked =
+        markedPositionSet(
+            player.markedPositions
+        );
+
+
+    /*
+     * ROWS
+     */
+
+    for (
+        let row = 0;
+        row < 5;
+        row++
+    ) {
+
+        const positions = [];
+
+        for (
+            let column = 0;
+            column < 5;
+            column++
+        ) {
+
+            positions.push(
+                `${row}-${column}`
+            );
+        }
+
+        if (
+            lineIsComplete(
+                positions,
+                marked
+            )
+        ) {
+
+            return {
+
+                type:
+                    "ROW",
+
+                row,
+
+                positions
+            };
+        }
+    }
+
+
+    /*
+     * COLUMNS
+     */
+
+    for (
+        let column = 0;
+        column < 5;
+        column++
+    ) {
+
+        const positions = [];
+
+        for (
+            let row = 0;
+            row < 5;
+            row++
+        ) {
+
+            positions.push(
+                `${row}-${column}`
+            );
+        }
+
+        if (
+            lineIsComplete(
+                positions,
+                marked
+            )
+        ) {
+
+            return {
+
+                type:
+                    "COLUMN",
+
+                column,
+
+                positions
+            };
+        }
+    }
+
+
+    /*
+     * DIAGONAL 1
+     */
+
+    const diagonal1 = [];
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        diagonal1.push(
+            `${i}-${i}`
+        );
+    }
+
+    if (
+        lineIsComplete(
+            diagonal1,
+            marked
+        )
+    ) {
+
+        return {
+
+            type:
+                "DIAGONAL",
+
+            direction:
+                "TOP_LEFT_TO_BOTTOM_RIGHT",
+
+            positions:
+                diagonal1
+        };
+    }
+
+
+    /*
+     * DIAGONAL 2
+     */
+
+    const diagonal2 = [];
+
+    for (
+        let i = 0;
+        i < 5;
+        i++
+    ) {
+
+        diagonal2.push(
+            `${i}-${4 - i}`
+        );
+    }
+
+    if (
+        lineIsComplete(
+            diagonal2,
+            marked
+        )
+    ) {
+
+        return {
+
+            type:
+                "DIAGONAL",
+
+            direction:
+                "TOP_RIGHT_TO_BOTTOM_LEFT",
+
+            positions:
+                diagonal2
+        };
+    }
+
+
+    return null;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Validate player's manual marks
+|--------------------------------------------------------------------------
+*/
+
+function validateManualMarks(
+    round,
+    player
+) {
+
+    const cartela =
+        getPlayerCartela(
+            player
+        );
+
+    const marked =
+        markedPositionSet(
+            player.markedPositions
+        );
+
+
+    for (
+        const position of marked
+    ) {
+
+        /*
+         * FREE square.
+         */
+
+        if (
+            position === "2-2"
+        ) {
+            continue;
+        }
+
+
+        const parts =
+            position.split("-");
+
+
+        if (
+            parts.length !== 2
+        ) {
+
+            return {
+
+                valid:
+                    false,
+
+                error:
+                    "Invalid marked position"
+            };
+        }
+
+
+        const row =
+            Number(parts[0]);
+
+        const column =
+            Number(parts[1]);
+
+
+        if (
+            !Number.isInteger(row) ||
+            !Number.isInteger(column) ||
+            row < 0 ||
+            row > 4 ||
+            column < 0 ||
+            column > 4
+        ) {
+
+            return {
+
+                valid:
+                    false,
+
+                error:
+                    "Invalid marked position"
+            };
+        }
+
+
+        const value =
+            cartela.card[row][column];
+
+
+        if (
+            value === "FREE"
+        ) {
+            continue;
+        }
+
+
+        if (
+            !wasNumberCalled(
+                round,
+                value
+            )
+        ) {
+
+            return {
+
+                valid:
+                    false,
+
+                error:
+                    `Number ${value} has not been called`
+            };
+        }
+    }
+
+
+    return {
+        valid:
+            true
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Player presses BINGO
+|--------------------------------------------------------------------------
+*/
+
+function claimBingo(
+    round,
+    player
+) {
+
+    if (!round) {
+
+        throw new Error(
+            "Bingo round not found"
+        );
+    }
+
+    if (!player) {
+
+        throw new Error(
+            "Player not found"
+        );
+    }
+
+
+    if (
+        round.status !== "DRAWING"
+    ) {
+
+        throw new Error(
+            WAITING_MESSAGE
+        );
+    }
+
+
+    /*
+     * Prevent duplicate claim.
+     */
+
+    if (
+        player.bingoClaimed
+    ) {
+
+        return {
+
+            success:
+                false,
+
+            valid:
+                false,
+
+            message:
+                "BINGO has already been claimed."
+        };
+    }
+
+
+    /*
+     * Validate manual marks.
+     */
+
+    const marks =
+        validateManualMarks(
+            round,
+            player
+        );
+
+
+    if (!marks.valid) {
+
+        return {
+
+            success:
+                false,
+
+            valid:
+                false,
+
+            message:
+                "BINGO NOT VALID",
+
+            error:
+                marks.error
+        };
+    }
+
+
+    /*
+     * Find winning line.
+     */
+
+    const pattern =
+        getWinningPattern(
+            player
+        );
+
+
+    if (!pattern) {
+
+        return {
+
+            success:
+                false,
+
+            valid:
+                false,
+
+            message:
+                "BINGO NOT VALID",
+
+            error:
+                "You have not completed a winning pattern."
+        };
+    }
+
+
+    /*
+     * VALID BINGO.
+     */
+
+    player.bingoClaimed =
+        true;
+
+    player.bingoResult = {
+
+        valid:
+            true,
+
+        pattern,
+
+        claimedAt:
+            new Date()
+                .toISOString()
+    };
+
+
+    /*
+     * First valid claim.
+     */
+
+    if (!round.winner) {
+
+        round.winner = {
+
+            playerId:
+                player.playerId,
+
+            cartelaNumber:
+                player.cartelaNumber,
+
+            pattern,
+
+            claimedAt:
+                player.bingoResult
+                    .claimedAt
+        };
+    }
+
+
+    return {
+
+        success:
+            true,
+
+        valid:
+            true,
+
+        message:
+            "BINGO! YOU WIN",
+
+        pattern,
+
+        winner:
+            round.winner
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Finish round
+|--------------------------------------------------------------------------
+*/
+
+function finishRound(round) {
+
+    if (!round) {
+
+        throw new Error(
+            "Bingo round not found"
+        );
+    }
+
+    round.status =
+        "FINISHED";
+
+    round.finishedAt =
+        new Date()
+            .toISOString();
+
+    return round;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Public round
+|--------------------------------------------------------------------------
+|
+| NEVER expose drawOrder.
+|--------------------------------------------------------------------------
+*/
+
+function publicRound(round) {
+
+    if (!round) {
+        return null;
+    }
+
+    return {
+
+        game:
+            round.game,
+
+        status:
+            round.status,
+
+        bettingSeconds:
+            round.bettingSeconds,
+
+        bettingStartedAt:
+            round.bettingStartedAt,
+
+        bettingEndsAt:
+            round.bettingEndsAt,
+
+        totalCartelas:
+            round.totalCartelas,
+
+        minSlots:
+            round.minSlots,
+
+        defaultSlots:
+            round.defaultSlots,
+
+        maxSlots:
+            round.maxSlots,
+
+        waitingMessage:
+            round.waitingMessage,
+
+        waitingMessageAm:
+            round.waitingMessageAm,
+
+        drawnNumbers:
+            [
+                ...round.drawnNumbers
+            ],
+
+        calls:
+            [
+                ...round.calls
+            ],
+
+        currentCall:
+            round.currentCall,
+
+        drawIndex:
+            round.drawIndex,
+
+        createdAt:
+            round.createdAt
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Public Cartela
+|--------------------------------------------------------------------------
+*/
+
+function publicCartela(
+    cartelaNumber
+) {
+
+    const cartela =
+        getCartela(
+            cartelaNumber
+        );
+
+    return {
+
+        number:
+            cartela.number,
+
+        card:
+            cartela.card.map(
+                row =>
+                    [...row]
+            ),
+
+        columns:
+            [...COLUMN_LETTERS]
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Get player's marked card
+|--------------------------------------------------------------------------
+*/
+
+function getPlayerCardState(
+    player
+) {
+
+    if (!player) {
+
+        throw new Error(
+            "Player not found"
+        );
+    }
+
+    const cartela =
+        getCartela(
+            player.cartelaNumber
+        );
+
+    const marked =
+        markedPositionSet(
+            player.markedPositions
+        );
+
+
+    const card =
+        cartela.card.map(
+            (
+                row,
+                rowIndex
+            ) =>
+                row.map(
+                    (
+                        value,
+                        columnIndex
+                    ) => {
+
+                        const position =
+                            `${rowIndex}-${columnIndex}`;
+
+                        return {
+
+                            value,
+
+                            marked:
+                                marked.has(
+                                    position
+                                ),
+
+                            position
+                        };
+                    }
+                )
+        );
+
+
+    return {
+
+        cartelaNumber:
+            player.cartelaNumber,
+
+        card,
+
+        bingoClaimed:
+            player.bingoClaimed,
+
+        bingoResult:
+            player.bingoResult
+    };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| EXPORTS
+|--------------------------------------------------------------------------
+*/
+
+module.exports = {
+
+    GAME_NAME,
+
+    BINGO_SIZE,
+
+    BINGO_NUMBERS,
+
+    BETTING_SECONDS,
+
+    TOTAL_CARTELAS,
+
+    MIN_SLOTS,
+
+    DEFAULT_SLOTS,
+
+    MAX_SLOTS,
+
+    COLUMN_RANGES,
+
+    COLUMN_LETTERS,
+
+    WAITING_MESSAGE,
+
+    WAITING_MESSAGE_AM,
+
+    generateCartela,
+
+    generateAllCartelas,
+
+    getCartela,
+
+    getAvailableCartelas,
+
+    validateCard,
+
+    generateDrawOrder,
+
+    getCallLetter,
+
+    createCall,
+
+    getAmharicVoiceText,
+
+    createRound,
+
+    canPlaceBet,
+
+    startDrawing,
+
+    drawNextNumber,
+
+    wasNumberCalled,
+
+    createPlayer,
+
+    getPlayerCartela,
+
+    markPosition,
+
+    getWinningPattern,
+
+    validateManualMarks,
+
+    claimBingo,
+
+    finishRound,
+
+    publicRound,
+
+    publicCartela,
+
+    getPlayerCardState
+};
