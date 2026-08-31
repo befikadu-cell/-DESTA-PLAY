@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-
 <title>DESTA PLAY</title>
 
 <style>
@@ -245,10 +244,10 @@ button{
   transform:translate(-50%,-50%);
   background:
     repeating-conic-gradient(
-      #b00000 0deg 10deg,
-      #111 10deg 20deg
+      #b00000 0deg 20deg,
+      #111 20deg 40deg
     );
-  animation:rouletteHomeSpin 3s linear infinite;
+  animation:rouletteSpinHome 3s linear infinite;
 }
 
 .rouletteHome:after{
@@ -264,10 +263,8 @@ button{
   font-weight:bold;
 }
 
-@keyframes rouletteHomeSpin{
-  to{
-    transform:translate(-50%,-50%) rotate(360deg);
-  }
+@keyframes rouletteSpinHome{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
 }
 
 /* ================= GAME ================= */
@@ -372,7 +369,7 @@ button{
   margin:0 8px 8px;
 }
 
-/* ================= BET AREA ================= */
+/* ================= BET SLOTS ================= */
 
 .betSlots{
   display:grid;
@@ -386,6 +383,11 @@ button{
   border:1px solid #702222;
   border-radius:12px;
   padding:8px;
+}
+
+.betSlot.selectedSlot{
+  border:2px solid var(--gold);
+  box-shadow:0 0 15px rgba(255,204,51,.3);
 }
 
 .slotTitle{
@@ -426,16 +428,33 @@ button{
   margin-top:7px;
   border:0;
   border-radius:8px;
-  padding:9px 4px;
+  padding:10px 4px;
   background:linear-gradient(180deg,#ff3b2f,#a60000);
   color:white;
   font-size:10px;
   font-weight:900;
 }
 
-.placeBtn.waiting{
-  background:#3b3b3b;
+.placeBtn.cashout{
+  background:linear-gradient(180deg,#18d66b,#087b39);
+}
+
+.placeBtn.cashed{
+  background:#14763e;
+}
+
+.placeBtn.lost{
+  background:#444;
   color:#bbb;
+}
+
+.betLive{
+  text-align:center;
+  color:#ffd43a;
+  font-size:10px;
+  font-weight:bold;
+  margin-top:5px;
+  min-height:14px;
 }
 
 /* ================= FEEDS ================= */
@@ -451,7 +470,8 @@ button{
 .feedRow{
   display:flex;
   justify-content:space-between;
-  padding:5px 3px;
+  align-items:center;
+  padding:6px 3px;
   border-bottom:1px solid #222;
   font-size:10px;
 }
@@ -464,29 +484,54 @@ button{
   color:var(--green);
 }
 
+.muted{
+  color:#888;
+}
+
 /* ================= KENO ================= */
 
-.kenoSelectedRows{
-  padding:8px 8px 2px;
-}
-
-.kenoPlayerRow{
-  background:#151515;
-  border:1px solid #472020;
-  border-radius:8px;
-  padding:7px;
-  margin-bottom:5px;
-  font-size:10px;
-}
-
-.kenoPlayerRow strong{
+.kenoTopInfo{
+  padding:7px 8px 0;
+  text-align:center;
   color:#ffd43b;
+  font-size:11px;
+  font-weight:bold;
 }
 
-.kenoChosen{
-  color:#fff;
-  margin-top:4px;
-  line-height:1.7;
+.kenoSlotNumbers{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  padding:7px 8px;
+}
+
+.selectedNumbersBox{
+  background:#151515;
+  border:1px solid #4e2525;
+  border-radius:9px;
+  padding:7px;
+  min-height:50px;
+}
+
+.selectedNumbersTitle{
+  color:#ffd43b;
+  font-size:9px;
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+.selectedNumbers{
+  display:flex;
+  flex-wrap:wrap;
+  gap:3px;
+}
+
+.selectedChip{
+  background:#a60000;
+  border:1px solid #ffd43b;
+  border-radius:5px;
+  padding:3px 5px;
+  font-size:9px;
 }
 
 .kenoBoard{
@@ -513,7 +558,7 @@ button{
   background:linear-gradient(145deg,#ffd43b,#bd7600);
   color:#150900;
   border-color:#ffe67d;
-  box-shadow:0 0 8px #ffd43b;
+  transform:scale(1.04);
 }
 
 .kenoNumber.drawn{
@@ -542,14 +587,17 @@ button{
 }
 
 .drawBalls{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:7px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px;
   padding:8px;
+  min-height:45px;
 }
 
 .ball{
-  aspect-ratio:1;
+  width:35px;
+  height:35px;
   border-radius:50%;
   background:linear-gradient(145deg,#ff4b3e,#970000);
   border:2px solid #ffd43b;
@@ -558,7 +606,7 @@ button{
   justify-content:center;
   color:white;
   font-weight:900;
-  font-size:12px;
+  font-size:11px;
   animation:ballAppear .45s ease;
 }
 
@@ -621,9 +669,7 @@ button{
 }
 
 @keyframes bingoMachine{
-  to{
-    transform:translate(-50%,-50%) rotate(360deg);
-  }
+  to{transform:translate(-50%,-50%) rotate(360deg)}
 }
 
 .bingoBall{
@@ -646,6 +692,45 @@ button{
   to{transform:translateY(-30px)}
 }
 
+/* SINGLE CARTELA INPUT */
+
+.cartelaEntry{
+  padding:8px;
+  background:#100606;
+  border-bottom:1px solid #3b1919;
+}
+
+.cartelaEntryRow{
+  display:grid;
+  grid-template-columns:1fr 55px;
+  gap:5px;
+}
+
+.cartelaEntry input{
+  width:100%;
+  padding:9px;
+  text-align:center;
+  color:white;
+  background:#080808;
+  border:1px solid #633333;
+  border-radius:7px;
+}
+
+.cartelaEntry button{
+  border:1px solid #c28b00;
+  border-radius:7px;
+  background:linear-gradient(180deg,#ffd43b,#bd7900);
+  color:#160900;
+  font-weight:900;
+}
+
+.cartelaEntryStatus{
+  min-height:16px;
+  text-align:center;
+  padding-top:4px;
+  font-size:9px;
+}
+
 .cartelaTabs{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -664,43 +749,102 @@ button{
   font-weight:bold;
 }
 
-.cartelaInputs{
+.cartelaTab.active{
+  background:linear-gradient(180deg,#ffd43b,#bd7900);
+  color:#170900;
+}
+
+.cartelaCards{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:7px;
   padding:0 8px 8px;
 }
 
-.cartelaBox{
-  padding:8px;
-  background:#151515;
-  border:1px solid #472020;
+.cartelaCard{
+  background:#111;
+  border:1px solid #552020;
   border-radius:0 0 10px 10px;
+  padding:5px;
 }
 
-.cartelaBox input{
-  width:100%;
+.cartelaCardTitle{
   text-align:center;
-  background:#080808;
-  color:white;
-  border:1px solid #633333;
-  border-radius:7px;
-  padding:7px;
+  color:#ffd43b;
+  font-size:10px;
+  font-weight:bold;
+  margin-bottom:4px;
 }
 
-.cartelaFeedback{
-  min-height:20px;
+.cartelaNumberLabel{
   text-align:center;
+  color:#fff;
   font-size:9px;
-  padding-top:5px;
+  margin-bottom:5px;
 }
 
-.valid{
-  color:#22e77a;
+.bingoGrid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:2px;
 }
 
-.invalid{
-  color:#ff4545;
+.bingoCell{
+  aspect-ratio:1;
+  border:1px solid #4c3333;
+  background:#222;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:8px;
+  font-weight:bold;
+  border-radius:3px;
+}
+
+.bingoCell.called{
+  background:#b50000;
+  border-color:#ffcf3b;
+}
+
+.bingoCell.marked{
+  background:linear-gradient(145deg,#ffd43b,#bd7600);
+  color:#150900;
+  box-shadow:0 0 7px #ffd43b;
+}
+
+.bingoCell.free{
+  background:#222;
+  color:#ffd43b;
+}
+
+.bingoDrawNumber{
+  text-align:center;
+  padding:6px;
+  color:#ffd43b;
+  font-size:13px;
+  font-weight:900;
+}
+
+.bingoCalledList{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:4px;
+  padding:5px 8px 8px;
+}
+
+.calledChip{
+  width:27px;
+  height:27px;
+  border-radius:50%;
+  background:#a60000;
+  border:1px solid #ffd43b;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  font-weight:bold;
 }
 
 .amountGrid{
@@ -725,6 +869,14 @@ button{
   color:#1a0b00;
 }
 
+.bingoWinStatus{
+  text-align:center;
+  color:#18d66b;
+  min-height:18px;
+  font-size:11px;
+  font-weight:bold;
+}
+
 /* ================= ROULETTE ================= */
 
 .rouletteArea{
@@ -732,168 +884,73 @@ button{
   text-align:center;
 }
 
-.rouletteWheelWrap{
-  position:relative;
-  width:220px;
-  height:220px;
-  margin:5px auto 12px;
+.roulettePointer{
+  color:#ffd43b;
+  font-size:22px;
+  height:20px;
 }
 
 .rouletteWheel{
-  width:220px;
-  height:220px;
+  width:190px;
+  height:190px;
+  margin:0 auto 12px;
   border-radius:50%;
   border:9px solid #d69a00;
   background:
-    radial-gradient(
-      circle,
-      #d49a00 0 23%,
-      #161616 24% 31%,
-      #090909 32% 100%
+    repeating-conic-gradient(
+      #b00000 0deg 10deg,
+      #090909 10deg 20deg
     );
   position:relative;
   transition:transform 4s cubic-bezier(.1,.7,.2,1);
-  box-shadow:
-    0 0 0 3px #5c4000,
-    0 0 25px #000;
+  box-shadow:0 0 20px #000;
 }
 
-.roulettePocket{
+.wheelNumbers{
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+}
+
+.wheelNumber{
   position:absolute;
   left:50%;
   top:50%;
-  width:31px;
-  height:31px;
-  margin-left:-15.5px;
-  margin-top:-15.5px;
+  width:20px;
+  height:20px;
+  margin-left:-10px;
+  margin-top:-10px;
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius:50%;
-  border:2px solid #d8a000;
-  color:#fff;
-  font-size:9px;
+  font-size:8px;
   font-weight:900;
-  transform:
-    rotate(var(--angle))
-    translateY(-88px)
-    rotate(calc(var(--angle) * -1));
-  box-shadow:0 2px 5px #000;
-  z-index:5;
+  color:#fff;
+  transform-origin:10px 85px;
 }
 
-.roulettePocket.red{
-  background:#a80000;
-}
-
-.roulettePocket.black{
-  background:#090909;
-}
-
-.roulettePocket.green{
-  background:#008a4b;
-}
-
-.roulettePocket.winner{
-  border-color:#fff36b;
-  box-shadow:
-    0 0 8px #ffd43b,
-    0 0 20px #ffd43b;
-  animation:rouletteWinner .8s infinite alternate;
-  z-index:20;
-}
-
-@keyframes rouletteWinner{
-  from{
-    transform:
-      rotate(var(--angle))
-      translateY(-88px)
-      rotate(calc(var(--angle) * -1))
-      scale(1);
-  }
-  to{
-    transform:
-      rotate(var(--angle))
-      translateY(-88px)
-      rotate(calc(var(--angle) * -1))
-      scale(1.25);
-  }
-}
-
-.rouletteHub{
+.wheelCenter{
   position:absolute;
+  width:45px;
+  height:45px;
   left:50%;
   top:50%;
   transform:translate(-50%,-50%);
-  width:54px;
-  height:54px;
   border-radius:50%;
-  background:
-    radial-gradient(circle at 35% 30%,#ffe47a,#d49a00 55%,#7c4d00);
-  border:4px solid #f4c632;
+  background:#d49a00;
   color:#111;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:15px;
   font-weight:900;
-  z-index:30;
-  box-shadow:0 3px 12px #000;
-}
-
-.roulettePointer{
-  position:absolute;
-  left:50%;
-  top:-4px;
-  transform:translateX(-50%);
-  width:0;
-  height:0;
-  border-left:9px solid transparent;
-  border-right:9px solid transparent;
-  border-top:18px solid #ffd43b;
-  z-index:50;
-  filter:drop-shadow(0 2px 3px #000);
+  z-index:5;
 }
 
 .rouletteResult{
-  min-height:28px;
+  min-height:30px;
   color:#ffd13d;
   font-weight:bold;
   font-size:13px;
-}
-
-.rouletteSelected{
-  margin:7px 8px;
-  padding:8px;
-  border:1px solid #492020;
-  border-radius:9px;
-  background:#120606;
-  color:#ffd43d;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.rouletteBetTypes{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:5px;
-  padding:0 8px 8px;
-}
-
-.rouletteBetType{
-  border:1px solid #704000;
-  background:#1d1100;
-  color:#ffd03c;
-  border-radius:7px;
-  padding:8px;
-  font-size:10px;
-  font-weight:bold;
-}
-
-.rouletteBetType.selected{
-  background:linear-gradient(180deg,#ffd94b,#c77b00);
-  color:#1a0b00;
-  box-shadow:0 0 10px #d99b00;
 }
 
 .rouletteGrid{
@@ -910,36 +967,50 @@ button{
   font-size:10px;
   font-weight:bold;
   color:#fff;
-  transition:.15s;
 }
 
-.rouletteNum.red{
-  background:#a80000;
-}
-
-.rouletteNum.black{
-  background:#090909;
-}
-
-.rouletteNum.green{
-  background:#008a4b;
-}
-
-.rouletteNum.selected{
+.rouletteNum.selectedBet{
   border:2px solid #ffd43b;
-  box-shadow:
-    0 0 8px #ffd43b,
-    inset 0 0 8px #ffd43b;
+  box-shadow:0 0 12px #ffd43b;
   transform:scale(1.05);
 }
 
-.rouletteNum.winner{
-  box-shadow:
-    0 0 12px #ffd43b,
-    0 0 22px #ffd43b;
-  border-color:#fff36b;
-  transform:scale(1.08);
+.red{
+  background:#a80000;
 }
+
+.black{
+  background:#090909;
+}
+
+.green{
+  background:#008a4b;
+}
+
+.rouletteColorBets{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:5px;
+  padding:8px;
+}
+
+.colorBet{
+  padding:9px;
+  border-radius:7px;
+  border:2px solid transparent;
+  font-size:10px;
+  font-weight:bold;
+  color:#fff;
+}
+
+.colorBet.selectedBet{
+  border-color:#ffd43b;
+  box-shadow:0 0 12px #ffd43b;
+}
+
+.colorRed{background:#a80000}
+.colorBlack{background:#090909}
+.colorGreen{background:#008a4b}
 
 /* ================= AVIATOR ================= */
 
@@ -966,8 +1037,7 @@ button{
   height:220px;
   position:relative;
   overflow:hidden;
-  background:
-    linear-gradient(160deg,#230000,#050505 65%);
+  background:linear-gradient(160deg,#230000,#050505 65%);
 }
 
 .gridLines{
@@ -1015,6 +1085,32 @@ button{
   color:#ffd13d;
   font-size:12px;
   font-weight:bold;
+}
+
+.aviatorLiveInfo{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  padding:6px 8px;
+}
+
+.aviatorStat{
+  background:#151515;
+  border:1px solid #4a2020;
+  border-radius:7px;
+  text-align:center;
+  padding:6px;
+}
+
+.aviatorStat small{
+  display:block;
+  color:#999;
+  font-size:8px;
+}
+
+.aviatorStat strong{
+  color:#ffd43b;
+  font-size:11px;
 }
 
 /* ================= HELP ================= */
@@ -1099,21 +1195,13 @@ button{
     grid-template-columns:27px 1fr 27px;
   }
 
-  .amountControl button{
-    font-size:11px;
-  }
-
-  .rouletteWheelWrap,
   .rouletteWheel{
-    width:200px;
-    height:200px;
+    width:165px;
+    height:165px;
   }
 
-  .roulettePocket{
-    transform:
-      rotate(var(--angle))
-      translateY(-79px)
-      rotate(calc(var(--angle) * -1));
+  .wheelNumber{
+    transform-origin:10px 72px;
   }
 }
 </style>
@@ -1121,13 +1209,15 @@ button{
 
 <body>
 
-<!-- ================= HOME ================= -->
+<!-- ======================================================
+     HOME
+====================================================== -->
 
 <section id="home">
 
   <div class="homeHeader">
     <div class="logo">DESTA PLAY</div>
-    <div class="demoBadge">PLAY</div>
+    <div class="demoBadge">FRONTEND</div>
   </div>
 
   <div class="languageBox">
@@ -1160,7 +1250,6 @@ button{
       </button>
     </div>
 
-
     <div class="gameCard">
       <h3>BINGO</h3>
 
@@ -1178,7 +1267,6 @@ button{
         PLAY
       </button>
     </div>
-
 
     <div class="gameCard">
       <h3>KENO</h3>
@@ -1199,7 +1287,6 @@ button{
       </button>
     </div>
 
-
     <div class="gameCard">
       <h3>ROULETTE</h3>
 
@@ -1217,7 +1304,9 @@ button{
 </section>
 
 
-<!-- ================= GAME SCREEN ================= -->
+<!-- ======================================================
+     GAME SCREEN
+====================================================== -->
 
 <section id="gameScreen">
 
@@ -1242,7 +1331,6 @@ button{
 
   </header>
 
-
   <div class="gameTitle"
        id="gameTitle">
     KENO
@@ -1251,528 +1339,630 @@ button{
 
   <main class="gameArea">
 
-    <!-- ================= KENO ================= -->
 
-    <div id="kenoGame"
-         class="hidden">
+<!-- ======================================================
+     KENO
+====================================================== -->
 
-      <div class="drawStatus"
-           id="kenoCountdown">
-        BETTING OPEN
+<div id="kenoGame" class="hidden">
+
+  <div class="kenoTopInfo">
+    KENO • CHOOSE 1–10 NUMBERS PER SLOT
+  </div>
+
+  <div class="kenoSlotNumbers">
+
+    <div class="selectedNumbersBox">
+      <div class="selectedNumbersTitle">
+        SLOT 1 SELECTED
       </div>
 
-
-      <div class="kenoSelectedRows">
-
-        <div class="kenoPlayerRow">
-          <strong>SLOT 1 — CHOSEN NUMBERS</strong>
-          <div class="kenoChosen"
-               id="kenoChosen1">
-            No numbers selected
-          </div>
-        </div>
-
-        <div class="kenoPlayerRow">
-          <strong>SLOT 2 — CHOSEN NUMBERS</strong>
-          <div class="kenoChosen"
-               id="kenoChosen2">
-            No numbers selected
-          </div>
-        </div>
-
+      <div class="selectedNumbers"
+           id="kSelected1">
+        —
       </div>
-
-
-      <div class="kenoBoard"
-           id="kenoBoard">
-      </div>
-
-
-      <div class="drawStatus"
-           id="kenoDrawStatus">
-        Waiting for draw...
-      </div>
-
-
-      <div class="drawBalls"
-           id="kenoDrawBalls">
-      </div>
-
-
-      <div class="betSlots">
-
-        <div class="betSlot"
-             id="kenoSlot1">
-
-          <div class="slotTitle">
-            SLOT 1
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('k1',-10)">
-              −
-            </button>
-
-            <input id="k1"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
-
-            <button onclick="changeAmount('k1',10)">
-              +
-            </button>
-
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeKenoBet(1)">
-            PLACE BET — SLOT 1
-          </button>
-
-        </div>
-
-
-        <div class="betSlot"
-             id="kenoSlot2">
-
-          <div class="slotTitle">
-            SLOT 2
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('k2',-10)">
-              −
-            </button>
-
-            <input id="k2"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
-
-            <button onclick="changeAmount('k2',10)">
-              +
-            </button>
-
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeKenoBet(2)">
-            PLACE BET — SLOT 2
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <div class="feed">
-
-        <div class="feedRow">
-          <span>Slot 1 selected</span>
-          <span id="kenoSelected1">
-            0 / 10
-          </span>
-        </div>
-
-        <div class="feedRow">
-          <span>Slot 2 selected</span>
-          <span id="kenoSelected2">
-            0 / 10
-          </span>
-        </div>
-
-      </div>
-
     </div>
 
-
-    <!-- ================= BINGO ================= -->
-
-    <div id="bingoGame"
-         class="hidden">
-
-      <div class="bingoAnimation">
-
-        <div class="bingoMachine"></div>
-
-        <div class="bingoBall"
-             style="left:15%;top:30%">
-          7
-        </div>
-
-        <div class="bingoBall"
-             style="right:15%;top:25%">
-          30
-        </div>
-
-        <div class="bingoBall"
-             style="left:40%;bottom:15%">
-          52
-        </div>
-
+    <div class="selectedNumbersBox">
+      <div class="selectedNumbersTitle">
+        SLOT 2 SELECTED
       </div>
 
-
-      <div class="drawStatus"
-           id="bingoStatus">
-        Waiting for next draw...
+      <div class="selectedNumbers"
+           id="kSelected2">
+        —
       </div>
-
-
-      <div class="cartelaTabs">
-
-        <div class="cartelaTab">
-          CARTELA 1
-        </div>
-
-        <div class="cartelaTab">
-          CARTELA 2
-        </div>
-
-      </div>
-
-
-      <div class="cartelaInputs">
-
-        <div class="cartelaBox">
-
-          <input id="cartela1"
-                 type="number"
-                 min="1"
-                 max="120"
-                 placeholder="1–120"
-                 oninput="validateCartela(1)">
-
-          <div id="cartelaFeedback1"
-               class="cartelaFeedback">
-          </div>
-
-        </div>
-
-
-        <div class="cartelaBox">
-
-          <input id="cartela2"
-                 type="number"
-                 min="1"
-                 max="120"
-                 placeholder="1–120"
-                 oninput="validateCartela(2)">
-
-          <div id="cartelaFeedback2"
-               class="cartelaFeedback">
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="slotTitle"
-           style="padding-top:4px">
-        BINGO BET AMOUNT
-      </div>
-
-
-      <div class="amountGrid"
-           id="bingoAmounts">
-      </div>
-
-
-      <div class="betSlots">
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            CARTELA 1 BET
-          </div>
-
-          <div id="bingoAmount1"
-               style="text-align:center;color:#ffd43c;font-weight:bold">
-            10 ETB
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeBingoBet(1)">
-            PLACE BET — CARTELA 1
-          </button>
-
-        </div>
-
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            CARTELA 2 BET
-          </div>
-
-          <div id="bingoAmount2"
-               style="text-align:center;color:#ffd43c;font-weight:bold">
-            10 ETB
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeBingoBet(2)">
-            PLACE BET — CARTELA 2
-          </button>
-
-        </div>
-
-      </div>
-
     </div>
 
+  </div>
 
-    <!-- ================= ROULETTE ================= -->
+  <div class="drawStatus"
+       id="kenoCountdown">
+    SELECT SLOT 1
+  </div>
 
-    <div id="rouletteGame"
-         class="hidden">
+  <div class="kenoBoard"
+       id="kenoBoard">
+  </div>
 
-      <div class="countdown"
-           id="rouletteStatus">
-        BETTING OPEN
+  <div class="drawStatus"
+       id="kenoDrawStatus">
+    Waiting for draw...
+  </div>
+
+  <div class="drawBalls"
+       id="kenoDrawBalls">
+  </div>
+
+  <div class="betSlots">
+
+    <div class="betSlot"
+         id="kenoSlot1"
+         onclick="activateKenoSlot(1)">
+
+      <div class="slotTitle">
+        SLOT 1
       </div>
 
+      <div class="amountControl">
 
-      <div class="rouletteArea">
-
-        <div class="rouletteWheelWrap">
-
-          <div class="roulettePointer"></div>
-
-          <div class="rouletteWheel"
-               id="rouletteWheel">
-
-            <div class="rouletteHub"
-                 id="rouletteHub">
-              0
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div class="rouletteResult"
-             id="rouletteResult">
-          Waiting for spin...
-        </div>
-
-      </div>
-
-
-      <div class="rouletteSelected"
-           id="rouletteSelected">
-        SLOT 1 SELECTED: NONE
-      </div>
-
-
-      <div class="rouletteBetTypes">
-
-        <button class="rouletteBetType"
-                id="betRed"
-                onclick="selectRouletteColor('red')">
-          🔴 RED
+        <button onclick="event.stopPropagation();changeAmount('k1',-10)">
+          −
         </button>
 
-        <button class="rouletteBetType"
-                id="betBlack"
-                onclick="selectRouletteColor('black')">
-          ⚫ BLACK
+        <input id="k1"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal"
+               onclick="event.stopPropagation()">
+
+        <button onclick="event.stopPropagation();changeAmount('k1',10)">
+          +
         </button>
 
       </div>
 
+      <button class="placeBtn"
+              id="kenoPlace1"
+              onclick="event.stopPropagation();placeKenoBet(1)">
+        PLACE BET
+      </button>
 
-      <div class="rouletteGrid"
-           id="rouletteGrid">
+    </div>
+
+
+    <div class="betSlot"
+         id="kenoSlot2"
+         onclick="activateKenoSlot(2)">
+
+      <div class="slotTitle">
+        SLOT 2
       </div>
 
+      <div class="amountControl">
 
-      <div class="betSlots">
+        <button onclick="event.stopPropagation();changeAmount('k2',-10)">
+          −
+        </button>
 
-        <div class="betSlot"
-             id="rouletteSlot1">
+        <input id="k2"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal"
+               onclick="event.stopPropagation()">
 
-          <div class="slotTitle">
-            SLOT 1
-          </div>
+        <button onclick="event.stopPropagation();changeAmount('k2',10)">
+          +
+        </button>
 
-          <div class="amountControl">
+      </div>
 
-            <button onclick="changeAmount('r1',-10)">
-              −
-            </button>
+      <button class="placeBtn"
+              id="kenoPlace2"
+              onclick="event.stopPropagation();placeKenoBet(2)">
+        PLACE BET
+      </button>
 
-            <input id="r1"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
+    </div>
 
-            <button onclick="changeAmount('r1',10)">
-              +
-            </button>
+  </div>
 
-          </div>
+  <div class="feed">
 
-          <button class="placeBtn"
-                  onclick="placeRouletteBet(1)">
-            PLACE BET — SLOT 1
-          </button>
+    <div class="feedRow">
+      <span>Slot 1</span>
+      <span id="kenoStatus1">Selecting</span>
+    </div>
 
-        </div>
+    <div class="feedRow">
+      <span>Slot 2</span>
+      <span id="kenoStatus2">Selecting</span>
+    </div>
+
+  </div>
+
+  <div class="historyBox">
+
+    <div class="historyHeader">
+      LAST 10 KENO ROUNDS
+    </div>
+
+    <div id="kenoHistory"></div>
+
+  </div>
+
+</div>
 
 
-        <div class="betSlot"
-             id="rouletteSlot2">
+<!-- ======================================================
+     BINGO
+====================================================== -->
 
-          <div class="slotTitle">
-            SLOT 2
-          </div>
+<div id="bingoGame" class="hidden">
 
-          <div class="amountControl">
+  <div class="bingoAnimation">
 
-            <button onclick="changeAmount('r2',-10)">
-              −
-            </button>
+    <div class="bingoMachine"></div>
 
-            <input id="r2"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
+    <div class="bingoBall"
+         style="left:15%;top:30%">
+      7
+    </div>
 
-            <button onclick="changeAmount('r2',10)">
-              +
-            </button>
+    <div class="bingoBall"
+         style="right:15%;top:25%">
+      30
+    </div>
 
-          </div>
+    <div class="bingoBall"
+         style="left:40%;bottom:15%">
+      52
+    </div>
 
-          <button class="placeBtn"
-                  onclick="placeRouletteBet(2)">
-            PLACE BET — SLOT 2
-          </button>
+  </div>
 
-        </div>
+  <div class="drawStatus"
+       id="bingoStatus">
+    ENTER CARTELA NUMBER
+  </div>
 
+
+  <!-- ONE ENTRY FIELD -->
+
+  <div class="cartelaEntry">
+
+    <div class="cartelaEntryRow">
+
+      <input id="cartelaInput"
+             type="number"
+             min="1"
+             max="120"
+             placeholder="Enter Cartela 1–120">
+
+      <button onclick="addCartela()">
+        OK
+      </button>
+
+    </div>
+
+    <div id="cartelaEntryStatus"
+         class="cartelaEntryStatus">
+    </div>
+
+  </div>
+
+
+  <div class="cartelaTabs">
+
+    <div class="cartelaTab"
+         id="cartelaTab1">
+      CARTELA 1
+    </div>
+
+    <div class="cartelaTab"
+         id="cartelaTab2">
+      CARTELA 2
+    </div>
+
+  </div>
+
+
+  <div class="cartelaCards">
+
+    <div class="cartelaCard">
+
+      <div class="cartelaCardTitle">
+        CARTELA 1
+      </div>
+
+      <div class="cartelaNumberLabel"
+           id="cartelaNumber1">
+        EMPTY
+      </div>
+
+      <div class="bingoGrid"
+           id="bingoGrid1">
       </div>
 
     </div>
 
 
-    <!-- ================= AVIATOR ================= -->
+    <div class="cartelaCard">
 
-    <div id="aviatorGame"
-         class="hidden">
-
-      <div class="aviatorHistory"
-           id="aviatorHistory">
+      <div class="cartelaCardTitle">
+        CARTELA 2
       </div>
 
-
-      <div class="countdown"
-           id="aviatorCountdown">
-        BETTING: 30s
+      <div class="cartelaNumberLabel"
+           id="cartelaNumber2">
+        EMPTY
       </div>
 
-
-      <div class="aviatorFlight">
-
-        <div class="gridLines"></div>
-
-        <div class="flightCurve"></div>
-
-        <div class="flightMultiplier"
-             id="aviatorMultiplier">
-          1.00x
-        </div>
-
-        <div class="plane"
-             id="plane">
-          ✈️
-        </div>
-
-      </div>
-
-
-      <div class="betSlots">
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 1
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('a1',-10)">
-              −
-            </button>
-
-            <input id="a1"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
-
-            <button onclick="changeAmount('a1',10)">
-              +
-            </button>
-
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeDemoBet(1)">
-            PLACE BET — SLOT 1
-          </button>
-
-        </div>
-
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 2
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('a2',-10)">
-              −
-            </button>
-
-            <input id="a2"
-                   type="number"
-                   value="10"
-                   min="1"
-                   inputmode="decimal">
-
-            <button onclick="changeAmount('a2',10)">
-              +
-            </button>
-
-          </div>
-
-          <button class="placeBtn"
-                  onclick="placeDemoBet(2)">
-            PLACE BET — SLOT 2
-          </button>
-
-        </div>
-
+      <div class="bingoGrid"
+           id="bingoGrid2">
       </div>
 
     </div>
+
+  </div>
+
+
+  <div class="bingoDrawNumber"
+       id="bingoDrawNumber">
+    DRAW: —
+  </div>
+
+  <div class="bingoCalledList"
+       id="bingoCalledList">
+  </div>
+
+
+  <div class="slotTitle"
+       style="padding-top:4px">
+    BINGO BET AMOUNT
+  </div>
+
+  <div class="amountGrid"
+       id="bingoAmounts">
+  </div>
+
+
+  <div class="betSlots">
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        CARTELA 1 BET
+      </div>
+
+      <div id="bingoAmount1"
+           style="text-align:center;color:#ffd43c;font-weight:bold">
+        10 ETB
+      </div>
+
+      <button class="placeBtn"
+              id="bingoPlace1"
+              onclick="placeBingoBet(1)">
+        PLACE BET
+      </button>
+
+      <button class="placeBtn hidden"
+              id="bingoWin1"
+              onclick="claimBingo(1)">
+        BINGO 1
+      </button>
+
+    </div>
+
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        CARTELA 2 BET
+      </div>
+
+      <div id="bingoAmount2"
+           style="text-align:center;color:#ffd43c;font-weight:bold">
+        10 ETB
+      </div>
+
+      <button class="placeBtn"
+              id="bingoPlace2"
+              onclick="placeBingoBet(2)">
+        PLACE BET
+      </button>
+
+      <button class="placeBtn hidden"
+              id="bingoWin2"
+              onclick="claimBingo(2)">
+        BINGO 2
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="bingoWinStatus"
+       id="bingoWinStatus">
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     ROULETTE
+====================================================== -->
+
+<div id="rouletteGame" class="hidden">
+
+  <div class="countdown"
+       id="rouletteStatus">
+    BETTING OPEN
+  </div>
+
+  <div class="rouletteArea">
+
+    <div class="roulettePointer">
+      ▼
+    </div>
+
+    <div class="rouletteWheel"
+         id="rouletteWheel">
+
+      <div class="wheelNumbers"
+           id="wheelNumbers">
+      </div>
+
+      <div class="wheelCenter">
+        0
+      </div>
+
+    </div>
+
+    <div class="rouletteResult"
+         id="rouletteResult">
+      SELECT A NUMBER OR COLOR
+    </div>
+
+  </div>
+
+
+  <div class="rouletteGrid"
+       id="rouletteGrid">
+  </div>
+
+
+  <div class="rouletteColorBets">
+
+    <button class="colorBet colorRed"
+            id="colorRed"
+            onclick="selectRouletteColor('red')">
+      RED
+    </button>
+
+    <button class="colorBet colorBlack"
+            id="colorBlack"
+            onclick="selectRouletteColor('black')">
+      BLACK
+    </button>
+
+    <button class="colorBet colorGreen"
+            id="colorGreen"
+            onclick="selectRouletteColor('green')">
+      GREEN / 0
+    </button>
+
+  </div>
+
+
+  <div class="betSlots">
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        SLOT 1
+      </div>
+
+      <div class="amountControl">
+
+        <button onclick="changeAmount('r1',-10)">
+          −
+        </button>
+
+        <input id="r1"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal">
+
+        <button onclick="changeAmount('r1',10)">
+          +
+        </button>
+
+      </div>
+
+      <button class="placeBtn"
+              onclick="placeRouletteBet(1)">
+        PLACE BET
+      </button>
+
+    </div>
+
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        SLOT 2
+      </div>
+
+      <div class="amountControl">
+
+        <button onclick="changeAmount('r2',-10)">
+          −
+        </button>
+
+        <input id="r2"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal">
+
+        <button onclick="changeAmount('r2',10)">
+          +
+        </button>
+
+      </div>
+
+      <button class="placeBtn"
+              onclick="placeRouletteBet(2)">
+        PLACE BET
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ======================================================
+     AVIATOR
+====================================================== -->
+
+<div id="aviatorGame" class="hidden">
+
+  <div class="aviatorHistory"
+       id="aviatorHistory">
+  </div>
+
+  <div class="countdown"
+       id="aviatorCountdown">
+    BETTING: 5s
+  </div>
+
+
+  <div class="aviatorFlight">
+
+    <div class="gridLines"></div>
+
+    <div class="flightCurve"></div>
+
+    <div class="flightMultiplier"
+         id="aviatorMultiplier">
+      1.00x
+    </div>
+
+    <div class="plane"
+         id="plane">
+      ✈️
+    </div>
+
+  </div>
+
+
+  <div class="aviatorLiveInfo">
+
+    <div class="aviatorStat">
+      <small>PLAYERS</small>
+      <strong id="aviatorPlayers">12</strong>
+    </div>
+
+    <div class="aviatorStat">
+      <small>TOTAL LIVE BETS</small>
+      <strong id="aviatorTotalBets">240 ETB</strong>
+    </div>
+
+  </div>
+
+
+  <div class="betSlots">
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        SLOT 1
+      </div>
+
+      <div class="amountControl">
+
+        <button onclick="changeAmount('a1',-10)">
+          −
+        </button>
+
+        <input id="a1"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal">
+
+        <button onclick="changeAmount('a1',10)">
+          +
+        </button>
+
+      </div>
+
+      <button class="placeBtn"
+              id="aviatorBtn1"
+              onclick="aviatorBet(1)">
+        PLACE BET
+      </button>
+
+      <div class="betLive"
+           id="aviatorLive1">
+      </div>
+
+    </div>
+
+
+    <div class="betSlot">
+
+      <div class="slotTitle">
+        SLOT 2
+      </div>
+
+      <div class="amountControl">
+
+        <button onclick="changeAmount('a2',-10)">
+          −
+        </button>
+
+        <input id="a2"
+               type="number"
+               value="10"
+               min="1"
+               inputmode="decimal">
+
+        <button onclick="changeAmount('a2',10)">
+          +
+        </button>
+
+      </div>
+
+      <button class="placeBtn"
+              id="aviatorBtn2"
+              onclick="aviatorBet(2)">
+        PLACE BET
+      </button>
+
+      <div class="betLive"
+           id="aviatorLive2">
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
 
   </main>
 
 
-  <!-- ================= COMMON TABS ================= -->
+  <!-- ====================================================
+       COMMON TABS
+  ==================================================== -->
 
   <div class="mainTabs">
 
@@ -1817,7 +2007,8 @@ button{
   <div id="feedPanel"
        class="feed">
 
-    <div id="feedContent"></div>
+    <div id="feedContent">
+    </div>
 
   </div>
 
@@ -1838,7 +2029,9 @@ button{
 </section>
 
 
-<!-- ================= HELP ================= -->
+<!-- ======================================================
+     HELP
+====================================================== -->
 
 <div id="helpOverlay"
      class="helpOverlay hidden">
@@ -1849,7 +2042,8 @@ button{
       How to Play
     </h2>
 
-    <div id="helpContent"></div>
+    <div id="helpContent">
+    </div>
 
     <button class="closeHelp"
             onclick="closeHelp()">
@@ -1864,10 +2058,10 @@ button{
 <script>
 
 /* =========================================================
-   STATE
+   FRONTEND STATE
 ========================================================= */
 
-const state = {
+const state={
 
   language:"en",
 
@@ -1882,7 +2076,9 @@ const state = {
     aviator:1
   },
 
-  kenoActiveSlot:1,
+  /* KENO */
+
+  activeKenoSlot:1,
 
   kenoSelections:{
     1:[],
@@ -1898,32 +2094,63 @@ const state = {
 
   kenoHistory:[],
 
-  bingoAmounts:{
-    1:10,
-    2:10
-  },
+  /* BINGO */
 
   bingoCartelas:{
     1:null,
     2:null
   },
 
-  rouletteWinner:null,
-
-  activeRouletteSlot:1,
-
-  rouletteSelections:{
-    1:{
-      number:null,
-      color:null
-    },
-    2:{
-      number:null,
-      color:null
-    }
+  bingoCards:{
+    1:[],
+    2:[]
   },
 
+  bingoMarked:{
+    1:new Set(),
+    2:new Set()
+  },
+
+  bingoCalled:[],
+
+  bingoBetPlaced:{
+    1:false,
+    2:false
+  },
+
+  bingoAmounts:{
+    1:10,
+    2:10
+  },
+
+  bingoDrawing:false,
+
+  /* ROULETTE */
+
+  rouletteWinner:null,
+
+  rouletteSelectedNumber:null,
+
+  rouletteSelectedColor:null,
+
+  /* AVIATOR */
+
+  aviatorPhase:"waiting",
+
   aviatorMultiplier:1,
+
+  aviatorBets:{
+    1:{
+      active:false,
+      amount:0,
+      cashed:false
+    },
+    2:{
+      active:false,
+      amount:0,
+      cashed:false
+    }
+  },
 
   aviatorHistory:[
     "1.42x",
@@ -1946,17 +2173,11 @@ function setLanguage(lang){
 
   document
     .getElementById("langEN")
-    .classList.toggle(
-      "active",
-      lang==="en"
-    );
+    .classList.toggle("active",lang==="en");
 
   document
     .getElementById("langAM")
-    .classList.toggle(
-      "active",
-      lang==="am"
-    );
+    .classList.toggle("active",lang==="am");
 
 }
 
@@ -1966,17 +2187,17 @@ function setLanguage(lang){
 ========================================================= */
 
 function roundText(n){
+
   return String(n).padStart(4,"0");
+
 }
 
 function updateRound(){
 
   document
     .getElementById("roundNumber")
-    .textContent =
-      roundText(
-        state.rounds[state.game]
-      );
+    .textContent=
+      roundText(state.rounds[state.game]);
 
 }
 
@@ -1989,7 +2210,7 @@ function updateBalance(){
 
   document
     .getElementById("balance")
-    .textContent =
+    .textContent=
       state.balance.toFixed(2);
 
 }
@@ -2013,7 +2234,7 @@ function openGame(game){
 
   document
     .getElementById("gameTitle")
-    .textContent =
+    .textContent=
       game.toUpperCase();
 
   updateRound();
@@ -2022,8 +2243,7 @@ function openGame(game){
 
   document
     .getElementById(game+"Game")
-    .classList
-    .remove("hidden");
+    .classList.remove("hidden");
 
   buildGame();
 
@@ -2064,8 +2284,7 @@ function hideAllGames(){
 
     document
       .getElementById(g+"Game")
-      .classList
-      .add("hidden");
+      .classList.add("hidden");
 
   });
 
@@ -2094,75 +2313,130 @@ function buildGame(){
 
 
 /* =========================================================
+   AMOUNT
+========================================================= */
+
+function changeAmount(id,delta){
+
+  const input=
+    document.getElementById(id);
+
+  let value=
+    Number(input.value)||0;
+
+  value+=delta;
+
+  if(value<1)
+    value=1;
+
+  input.value=value;
+
+}
+
+
+/* =========================================================
    KENO
 ========================================================= */
 
 function buildKeno(){
 
-  const board =
+  const board=
     document.getElementById("kenoBoard");
 
   board.innerHTML="";
 
   for(let n=1;n<=80;n++){
 
-    const b =
+    const b=
       document.createElement("button");
 
     b.className="kenoNumber";
 
-    b.textContent =
+    b.textContent=
       String(n).padStart(2,"0");
 
-    b.onclick =
-      ()=>selectKeno(n);
+    b.onclick=()=>{
+      selectKeno(n,b);
+    };
 
     board.appendChild(b);
 
   }
 
-  updateKenoBoard();
+  state.activeKenoSlot=1;
 
-}
+  state.kenoSelections={
+    1:[],
+    2:[]
+  };
 
+  state.kenoBets={
+    1:false,
+    2:false
+  };
 
-/* =========================================================
-   KENO SLOT
-========================================================= */
+  updateKenoSelectionUI();
 
-function selectKenoSlot(slot){
-
-  state.kenoActiveSlot=slot;
+  activateKenoSlot(1);
 
   document
-    .querySelectorAll("#kenoGame .betSlot")
-    .forEach((box,index)=>{
+    .getElementById("kenoDrawBalls")
+    .innerHTML="";
 
-      box.style.borderColor =
-        index+1===slot
-        ? "#ffd43b"
-        : "#702222";
+  document
+    .getElementById("kenoDrawStatus")
+    .textContent=
+      "Waiting for draw...";
 
-    });
-
-  updateKenoBoard();
+  renderKenoHistory();
 
 }
 
 
-/* =========================================================
-   KENO SELECT
-========================================================= */
+function activateKenoSlot(slot){
 
-function selectKeno(n){
+  if(state.kenoBets[slot])
+    return;
 
-  const slot =
-    state.kenoActiveSlot;
+  state.activeKenoSlot=slot;
 
-  const list =
+  document
+    .getElementById("kenoSlot1")
+    .classList.toggle(
+      "selectedSlot",
+      slot===1
+    );
+
+  document
+    .getElementById("kenoSlot2")
+    .classList.toggle(
+      "selectedSlot",
+      slot===2
+    );
+
+  document
+    .getElementById("kenoCountdown")
+    .textContent=
+      "SELECTING SLOT "+slot;
+
+}
+
+
+function selectKeno(n,button){
+
+  if(
+    state.kenoBets[state.activeKenoSlot]
+  ){
+    return;
+  }
+
+  const slot=
+    state.activeKenoSlot;
+
+  const list=
     state.kenoSelections[slot];
 
-  const index =
+  const index=
     list.indexOf(n);
 
   if(index>=0){
@@ -2174,11 +2448,10 @@ function selectKeno(n){
     if(list.length>=10){
 
       alert(
-        "Maximum 10 numbers per slot."
+        "Maximum 10 numbers for this slot."
       );
 
       return;
-
     }
 
     list.push(n);
@@ -2186,122 +2459,96 @@ function selectKeno(n){
   }
 
   updateKenoBoard();
+  updateKenoSelectionUI();
 
 }
 
-
-/* =========================================================
-   KENO DISPLAY
-========================================================= */
 
 function updateKenoBoard(){
 
-  const slot =
-    state.kenoActiveSlot;
-
   document
     .querySelectorAll(".kenoNumber")
-    .forEach((button,index)=>{
+    .forEach((b,i)=>{
 
-      const n=index+1;
+      const n=i+1;
 
-      button.classList.toggle(
+      const selected=
+        state.kenoSelections[1].includes(n) ||
+        state.kenoSelections[2].includes(n);
+
+      b.classList.toggle(
         "selected",
-        state.kenoSelections[slot]
-          .includes(n)
+        selected
       );
-
-      button.classList.remove(
-        "drawn",
-        "hit"
-      );
-
-    });
-
-
-  document
-    .getElementById("kenoSelected1")
-    .textContent =
-      state.kenoSelections[1].length+
-      " / 10";
-
-  document
-    .getElementById("kenoSelected2")
-    .textContent =
-      state.kenoSelections[2].length+
-      " / 10";
-
-
-  document
-    .getElementById("kenoChosen1")
-    .textContent =
-      state.kenoSelections[1].length
-      ? state.kenoSelections[1]
-          .sort((a,b)=>a-b)
-          .map(n=>String(n).padStart(2,"0"))
-          .join(" • ")
-      : "No numbers selected";
-
-
-  document
-    .getElementById("kenoChosen2")
-    .textContent =
-      state.kenoSelections[2].length
-      ? state.kenoSelections[2]
-          .sort((a,b)=>a-b)
-          .map(n=>String(n).padStart(2,"0"))
-          .join(" • ")
-      : "No numbers selected";
-
-
-  document
-    .querySelectorAll("#kenoGame .betSlot")
-    .forEach((box,index)=>{
-
-      box.style.borderColor =
-        index+1===slot
-        ? "#ffd43b"
-        : "#702222";
 
     });
 
 }
 
 
-/* =========================================================
-   KENO BET
-========================================================= */
+function updateKenoSelectionUI(){
+
+  [1,2].forEach(slot=>{
+
+    const box=
+      document.getElementById(
+        "kSelected"+slot
+      );
+
+    const list=
+      state.kenoSelections[slot];
+
+    if(!list.length){
+
+      box.innerHTML="—";
+      return;
+
+    }
+
+    box.innerHTML=
+      list
+        .sort((a,b)=>a-b)
+        .map(n=>
+          `<span class="selectedChip">
+             ${n}
+           </span>`
+        )
+        .join("");
+
+  });
+
+}
+
 
 function placeKenoBet(slot){
 
-  selectKenoSlot(slot);
-
-  const chosen =
+  const list=
     state.kenoSelections[slot];
 
-  if(chosen.length<1){
+  if(!list.length){
+
+    activateKenoSlot(slot);
 
     alert(
-      "Select at least 1 number for Slot "+
-      slot+"."
+      "Tap this SLOT first, then choose 1–10 numbers."
     );
 
     return;
-
   }
 
-  const input =
-    document.getElementById(
-      slot===1 ? "k1" : "k2"
-    );
+  if(state.kenoBets[slot])
+    return;
 
-  const amount =
-    Number(input.value)||0;
+  const amount=
+    Number(
+      document.getElementById(
+        "k"+slot
+      ).value
+    )||0;
 
   if(amount<=0){
 
-    alert("Enter a valid bet amount.");
-
+    alert("Enter a valid amount.");
     return;
 
   }
@@ -2309,7 +2556,6 @@ function placeKenoBet(slot){
   if(amount>state.balance){
 
     alert("Insufficient balance.");
-
     return;
 
   }
@@ -2320,26 +2566,50 @@ function placeKenoBet(slot){
 
   updateBalance();
 
-  alert(
-    "Keno bet placed for Slot "+
-    slot+
-    ".\nNumbers: "+
-    chosen.sort((a,b)=>a-b).join(", ")+
-    "\nAmount: "+
-    amount+
-    " ETB"
-  );
+  document
+    .getElementById("kenoStatus"+slot)
+    .textContent=
+      `${list.length} numbers • BET ${amount} ETB`;
+
+  document
+    .getElementById("kenoPlace"+slot)
+    .textContent=
+      "BET PLACED";
+
+  document
+    .getElementById("kenoPlace"+slot)
+    .classList.add("waiting");
+
+  if(slot===1)
+    activateKenoSlot(2);
+
+  if(
+    state.kenoBets[1] ||
+    state.kenoBets[2]
+  ){
+
+    startKenoRound();
+
+  }
 
 }
 
 
-/* =========================================================
-   KENO DRAW
-========================================================= */
+function startKenoRound(){
+
+  document
+    .getElementById("kenoCountdown")
+    .textContent=
+      "DRAW STARTING...";
+
+  setTimeout(runKenoDraw,1200);
+
+}
+
 
 function runKenoDraw(){
 
-  const numbers =
+  const numbers=
     Array.from(
       {length:80},
       (_,i)=>i+1
@@ -2349,7 +2619,7 @@ function runKenoDraw(){
 
   while(state.kenoDraw.length<20){
 
-    const index =
+    const index=
       Math.floor(
         Math.random()*numbers.length
       );
@@ -2360,7 +2630,7 @@ function runKenoDraw(){
 
   }
 
-  const balls =
+  const balls=
     document.getElementById(
       "kenoDrawBalls"
     );
@@ -2369,25 +2639,24 @@ function runKenoDraw(){
 
   document
     .getElementById("kenoDrawStatus")
-    .textContent =
+    .textContent=
       "DRAWING 1 / 20";
 
   state.kenoDraw.forEach((n,i)=>{
 
     setTimeout(()=>{
 
-      const ball =
+      const ball=
         document.createElement("div");
 
       ball.className="ball";
 
-      ball.textContent =
+      ball.textContent=
         String(n).padStart(2,"0");
 
       balls.appendChild(ball);
 
-
-      const target =
+      const target=
         document.querySelectorAll(
           ".kenoNumber"
         )[n-1];
@@ -2397,10 +2666,8 @@ function runKenoDraw(){
         target.classList.add("drawn");
 
         if(
-          state.kenoSelections[1]
-            .includes(n) ||
-          state.kenoSelections[2]
-            .includes(n)
+          state.kenoSelections[1].includes(n) ||
+          state.kenoSelections[2].includes(n)
         ){
 
           target.classList.add("hit");
@@ -2409,21 +2676,19 @@ function runKenoDraw(){
 
       }
 
-
       document
         .getElementById("kenoDrawStatus")
-        .textContent =
+        .textContent=
           `DRAWING ${i+1} / 20`;
-
 
       if(i===19){
 
         document
           .getElementById("kenoDrawStatus")
-          .textContent =
+          .textContent=
             "DRAW COMPLETE";
 
-        saveKenoHistory();
+        finishKenoRound();
 
       }
 
@@ -2434,24 +2699,84 @@ function runKenoDraw(){
 }
 
 
-/* =========================================================
-   KENO HISTORY
-========================================================= */
+function finishKenoRound(){
+
+  saveKenoHistory();
+
+  setTimeout(()=>{
+
+    state.rounds.keno++;
+
+    updateRound();
+
+    buildKeno();
+
+  },2500);
+
+}
+
 
 function saveKenoHistory(){
 
   state.kenoHistory.unshift({
 
-    round:state.rounds.keno,
+    round:
+      state.rounds.keno,
 
-    numbers:[
-      ...state.kenoDraw
-    ]
+    numbers:
+      [...state.kenoDraw]
 
   });
 
-  state.kenoHistory =
+  state.kenoHistory=
     state.kenoHistory.slice(0,10);
+
+}
+
+
+function renderKenoHistory(){
+
+  const box=
+    document.getElementById(
+      "kenoHistory"
+    );
+
+  if(!box)
+    return;
+
+  if(!state.kenoHistory.length){
+
+    box.innerHTML=
+      `<div class="historyRound muted">
+        No previous rounds yet.
+       </div>`;
+
+    return;
+
+  }
+
+  box.innerHTML=
+    state.kenoHistory
+      .map(r=>
+        `
+        <div class="historyRound">
+
+          <strong>
+            ROUND ${roundText(r.round)}
+          </strong>
+
+          <div class="historyNums">
+            ${r.numbers
+              .map(n=>
+                String(n).padStart(2,"0")
+              )
+              .join(" • ")}
+          </div>
+
+        </div>
+        `
+      )
+      .join("");
 
 }
 
@@ -2464,12 +2789,414 @@ function buildBingo(){
 
   buildBingoAmounts();
 
+  renderBingoCards();
+
+  renderBingoCalled();
+
 }
 
 
-/* =========================================================
-   BINGO AMOUNTS
-========================================================= */
+function generateCartela(seed){
+
+  const rng=
+    createSeededRandom(seed);
+
+  const columns=[
+    [1,15],
+    [16,30],
+    [31,45],
+    [46,60],
+    [61,75]
+  ];
+
+  const card=[];
+
+  for(let c=0;c<5;c++){
+
+    const nums=[];
+
+    while(nums.length<5){
+
+      const n=
+        Math.floor(
+          rng()*
+          (columns[c][1]-columns[c][0]+1)
+        )+
+        columns[c][0];
+
+      if(!nums.includes(n))
+        nums.push(n);
+
+    }
+
+    card.push(nums);
+
+  }
+
+  const result=[];
+
+  for(let r=0;r<5;r++){
+
+    result.push(
+      card.map(col=>col[r])
+    );
+
+  }
+
+  result[2][2]="FREE";
+
+  return result;
+
+}
+
+
+function createSeededRandom(seed){
+
+  let x=
+    Math.sin(seed*12.9898)*
+    43758.5453;
+
+  return function(){
+
+    x=
+      Math.sin(x)*10000;
+
+    return x-
+      Math.floor(x);
+
+  };
+
+}
+
+
+function addCartela(){
+
+  const input=
+    document.getElementById(
+      "cartelaInput"
+    );
+
+  const status=
+    document.getElementById(
+      "cartelaEntryStatus"
+    );
+
+  const value=
+    Number(input.value);
+
+  if(
+    !Number.isInteger(value) ||
+    value<1 ||
+    value>120
+  ){
+
+    status.textContent=
+      "❌ Cartela must be between 1 and 120.";
+
+    status.style.color="#ff4545";
+
+    return;
+
+  }
+
+  if(
+    state.bingoCartelas[1]===value ||
+    state.bingoCartelas[2]===value
+  ){
+
+    status.textContent=
+      "❌ That Cartela is already selected.";
+
+    status.style.color="#ff4545";
+
+    return;
+
+  }
+
+  let slot=0;
+
+  if(!state.bingoCartelas[1])
+    slot=1;
+  else if(!state.bingoCartelas[2])
+    slot=2;
+
+  if(!slot){
+
+    status.textContent=
+      "Both Cartela slots are already filled.";
+
+    status.style.color="#ff4545";
+
+    return;
+
+  }
+
+  state.bingoCartelas[slot]=value;
+
+  state.bingoCards[slot]=
+    generateCartela(value);
+
+  state.bingoMarked[slot]=
+    new Set();
+
+  input.value="";
+
+  status.textContent=
+    `✓ Cartela ${value} added to Slot ${slot}.`;
+
+  status.style.color="#18d66b";
+
+  renderBingoCards();
+
+  if(slot===1){
+
+    document
+      .getElementById("cartelaTab2")
+      .classList.add("active");
+
+  }
+
+}
+
+
+function renderBingoCards(){
+
+  [1,2].forEach(slot=>{
+
+    const grid=
+      document.getElementById(
+        "bingoGrid"+slot
+      );
+
+    const number=
+      document.getElementById(
+        "cartelaNumber"+slot
+      );
+
+    if(!state.bingoCartelas[slot]){
+
+      number.textContent="EMPTY";
+
+      grid.innerHTML=
+        `<div style="
+          grid-column:1/6;
+          text-align:center;
+          color:#777;
+          padding:25px 5px;
+          font-size:10px;">
+          ENTER CARTELA NUMBER
+        </div>`;
+
+      return;
+
+    }
+
+    number.textContent=
+      "NO. "+
+      state.bingoCartelas[slot];
+
+    grid.innerHTML="";
+
+    const card=
+      state.bingoCards[slot];
+
+    card.forEach((row,r)=>{
+
+      row.forEach((value,c)=>{
+
+        const cell=
+          document.createElement("button");
+
+        cell.className="bingoCell";
+
+        cell.textContent=value;
+
+        if(value==="FREE"){
+
+          cell.classList.add("free");
+
+        }else{
+
+          cell.onclick=()=>{
+            markBingoCell(
+              slot,
+              r,
+              c
+            );
+          };
+
+          if(
+            state.bingoCalled.includes(
+              value
+            )
+          ){
+
+            cell.classList.add("called");
+
+          }
+
+          if(
+            state.bingoMarked[slot]
+              .has(value)
+          ){
+
+            cell.classList.add("marked");
+
+          }
+
+        }
+
+        grid.appendChild(cell);
+
+      });
+
+    });
+
+  });
+
+}
+
+
+function markBingoCell(slot,r,c){
+
+  if(!state.bingoBetPlaced[slot]){
+
+    alert(
+      "Place the bet for this Cartela first."
+    );
+
+    return;
+
+  }
+
+  const value=
+    state.bingoCards[slot][r][c];
+
+  if(value==="FREE")
+    return;
+
+  if(
+    !state.bingoCalled.includes(value)
+  ){
+
+    alert(
+      "This number has not been called yet."
+    );
+
+    return;
+
+  }
+
+  const marks=
+    state.bingoMarked[slot];
+
+  if(marks.has(value))
+    marks.delete(value);
+  else
+    marks.add(value);
+
+  renderBingoCards();
+
+  if(checkBingo(slot)){
+
+    document
+      .getElementById(
+        "bingoWin"+slot
+      )
+      .classList.remove("hidden");
+
+  }
+
+}
+
+
+function checkBingo(slot){
+
+  const card=
+    state.bingoCards[slot];
+
+  const marks=
+    state.bingoMarked[slot];
+
+  if(!card.length)
+    return false;
+
+  for(let r=0;r<5;r++){
+
+    let complete=true;
+
+    for(let c=0;c<5;c++){
+
+      const value=card[r][c];
+
+      if(
+        value!=="FREE" &&
+        !marks.has(value)
+      ){
+
+        complete=false;
+        break;
+
+      }
+
+    }
+
+    if(complete)
+      return true;
+
+  }
+
+  for(let c=0;c<5;c++){
+
+    let complete=true;
+
+    for(let r=0;r<5;r++){
+
+      const value=card[r][c];
+
+      if(
+        value!=="FREE" &&
+        !marks.has(value)
+      ){
+
+        complete=false;
+        break;
+
+      }
+
+    }
+
+    if(complete)
+      return true;
+
+  }
+
+  let diagonal1=true;
+  let diagonal2=true;
+
+  for(let i=0;i<5;i++){
+
+    const a=card[i][i];
+    const b=card[i][4-i];
+
+    if(
+      a!=="FREE" &&
+      !marks.has(a)
+    )
+      diagonal1=false;
+
+    if(
+      b!=="FREE" &&
+      !marks.has(b)
+    )
+      diagonal2=false;
+
+  }
+
+  return diagonal1||diagonal2;
+
+}
+
 
 function buildBingoAmounts(){
 
@@ -2479,7 +3206,7 @@ function buildBingoAmounts(){
     500
   ];
 
-  const box =
+  const box=
     document.getElementById(
       "bingoAmounts"
     );
@@ -2488,12 +3215,12 @@ function buildBingoAmounts(){
 
   amounts.forEach(amount=>{
 
-    const b =
+    const b=
       document.createElement("button");
 
     b.className="amountPreset";
 
-    b.textContent =
+    b.textContent=
       amount+" ETB";
 
     b.onclick=()=>{
@@ -2503,12 +3230,12 @@ function buildBingoAmounts(){
 
       document
         .getElementById("bingoAmount1")
-        .textContent =
+        .textContent=
           amount+" ETB";
 
       document
         .getElementById("bingoAmount2")
-        .textContent =
+        .textContent=
           amount+" ETB";
 
       document
@@ -2528,99 +3255,240 @@ function buildBingoAmounts(){
 }
 
 
-/* =========================================================
-   CARTELA
-========================================================= */
-
-function validateCartela(slot){
-
-  const input =
-    document.getElementById(
-      "cartela"+slot
-    );
-
-  const feedback =
-    document.getElementById(
-      "cartelaFeedback"+slot
-    );
-
-  const value =
-    Number(input.value);
-
-  if(!Number.isInteger(value)){
-
-    feedback.textContent="";
-
-    state.bingoCartelas[slot]=null;
-
-    return;
-
-  }
-
-  if(value<1 || value>120){
-
-    feedback.textContent =
-      "❌ Invalid Cartela. Enter 1–120.";
-
-    feedback.className =
-      "cartelaFeedback invalid";
-
-    state.bingoCartelas[slot]=null;
-
-    return;
-
-  }
-
-  feedback.textContent =
-    "✓ Cartela "+value+" selected";
-
-  feedback.className =
-    "cartelaFeedback valid";
-
-  state.bingoCartelas[slot]=value;
-
-}
-
-
-/* =========================================================
-   BINGO BET
-========================================================= */
-
 function placeBingoBet(slot){
 
-  const cartela =
-    state.bingoCartelas[slot];
-
-  if(!cartela){
+  if(!state.bingoCartelas[slot]){
 
     alert(
-      "Please enter a valid Cartela number from 1 to 120."
+      "Enter a Cartela number for Slot "+
+      slot+
+      " first."
     );
 
     return;
 
   }
 
-  const amount =
+  if(state.bingoBetPlaced[slot])
+    return;
+
+  const amount=
     state.bingoAmounts[slot];
 
   if(amount>state.balance){
 
     alert("Insufficient balance.");
-
     return;
 
   }
 
   state.balance-=amount;
 
+  state.bingoBetPlaced[slot]=true;
+
   updateBalance();
 
-  alert(
-    "Bingo bet placed.\n"+
-    "Cartela "+cartela+
-    "\nAmount "+amount+" ETB"
+  document
+    .getElementById("bingoPlace"+slot)
+    .textContent=
+      "BET PLACED";
+
+  document
+    .getElementById("bingoPlace"+slot)
+    .classList.add("waiting");
+
+  if(
+    state.bingoBetPlaced[1] ||
+    state.bingoBetPlaced[2]
+  ){
+
+    startBingoDraw();
+
+  }
+
+}
+
+
+function startBingoDraw(){
+
+  if(state.bingoDrawing)
+    return;
+
+  state.bingoDrawing=true;
+
+  state.bingoCalled=[];
+
+  document
+    .getElementById("bingoStatus")
+    .textContent=
+      "DRAWING...";
+
+  drawNextBingoNumber();
+
+}
+
+
+function drawNextBingoNumber(){
+
+  if(state.bingoCalled.length>=30){
+
+    finishBingoRound();
+
+    return;
+
+  }
+
+  let n;
+
+  do{
+
+    n=
+      Math.floor(
+        Math.random()*75
+      )+1;
+
+  }while(
+    state.bingoCalled.includes(n)
   );
+
+  state.bingoCalled.push(n);
+
+  document
+    .getElementById("bingoDrawNumber")
+    .textContent=
+      "CALLED NUMBER: "+n;
+
+  renderBingoCalled();
+
+  renderBingoCards();
+
+  checkBingoButtons();
+
+  setTimeout(
+    drawNextBingoNumber,
+    900
+  );
+
+}
+
+
+function renderBingoCalled(){
+
+  const box=
+    document.getElementById(
+      "bingoCalledList"
+    );
+
+  if(!box)
+    return;
+
+  box.innerHTML=
+    state.bingoCalled
+      .slice()
+      .reverse()
+      .map(n=>
+        `<div class="calledChip">
+          ${n}
+         </div>`
+      )
+      .join("");
+
+}
+
+
+function checkBingoButtons(){
+
+  [1,2].forEach(slot=>{
+
+    if(
+      state.bingoBetPlaced[slot] &&
+      checkBingo(slot)
+    ){
+
+      document
+        .getElementById(
+          "bingoWin"+slot
+        )
+        .classList.remove("hidden");
+
+    }
+
+  });
+
+}
+
+
+function claimBingo(slot){
+
+  if(!state.bingoBetPlaced[slot])
+    return;
+
+  if(!checkBingo(slot)){
+
+    alert(
+      "BINGO is not valid yet."
+    );
+
+    return;
+
+  }
+
+  document
+    .getElementById("bingoWinStatus")
+    .textContent=
+      `✓ BINGO ${slot} CLAIMED`;
+
+  document
+    .getElementById(
+      "bingoWin"+slot
+    )
+    .classList.add("hidden");
+
+  setTimeout(()=>{
+
+    state.rounds.bingo++;
+
+    state.bingoDrawing=false;
+
+    state.bingoBetPlaced={
+      1:false,
+      2:false
+    };
+
+    state.bingoCartelas={
+      1:null,
+      2:null
+    };
+
+    state.bingoCards={
+      1:[],
+      2:[]
+    };
+
+    state.bingoMarked={
+      1:new Set(),
+      2:new Set()
+    };
+
+    state.bingoCalled=[];
+
+    updateRound();
+
+    buildBingo();
+
+  },2000);
+
+}
+
+
+function finishBingoRound(){
+
+  state.bingoDrawing=false;
+
+  document
+    .getElementById("bingoStatus")
+    .textContent=
+      "DRAW COMPLETE";
 
 }
 
@@ -2629,309 +3497,192 @@ function placeBingoBet(slot){
    ROULETTE
 ========================================================= */
 
-const rouletteSequence=[
-  0,32,15,19,4,21,2,25,17,34,
-  6,27,13,36,11,30,8,23,10,5,
-  24,16,33,1,20,14,31,9,22,18,
-  29,7,28,12,35,3,26
-];
+function rouletteColor(n){
 
-const rouletteRedNumbers=[
-  1,3,5,7,9,12,14,16,18,
-  19,21,23,25,27,30,32,34,36
-];
+  if(n===0)
+    return "green";
 
+  const redNums=[
+    1,3,5,7,9,12,14,16,
+    18,19,21,23,25,27,
+    30,32,34,36
+  ];
 
-/* =========================================================
-   BUILD ROULETTE
-========================================================= */
+  return redNums.includes(n)
+    ?"red"
+    :"black";
+
+}
+
 
 function buildRoulette(){
 
-  const grid =
+  const grid=
     document.getElementById(
       "rouletteGrid"
     );
 
-  const wheel =
-    document.getElementById(
-      "rouletteWheel"
-    );
-
   grid.innerHTML="";
 
-  const zero =
+  const zero=
     document.createElement("button");
 
-  zero.className =
+  zero.className=
     "rouletteNum green";
 
   zero.textContent="0";
 
-  zero.onclick =
-    ()=>selectRouletteNumber(0);
+  zero.onclick=()=>{
+    selectRouletteNumber(0);
+  };
 
   grid.appendChild(zero);
 
-
   for(let n=1;n<=36;n++){
 
-    const b =
+    const b=
       document.createElement("button");
 
-    b.className =
+    b.className=
       "rouletteNum "+
-      (
-        rouletteRedNumbers.includes(n)
-        ?"red"
-        :"black"
-      );
+      rouletteColor(n);
 
     b.textContent=n;
 
-    b.onclick =
-      ()=>selectRouletteNumber(n);
+    b.onclick=()=>{
+      selectRouletteNumber(n);
+    };
 
     grid.appendChild(b);
 
   }
 
-
-  wheel
-    .querySelectorAll(".roulettePocket")
-    .forEach(x=>x.remove());
-
-
-  rouletteSequence.forEach(
-    (number,index)=>{
-
-      const pocket =
-        document.createElement("div");
-
-      let color="black";
-
-      if(number===0)
-        color="green";
-      else if(
-        rouletteRedNumbers.includes(number)
-      )
-        color="red";
-
-      pocket.className =
-        "roulettePocket "+color;
-
-      pocket.textContent=number;
-
-      const angle =
-        index*
-        (360/rouletteSequence.length);
-
-      pocket.style.setProperty(
-        "--angle",
-        angle+"deg"
-      );
-
-      pocket.dataset.number=
-        number;
-
-      wheel.appendChild(pocket);
-
-    }
-  );
-
-
-  updateRouletteSelection();
+  buildWheelNumbers();
 
 }
 
 
-/* =========================================================
-   ROULETTE SLOT
-========================================================= */
+function buildWheelNumbers(){
 
-function setRouletteSlot(slot){
+  const box=
+    document.getElementById(
+      "wheelNumbers"
+    );
 
-  state.activeRouletteSlot=slot;
+  box.innerHTML="";
 
-  updateRouletteSelection();
+  for(let n=0;n<=36;n++){
 
-  highlightRouletteTable();
+    const el=
+      document.createElement("div");
 
-}
+    el.className="wheelNumber";
 
+    el.textContent=n;
 
-/* =========================================================
-   ROULETTE NUMBER
-========================================================= */
+    const angle=
+      n*(360/37);
 
-function selectRouletteNumber(number){
+    el.style.transform=
+      `rotate(${angle}deg) translateY(-85px) rotate(-${angle}deg)`;
 
-  const slot =
-    state.activeRouletteSlot;
+    el.style.background=
+      rouletteColor(n)==="red"
+        ?"#a80000"
+        :rouletteColor(n)==="black"
+          ?"#090909"
+          :"#008a4b";
 
-  state.rouletteSelections[slot]={
-    number:number,
-    color:null
-  };
+    el.style.border=
+      "1px solid #ffd43b";
 
-  updateRouletteSelection();
+    el.style.borderRadius="50%";
 
-  highlightRouletteTable();
+    box.appendChild(el);
 
-}
-
-
-/* =========================================================
-   ROULETTE COLOR
-========================================================= */
-
-function selectRouletteColor(color){
-
-  const slot =
-    state.activeRouletteSlot;
-
-  state.rouletteSelections[slot]={
-    number:null,
-    color:color
-  };
-
-  updateRouletteSelection();
-
-  highlightRouletteTable();
+  }
 
 }
 
 
-/* =========================================================
-   ROULETTE HIGHLIGHT
-========================================================= */
+function selectRouletteNumber(n){
 
-function highlightRouletteTable(){
+  state.rouletteSelectedNumber=n;
+
+  state.rouletteSelectedColor=null;
 
   document
     .querySelectorAll(".rouletteNum")
-    .forEach(b=>{
-      b.classList.remove("selected");
-    });
+    .forEach(b=>
+      b.classList.remove("selectedBet")
+    );
 
   document
-    .getElementById("betRed")
-    .classList.remove("selected");
+    .querySelectorAll(".colorBet")
+    .forEach(b=>
+      b.classList.remove("selectedBet")
+    );
+
+  const buttons=
+    document.querySelectorAll(
+      ".rouletteNum"
+    );
+
+  const index=
+    n===0?0:n;
+
+  if(buttons[index])
+    buttons[index]
+      .classList.add("selectedBet");
 
   document
-    .getElementById("betBlack")
-    .classList.remove("selected");
-
-
-  const selection =
-    state.rouletteSelections[
-      state.activeRouletteSlot
-    ];
-
-
-  if(selection.number!==null){
-
-    const target =
-      Array.from(
-        document.querySelectorAll(
-          ".rouletteNum"
-        )
-      ).find(
-        b =>
-          Number(b.textContent)
-          ===selection.number
-      );
-
-    if(target)
-      target.classList.add("selected");
-
-  }
-
-
-  if(selection.color==="red"){
-
-    document
-      .getElementById("betRed")
-      .classList.add("selected");
-
-  }
-
-
-  if(selection.color==="black"){
-
-    document
-      .getElementById("betBlack")
-      .classList.add("selected");
-
-  }
+    .getElementById("rouletteResult")
+    .textContent=
+      "SELECTED NUMBER: "+n;
 
 }
 
 
-/* =========================================================
-   ROULETTE SELECTION DISPLAY
-========================================================= */
+function selectRouletteColor(color){
 
-function updateRouletteSelection(){
+  state.rouletteSelectedColor=color;
 
-  const slot =
-    state.activeRouletteSlot;
-
-  const selection =
-    state.rouletteSelections[slot];
-
-  let text="NONE";
-
-  if(selection.number!==null){
-
-    text =
-      "NUMBER "+selection.number;
-
-  }else if(selection.color){
-
-    text =
-      selection.color.toUpperCase();
-
-  }
+  state.rouletteSelectedNumber=null;
 
   document
-    .getElementById("rouletteSelected")
-    .textContent =
-      "SLOT "+slot+
-      " SELECTED: "+
-      text;
-
+    .querySelectorAll(".rouletteNum")
+    .forEach(b=>
+      b.classList.remove("selectedBet")
+    );
 
   document
-    .querySelectorAll(
-      "#rouletteGame .betSlot"
+    .querySelectorAll(".colorBet")
+    .forEach(b=>
+      b.classList.remove("selectedBet")
+    );
+
+  document
+    .getElementById(
+      "color"+
+      color.charAt(0).toUpperCase()+
+      color.slice(1)
     )
-    .forEach((box,index)=>{
+    .classList.add("selectedBet");
 
-      box.style.borderColor =
-        index+1===slot
-        ? "#ffd43b"
-        : "#702222";
-
-    });
+  document
+    .getElementById("rouletteResult")
+    .textContent=
+      "SELECTED COLOR: "+
+      color.toUpperCase();
 
 }
 
-
-/* =========================================================
-   ROULETTE BET
-========================================================= */
 
 function placeRouletteBet(slot){
 
-  setRouletteSlot(slot);
-
-  const selection =
-    state.rouletteSelections[slot];
-
   if(
-    selection.number===null &&
-    selection.color===null
+    state.rouletteSelectedNumber===null &&
+    !state.rouletteSelectedColor
   ){
 
     alert(
@@ -2942,142 +3693,99 @@ function placeRouletteBet(slot){
 
   }
 
-  const input =
-    document.getElementById(
-      slot===1 ? "r1" : "r2"
-    );
+  const button=
+    document.querySelectorAll(
+      "#rouletteGame .placeBtn"
+    )[slot-1];
 
-  const amount =
-    Number(input.value)||0;
+  button.textContent=
+    "BET PLACED";
 
-  if(amount<=0){
+  button.classList.add("waiting");
 
-    alert("Enter a valid bet amount.");
-
-    return;
-
-  }
-
-  if(amount>state.balance){
-
-    alert("Insufficient balance.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  updateBalance();
-
-  const betText =
-    selection.number!==null
-      ? "Number "+selection.number
-      : selection.color.toUpperCase();
-
-  alert(
-    "Roulette bet placed.\n"+
-    "Slot "+slot+
-    "\n"+betText+
-    "\nAmount "+amount+" ETB"
+  setTimeout(
+    spinRoulette,
+    1000
   );
 
 }
 
 
-/* =========================================================
-   ROULETTE SPIN
-========================================================= */
-
 function spinRoulette(){
 
-  const winner =
+  const winner=
     Math.floor(
       Math.random()*37
     );
 
   state.rouletteWinner=winner;
 
-  const wheel =
+  const wheel=
     document.getElementById(
       "rouletteWheel"
     );
 
-  wheel
-    .querySelectorAll(".roulettePocket")
-    .forEach(p=>{
-      p.classList.remove("winner");
-    });
+  const rotations=
+    1440+
+    winner*(360/37);
 
+  wheel.style.transform=
+    `rotate(${rotations}deg)`;
 
-  const winnerIndex =
-    rouletteSequence.indexOf(winner);
-
-  const pocketAngle =
-    winnerIndex*
-    (360/rouletteSequence.length);
-
-  const finalRotation =
-    5*360-pocketAngle;
-
-  wheel.style.transform =
-    `rotate(${finalRotation}deg)`;
-
+  document
+    .getElementById("rouletteStatus")
+    .textContent=
+      "SPINNING...";
 
   setTimeout(()=>{
 
-    const winnerPocket =
-      wheel.querySelector(
-        `.roulettePocket[data-number="${winner}"]`
-      );
-
-    if(winnerPocket)
-      winnerPocket.classList.add("winner");
-
-
-    const color =
-      winner===0
-        ? "GREEN"
-        : rouletteRedNumbers.includes(winner)
-          ? "RED"
-          : "BLACK";
-
+    const color=
+      rouletteColor(winner);
 
     document
       .getElementById("rouletteResult")
-      .textContent =
-        "RESULT: "+
-        winner+
-        " — "+
-        color;
-
-
-    document
-      .getElementById("rouletteHub")
-      .textContent =
-        winner;
-
+      .textContent=
+        `RESULT: ${winner} • ${color.toUpperCase()}`;
 
     document
       .querySelectorAll(".rouletteNum")
-      .forEach(b=>{
-        b.classList.remove("winner");
-      });
-
-
-    const tableWinner =
-      Array.from(
-        document.querySelectorAll(
-          ".rouletteNum"
-        )
-      ).find(
-        b =>
-          Number(b.textContent)
-          ===winner
+      .forEach(b=>
+        b.classList.remove("selectedBet")
       );
 
-    if(tableWinner)
-      tableWinner.classList.add("winner");
+    const buttons=
+      document.querySelectorAll(
+        ".rouletteNum"
+      );
+
+    const index=
+      winner===0?0:winner;
+
+    if(buttons[index])
+      buttons[index]
+        .classList.add("selectedBet");
+
+    document
+      .getElementById("rouletteStatus")
+      .textContent=
+        "RESULT STOPPED";
+
+    setTimeout(()=>{
+
+      state.rounds.roulette++;
+
+      updateRound();
+
+      document
+        .querySelectorAll(
+          "#rouletteGame .placeBtn"
+        )
+        .forEach(b=>{
+          b.textContent="PLACE BET";
+          b.classList.remove("waiting");
+        });
+
+    },2000);
 
   },4200);
 
@@ -3092,46 +3800,358 @@ function buildAviator(){
 
   document
     .getElementById("aviatorHistory")
-    .innerHTML =
+    .innerHTML=
       state.aviatorHistory
-        .map(
-          x=>
-            `<div class="mult">${x}</div>`
+        .map(x=>
+          `<div class="mult">${x}</div>`
         )
         .join("");
+
+  resetAviatorButtons();
 
 }
 
 
-/* =========================================================
-   AVIATOR
-========================================================= */
+function resetAviatorButtons(){
 
-function runAviator(){
+  [1,2].forEach(slot=>{
 
-  let seconds=30;
+    const btn=
+      document.getElementById(
+        "aviatorBtn"+slot
+      );
 
-  const countdown =
+    btn.textContent="PLACE BET";
+
+    btn.className="placeBtn";
+
+    document
+      .getElementById(
+        "aviatorLive"+slot
+      )
+      .textContent="";
+
+    state.aviatorBets[slot]={
+      active:false,
+      amount:0,
+      cashed:false
+    };
+
+  });
+
+}
+
+
+function aviatorBet(slot){
+
+  if(
+    state.aviatorPhase!=="waiting"
+  ){
+
+    return;
+
+  }
+
+  const input=
     document.getElementById(
-      "aviatorCountdown"
+      "a"+slot
     );
 
-  countdown.textContent =
-    "BETTING: 30s";
+  const amount=
+    Number(input.value)||0;
 
-  const bettingTimer =
+  if(amount<=0){
+
+    alert("Enter a valid amount.");
+    return;
+
+  }
+
+  if(amount>state.balance){
+
+    alert("Insufficient balance.");
+    return;
+
+  }
+
+  state.balance-=amount;
+
+  state.aviatorBets[slot]={
+    active:true,
+    amount:amount,
+    cashed:false
+  };
+
+  updateBalance();
+
+  const btn=
+    document.getElementById(
+      "aviatorBtn"+slot
+    );
+
+  btn.textContent=
+    "BET PLACED";
+
+  btn.classList.add("waiting");
+
+}
+
+
+function startAviatorRound(){
+
+  state.aviatorPhase="flying";
+
+  state.aviatorMultiplier=1;
+
+  document
+    .getElementById("aviatorCountdown")
+    .textContent=
+      "FLYING";
+
+  document
+    .getElementById("aviatorMultiplier")
+    .textContent=
+      "1.00x";
+
+  const timer=
+    setInterval(()=>{
+
+      state.aviatorMultiplier+=
+        .035+
+        Math.random()*.065;
+
+      const m=
+        state.aviatorMultiplier;
+
+      document
+        .getElementById(
+          "aviatorMultiplier"
+        )
+        .textContent=
+          m.toFixed(2)+"x";
+
+      const plane=
+        document.getElementById("plane");
+
+      plane.style.left=
+        Math.min(
+          88,
+          20+(m-1)*11
+        )+"%";
+
+      plane.style.bottom=
+        Math.min(
+          85,
+          30+(m-1)*7
+        )+"px";
+
+      updateAviatorLiveButtons();
+
+      if(m>=4.2){
+
+        clearInterval(timer);
+
+        crashAviator();
+
+      }
+
+    },300);
+
+}
+
+
+function updateAviatorLiveButtons(){
+
+  [1,2].forEach(slot=>{
+
+    const bet=
+      state.aviatorBets[slot];
+
+    if(!bet.active ||
+       bet.cashed)
+      return;
+
+    const m=
+      state.aviatorMultiplier;
+
+    const gross=
+      bet.amount*m;
+
+    const btn=
+      document.getElementById(
+        "aviatorBtn"+slot
+      );
+
+    btn.textContent=
+      `CASH OUT • ${gross.toFixed(2)} ETB • ${m.toFixed(2)}x`;
+
+    btn.classList.add("cashout");
+
+    document
+      .getElementById(
+        "aviatorLive"+slot
+      )
+      .textContent=
+        `BET ${bet.amount.toFixed(2)} ETB • LIVE WIN ${gross.toFixed(2)} ETB`;
+
+  });
+
+}
+
+
+function cashOutAviator(slot){
+
+  const bet=
+    state.aviatorBets[slot];
+
+  if(
+    !bet.active ||
+    bet.cashed ||
+    state.aviatorPhase!=="flying"
+  )
+    return;
+
+  const m=
+    state.aviatorMultiplier;
+
+  const payout=
+    bet.amount*m;
+
+  bet.cashed=true;
+
+  bet.active=false;
+
+  state.balance+=payout;
+
+  updateBalance();
+
+  const btn=
+    document.getElementById(
+      "aviatorBtn"+slot
+    );
+
+  btn.textContent=
+    `✓ CASHED OUT ${payout.toFixed(2)} ETB`;
+
+  btn.className=
+    "placeBtn cashed";
+
+  document
+    .getElementById(
+      "aviatorLive"+slot
+    )
+    .textContent=
+      `WIN ${payout.toFixed(2)} ETB @ ${m.toFixed(2)}x`;
+
+  setTimeout(()=>{
+
+    btn.textContent="";
+
+    btn.classList.add("hidden");
+
+  },2000);
+
+}
+
+
+function crashAviator(){
+
+  state.aviatorPhase="crashed";
+
+  const m=
+    state.aviatorMultiplier;
+
+  document
+    .getElementById("aviatorCountdown")
+    .textContent=
+      `CRASHED @ ${m.toFixed(2)}x`;
+
+  [1,2].forEach(slot=>{
+
+    const bet=
+      state.aviatorBets[slot];
+
+    if(
+      bet.active &&
+      !bet.cashed
+    ){
+
+      bet.active=false;
+
+      const btn=
+        document.getElementById(
+          "aviatorBtn"+slot
+        );
+
+      btn.textContent=
+        "LOST";
+
+      btn.className=
+        "placeBtn lost";
+
+      document
+        .getElementById(
+          "aviatorLive"+slot
+        )
+        .textContent=
+          `LOST ${bet.amount.toFixed(2)} ETB`;
+
+    }
+
+  });
+
+  state.aviatorHistory.unshift(
+    m.toFixed(2)+"x"
+  );
+
+  state.aviatorHistory=
+    state.aviatorHistory.slice(0,8);
+
+  setTimeout(()=>{
+
+    state.rounds.aviator++;
+
+    updateRound();
+
+    startAviatorWaiting();
+
+  },2500);
+
+}
+
+
+function startAviatorWaiting(){
+
+  state.aviatorPhase="waiting";
+
+  state.aviatorMultiplier=1;
+
+  resetAviatorButtons();
+
+  let seconds=5;
+
+  document
+    .getElementById("aviatorCountdown")
+    .textContent=
+      `BETTING: ${seconds}s`;
+
+  const timer=
     setInterval(()=>{
 
       seconds--;
 
-      countdown.textContent =
-        "BETTING: "+seconds+"s";
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          `BETTING: ${seconds}s`;
 
       if(seconds<=0){
 
-        clearInterval(bettingTimer);
+        clearInterval(timer);
 
-        startFlight();
+        startAviatorRound();
 
       }
 
@@ -3141,130 +4161,31 @@ function runAviator(){
 
 
 /* =========================================================
-   FLIGHT
+   AVIATOR BUTTON EVENT FIX
 ========================================================= */
 
-function startFlight(){
+document.addEventListener(
+  "click",
+  function(e){
 
-  let value=1;
+    if(
+      e.target.classList.contains("cashout")
+    ){
 
-  const multiplier =
-    document.getElementById(
-      "aviatorMultiplier"
-    );
+      const id=
+        e.target.id;
 
-  const plane =
-    document.getElementById(
-      "plane"
-    );
+      const slot=
+        id.endsWith("1")
+          ?1
+          :2;
 
-  const timer =
-    setInterval(()=>{
+      cashOutAviator(slot);
 
-      value +=
-        0.03+
-        Math.random()*0.08;
-
-      multiplier.textContent =
-        value.toFixed(2)+"x";
-
-      plane.style.left =
-        Math.min(
-          85,
-          20+(value-1)*12
-        )+"%";
-
-      plane.style.bottom =
-        Math.min(
-          85,
-          30+(value-1)*8
-        )+"px";
-
-      if(value>=3.2){
-
-        clearInterval(timer);
-
-        state.aviatorHistory.unshift(
-          value.toFixed(2)+"x"
-        );
-
-        state.aviatorHistory =
-          state.aviatorHistory.slice(0,8);
-
-        buildAviator();
-
-      }
-
-    },300);
-
-}
-
-
-/* =========================================================
-   AMOUNT
-========================================================= */
-
-function changeAmount(id,delta){
-
-  const input =
-    document.getElementById(id);
-
-  let value =
-    Number(input.value)||0;
-
-  value+=delta;
-
-  if(value<1)
-    value=1;
-
-  input.value=value;
-
-}
-
-
-/* =========================================================
-   AVIATOR BET
-========================================================= */
-
-function placeDemoBet(slot){
-
-  const input =
-    document.getElementById(
-      slot===1 ? "a1" : "a2"
-    );
-
-  const amount =
-    Number(input.value)||0;
-
-  if(amount<=0){
-
-    alert("Enter a valid bet amount.");
-
-    return;
+    }
 
   }
-
-  if(amount>state.balance){
-
-    alert("Insufficient balance.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  updateBalance();
-
-  alert(
-    "Aviator bet placed for Slot "+
-    slot+
-    ": "+
-    amount+
-    " ETB"
-  );
-
-}
+);
 
 
 /* =========================================================
@@ -3294,8 +4215,7 @@ function showTab(tab){
       tab==="top"
     );
 
-
-  const sub =
+  const sub=
     document.getElementById(
       "topSubTabs"
     );
@@ -3305,44 +4225,48 @@ function showTab(tab){
     tab!=="top"
   );
 
-
   if(tab==="my"){
 
     document
       .getElementById("feedContent")
-      .innerHTML =
-        `<div class="feedRow">
-          <span>MY BETS</span>
-          <span>No active bets</span>
-        </div>`;
-
-  }
-
-
-  if(tab==="live"){
-
-    document
-      .getElementById("feedContent")
-      .innerHTML =
+      .innerHTML=
         `
         <div class="feedRow">
-          <span>Player21</span>
-          <span>50 ETB</span>
-        </div>
-
-        <div class="feedRow">
-          <span>Player08</span>
-          <span>100 ETB</span>
-        </div>
-
-        <div class="feedRow">
-          <span>Player44</span>
-          <span>20 ETB</span>
+          <span>MY BETS</span>
+          <span>No completed bets yet</span>
         </div>
         `;
 
   }
 
+  if(tab==="live"){
+
+    document
+      .getElementById("feedContent")
+      .innerHTML=
+        `
+        <div class="feedRow">
+          <span>DemoPlayer21</span>
+          <span class="win">1.72x • 86 ETB</span>
+        </div>
+
+        <div class="feedRow">
+          <span>DemoPlayer08</span>
+          <span>100 ETB • LIVE</span>
+        </div>
+
+        <div class="feedRow">
+          <span>DemoPlayer44</span>
+          <span class="win">2.14x • 42.80 ETB</span>
+        </div>
+
+        <div class="feedRow">
+          <span>PLAYERS</span>
+          <span>12 LIVE</span>
+        </div>
+        `;
+
+  }
 
   if(tab==="top"){
 
@@ -3358,49 +4282,36 @@ function showTab(tab){
 }
 
 
-/* =========================================================
-   TOP
-========================================================= */
-
 function showTop(period,button){
 
   document
-    .querySelectorAll(
-      ".subTabs button"
-    )
-    .forEach(
-      b=>b.classList.remove("active")
+    .querySelectorAll(".subTabs button")
+    .forEach(b=>
+      b.classList.remove("active")
     );
 
   if(button)
     button.classList.add("active");
 
-
   const names=[
-    "GoldenStar",
+    "DemoWinner",
     "LuckyPlayer",
+    "GoldenStar",
     "RedLion",
-    "Player007",
-    "WinnerOne"
+    "Player007"
   ];
-
 
   document
     .getElementById("feedContent")
-    .innerHTML =
+    .innerHTML=
       names.map(
         (name,i)=>
         `
         <div class="feedRow">
-
-          <span>
-            ${i+1}. ${name}
-          </span>
-
+          <span>${i+1}. ${name}</span>
           <span class="win">
             ${period.toUpperCase()}
           </span>
-
         </div>
         `
       ).join("");
@@ -3414,307 +4325,172 @@ function showTop(period,button){
 
 function openHelp(){
 
-  const title =
-    document.getElementById(
-      "helpTitle"
-    );
-
-  const content =
-    document.getElementById(
-      "helpContent"
-    );
-
-
   const help={
 
     keno:{
       title:"How to Play Keno",
-
       html:`
-
-        <h3>🎯 How Keno Works</h3>
-
+        <h3>1. Choose a slot</h3>
         <p>
-          Keno uses numbers from
-          <strong>1–80</strong>.
-          You can use Slot 1, Slot 2, or both.
+          Tap SLOT 1 or SLOT 2.
+          The selected slot becomes highlighted.
         </p>
 
-        <h3>1️⃣ Choose Your Numbers</h3>
-
+        <h3>2. Choose numbers</h3>
         <p>
-          Tap Slot 1 or Slot 2 first.
-          Then select between
-          <strong>1 and 10 numbers</strong>.
+          Select from 1–80.
+          Each slot can contain 1 to 10 numbers.
         </p>
 
-        <h3>💰 Place Your Bet</h3>
-
+        <h3>3. Place the bet</h3>
         <p>
-          Each slot has its own amount and its own
-          <strong>PLACE BET</strong> button.
+          Each slot has its own Place Bet button.
+          Slot 1 and Slot 2 are independent.
         </p>
 
-        <h3>🎱 The Draw</h3>
-
+        <h3>4. Drawing</h3>
         <p>
-          When betting closes, the game draws
-          <strong>20 numbers</strong> from 1–80.
-          The numbers appear progressively.
+          Twenty numbers are drawn progressively.
+          Each drawn number appears as a ball.
         </p>
 
-        <h3>🏆 How You Win</h3>
-
+        <h3>Win / Lose</h3>
         <p>
-          Your selected numbers are compared with the
-          20 numbers drawn. A winning combination and
-          its payout are determined by the published
-          Keno paytable.
+          The game compares your selected numbers
+          with the numbers drawn. The server must
+          determine the official settlement.
         </p>
-
-        <h3>❌ How You Lose</h3>
-
-        <p>
-          If your result does not meet the published
-          winning requirement, that bet loses.
-        </p>
-
-        <h3>📊 Results</h3>
-
-        <p>
-          The completed 20-number draw remains visible
-          as the round result.
-        </p>
-
       `
     },
-
 
     bingo:{
       title:"How to Play Bingo",
-
       html:`
-
-        <h3>🎱 How Bingo Works</h3>
-
+        <h3>1. Enter Cartela</h3>
         <p>
-          Bingo uses numbered Cartelas. Each Cartela
-          represents a specific card combination.
+          Enter a Cartela number from 1 to 120
+          and press OK. The first number creates
+          Cartela 1. Enter another number for Cartela 2.
         </p>
 
-        <h3>🪪 Choose Your Cartela</h3>
-
+        <h3>2. Place your bet</h3>
         <p>
-          Enter a valid Cartela number from
-          <strong>1–120</strong> for Cartela 1,
-          Cartela 2, or both.
+          Select the available bet amount and place
+          the bet for the corresponding Cartela.
         </p>
 
-        <h3>💰 Choose Your Bet</h3>
-
+        <h3>3. Mark called numbers</h3>
         <p>
-          Choose the available betting amount.
-          Each Cartela has its own bet.
+          When a number is called, tap the matching
+          number on your Cartela. Called numbers are
+          highlighted.
         </p>
 
-        <h3>🎱 The Draw</h3>
-
+        <h3>4. Winning pattern</h3>
         <p>
-          Bingo numbers are drawn progressively.
-          Each number appears as an animated ball.
+          A valid Bingo can be a completed horizontal,
+          vertical, or diagonal line.
         </p>
 
-        <h3>🏆 How You Win</h3>
-
+        <h3>5. Claim Bingo</h3>
         <p>
-          A Cartela wins when its required winning
-          pattern is completed according to the game's
-          published Bingo rules and paytable.
+          When your Cartela has a valid pattern,
+          press the corresponding BINGO button.
         </p>
-
-        <h3>❌ How You Lose</h3>
-
-        <p>
-          A Cartela loses when it does not achieve a
-          qualifying winning pattern for the round.
-        </p>
-
       `
     },
-
 
     roulette:{
       title:"How to Play Roulette",
-
       html:`
-
-        <h3>🎡 How Roulette Works</h3>
-
+        <h3>Choose your bet</h3>
         <p>
-          This interface uses a standard European-style
-          wheel with <strong>37 pockets</strong>:
-          0 through 36.
+          Tap a number on the roulette board or select
+          RED, BLACK, or GREEN/0. Your selection is
+          visibly highlighted.
         </p>
 
+        <h3>Place Bet</h3>
         <p>
-          The single 0 is green. Numbers 1–36 are
-          divided between red and black.
+          Select your stake and press PLACE BET.
         </p>
 
-        <h3>🎯 Choose Your Bet</h3>
-
+        <h3>Spin</h3>
         <p>
-          Select a number directly from the numbered
-          table or select RED or BLACK.
+          The wheel spins and stops on a numbered
+          position. Numbers are displayed around the
+          edge of the wheel so the stopped result
+          is easy to identify.
         </p>
 
+        <h3>Win / Lose</h3>
         <p>
-          The selected choice is highlighted so you
-          can see your active selection.
+          Your selected number or color is compared
+          with the final result. The official backend
+          must determine settlement and payout.
         </p>
-
-        <h3>💰 Place Your Bet</h3>
-
-        <p>
-          Select Slot 1 or Slot 2.
-          Each slot has its own amount and its own
-          PLACE BET button.
-        </p>
-
-        <h3>🎡 The Spin</h3>
-
-        <p>
-          After betting closes, the wheel spins.
-          The winning pocket is the pocket where the
-          result lands.
-        </p>
-
-        <p>
-          The winning number is highlighted around the
-          edge of the wheel and displayed in the result
-          area.
-        </p>
-
-        <h3>🏆 How You Win</h3>
-
-        <p>
-          A single-number bet wins when the result is
-          exactly your selected number.
-        </p>
-
-        <p>
-          A RED bet wins when the result is red.
-          A BLACK bet wins when the result is black.
-        </p>
-
-        <h3>❌ How You Lose</h3>
-
-        <p>
-          A number bet loses when another number wins.
-        </p>
-
-        <p>
-          A RED or BLACK bet loses when the opposite
-          color wins or when the result is 0.
-        </p>
-
-        <h3>💵 Standard Payout Reference</h3>
-
-        <p>
-          Standard European roulette pays 35:1 for
-          a straight-up number and 1:1 for RED/BLACK.
-          The production game's actual paytable must
-          be clearly displayed before real-money play.
-        </p>
-
-        <h3>⚠️ Independent Rounds</h3>
-
-        <p>
-          Each spin is an independent game result.
-          Previous winning numbers do not determine
-          the next spin.
-        </p>
-
       `
     },
 
-
     aviator:{
       title:"How to Play Aviator",
-
       html:`
-
-        <h3>✈️ How Aviator Works</h3>
-
+        <h3>1. Place Bet</h3>
         <p>
-          A betting period begins before the flight.
-          The plane then takes off and the multiplier
-          increases during the flight.
+          Before the plane takes off, choose the amount
+          in Slot 1 or Slot 2 and press PLACE BET.
         </p>
 
-        <h3>💰 Place Your Bet</h3>
-
+        <h3>2. Watch the multiplier</h3>
         <p>
-          Select Slot 1 or Slot 2 and choose your
-          bet amount.
+          When the plane starts flying, the multiplier
+          increases live.
         </p>
 
-        <h3>📈 Multiplier</h3>
-
+        <h3>3. Cash Out</h3>
         <p>
-          The multiplier increases while the plane
-          remains in flight.
+          PLACE BET changes to CASH OUT. The button
+          displays the current live return based on
+          the selected stake and displayed multiplier.
         </p>
 
-        <h3>🏆 How You Win</h3>
-
+        <h3>4. Win</h3>
         <p>
-          In a properly implemented crash-style game,
-          a player wins a cash-out when the cash-out
-          occurs before the round ends, with the return
-          based on the multiplier at cash-out.
+          If Cash Out is accepted before the flight ends,
+          the interface shows the cash-out amount and
+          multiplier.
         </p>
 
-        <h3>❌ How You Lose</h3>
-
+        <h3>5. Lose</h3>
         <p>
-          If the round ends before a successful cash-out,
-          the applicable bet loses.
+          If the plane ends while a bet remains active,
+          the interface marks that bet LOST.
         </p>
 
-        <h3>📊 Previous Rounds</h3>
-
+        <h3>Two Slots</h3>
         <p>
-          Recent completed multipliers are displayed
-          above the flight.
+          Slot 1 and Slot 2 operate independently.
+          You can cash out one while leaving the other
+          active.
         </p>
-
-        <h3>⚠️ Important</h3>
-
-        <p>
-          Previous round multipliers do not predict
-          future results. Production game results,
-          payouts and wallet balances must be controlled
-          by the authoritative server.
-        </p>
-
       `
     }
 
   };
 
+  document
+    .getElementById("helpTitle")
+    .textContent=
+      help[state.game].title;
 
-  title.textContent =
-    help[state.game].title;
-
-  content.innerHTML =
-    help[state.game].html;
-
+  document
+    .getElementById("helpContent")
+    .innerHTML=
+      help[state.game].html;
 
   document
     .getElementById("helpOverlay")
-    .classList
-    .remove("hidden");
+    .classList.remove("hidden");
 
 }
 
@@ -3723,14 +4499,13 @@ function closeHelp(){
 
   document
     .getElementById("helpOverlay")
-    .classList
-    .add("hidden");
+    .classList.add("hidden");
 
 }
 
 
 /* =========================================================
-   INITIALIZATION
+   INITIALIZE
 ========================================================= */
 
 updateBalance();
@@ -3745,7 +4520,25 @@ buildAviator();
 
 showTab("my");
 
+
+/* =========================================================
+   INITIAL AVIATOR CYCLE
+========================================================= */
+
+setTimeout(()=>{
+
+  startAviatorWaiting();
+
+},1000);
+
+
+/* =========================================================
+   INITIAL KENO / BINGO / ROULETTE
+   These start when the player interacts with the game.
+========================================================= */
+
 </script>
 
 </body>
 </html>
+```1
