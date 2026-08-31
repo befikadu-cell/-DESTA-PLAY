@@ -1,1758 +1,2084 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#120000">
-<title>DESTA PLAY</title><style>
-*{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DESTA PLAY — Demo</title>
+
+<style>
+:root{
+  --red:#b40000;
+  --red2:#ef1b1b;
+  --gold:#ffcc33;
+  --gold2:#ff9f00;
+  --dark:#090909;
+  --dark2:#151515;
+  --panel:#1d1d1d;
+  --panel2:#252525;
+  --text:#fff;
+  --muted:#aaa;
+  --green:#18d66b;
+  --blue:#3498ff;
 }
 
-html,body{
-    margin:0;
-    padding:0;
-    width:100%;
-    min-height:100%;
-    background:#080000;
-    color:#fff;
-    font-family:Arial,Helvetica,sans-serif;
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
 }
 
 body{
-    overflow-x:hidden;
+  margin:0;
+  background:
+    radial-gradient(circle at top,#3b0000 0,#100000 35%,#050505 75%);
+  color:white;
+  font-family:Arial,Helvetica,sans-serif;
+  min-height:100vh;
+}
+
+button,
+input{
+  font:inherit;
 }
 
 button{
-    font-family:inherit;
-    border:0;
-    cursor:pointer;
+  cursor:pointer;
 }
 
 .hidden{
-    display:none!important;
+  display:none!important;
 }
 
-/* =========================================================
-   GLOBAL
-========================================================= */
+/* ================= HOME ================= */
 
-.app{
-    width:100%;
-    max-width:520px;
-    min-height:100vh;
-    margin:auto;
-    background:
-        radial-gradient(circle at 50% -10%,#7a0000 0,#250000 30%,#080000 65%);
-    position:relative;
-    padding-bottom:76px;
+#home{
+  min-height:100vh;
+  padding-bottom:25px;
 }
 
-.header{
-    height:58px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 12px;
-    position:sticky;
-    top:0;
-    z-index:100;
-    background:rgba(15,0,0,.96);
-    border-bottom:1px solid rgba(255,190,0,.25);
-    backdrop-filter:blur(10px);
+.homeHeader{
+  padding:18px 15px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
 }
 
 .logo{
-    font-weight:900;
-    font-size:20px;
-    letter-spacing:1px;
-    color:#ffd34d;
-    text-shadow:0 0 12px rgba(255,170,0,.5);
+  font-size:25px;
+  font-weight:900;
+  color:var(--gold);
+  letter-spacing:1px;
 }
 
-.lang{
-    display:flex;
-    background:#210000;
-    border:1px solid #6d2700;
-    border-radius:20px;
-    overflow:hidden;
+.demoBadge{
+  font-size:10px;
+  padding:5px 8px;
+  border:1px solid #e8aa00;
+  border-radius:8px;
+  color:#ffd45b;
 }
 
-.lang button{
-    padding:7px 10px;
-    background:transparent;
-    color:#aaa;
-    font-size:11px;
-    font-weight:800;
+.languageBox{
+  display:flex;
+  gap:6px;
+  padding:0 15px 15px;
+}
+
+.languageBox button{
+  border:1px solid #6d1717;
+  background:#210909;
+  color:#ddd;
+  border-radius:8px;
+  padding:7px 12px;
+}
+
+.languageBox button.active{
+  background:linear-gradient(180deg,var(--gold),#d58a00);
+  color:#170900;
+  font-weight:bold;
 }
 
-.lang button.active{
-    background:#e8a900;
-    color:#220000;
+.gameGrid{
+  padding:10px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.gameCard{
+  position:relative;
+  min-height:155px;
+  overflow:hidden;
+  border:1px solid #632020;
+  border-radius:16px;
+  background:
+    linear-gradient(145deg,#291010,#0d0d0d);
+  box-shadow:0 8px 25px #000;
+}
+
+.gameCard h3{
+  position:absolute;
+  z-index:5;
+  top:8px;
+  left:10px;
+  margin:0;
+  color:var(--gold);
+  font-size:16px;
+}
+
+.gameCard small{
+  position:absolute;
+  z-index:5;
+  bottom:8px;
+  left:10px;
+  color:#ddd;
+}
+
+.gameOpen{
+  position:absolute;
+  z-index:8;
+  right:8px;
+  bottom:7px;
+  border:0;
+  border-radius:8px;
+  padding:6px 9px;
+  background:var(--red2);
+  color:white;
+  font-size:11px;
+  font-weight:bold;
+}
+
+/* HOME ANIMATIONS */
+
+.aviatorHome{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+
+.homePlane{
+  position:absolute;
+  font-size:35px;
+  animation:planeHome 3s linear infinite;
+}
+
+@keyframes planeHome{
+  0%{left:-40px;bottom:25px;transform:rotate(-8deg)}
+  50%{left:48%;bottom:75px;transform:rotate(-5deg)}
+  100%{left:110%;bottom:115px;transform:rotate(-2deg)}
+}
+
+.bingoHomeBalls{
+  position:absolute;
+  inset:40px 8px 30px;
+}
+
+.bingoHomeBalls span{
+  position:absolute;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(145deg,#ffe16a,#d88b00);
+  color:#500;
+  font-weight:bold;
+  animation:bingoFloat 2.5s infinite alternate;
+}
+
+.bingoHomeBalls span:nth-child(1){left:10%;top:15%}
+.bingoHomeBalls span:nth-child(2){left:42%;top:40%;animation-delay:.4s}
+.bingoHomeBalls span:nth-child(3){left:72%;top:20%;animation-delay:.8s}
+.bingoHomeBalls span:nth-child(4){left:28%;top:70%;animation-delay:1.1s}
+
+@keyframes bingoFloat{
+  from{transform:translateY(5px) rotate(0)}
+  to{transform:translateY(-12px) rotate(15deg)}
+}
+
+.kenoHome{
+  position:absolute;
+  inset:42px 8px 25px;
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+  align-content:center;
+}
+
+.kenoHome span{
+  width:25px;
+  height:25px;
+  border-radius:50%;
+  background:#c70000;
+  border:2px solid #ffcf40;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:9px;
+  animation:kenoPulse 1.7s infinite;
+}
+
+.kenoHome span:nth-child(2){animation-delay:.2s}
+.kenoHome span:nth-child(3){animation-delay:.4s}
+.kenoHome span:nth-child(4){animation-delay:.6s}
+.kenoHome span:nth-child(5){animation-delay:.8s}
+
+@keyframes kenoPulse{
+  0%,100%{transform:scale(.8);opacity:.65}
+  50%{transform:scale(1.15);opacity:1}
+}
+
+.rouletteHome{
+  position:absolute;
+  width:85px;
+  height:85px;
+  border-radius:50%;
+  border:8px solid #d49a00;
+  left:50%;
+  top:53%;
+  transform:translate(-50%,-50%);
+  background:
+    repeating-conic-gradient(
+      #b00000 0deg 20deg,
+      #111 20deg 40deg
+    );
+  animation:rouletteSpin 3s linear infinite;
+}
+
+.rouletteHome:after{
+  content:"0";
+  position:absolute;
+  inset:28px;
+  background:#d49a00;
+  border-radius:50%;
+  color:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+
+@keyframes rouletteSpin{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+
+/* ================= GAME ================= */
+
+#gameScreen{
+  display:none;
+  min-height:100vh;
+  padding-bottom:20px;
+}
+
+.gameHeader{
+  position:sticky;
+  top:0;
+  z-index:100;
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:7px 10px;
+  background:linear-gradient(180deg,#260000,#100000);
+  border-bottom:1px solid #652000;
+}
+
+.roundInfo{
+  color:#ffd04a;
+  font-size:13px;
+  font-weight:900;
+}
+
+.headerRight{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.balance{
+  background:#241b00;
+  border:1px solid #d79d00;
+  color:#ffd84c;
+  padding:6px 8px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.helpBtn{
+  width:31px;
+  height:31px;
+  border-radius:50%;
+  border:1px solid #ffd24a;
+  background:#390900;
+  color:#ffd24a;
+  font-weight:900;
+}
+
+.gameTitle{
+  text-align:center;
+  padding:8px 0;
+  color:#fff;
+  font-size:20px;
+  font-weight:900;
+}
+
+.gameArea{
+  margin:0 8px;
+  border:1px solid #632020;
+  border-radius:14px;
+  background:#0d0d0d;
+  overflow:hidden;
+}
+
+/* ================= TABS ================= */
+
+.mainTabs{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  margin:8px;
+  gap:4px;
+}
+
+.mainTabs button,
+.subTabs button{
+  border:1px solid #6e2020;
+  background:#220b0b;
+  color:#ddd;
+  padding:9px 4px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.mainTabs button.active,
+.subTabs button.active{
+  background:linear-gradient(180deg,#ffcf3b,#bd7900);
+  color:#190900;
 }
 
-/* =========================================================
-   HOME
-========================================================= */
+.subTabs{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:4px;
+  margin:0 8px 8px;
+}
+
+/* ================= BET AREA ================= */
+
+.betSlots{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  padding:8px;
+}
+
+.betSlot{
+  background:linear-gradient(145deg,#251010,#111);
+  border:1px solid #702222;
+  border-radius:12px;
+  padding:8px;
+}
+
+.slotTitle{
+  text-align:center;
+  color:var(--gold);
+  font-weight:bold;
+  font-size:11px;
+  margin-bottom:7px;
+}
+
+.amountControl{
+  display:grid;
+  grid-template-columns:32px 1fr 32px;
+  gap:3px;
+}
+
+.amountControl button{
+  border:1px solid #a26d00;
+  background:#381c00;
+  color:#ffd13a;
+  border-radius:7px;
+  font-weight:bold;
+}
+
+.amountControl input{
+  min-width:0;
+  width:100%;
+  text-align:center;
+  background:#090909;
+  color:white;
+  border:1px solid #593333;
+  border-radius:7px;
+  padding:6px;
+}
+
+.placeBtn{
+  width:100%;
+  margin-top:7px;
+  border:0;
+  border-radius:8px;
+  padding:9px 4px;
+  background:linear-gradient(180deg,#ff3b2f,#a60000);
+  color:white;
+  font-size:10px;
+  font-weight:900;
+}
+
+.placeBtn.waiting{
+  background:#3b3b3b;
+  color:#bbb;
+}
+
+.placeBtn:disabled{
+  opacity:.55;
+}
+
+/* ================= FEEDS ================= */
+
+.feed{
+  margin:0 8px 8px;
+  background:#101010;
+  border:1px solid #362020;
+  border-radius:10px;
+  padding:8px;
+}
+
+.feedRow{
+  display:flex;
+  justify-content:space-between;
+  padding:5px 3px;
+  border-bottom:1px solid #222;
+  font-size:10px;
+}
+
+.feedRow:last-child{
+  border-bottom:0;
+}
+
+.win{
+  color:var(--green);
+}
+
+.muted{
+  color:#888;
+}
+
+/* ================= KENO ================= */
+
+.kenoBoard{
+  padding:8px;
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:4px;
+}
+
+.kenoNumber{
+  aspect-ratio:1;
+  border-radius:50%;
+  border:1px solid #6f2a2a;
+  background:#191919;
+  color:#ddd;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:bold;
+}
+
+.kenoNumber.selected{
+  background:linear-gradient(145deg,#ffd43b,#bd7600);
+  color:#150900;
+  border-color:#ffe67d;
+}
+
+.kenoNumber.drawn{
+  background:#d00000;
+  color:white;
+  border-color:#ffcf3b;
+  animation:hit .5s ease;
+}
+
+.kenoNumber.hit{
+  box-shadow:0 0 14px #ffd52e;
+}
+
+@keyframes hit{
+  0%{transform:scale(.7)}
+  60%{transform:scale(1.25)}
+  100%{transform:scale(1)}
+}
+
+.drawStatus{
+  text-align:center;
+  padding:8px;
+  color:#ffd44c;
+  font-size:12px;
+  font-weight:bold;
+}
+
+.drawBalls{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:7px;
+  padding:8px;
+}
+
+.ball{
+  aspect-ratio:1;
+  border-radius:50%;
+  background:linear-gradient(145deg,#ff4b3e,#970000);
+  border:2px solid #ffd43b;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:white;
+  font-weight:900;
+  font-size:12px;
+  animation:ballAppear .45s ease;
+}
+
+@keyframes ballAppear{
+  0%{transform:scale(0) rotate(-180deg)}
+  70%{transform:scale(1.2)}
+  100%{transform:scale(1)}
+}
+
+.historyBox{
+  margin:8px;
+  border:1px solid #472222;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+.historyHeader{
+  padding:9px;
+  color:var(--gold);
+  background:#190808;
+  font-weight:bold;
+  font-size:11px;
+}
+
+.historyRound{
+  padding:7px;
+  border-top:1px solid #292020;
+  font-size:9px;
+  line-height:1.8;
+}
+
+.historyRound strong{
+  color:#ffd44c;
+}
+
+.historyNums{
+  color:#ddd;
+}
+
+/* ================= BINGO ================= */
+
+.bingoAnimation{
+  height:180px;
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle,#451000,#080808 65%);
+}
 
-.page{
-    padding:12px;
+.bingoMachine{
+  position:absolute;
+  width:105px;
+  height:105px;
+  border:8px solid #e0a400;
+  border-radius:50%;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  animation:bingoMachine 2s linear infinite;
 }
 
-.home-title{
-    font-size:22px;
-    font-weight:900;
-    margin:5px 0 3px;
+@keyframes bingoMachine{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
 }
 
-.home-sub{
-    color:#bfa9a9;
-    font-size:12px;
-    margin-bottom:14px;
+.bingoBall{
+  position:absolute;
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  background:linear-gradient(145deg,#fff,#aaa);
+  color:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  font-weight:bold;
+  animation:ballBounce 1.8s infinite alternate;
 }
 
-/*
- IMPORTANT:
- Every card below has a fixed data-game.
- Its animation container is unique.
- There is NO global random animation.
-*/
+@keyframes ballBounce{
+  from{transform:translateY(20px)}
+  to{transform:translateY(-30px)}
+}
+
+.cartelaTabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  padding:8px 8px 0;
+}
+
+.cartelaTab{
+  text-align:center;
+  padding:8px;
+  border:1px solid #682020;
+  background:#200909;
+  color:#ffd13c;
+  border-radius:8px 8px 0 0;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.cartelaInputs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  padding:0 8px 8px;
+}
+
+.cartelaBox{
+  padding:8px;
+  background:#151515;
+  border:1px solid #472020;
+  border-radius:0 0 10px 10px;
+}
+
+.cartelaBox input{
+  width:100%;
+  text-align:center;
+  background:#080808;
+  color:white;
+  border:1px solid #633333;
+  border-radius:7px;
+  padding:7px;
+}
 
-.games-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
+.cartelaFeedback{
+  min-height:20px;
+  text-align:center;
+  font-size:9px;
+  padding-top:5px;
 }
 
-.game-card{
-    min-height:190px;
-    position:relative;
-    overflow:hidden;
-    border-radius:16px;
-    border:1px solid #642100;
-    background:
-        linear-gradient(145deg,#2a0000,#110000 70%);
-    box-shadow:
-        0 8px 25px rgba(0,0,0,.45),
-        inset 0 0 20px rgba(255,150,0,.04);
+.valid{
+  color:#22e77a;
 }
 
-.game-card:active{
-    transform:scale(.985);
+.invalid{
+  color:#ff4545;
 }
 
-.game-head{
-    position:absolute;
-    z-index:10;
-    top:9px;
-    left:10px;
-    right:10px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+.amountGrid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:5px;
+  padding:8px;
 }
 
-.game-name{
-    font-size:15px;
-    font-weight:900;
-    color:#ffd45a;
+.amountPreset{
+  border:1px solid #704000;
+  background:#1d1100;
+  color:#ffd03c;
+  border-radius:7px;
+  padding:7px 2px;
+  font-size:9px;
+  font-weight:bold;
 }
 
-.live-dot{
-    width:7px;
-    height:7px;
-    background:#ff3030;
-    border-radius:50%;
-    box-shadow:0 0 8px #ff3030;
-    animation:pulse 1s infinite;
+.amountPreset.active{
+  background:linear-gradient(180deg,#ffd94b,#c77b00);
+  color:#1a0b00;
 }
 
-@keyframes pulse{
-    50%{opacity:.35;transform:scale(.7)}
+/* ================= ROULETTE ================= */
+
+.rouletteArea{
+  padding:10px;
+  text-align:center;
+}
+
+.rouletteWheel{
+  width:165px;
+  height:165px;
+  margin:5px auto 12px;
+  border-radius:50%;
+  border:9px solid #d69a00;
+  background:
+    repeating-conic-gradient(
+      #b00000 0deg 10deg,
+      #090909 10deg 20deg
+    );
+  position:relative;
+  transition:transform 4s cubic-bezier(.1,.7,.2,1);
+}
+
+.rouletteWheel:after{
+  content:"0";
+  position:absolute;
+  width:45px;
+  height:45px;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:#d49a00;
+  color:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
 }
 
-/* =========================================================
-   FIXED AVIATOR ANIMATION
-========================================================= */
-
-.anim{
-    position:absolute;
-    inset:0;
-}
+.rouletteResult{
+  min-height:25px;
+  color:#ffd13d;
+  font-weight:bold;
+}
+
+.rouletteGrid{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:3px;
+  padding:8px;
+}
 
-.aviator-scene{
-    position:absolute;
-    inset:0;
-    overflow:hidden;
-    background:
-        linear-gradient(#180000,#310000 55%,#120000);
-}
-
-.cloud{
-    position:absolute;
-    width:55px;
-    height:15px;
-    background:rgba(255,220,160,.14);
-    border-radius:50%;
-    filter:blur(2px);
-    animation:cloudMove linear infinite;
-}
-
-.cloud.c1{top:55px;animation-duration:5s}
-.cloud.c2{top:80px;animation-duration:7s;animation-delay:-3s}
-.cloud.c3{top:110px;animation-duration:6s;animation-delay:-2s}
+.rouletteNum{
+  padding:8px 2px;
+  border:1px solid #333;
+  border-radius:5px;
+  font-size:10px;
+  font-weight:bold;
+}
+
+.red{
+  background:#a80000;
+}
 
-@keyframes cloudMove{
-    from{left:110%}
-    to{left:-70px}
-}
-
-.plane{
-    position:absolute;
-    left:-55px;
-    top:70px;
-    font-size:37px;
-    filter:drop-shadow(0 0 8px rgba(255,190,0,.65));
-    animation:flyPlane 4.2s linear infinite;
-}
-
-.flight-line{
-    position:absolute;
-    width:150%;
-    height:2px;
-    left:-10%;
-    top:118px;
-    background:linear-gradient(90deg,transparent,#ffb000,#fff0a0,transparent);
-    transform:rotate(-13deg);
-    opacity:.7;
-}
-
-@keyframes flyPlane{
-    0%{left:-55px;top:105px}
-    35%{left:25%;top:80px}
-    70%{left:62%;top:55px}
-    100%{left:110%;top:25px}
-}
-
-.multiplier{
-    position:absolute;
-    left:0;
-    right:0;
-    top:48px;
-    text-align:center;
-    font-size:25px;
-    font-weight:900;
-    color:#fff;
-    text-shadow:0 0 12px #ff7b00;
-    animation:multiPulse 1.7s infinite;
-}
-
-@keyframes multiPulse{
-    50%{transform:scale(1.08);color:#ffd84d}
-}
-
-/* =========================================================
-   FIXED KENO ANIMATION
-========================================================= */
-
-.keno-scene{
-    position:absolute;
-    inset:0;
-    padding:45px 7px 40px;
-    overflow:hidden;
-}
-
-.keno-ball{
-    position:absolute;
-    width:31px;
-    height:31px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:
-        radial-gradient(circle at 30% 25%,#fff4a0,#ffb000 30%,#b00000 75%);
-    color:#fff;
-    font-size:11px;
-    font-weight:900;
-    box-shadow:0 0 12px rgba(255,174,0,.35);
-    animation:kenoFloat 2.8s ease-in-out infinite alternate;
-}
-
-.kb1{left:8%;top:57px}
-.kb2{left:30%;top:88px;animation-delay:-.8s}
-.kb3{left:52%;top:57px;animation-delay:-1.3s}
-.kb4{left:73%;top:95px;animation-delay:-1.9s}
-.kb5{left:40%;top:130px;animation-delay:-.4s}
-
-@keyframes kenoFloat{
-    to{
-        transform:translateY(-13px) rotate(18deg);
-    }
-}
-
-/* =========================================================
-   FIXED BINGO ANIMATION
-========================================================= */
-
-.bingo-scene{
-    position:absolute;
-    inset:0;
-    padding:45px 10px 38px;
-}
-
-.bingo-grid{
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:4px;
-    width:90%;
-    margin:18px auto;
-}
-
-.bingo-cell{
-    aspect-ratio:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:5px;
-    background:#3b0707;
-    border:1px solid #8c4300;
-    color:#ffe58a;
-    font-size:10px;
-    font-weight:900;
-    animation:bingoFlash 2.5s infinite;
-}
-
-.bingo-cell:nth-child(2){animation-delay:.3s}
-.bingo-cell:nth-child(7){animation-delay:.8s}
-.bingo-cell:nth-child(13){animation-delay:1.2s}
-.bingo-cell:nth-child(19){animation-delay:1.8s}
-
-@keyframes bingoFlash{
-    0%,65%,100%{
-        background:#3b0707;
-        box-shadow:none;
-    }
-    75%{
-        background:#e6a800;
-        color:#260000;
-        box-shadow:0 0 12px #ffb900;
-    }
-}
-
-/* =========================================================
-   FIXED ROULETTE ANIMATION
-========================================================= */
-
-.roulette-scene{
-    position:absolute;
-    inset:0;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    padding-top:22px;
-}
-
-.wheel{
-    width:115px;
-    height:115px;
-    border-radius:50%;
-    border:7px solid #d89c00;
-    background:
-        conic-gradient(
-            #a90000 0deg 18deg,
-            #111 18deg 36deg,
-            #a90000 36deg 54deg,
-            #111 54deg 72deg,
-            #a90000 72deg 90deg,
-            #111 90deg 108deg,
-            #a90000 108deg 126deg,
-            #111 126deg 144deg,
-            #a90000 144deg 162deg,
-            #111 162deg 180deg,
-            #a90000 180deg 198deg,
-            #111 198deg 216deg,
-            #a90000 216deg 234deg,
-            #111 234deg 252deg,
-            #a90000 252deg 270deg,
-            #111 270deg 288deg,
-            #a90000 288deg 306deg,
-            #111 306deg 324deg,
-            #a90000 324deg 342deg,
-            #111 342deg 360deg
-        );
-    box-shadow:0 0 22px rgba(255,160,0,.3);
-    animation:wheelSpin 5s linear infinite;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-.wheel-center{
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    background:#e8ae00;
-    border:4px solid #fff0a0;
-}
-
-.pointer{
-    position:absolute;
-    top:36px;
-    width:0;
-    height:0;
-    border-left:8px solid transparent;
-    border-right:8px solid transparent;
-    border-top:16px solid #fff;
-    z-index:3;
-}
-
-@keyframes wheelSpin{
-    to{transform:rotate(360deg)}
-}
-
-/* =========================================================
-   CARD FOOTER
-========================================================= */
-
-.game-bottom{
-    position:absolute;
-    z-index:20;
-    bottom:8px;
-    left:8px;
-    right:8px;
-}
-
-.play-btn{
-    width:100%;
-    height:34px;
-    border-radius:9px;
-    background:linear-gradient(90deg,#b80000,#e8a500);
-    color:white;
-    font-size:12px;
-    font-weight:900;
-    box-shadow:0 4px 12px rgba(0,0,0,.4);
-}
-
-/* =========================================================
-   GAME SCREEN
-========================================================= */
-
-.game-screen{
-    display:none;
-    min-height:calc(100vh - 58px);
-    padding-bottom:80px;
-}
-
-.game-screen.active{
-    display:block;
-}
-
-.game-top{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:10px 12px;
-}
-
-.back-btn,
-.help-btn{
-    width:38px;
-    height:36px;
-    border-radius:9px;
-    background:#2c0505;
-    border:1px solid #783100;
-    color:#ffd45a;
-    font-weight:900;
-}
-
-.game-title{
-    flex:1;
-    text-align:center;
-    font-size:18px;
-    font-weight:900;
-    color:#ffd45a;
-}
-
-/* =========================================================
-   ROUND AREA
-========================================================= */
-
-.round-info{
-    margin:0 10px 10px;
-    padding:9px;
-    border-radius:10px;
-    background:#180303;
-    border:1px solid #572000;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.round-label{
-    font-size:10px;
-    color:#a99595;
-}
-
-.round-value{
-    font-size:15px;
-    font-weight:900;
-    color:#ffd34d;
-}
-
-.countdown{
-    font-size:22px;
-    font-weight:900;
-    color:#ffcf3a;
-}
-
-/* =========================================================
-   LIVE GAME AREA
-========================================================= */
-
-.live-area{
-    margin:0 10px;
-    min-height:210px;
-    border-radius:15px;
-    border:1px solid #692600;
-    background:
-        radial-gradient(circle at center,#4b0808,#150000 75%);
-    position:relative;
-    overflow:hidden;
-}
-
-/* AVIATOR */
-
-.live-plane{
-    position:absolute;
-    font-size:52px;
-    left:5%;
-    top:48%;
-    animation:liveFlight 5s linear infinite;
-}
-
-.live-multiplier{
-    position:absolute;
-    left:0;
-    right:0;
-    top:35%;
-    text-align:center;
-    font-size:42px;
-    font-weight:900;
-    color:#fff;
-    text-shadow:0 0 18px #ff7b00;
-}
-
-@keyframes liveFlight{
-    0%{left:-60px;top:70%}
-    50%{left:48%;top:42%}
-    100%{left:105%;top:10%}
-}
-
-/* KENO */
-
-.draw-balls{
-    padding:18px;
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-    justify-content:center;
-}
-
-.draw-ball{
-    width:34px;
-    height:34px;
-    border-radius:50%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:radial-gradient(circle at 30% 25%,#fff,#ffb000 30%,#a90000 80%);
-    font-weight:900;
-    font-size:11px;
-    box-shadow:0 0 10px rgba(255,190,0,.3);
-}
-
-.draw-ball.current{
-    animation:drawPop .4s ease;
-    box-shadow:0 0 20px #ffe100;
-    transform:scale(1.18);
-}
-
-@keyframes drawPop{
-    0%{transform:scale(.3);opacity:0}
-    100%{transform:scale(1.18);opacity:1}
-}
-
-/* =========================================================
-   BET CONTROLS
-========================================================= */
-
-.bet-panel{
-    margin:10px;
-    padding:10px;
-    border-radius:14px;
-    background:#150202;
-    border:1px solid #602000;
-}
-
-.bet-title{
-    font-size:12px;
-    color:#cdb5b5;
-    margin-bottom:7px;
-}
-
-.bet-control{
-    display:flex;
-    align-items:center;
-    gap:6px;
-}
-
-.bet-control button{
-    width:42px;
-    height:42px;
-    border-radius:9px;
-    background:#390606;
-    border:1px solid #853100;
-    color:#ffd45a;
-    font-size:22px;
-    font-weight:900;
-}
-
-.bet-input{
-    flex:1;
-    height:42px;
-    border-radius:9px;
-    border:1px solid #7b3100;
-    background:#080000;
-    color:#fff;
-    text-align:center;
-    font-size:18px;
-    font-weight:900;
-    outline:none;
-}
-
-.place-bet{
-    margin-top:9px;
-    width:100%;
-    height:43px;
-    border-radius:10px;
-    background:linear-gradient(90deg,#d00000,#ffb400);
-    color:white;
-    font-size:14px;
-    font-weight:900;
-}
-
-.place-bet.waiting{
-    background:#4a3030;
-    color:#c5b7b7;
-}
-
-/* =========================================================
-   HORIZONTAL TABS
-========================================================= */
-
-.tabs{
-    display:flex;
-    margin:10px;
-    gap:5px;
-}
-
-.tab{
-    flex:1;
-    min-width:0;
-    height:38px;
-    border-radius:8px;
-    background:#210404;
-    border:1px solid #642100;
-    color:#c8aaaa;
-    font-size:11px;
-    font-weight:900;
-}
-
-.tab.active{
-    background:#d99d00;
-    color:#220000;
-}
-
-/* =========================================================
-   ODDS
-========================================================= */
-
-.odds-panel{
-    margin:10px;
-    padding:10px;
-    border-radius:13px;
-    background:#140202;
-    border:1px solid #572000;
-}
-
-.odds-title{
-    font-size:12px;
-    font-weight:900;
-    color:#ffd45a;
-    margin-bottom:8px;
-}
-
-.odds-row{
-    display:flex;
-    gap:6px;
-    overflow-x:auto;
-    padding-bottom:3px;
-}
-
-.odds-item{
-    flex:0 0 auto;
-    min-width:55px;
-    padding:8px 6px;
-    text-align:center;
-    border-radius:8px;
-    background:#260606;
-    border:1px solid #5e2100;
-}
-
-.odds-item.selected{
-    background:#d99d00;
-    color:#230000;
-}
-
-.odds-number{
-    font-size:12px;
-    font-weight:900;
-}
-
-.odds-value{
-    font-size:11px;
-    margin-top:3px;
-    color:#ffe38b;
-}
-
-/* =========================================================
-   MY BETS / TOP PLAYERS
-========================================================= */
-
-.list-panel{
-    margin:10px;
-    padding:10px;
-    border-radius:13px;
-    background:#140202;
-    border:1px solid #572000;
-}
-
-.list-row{
-    display:flex;
-    justify-content:space-between;
-    padding:8px 4px;
-    border-bottom:1px solid rgba(255,180,0,.08);
-    font-size:11px;
-}
-
-.list-row:last-child{
-    border-bottom:0;
+.black{
+  background:#090909;
 }
 
 .green{
-    color:#53e36d;
+  background:#008a4b;
 }
 
-.gold{
-    color:#ffd34d;
+.rouletteNum.winner{
+  box-shadow:0 0 12px #ffd43b;
+  border-color:#ffd43b;
+  transform:scale(1.08);
 }
 
-/* =========================================================
-   HELP MODAL
-========================================================= */
+/* ================= AVIATOR ================= */
 
-.modal{
-    display:none;
-    position:fixed;
-    inset:0;
-    z-index:1000;
-    background:rgba(0,0,0,.75);
-    padding:35px 15px;
+.aviatorHistory{
+  display:flex;
+  gap:5px;
+  overflow-x:auto;
+  padding:7px;
+  scrollbar-width:none;
 }
 
-.modal.active{
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.mult{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border-radius:6px;
+  background:#211010;
+  border:1px solid #552323;
+  color:#ffcf3a;
+  font-size:10px;
+  font-weight:bold;
 }
 
-.modal-box{
-    width:100%;
-    max-width:470px;
-    max-height:85vh;
-    overflow:auto;
-    border-radius:16px;
-    background:#170202;
-    border:1px solid #8b3900;
-    padding:17px;
-    box-shadow:0 20px 60px rgba(0,0,0,.7);
+.aviatorFlight{
+  height:220px;
+  position:relative;
+  overflow:hidden;
+  background:
+    linear-gradient(160deg,#230000,#050505 65%);
 }
 
-.modal-title{
-    color:#ffd34d;
-    font-size:19px;
-    font-weight:900;
-    margin-bottom:12px;
+.gridLines{
+  position:absolute;
+  inset:0;
+  opacity:.15;
+  background-image:
+    linear-gradient(#fff 1px,transparent 1px),
+    linear-gradient(90deg,#fff 1px,transparent 1px);
+  background-size:40px 40px;
 }
 
-.modal-text{
-    color:#d9c5c5;
-    font-size:13px;
-    line-height:1.6;
+.flightMultiplier{
+  position:absolute;
+  left:50%;
+  top:32%;
+  transform:translate(-50%,-50%);
+  color:#ffd43a;
+  font-size:34px;
+  font-weight:900;
 }
 
-.close-modal{
-    width:100%;
-    height:40px;
-    margin-top:15px;
-    border-radius:9px;
-    background:#d99d00;
-    color:#250000;
-    font-weight:900;
+.plane{
+  position:absolute;
+  left:20%;
+  bottom:30px;
+  font-size:40px;
+  transition:all .3s linear;
 }
 
-/* =========================================================
-   BOTTOM NAV
-========================================================= */
-
-.bottom-nav{
-    position:fixed;
-    z-index:200;
-    bottom:0;
-    left:50%;
-    transform:translateX(-50%);
-    width:100%;
-    max-width:520px;
-    height:65px;
-    display:flex;
-    background:rgba(17,0,0,.97);
-    border-top:1px solid #642100;
-    backdrop-filter:blur(12px);
+.flightCurve{
+  position:absolute;
+  left:-20%;
+  bottom:-80px;
+  width:140%;
+  height:200px;
+  border-top:3px solid #e20000;
+  border-radius:50%;
+  transform:rotate(-12deg);
 }
 
-.nav-btn{
-    flex:1;
-    background:transparent;
-    color:#9f8b8b;
-    font-size:10px;
-    font-weight:900;
+.countdown{
+  text-align:center;
+  padding:7px;
+  color:#ffd13d;
+  font-size:12px;
+  font-weight:bold;
 }
 
-.nav-btn.active{
-    color:#ffd34d;
+/* ================= HELP ================= */
+
+.helpOverlay{
+  position:fixed;
+  inset:0;
+  z-index:999;
+  background:rgba(0,0,0,.78);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
 }
 
-.nav-icon{
-    display:block;
-    font-size:20px;
-    margin-bottom:2px;
+.helpPanel{
+  width:100%;
+  max-width:420px;
+  max-height:85vh;
+  overflow:auto;
+  background:linear-gradient(145deg,#2a0808,#100000);
+  border:1px solid #d89c00;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 15px 50px #000;
 }
 
-/* =========================================================
-   DESKTOP
-========================================================= */
-
-@media(min-width:700px){
-    .app{
-        border-left:1px solid #321000;
-        border-right:1px solid #321000;
-    }
+.helpPanel h2{
+  margin-top:0;
+  color:#ffd43c;
 }
-</style></head><body><div class="app"><header class="header">
-    <div class="logo">DESTA PLAY</div><!-- Language selector exists ONLY in the main/home header -->
-<div class="lang">
-    <button id="langEN" class="active">EN</button>
-    <button id="langAM">አማ</button>
-</div>
 
-</header><!-- =======================================================
+.helpPanel h3{
+  color:#ffbf26;
+  font-size:14px;
+}
+
+.helpPanel p,
+.helpPanel li{
+  color:#ddd;
+  font-size:12px;
+  line-height:1.55;
+}
+
+.closeHelp{
+  width:100%;
+  border:0;
+  border-radius:8px;
+  padding:10px;
+  background:#bd0000;
+  color:#fff;
+  font-weight:bold;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media(max-width:360px){
+  .gameGrid{
+    gap:7px;
+    padding:7px;
+  }
+
+  .gameCard{
+    min-height:135px;
+  }
+
+  .kenoBoard{
+    gap:2px;
+  }
+
+  .kenoNumber{
+    font-size:8px;
+  }
+
+  .betSlots{
+    gap:4px;
+    padding:5px;
+  }
+
+  .amountControl{
+    grid-template-columns:27px 1fr 27px;
+  }
+
+  .amountControl button{
+    font-size:11px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ======================================================
      HOME
-======================================================= --><section id="homePage" class="page"><div class="home-title">Games</div>
-<div class="home-sub">Choose a game to enter the live room.</div>
+====================================================== -->
 
-<div class="games-grid">
+<section id="home">
 
-    <!-- AVIATOR CARD -->
-    <div class="game-card" data-game="aviator">
+  <div class="homeHeader">
+    <div class="logo">DESTA PLAY</div>
+    <div class="demoBadge">DEMO CREDITS</div>
+  </div>
 
-        <div class="game-head">
-            <div class="game-name">AVIATOR</div>
-            <div class="live-dot"></div>
-        </div>
+  <div class="languageBox">
+    <button id="langEN" class="active" onclick="setLanguage('en')">
+      English
+    </button>
+    <button id="langAM" onclick="setLanguage('am')">
+      አማርኛ
+    </button>
+  </div>
 
-        <!-- FIXED AVIATOR ANIMATION ONLY -->
-        <div class="anim aviator-scene">
-            <div class="flight-line"></div>
-            <div class="cloud c1"></div>
-            <div class="cloud c2"></div>
-            <div class="cloud c3"></div>
-            <div class="multiplier">2.36x</div>
-            <div class="plane">✈</div>
-        </div>
+  <div class="gameGrid">
 
-        <div class="game-bottom">
-            <button class="play-btn" onclick="openGame('aviator')">
-                PLAY
-            </button>
-        </div>
+    <!-- AVIATOR -->
+    <div class="gameCard">
+      <h3>AVIATOR</h3>
 
+      <div class="aviatorHome">
+        <div class="homePlane">✈️</div>
+      </div>
+
+      <small>Fly • Cash Out</small>
+      <button class="gameOpen"
+              onclick="openGame('aviator')">
+        PLAY
+      </button>
     </div>
 
-    <!-- KENO CARD -->
-    <div class="game-card" data-game="keno">
+    <!-- BINGO -->
+    <div class="gameCard">
+      <h3>BINGO</h3>
 
-        <div class="game-head">
-            <div class="game-name">KENO</div>
-            <div class="live-dot"></div>
-        </div>
+      <div class="bingoHomeBalls">
+        <span>7</span>
+        <span>30</span>
+        <span>52</span>
+        <span>71</span>
+      </div>
 
-        <!-- FIXED KENO ANIMATION ONLY -->
-        <div class="anim keno-scene">
-            <div class="keno-ball kb1">7</div>
-            <div class="keno-ball kb2">18</div>
-            <div class="keno-ball kb3">31</div>
-            <div class="keno-ball kb4">52</div>
-            <div class="keno-ball kb5">69</div>
-        </div>
-
-        <div class="game-bottom">
-            <button class="play-btn" onclick="openGame('keno')">
-                PLAY
-            </button>
-        </div>
-
+      <small>Cartela • Draw</small>
+      <button class="gameOpen"
+              onclick="openGame('bingo')">
+        PLAY
+      </button>
     </div>
 
-    <!-- BINGO CARD -->
-    <div class="game-card" data-game="bingo">
+    <!-- KENO -->
+    <div class="gameCard">
+      <h3>KENO</h3>
 
-        <div class="game-head">
-            <div class="game-name">BINGO</div>
-            <div class="live-dot"></div>
-        </div>
+      <div class="kenoHome">
+        <span>7</span>
+        <span>22</span>
+        <span>31</span>
+        <span>48</span>
+        <span>73</span>
+      </div>
 
-        <!-- FIXED BINGO ANIMATION ONLY -->
-        <div class="anim bingo-scene">
-            <div class="bingo-grid">
-                <div class="bingo-cell">12</div>
-                <div class="bingo-cell">27</div>
-                <div class="bingo-cell">34</div>
-                <div class="bingo-cell">48</div>
-                <div class="bingo-cell">61</div>
-
-                <div class="bingo-cell">5</div>
-                <div class="bingo-cell">19</div>
-                <div class="bingo-cell">33</div>
-                <div class="bingo-cell">45</div>
-                <div class="bingo-cell">70</div>
-
-                <div class="bingo-cell">8</div>
-                <div class="bingo-cell">21</div>
-                <div class="bingo-cell">FREE</div>
-                <div class="bingo-cell">52</div>
-                <div class="bingo-cell">67</div>
-
-                <div class="bingo-cell">3</div>
-                <div class="bingo-cell">25</div>
-                <div class="bingo-cell">38</div>
-                <div class="bingo-cell">56</div>
-                <div class="bingo-cell">72</div>
-
-                <div class="bingo-cell">10</div>
-                <div class="bingo-cell">29</div>
-                <div class="bingo-cell">42</div>
-                <div class="bingo-cell">59</div>
-                <div class="bingo-cell">75</div>
-            </div>
-        </div>
-
-        <div class="game-bottom">
-            <button class="play-btn" onclick="openGame('bingo')">
-                PLAY
-            </button>
-        </div>
-
+      <small>1–80 • 20 Draw</small>
+      <button class="gameOpen"
+              onclick="openGame('keno')">
+        PLAY
+      </button>
     </div>
 
-    <!-- ROULETTE CARD -->
-    <div class="game-card" data-game="roulette">
+    <!-- ROULETTE -->
+    <div class="gameCard">
+      <h3>ROULETTE</h3>
 
-        <div class="game-head">
-            <div class="game-name">ROULETTE</div>
-            <div class="live-dot"></div>
-        </div>
+      <div class="rouletteHome"></div>
 
-        <!-- FIXED ROULETTE ANIMATION ONLY -->
-        <div class="anim roulette-scene">
-            <div class="pointer"></div>
-            <div class="wheel">
-                <div class="wheel-center"></div>
-            </div>
-        </div>
-
-        <div class="game-bottom">
-            <button class="play-btn" onclick="openGame('roulette')">
-                PLAY
-            </button>
-        </div>
-
+      <small>Spin • Number • Color</small>
+      <button class="gameOpen"
+              onclick="openGame('roulette')">
+        PLAY
+      </button>
     </div>
 
-</div>
+  </div>
+</section>
 
-</section><!-- =======================================================
+
+<!-- ======================================================
      GAME SCREEN
-======================================================= --><section id="gamePage" class="game-screen"><div class="game-top">
+====================================================== -->
 
-    <button class="back-btn" onclick="goHome()">‹</button>
+<section id="gameScreen">
 
-    <div id="gameTitle" class="game-title">
-        AVIATOR
+  <header class="gameHeader">
+
+    <div class="roundInfo">
+      ROUND <span id="roundNumber">0001</span>
     </div>
 
-    <!-- Help is INSIDE the game, NOT on homepage -->
-    <button class="help-btn" onclick="showHelp()">
+    <div class="headerRight">
+      <div class="balance">
+        💰 <span id="balance">1000.00</span> ETB
+      </div>
+
+      <button class="helpBtn"
+              onclick="openHelp()">
         ?
+      </button>
+    </div>
+
+  </header>
+
+  <div class="gameTitle"
+       id="gameTitle">
+    KENO
+  </div>
+
+  <main class="gameArea">
+
+    <!-- KENO -->
+    <div id="kenoGame" class="hidden">
+
+      <div class="drawStatus">
+        <span id="kenoCountdown">
+          BETTING OPEN
+        </span>
+      </div>
+
+      <div class="kenoBoard"
+           id="kenoBoard"></div>
+
+      <div class="drawStatus"
+           id="kenoDrawStatus">
+        Waiting for draw...
+      </div>
+
+      <div class="drawBalls"
+           id="kenoDrawBalls"></div>
+
+      <div class="betSlots">
+
+        <div class="betSlot">
+          <div class="slotTitle">SLOT 1</div>
+
+          <div class="amountControl">
+            <button onclick="changeAmount('k1',-10)">−</button>
+
+            <input id="k1"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('k1',10)">+</button>
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(1)">
+            PLACE BET
+          </button>
+        </div>
+
+        <div class="betSlot">
+          <div class="slotTitle">SLOT 2</div>
+
+          <div class="amountControl">
+            <button onclick="changeAmount('k2',-10)">−</button>
+
+            <input id="k2"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('k2',10)">+</button>
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(2)">
+            PLACE BET
+          </button>
+        </div>
+
+      </div>
+
+      <div class="feed">
+        <div class="feedRow">
+          <span>Selected</span>
+          <span id="kenoSelected">0 / 10</span>
+        </div>
+
+        <div class="feedRow">
+          <span>Current catches</span>
+          <span id="kenoCatches">0</span>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- BINGO -->
+    <div id="bingoGame" class="hidden">
+
+      <div class="bingoAnimation">
+
+        <div class="bingoMachine"></div>
+
+        <div class="bingoBall"
+             style="left:15%;top:30%">
+          7
+        </div>
+
+        <div class="bingoBall"
+             style="right:15%;top:25%">
+          30
+        </div>
+
+        <div class="bingoBall"
+             style="left:40%;bottom:15%">
+          52
+        </div>
+
+      </div>
+
+      <div class="drawStatus"
+           id="bingoStatus">
+        Waiting for next draw...
+      </div>
+
+      <div class="cartelaTabs">
+        <div class="cartelaTab">CARTELA 1</div>
+        <div class="cartelaTab">CARTELA 2</div>
+      </div>
+
+      <div class="cartelaInputs">
+
+        <div class="cartelaBox">
+          <input id="cartela1"
+                 type="number"
+                 min="1"
+                 max="120"
+                 placeholder="1–120"
+                 oninput="validateCartela(1)">
+
+          <div id="cartelaFeedback1"
+               class="cartelaFeedback">
+          </div>
+        </div>
+
+        <div class="cartelaBox">
+          <input id="cartela2"
+                 type="number"
+                 min="1"
+                 max="120"
+                 placeholder="1–120"
+                 oninput="validateCartela(2)">
+
+          <div id="cartelaFeedback2"
+               class="cartelaFeedback">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="slotTitle"
+           style="padding-top:4px">
+        BINGO DEMO BET AMOUNT
+      </div>
+
+      <div class="amountGrid"
+           id="bingoAmounts"></div>
+
+      <div class="betSlots">
+
+        <div class="betSlot">
+          <div class="slotTitle">
+            CARTELA 1 BET
+          </div>
+
+          <div id="bingoAmount1"
+               style="text-align:center;color:#ffd43c;font-weight:bold">
+            10 ETB
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeBingoBet(1)">
+            PLACE BET
+          </button>
+        </div>
+
+        <div class="betSlot">
+          <div class="slotTitle">
+            CARTELA 2 BET
+          </div>
+
+          <div id="bingoAmount2"
+               style="text-align:center;color:#ffd43c;font-weight:bold">
+            10 ETB
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeBingoBet(2)">
+            PLACE BET
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ROULETTE -->
+    <div id="rouletteGame" class="hidden">
+
+      <div class="countdown"
+           id="rouletteStatus">
+        BETTING OPEN
+      </div>
+
+      <div class="rouletteArea">
+
+        <div class="rouletteWheel"
+             id="rouletteWheel"></div>
+
+        <div class="rouletteResult"
+             id="rouletteResult">
+          Waiting for spin...
+        </div>
+
+      </div>
+
+      <div class="rouletteGrid"
+           id="rouletteGrid"></div>
+
+      <div class="betSlots">
+
+        <div class="betSlot">
+          <div class="slotTitle">SLOT 1</div>
+
+          <div class="amountControl">
+            <button onclick="changeAmount('r1',-10)">−</button>
+
+            <input id="r1"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('r1',10)">+</button>
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(1)">
+            PLACE BET
+          </button>
+        </div>
+
+        <div class="betSlot">
+          <div class="slotTitle">SLOT 2</div>
+
+          <div class="amountControl">
+            <button onclick="changeAmount('r2',-10)">−</button>
+
+            <input id="r2"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('r2',10)">+</button>
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(2)">
+            PLACE BET
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- AVIATOR -->
+    <div id="aviatorGame" class="hidden">
+
+      <div class="aviatorHistory"
+           id="aviatorHistory"></div>
+
+      <div class="countdown"
+           id="aviatorCountdown">
+        BETTING: 30s
+      </div>
+
+      <div class="aviatorFlight">
+
+        <div class="gridLines"></div>
+
+        <div class="flightCurve"></div>
+
+        <div class="flightMultiplier"
+             id="aviatorMultiplier">
+          1.00x
+        </div>
+
+        <div class="plane"
+             id="plane">
+          ✈️
+        </div>
+
+      </div>
+
+      <div class="betSlots">
+
+        <div class="betSlot">
+
+          <div class="slotTitle">
+            SLOT 1
+          </div>
+
+          <div class="amountControl">
+
+            <button onclick="changeAmount('a1',-10)">
+              −
+            </button>
+
+            <input id="a1"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('a1',10)">
+              +
+            </button>
+
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(1)">
+            PLACE BET
+          </button>
+
+        </div>
+
+        <div class="betSlot">
+
+          <div class="slotTitle">
+            SLOT 2
+          </div>
+
+          <div class="amountControl">
+
+            <button onclick="changeAmount('a2',-10)">
+              −
+            </button>
+
+            <input id="a2"
+                   type="number"
+                   value="10"
+                   min="1"
+                   inputmode="decimal">
+
+            <button onclick="changeAmount('a2',10)">
+              +
+            </button>
+
+          </div>
+
+          <button class="placeBtn"
+                  onclick="placeDemoBet(2)">
+            PLACE BET
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- COMMON TABS -->
+
+  <div class="mainTabs">
+
+    <button id="tabMy"
+            class="active"
+            onclick="showTab('my')">
+      MY BETS
     </button>
 
-</div>
-
-<div class="round-info">
-    <div>
-        <div class="round-label">ROUND</div>
-        <div id="roundId" class="round-value">--</div>
-    </div>
-
-    <div style="text-align:right">
-        <div class="round-label">NEXT ROUND</div>
-        <div id="countdown" class="countdown">30</div>
-    </div>
-</div>
-
-<div id="liveArea" class="live-area"></div>
-
-<div class="bet-panel">
-
-    <div class="bet-title">BET AMOUNT</div>
-
-    <div class="bet-control">
-
-        <button onclick="changeBet(-1)">−</button>
-
-        <input
-            id="betAmount"
-            class="bet-input"
-            type="number"
-            min="1"
-            step="1"
-            value="10"
-            inputmode="decimal"
-        >
-
-        <button onclick="changeBet(1)">+</button>
-
-    </div>
-
-    <button
-        id="placeBetButton"
-        class="place-bet"
-        onclick="placeBet()"
-    >
-        PLACE BET
+    <button id="tabLive"
+            onclick="showTab('live')">
+      LIVE BETS
     </button>
 
-</div>
-
-<!-- GAME-SPECIFIC ODDS -->
-<div class="odds-panel">
-
-    <div class="odds-title">LIVE ODDS</div>
-
-    <div id="oddsRow" class="odds-row"></div>
-
-</div>
-
-<!-- MY BETS / TOP BETS -->
-<div class="tabs">
-
-    <button
-        class="tab active"
-        onclick="selectTab(this,'myBets')"
-    >
-        MY BETS
+    <button id="tabTop"
+            onclick="showTab('top')">
+      TOP
     </button>
 
-    <button
-        class="tab"
-        onclick="selectTab(this,'topBets')"
-    >
-        TOP BETS
+  </div>
+
+  <div id="topSubTabs"
+       class="subTabs hidden">
+
+    <button class="active"
+            onclick="showTop('daily',this)">
+      DAILY
     </button>
 
-</div>
-
-<div id="myBets" class="list-panel">
-    <div class="list-row">
-        <span>Current bet</span>
-        <strong id="myBetValue" class="gold">—</strong>
-    </div>
-
-    <div class="list-row">
-        <span>Status</span>
-        <strong id="myBetStatus">No bet</strong>
-    </div>
-</div>
-
-<div id="topBets" class="list-panel hidden">
-    <div class="list-row">
-        <span>Player 1</span>
-        <strong class="gold">250 ETB</strong>
-    </div>
-
-    <div class="list-row">
-        <span>Player 2</span>
-        <strong class="gold">150 ETB</strong>
-    </div>
-
-    <div class="list-row">
-        <span>Player 3</span>
-        <strong class="gold">100 ETB</strong>
-    </div>
-</div>
-
-<!-- DAILY / WEEKLY / MONTHLY -->
-<div class="tabs">
-
-    <button
-        class="tab active"
-        onclick="selectWinTab(this,'dailyWins')"
-    >
-        DAILY
+    <button onclick="showTop('weekly',this)">
+      WEEKLY
     </button>
 
-    <button
-        class="tab"
-        onclick="selectWinTab(this,'weeklyWins')"
-    >
-        WEEKLY
+    <button onclick="showTop('monthly',this)">
+      MONTHLY
     </button>
 
-    <button
-        class="tab"
-        onclick="selectWinTab(this,'monthlyWins')"
-    >
-        MONTHLY
+  </div>
+
+  <div id="feedPanel"
+       class="feed">
+
+    <div id="feedContent"></div>
+
+  </div>
+
+  <button onclick="goHome()"
+          style="
+            margin:8px;
+            width:calc(100% - 16px);
+            padding:10px;
+            border-radius:9px;
+            border:1px solid #633;
+            background:#210707;
+            color:#ffd43b;
+            font-weight:bold;">
+    ← HOME
+  </button>
+
+</section>
+
+
+<!-- ======================================================
+     HELP
+====================================================== -->
+
+<div id="helpOverlay"
+     class="helpOverlay hidden">
+
+  <div class="helpPanel">
+
+    <h2 id="helpTitle">
+      How to Play
+    </h2>
+
+    <div id="helpContent"></div>
+
+    <button class="closeHelp"
+            onclick="closeHelp()">
+      CLOSE
     </button>
 
-</div>
-
-<div id="dailyWins" class="list-panel">
-    <div class="list-row">
-        <span>LuckyPlayer</span>
-        <strong class="green">+2,500 ETB</strong>
-    </div>
-    <div class="list-row">
-        <span>GoldenWin</span>
-        <strong class="green">+1,800 ETB</strong>
-    </div>
-</div>
-
-<div id="weeklyWins" class="list-panel hidden">
-    <div class="list-row">
-        <span>GoldenWin</span>
-        <strong class="green">+12,400 ETB</strong>
-    </div>
-    <div class="list-row">
-        <span>LuckyPlayer</span>
-        <strong class="green">+9,850 ETB</strong>
-    </div>
-</div>
-
-<div id="monthlyWins" class="list-panel hidden">
-    <div class="list-row">
-        <span>GoldenWin</span>
-        <strong class="green">+48,000 ETB</strong>
-    </div>
-    <div class="list-row">
-        <span>LuckyPlayer</span>
-        <strong class="green">+35,500 ETB</strong>
-    </div>
-</div>
-
-</section><!-- =======================================================
-     BOTTOM NAV
-======================================================= --><nav class="bottom-nav"><button
-    id="homeNav"
-    class="nav-btn active"
-    onclick="goHome()"
->
-    <span class="nav-icon">⌂</span>
-    HOME
-</button>
-
-<button
-    class="nav-btn"
-    onclick="showMyAccount()"
->
-    <span class="nav-icon">◉</span>
-    ACCOUNT
-</button>
-
-<button
-    class="nav-btn"
-    onclick="showWallet()"
->
-    <span class="nav-icon">◆</span>
-    WALLET
-</button>
-
-</nav><!-- =======================================================
-     HELP MODAL
-======================================================= --><div id="helpModal" class="modal"><div class="modal-box">
-
-    <div id="helpTitle" class="modal-title">
-        How to Play
-    </div>
-
-    <div id="helpText" class="modal-text"></div>
-
-    <button
-        class="close-modal"
-        onclick="closeHelp()"
-    >
-        CLOSE
-    </button>
+  </div>
 
 </div>
 
-</div></div><script>
+
+<script>
 
 /* =========================================================
-   STATE
+   DEMO STATE
+   No real-money wagering or payment processing.
 ========================================================= */
 
-let currentGame = null;
+const state = {
 
-let countdownValue = 30;
+  language:"en",
 
-let countdownTimer = null;
+  game:"keno",
 
-let roundNumber = 10001;
+  balance:1000,
 
-let betAccepted = false;
+  rounds:{
+    keno:1,
+    bingo:1,
+    roulette:1,
+    aviator:1
+  },
 
-let selectedOdd = null;
+  selectedKeno:[],
 
+  kenoDraw:[],
 
-/* =========================================================
-   FIXED GAME CONFIGURATION
-========================================================= */
+  kenoHistory:[],
 
-const GAME_CONFIG = {
+  bingoAmounts:{
+    1:10,
+    2:10
+  },
 
-    aviator:{
-        title:"AVIATOR",
-        odds:["1.20x","1.50x","2.00x","3.00x","5.00x","10.00x"]
-    },
+  bingoCartelas:{
+    1:null,
+    2:null
+  },
 
-    keno:{
-        title:"KENO",
-        odds:[
-            "1.20x",
-            "1.60x",
-            "2.20x",
-            "3.50x",
-            "6.00x",
-            "10.00x",
-            "18.00x",
-            "30.00x",
-            "50.00x",
-            "100.00x"
-        ]
-    },
+  rouletteWinner:null,
 
-    bingo:{
-        title:"BINGO",
-        odds:["2x","5x","10x","20x"]
-    },
+  aviatorMultiplier:1,
 
-    roulette:{
-        title:"ROULETTE",
-        odds:["1x","2x","3x","5x","10x","35x"]
-    }
+  aviatorHistory:[
+    "1.42x",
+    "2.17x",
+    "1.08x",
+    "4.31x",
+    "1.76x"
+  ]
 
 };
 
 
 /* =========================================================
-   HOME / GAME NAVIGATION
+   LANGUAGE
+========================================================= */
+
+function setLanguage(lang){
+
+  state.language=lang;
+
+  document
+    .getElementById("langEN")
+    .classList.toggle("active",lang==="en");
+
+  document
+    .getElementById("langAM")
+    .classList.toggle("active",lang==="am");
+
+}
+
+
+/* =========================================================
+   ROUND FORMAT
+========================================================= */
+
+function roundText(n){
+
+  return String(n).padStart(4,"0");
+
+}
+
+
+/* =========================================================
+   OPEN GAME
 ========================================================= */
 
 function openGame(game){
 
-    currentGame = game;
+  state.game=game;
 
-    document.getElementById("homePage")
-        .style.display="none";
+  document
+    .getElementById("home")
+    .style.display="none";
 
-    document.getElementById("gamePage")
-        .classList.add("active");
+  document
+    .getElementById("gameScreen")
+    .style.display="block";
 
-    document.getElementById("gameTitle")
-        .textContent =
-        GAME_CONFIG[game].title;
+  document
+    .getElementById("gameTitle")
+    .textContent=
+      game.toUpperCase();
 
-    resetGameState();
+  updateRound();
 
-    renderGameArea();
+  hideAllGames();
 
-    renderOdds();
+  document
+    .getElementById(game+"Game")
+    .classList.remove("hidden");
 
-    startCountdown();
+  buildGame();
+
+  showTab("my");
 
 }
 
+
+/* =========================================================
+   HOME
+========================================================= */
 
 function goHome(){
 
-    stopCountdown();
+  document
+    .getElementById("gameScreen")
+    .style.display="none";
 
-    document.getElementById("gamePage")
-        .classList.remove("active");
-
-    document.getElementById("homePage")
-        .style.display="block";
-
-    currentGame=null;
+  document
+    .getElementById("home")
+    .style.display="block";
 
 }
 
 
 /* =========================================================
-   GAME STATE
+   HIDE GAMES
 ========================================================= */
 
-function resetGameState(){
+function hideAllGames(){
 
-    countdownValue=30;
+  [
+    "keno",
+    "bingo",
+    "roulette",
+    "aviator"
+  ].forEach(g=>{
 
-    betAccepted=false;
+    document
+      .getElementById(g+"Game")
+      .classList.add("hidden");
 
-    selectedOdd=null;
-
-    document.getElementById("countdown")
-        .textContent="30";
-
-    document.getElementById("roundId")
-        .textContent=
-        "#" + roundNumber;
-
-    document.getElementById("myBetValue")
-        .textContent="—";
-
-    document.getElementById("myBetStatus")
-        .textContent="No bet";
-
-    const button =
-        document.getElementById("placeBetButton");
-
-    button.textContent="PLACE BET";
-
-    button.classList.remove("waiting");
+  });
 
 }
 
 
 /* =========================================================
-   COUNTDOWN
+   BUILD GAME
 ========================================================= */
 
-function startCountdown(){
+function buildGame(){
 
-    stopCountdown();
+  if(state.game==="keno")
+    buildKeno();
 
-    countdownTimer =
-        setInterval(()=>{
+  if(state.game==="bingo")
+    buildBingo();
 
-            countdownValue--;
+  if(state.game==="roulette")
+    buildRoulette();
 
-            if(countdownValue<=0){
-
-                finishRound();
-
-                return;
-
-            }
-
-            document.getElementById("countdown")
-                .textContent=countdownValue;
-
-        },1000);
-
-}
-
-
-function stopCountdown(){
-
-    if(countdownTimer){
-
-        clearInterval(countdownTimer);
-
-        countdownTimer=null;
-
-    }
+  if(state.game==="aviator")
+    buildAviator();
 
 }
 
 
 /* =========================================================
-   AUTOMATIC ROUND
+   ROUND DISPLAY
 ========================================================= */
 
-function finishRound(){
+function updateRound(){
 
-    countdownValue=0;
-
-    document.getElementById("countdown")
-        .textContent="PLAYING";
-
-    if(currentGame==="aviator"){
-
-        runAviatorFlight();
-
-    }
-
-    if(currentGame==="keno"){
-
-        runKenoDraw();
-
-    }
-
-    if(currentGame==="bingo"){
-
-        runBingoDraw();
-
-    }
-
-    if(currentGame==="roulette"){
-
-        runRouletteSpin();
-
-    }
-
-    setTimeout(()=>{
-
-        roundNumber++;
-
-        resetGameState();
-
-        renderGameArea();
-
-        renderOdds();
-
-        startCountdown();
-
-    },5000);
+  document
+    .getElementById("roundNumber")
+    .textContent=
+      roundText(
+        state.rounds[state.game]
+      );
 
 }
 
 
 /* =========================================================
-   BET CONTROL
+   BALANCE
 ========================================================= */
 
-function changeBet(amount){
+function updateBalance(){
 
-    const input =
-        document.getElementById("betAmount");
-
-    let value =
-        Number(input.value)||0;
-
-    value += amount;
-
-    if(value<1){
-        value=1;
-    }
-
-    input.value=value;
-
-}
-
-
-function placeBet(){
-
-    if(betAccepted){
-
-        return;
-
-    }
-
-    const amount =
-        Number(
-            document.getElementById("betAmount").value
-        );
-
-    if(!amount || amount<1){
-
-        alert("Enter a valid bet amount.");
-
-        return;
-
-    }
-
-    betAccepted=true;
-
-    document.getElementById("myBetValue")
-        .textContent=amount+" ETB";
-
-    document.getElementById("myBetStatus")
-        .textContent="Waiting for next round";
-
-    const button =
-        document.getElementById("placeBetButton");
-
-    button.textContent=
-        "WAITING FOR NEXT ROUND";
-
-    button.classList.add("waiting");
+  document
+    .getElementById("balance")
+    .textContent=
+      state.balance.toFixed(2);
 
 }
 
 
 /* =========================================================
-   ODDS
+   KENO BOARD
 ========================================================= */
 
-function renderOdds(){
+function buildKeno(){
 
-    const row =
-        document.getElementById("oddsRow");
+  const board=
+    document.getElementById("kenoBoard");
 
-    row.innerHTML="";
+  board.innerHTML="";
 
-    const odds =
-        GAME_CONFIG[currentGame].odds;
+  for(let n=1;n<=80;n++){
 
-    odds.forEach((odd,index)=>{
+    const b=
+      document.createElement("button");
 
-        const item =
-            document.createElement("button");
+    b.className="kenoNumber";
 
-        item.className="odds-item";
+    b.textContent=
+      String(n).padStart(2,"0");
 
-        item.innerHTML=`
-            <div class="odds-number">${index+1}</div>
-            <div class="odds-value">${odd}</div>
-        `;
+    b.onclick=()=>selectKeno(n,b);
 
-        item.onclick=()=>{
+    board.appendChild(b);
 
-            document
-                .querySelectorAll(".odds-item")
-                .forEach(x=>x.classList.remove("selected"));
+  }
 
-            item.classList.add("selected");
-
-            selectedOdd=odd;
-
-        };
-
-        row.appendChild(item);
-
-    });
+  updateKenoSelection();
 
 }
 
 
 /* =========================================================
-   GAME VISUALS
+   KENO SELECT
 ========================================================= */
 
-function renderGameArea(){
+function selectKeno(n,button){
 
-    const area =
-        document.getElementById("liveArea");
+  const index=
+    state.selectedKeno.indexOf(n);
 
-    area.innerHTML="";
+  if(index>=0){
 
-    if(currentGame==="aviator"){
+    state.selectedKeno.splice(index,1);
 
-        area.innerHTML=`
+    button.classList.remove("selected");
 
-            <div class="live-multiplier">
-                1.00x
-            </div>
+  }else{
 
-            <div class="live-plane">
-                ✈
-            </div>
+    if(state.selectedKeno.length>=10){
 
-        `;
+      alert("Maximum 10 numbers.");
 
+      return;
     }
 
-    if(currentGame==="keno"){
+    state.selectedKeno.push(n);
 
-        area.innerHTML=`
+    button.classList.add("selected");
 
-            <div class="draw-balls" id="kenoDraw">
+  }
 
-                ${Array.from({length:20},(_,i)=>`
-                    <div class="draw-ball">
-                        ${i+1}
-                    </div>
-                `).join("")}
-
-            </div>
-
-        `;
-
-    }
-
-    if(currentGame==="bingo"){
-
-        area.innerHTML=`
-
-            <div class="draw-balls" id="bingoDraw">
-
-                ${Array.from({length:15},(_,i)=>`
-                    <div class="draw-ball">
-                        ${i+1}
-                    </div>
-                `).join("")}
-
-            </div>
-
-        `;
-
-    }
-
-    if(currentGame==="roulette"){
-
-        area.innerHTML=`
-
-            <div class="roulette-scene">
-
-                <div class="pointer"></div>
-
-                <div class="wheel">
-                    <div class="wheel-center"></div>
-                </div>
-
-            </div>
-
-        `;
-
-    }
+  updateKenoSelection();
 
 }
 
 
 /* =========================================================
-   KENO PROGRESSIVE DRAW
+   KENO SELECTION
+========================================================= */
+
+function updateKenoSelection(){
+
+  document
+    .getElementById("kenoSelected")
+    .textContent=
+      state.selectedKeno.length+
+      " / 10";
+
+}
+
+
+/* =========================================================
+   KENO DRAW
 ========================================================= */
 
 function runKenoDraw(){
 
-    const balls =
-        document.querySelectorAll("#kenoDraw .draw-ball");
+  const numbers=
+    Array.from(
+      {length:80},
+      (_,i)=>i+1
+    );
 
-    let i=0;
+  state.kenoDraw=[];
 
-    const timer =
-        setInterval(()=>{
+  while(state.kenoDraw.length<20){
 
-            if(i>=balls.length){
+    const index=
+      Math.floor(
+        Math.random()*numbers.length
+      );
 
-                clearInterval(timer);
+    state.kenoDraw.push(
+      numbers.splice(index,1)[0]
+    );
 
-                return;
+  }
 
-            }
+  const balls=
+    document.getElementById("kenoDrawBalls");
 
-            balls[i].classList.add("current");
+  balls.innerHTML="";
 
-            i++;
+  document
+    .getElementById("kenoDrawStatus")
+    .textContent=
+      "DRAWING 1 / 20";
 
-        },180);
-
-}
-
-
-/* =========================================================
-   BINGO PROGRESSIVE DRAW
-========================================================= */
-
-function runBingoDraw(){
-
-    const balls =
-        document.querySelectorAll("#bingoDraw .draw-ball");
-
-    let i=0;
-
-    const timer =
-        setInterval(()=>{
-
-            if(i>=balls.length){
-
-                clearInterval(timer);
-
-                return;
-
-            }
-
-            balls[i].classList.add("current");
-
-            i++;
-
-        },250);
-
-}
-
-
-/* =========================================================
-   AVIATOR FLIGHT
-========================================================= */
-
-function runAviatorFlight(){
-
-    const plane =
-        document.querySelector(".live-plane");
-
-    const multiplier =
-        document.querySelector(".live-multiplier");
-
-    if(!plane || !multiplier){
-
-        return;
-
-    }
-
-    let value=1;
-
-    plane.style.animation=
-        "liveFlight 5s linear forwards";
-
-    const timer =
-        setInterval(()=>{
-
-            value += .05;
-
-            multiplier.textContent=
-                value.toFixed(2)+"x";
-
-        },100);
+  state.kenoDraw.forEach((n,i)=>{
 
     setTimeout(()=>{
 
-        clearInterval(timer);
+      const ball=
+        document.createElement("div");
 
-        multiplier.textContent=
-            value.toFixed(2)+"x";
+      ball.className="ball";
 
-    },5000);
+      ball.textContent=
+        String(n).padStart(2,"0");
+
+      balls.appendChild(ball);
+
+      const boardButtons=
+        document.querySelectorAll(".kenoNumber");
+
+      const target=
+        boardButtons[n-1];
+
+      target.classList.add("drawn");
+
+      if(state.selectedKeno.includes(n)){
+
+        target.classList.add("hit");
+
+      }
+
+      document
+        .getElementById("kenoDrawStatus")
+        .textContent=
+          `DRAWING ${i+1} / 20`;
+
+      if(i===19){
+
+        document
+          .getElementById("kenoDrawStatus")
+          .textContent=
+            "DRAW COMPLETE";
+
+        saveKenoHistory();
+
+      }
+
+    },i*450);
+
+  });
+
+}
+
+
+/* =========================================================
+   KENO HISTORY
+========================================================= */
+
+function saveKenoHistory(){
+
+  state.kenoHistory.unshift({
+
+    round:state.rounds.keno,
+
+    numbers:[...state.kenoDraw]
+
+  });
+
+  state.kenoHistory=
+    state.kenoHistory.slice(0,10);
+
+}
+
+
+/* =========================================================
+   BINGO
+========================================================= */
+
+function buildBingo(){
+
+  buildBingoAmounts();
+
+}
+
+
+/* =========================================================
+   BINGO AMOUNTS
+========================================================= */
+
+function buildBingoAmounts(){
+
+  const amounts=[
+    10,20,25,50,100,
+    150,200,250,300,400,
+    500
+  ];
+
+  const box=
+    document.getElementById("bingoAmounts");
+
+  box.innerHTML="";
+
+  amounts.forEach(amount=>{
+
+    const b=
+      document.createElement("button");
+
+    b.className="amountPreset";
+
+    b.textContent=
+      amount+" ETB";
+
+    b.onclick=()=>{
+
+      state.bingoAmounts[1]=amount;
+      state.bingoAmounts[2]=amount;
+
+      document
+        .getElementById("bingoAmount1")
+        .textContent=
+          amount+" ETB";
+
+      document
+        .getElementById("bingoAmount2")
+        .textContent=
+          amount+" ETB";
+
+      document
+        .querySelectorAll(".amountPreset")
+        .forEach(x=>
+          x.classList.remove("active")
+        );
+
+      b.classList.add("active");
+
+    };
+
+    box.appendChild(b);
+
+  });
+
+}
+
+
+/* =========================================================
+   CARTELA VALIDATION
+========================================================= */
+
+function validateCartela(slot){
+
+  const input=
+    document.getElementById(
+      "cartela"+slot
+    );
+
+  const feedback=
+    document.getElementById(
+      "cartelaFeedback"+slot
+    );
+
+  const value=
+    Number(input.value);
+
+  if(!Number.isInteger(value)){
+
+    feedback.textContent="";
+
+    state.bingoCartelas[slot]=null;
+
+    return;
+
+  }
+
+  if(value<1 || value>120){
+
+    feedback.textContent=
+      "❌ Invalid Cartela. Enter 1–120.";
+
+    feedback.className=
+      "cartelaFeedback invalid";
+
+    state.bingoCartelas[slot]=null;
+
+    return;
+
+  }
+
+  feedback.textContent=
+    "✓ Cartela "+value+" valid";
+
+  feedback.className=
+    "cartelaFeedback valid";
+
+  state.bingoCartelas[slot]=value;
+
+}
+
+
+/* =========================================================
+   BINGO BET
+========================================================= */
+
+function placeBingoBet(slot){
+
+  const cartela=
+    state.bingoCartelas[slot];
+
+  if(!cartela){
+
+    alert(
+      "Please enter a valid Cartela number from 1 to 120."
+    );
+
+    return;
+
+  }
+
+  const amount=
+    state.bingoAmounts[slot];
+
+  if(amount>state.balance){
+
+    alert("Insufficient demo balance.");
+
+    return;
+
+  }
+
+  state.balance-=amount;
+
+  updateBalance();
+
+  alert(
+    `Demo bet accepted.\nCartela ${cartela}\nAmount ${amount} ETB`
+  );
 
 }
 
@@ -1761,19 +2087,257 @@ function runAviatorFlight(){
    ROULETTE
 ========================================================= */
 
-function runRouletteSpin(){
+function buildRoulette(){
 
-    const wheel =
-        document.querySelector(".wheel");
+  const grid=
+    document.getElementById("rouletteGrid");
 
-    if(!wheel){
+  grid.innerHTML="";
 
-        return;
+  const zero=
+    document.createElement("button");
 
-    }
+  zero.className=
+    "rouletteNum green";
 
-    wheel.style.animation=
-        "wheelSpin 2s cubic-bezier(.15,.7,.2,1) forwards";
+  zero.textContent="0";
+
+  grid.appendChild(zero);
+
+  for(let n=1;n<=36;n++){
+
+    const b=
+      document.createElement("button");
+
+    const redNums=[
+      1,3,5,7,9,12,14,16,
+      18,19,21,23,25,27,
+      30,32,34,36
+    ];
+
+    b.className=
+      "rouletteNum "+
+      (redNums.includes(n)
+        ?"red"
+        :"black");
+
+    b.textContent=n;
+
+    grid.appendChild(b);
+
+  }
+
+}
+
+
+/* =========================================================
+   ROULETTE SPIN
+========================================================= */
+
+function spinRoulette(){
+
+  const winner=
+    Math.floor(
+      Math.random()*37
+    );
+
+  state.rouletteWinner=winner;
+
+  const wheel=
+    document.getElementById(
+      "rouletteWheel"
+    );
+
+  wheel.style.transform=
+    `rotate(${1440+
+      winner*9.73}deg)`;
+
+  setTimeout(()=>{
+
+    document
+      .getElementById("rouletteResult")
+      .textContent=
+        "RESULT: "+winner;
+
+    document
+      .querySelectorAll(".rouletteNum")
+      .forEach(b=>
+        b.classList.remove("winner")
+      );
+
+    const buttons=
+      document.querySelectorAll(
+        ".rouletteNum"
+      );
+
+    const index=
+      winner===0
+        ?0
+        :winner;
+
+    if(buttons[index])
+      buttons[index]
+        .classList.add("winner");
+
+  },4200);
+
+}
+
+
+/* =========================================================
+   AVIATOR
+========================================================= */
+
+function buildAviator(){
+
+  document
+    .getElementById("aviatorHistory")
+    .innerHTML=
+      state.aviatorHistory
+        .map(x=>
+          `<div class="mult">${x}</div>`
+        )
+        .join("");
+
+}
+
+
+/* =========================================================
+   AVIATOR DEMO FLIGHT
+========================================================= */
+
+function runAviator(){
+
+  let seconds=30;
+
+  const countdown=
+    document.getElementById(
+      "aviatorCountdown"
+    );
+
+  const multiplier=
+    document.getElementById(
+      "aviatorMultiplier"
+    );
+
+  const plane=
+    document.getElementById(
+      "plane"
+    );
+
+  const bettingTimer=
+    setInterval(()=>{
+
+      seconds--;
+
+      countdown.textContent=
+        "BETTING: "+seconds+"s";
+
+      if(seconds<=0){
+
+        clearInterval(bettingTimer);
+
+        startFlight();
+
+      }
+
+    },1000);
+
+}
+
+
+/* =========================================================
+   FLIGHT
+========================================================= */
+
+function startFlight(){
+
+  let value=1;
+
+  const multiplier=
+    document.getElementById(
+      "aviatorMultiplier"
+    );
+
+  const plane=
+    document.getElementById(
+      "plane"
+    );
+
+  const timer=
+    setInterval(()=>{
+
+      value+=0.03+
+        Math.random()*0.08;
+
+      multiplier.textContent=
+        value.toFixed(2)+"x";
+
+      plane.style.left=
+        Math.min(
+          85,
+          20+(value-1)*12
+        )+"%";
+
+      plane.style.bottom=
+        Math.min(
+          85,
+          30+(value-1)*8
+        )+"px";
+
+      if(value>=3.2){
+
+        clearInterval(timer);
+
+        state.aviatorHistory.unshift(
+          value.toFixed(2)+"x"
+        );
+
+        state.aviatorHistory=
+          state.aviatorHistory.slice(0,8);
+
+        buildAviator();
+
+      }
+
+    },300);
+
+}
+
+
+/* =========================================================
+   BET AMOUNT
+========================================================= */
+
+function changeAmount(id,delta){
+
+  const input=
+    document.getElementById(id);
+
+  let value=
+    Number(input.value)||0;
+
+  value+=delta;
+
+  if(value<1)
+    value=1;
+
+  input.value=value;
+
+}
+
+
+/* =========================================================
+   DEMO BET
+========================================================= */
+
+function placeDemoBet(slot){
+
+  alert(
+    "Demo mode: bet interface activated for Slot "+
+    slot+
+    ". No real money is wagered."
+  );
 
 }
 
@@ -1782,44 +2346,125 @@ function runRouletteSpin(){
    TABS
 ========================================================= */
 
-function selectTab(button,id){
+function showTab(tab){
 
-    button
-        .parentElement
-        .querySelectorAll(".tab")
-        .forEach(x=>x.classList.remove("active"));
+  document
+    .getElementById("tabMy")
+    .classList.toggle(
+      "active",
+      tab==="my"
+    );
 
-    button.classList.add("active");
+  document
+    .getElementById("tabLive")
+    .classList.toggle(
+      "active",
+      tab==="live"
+    );
 
-    document.getElementById("myBets")
-        .classList.add("hidden");
+  document
+    .getElementById("tabTop")
+    .classList.toggle(
+      "active",
+      tab==="top"
+    );
 
-    document.getElementById("topBets")
-        .classList.add("hidden");
+  const sub=
+    document.getElementById(
+      "topSubTabs"
+    );
 
-    document.getElementById(id)
-        .classList.remove("hidden");
+  sub.classList.toggle(
+    "hidden",
+    tab!=="top"
+  );
+
+  if(tab==="my"){
+
+    document
+      .getElementById("feedContent")
+      .innerHTML=
+        `<div class="feedRow">
+           <span>MY BETS</span>
+           <span>No active demo bets</span>
+         </div>`;
+
+  }
+
+  if(tab==="live"){
+
+    document
+      .getElementById("feedContent")
+      .innerHTML=
+        `
+        <div class="feedRow">
+          <span>DemoPlayer21</span>
+          <span>50 ETB</span>
+        </div>
+
+        <div class="feedRow">
+          <span>DemoPlayer08</span>
+          <span>100 ETB</span>
+        </div>
+
+        <div class="feedRow">
+          <span>DemoPlayer44</span>
+          <span>20 ETB</span>
+        </div>
+        `;
+
+  }
+
+  if(tab==="top"){
+
+    showTop("daily",
+      document.querySelector(
+        ".subTabs button"
+      )
+    );
+
+  }
 
 }
 
 
-function selectWinTab(button,id){
+/* =========================================================
+   TOP
+========================================================= */
 
-    button
-        .parentElement
-        .querySelectorAll(".tab")
-        .forEach(x=>x.classList.remove("active"));
+function showTop(period,button){
 
+  document
+    .querySelectorAll(".subTabs button")
+    .forEach(b=>
+      b.classList.remove("active")
+    );
+
+  if(button)
     button.classList.add("active");
 
-    ["dailyWins","weeklyWins","monthlyWins"]
-        .forEach(x=>
-            document.getElementById(x)
-                .classList.add("hidden")
-        );
+  const names=[
+    "DemoWinner",
+    "LuckyPlayer",
+    "GoldenStar",
+    "RedLion",
+    "Player007"
+  ];
 
-    document.getElementById(id)
-        .classList.remove("hidden");
+  document
+    .getElementById("feedContent")
+    .innerHTML=
+      names.map(
+        (name,i)=>
+        `
+        <div class="feedRow">
+          <span>${i+1}. ${name}</span>
+          <span class="win">
+            ${period.toUpperCase()}
+          </span>
+        </div>
+        `
+      ).join("");
 
 }
 
@@ -1828,161 +2473,247 @@ function selectWinTab(button,id){
    HELP
 ========================================================= */
 
-function showHelp(){
+function openHelp(){
 
-    const title =
-        document.getElementById("helpTitle");
+  const title=
+    document.getElementById(
+      "helpTitle"
+    );
 
-    const text =
-        document.getElementById("helpText");
+  const content=
+    document.getElementById(
+      "helpContent"
+    );
 
-    const help={
+  const help={
 
-        aviator:`
-            <b>How to play Aviator</b><br><br>
-            Enter your bet amount and press PLACE BET.
-            Your bet is queued for the next round.
-            During the flight, the multiplier rises.
-            Cash out before the flight ends to win.
-            <br><br>
-            <b>Withdrawal</b><br>
-            Withdrawals are handled through the available
-            payment methods in your account.
-        `,
+    keno:{
+      title:"How to Play Keno",
+      html:`
+        <h3>Choose numbers</h3>
+        <p>
+          Select 1–10 numbers from the 1–80 board.
+          The game draws 20 numbers.
+        </p>
 
-        keno:`
-            <b>How to play Keno</b><br><br>
-            Choose your numbers and select your stake.
-            The numbers are drawn progressively.
-            Matching numbers determine the result and
-            the applicable displayed odds.
-            <br><br>
-            <b>Withdrawal</b><br>
-            Withdrawals are handled through the available
-            payment methods in your account.
-        `,
+        <h3>Drawing</h3>
+        <p>
+          The numbers appear progressively as balls.
+          Matching your selected numbers are highlighted.
+        </p>
 
-        bingo:`
-            <b>How to play Bingo</b><br><br>
-            Select your Cartela and stake.
-            Watch the numbers being drawn.
-            If your Cartela satisfies the winning pattern,
-            the result will be shown.
-            <br><br>
-            <b>Withdrawal</b><br>
-            Withdrawals are handled through the available
-            payment methods in your account.
-        `,
+        <h3>Results</h3>
+        <p>
+          The completed round displays its 20 drawn numbers,
+          and previous rounds can be reviewed.
+        </p>
+      `
+    },
 
-        roulette:`
-            <b>How to play Roulette</b><br><br>
-            Select your bet and stake.
-            The wheel spins and stops on a number.
-            The displayed odds determine the applicable
-            payout for the selected bet.
-            <br><br>
-            <b>Withdrawal</b><br>
-            Withdrawals are handled through the available
-            payment methods in your account.
-        `
+    bingo:{
+      title:"How to Play Bingo",
+      html:`
+        <h3>Choose a Cartela</h3>
+        <p>
+          Each slot has its own Cartela number.
+          Valid Cartela numbers are 1–120.
+        </p>
 
-    };
+        <h3>Two Cartelas</h3>
+        <p>
+          You may use Slot 1, Slot 2, or both.
+          Each slot is independent.
+        </p>
 
-    title.textContent=
-        GAME_CONFIG[currentGame].title+
-        " — HOW TO PLAY";
+        <h3>Bet amount</h3>
+        <p>
+          Select one of the available preset demo amounts.
+        </p>
 
-    text.innerHTML=
-        help[currentGame];
+        <h3>Draw</h3>
+        <p>
+          Numbers are drawn progressively.
+          A winning Cartela is identified by its Cartela number.
+        </p>
+      `
+    },
 
-    document.getElementById("helpModal")
-        .classList.add("active");
+    roulette:{
+      title:"How to Play Roulette",
+      html:`
+        <h3>Choose a bet</h3>
+        <p>
+          Select a number or available color area.
+        </p>
+
+        <h3>Spin</h3>
+        <p>
+          The wheel spins and stops on a result.
+          The winning number is highlighted.
+        </p>
+
+        <h3>Result</h3>
+        <p>
+          The result displays the winning number and its color.
+        </p>
+      `
+    },
+
+    aviator:{
+      title:"How to Play Aviator",
+      html:`
+        <h3>Betting period</h3>
+        <p>
+          The demo displays a 30-second betting countdown.
+        </p>
+
+        <h3>Flight</h3>
+        <p>
+          The plane flies while the multiplier increases.
+        </p>
+
+        <h3>Cash Out</h3>
+        <p>
+          A real-money implementation would require a
+          properly regulated backend and verified game rules.
+          This interface is demo-only.
+        </p>
+
+        <h3>Previous rounds</h3>
+        <p>
+          Previous multipliers are displayed above the flight.
+        </p>
+      `
+    }
+
+  };
+
+  title.textContent=
+    help[state.game].title;
+
+  content.innerHTML=
+    help[state.game].html;
+
+  document
+    .getElementById("helpOverlay")
+    .classList.remove("hidden");
 
 }
 
 
 function closeHelp(){
 
-    document.getElementById("helpModal")
-        .classList.remove("active");
+  document
+    .getElementById("helpOverlay")
+    .classList.add("hidden");
 
 }
 
 
 /* =========================================================
-   LANGUAGE
-   ONLY HOME HEADER
+   DEMO ROUND LOOP
 ========================================================= */
 
-document.getElementById("langEN")
-    .onclick=()=>{
+function advanceRound(){
 
-        document.getElementById("langEN")
-            .classList.add("active");
+  state.rounds[state.game]++;
 
-        document.getElementById("langAM")
-            .classList.remove("active");
+  updateRound();
 
-    };
+  if(state.game==="keno"){
 
+    state.selectedKeno=[];
 
-document.getElementById("langAM")
-    .onclick=()=>{
+    document
+      .querySelectorAll(".kenoNumber")
+      .forEach(b=>{
+        b.classList.remove(
+          "selected",
+          "drawn",
+          "hit"
+        );
+      });
 
-        document.getElementById("langAM")
-            .classList.add("active");
+    document
+      .getElementById("kenoDrawBalls")
+      .innerHTML="";
 
-        document.getElementById("langEN")
-            .classList.remove("active");
+    document
+      .getElementById("kenoDrawStatus")
+      .textContent=
+        "BETTING OPEN";
 
-    };
-
-
-/* =========================================================
-   ACCOUNT / WALLET PLACEHOLDERS
-========================================================= */
-
-function showMyAccount(){
-
-    alert(
-        "Account section will connect to the backend."
+    setTimeout(
+      runKenoDraw,
+      5000
     );
 
-}
+  }
 
+  if(state.game==="roulette"){
 
-function showWallet(){
+    document
+      .getElementById("rouletteResult")
+      .textContent=
+        "BETTING OPEN";
 
-    alert(
-        "Wallet and payment verification will connect to the backend."
+    setTimeout(
+      spinRoulette,
+      5000
     );
+
+  }
+
+  if(state.game==="aviator"){
+
+    document
+      .getElementById("aviatorMultiplier")
+      .textContent=
+        "1.00x";
+
+    runAviator();
+
+  }
 
 }
 
 
 /* =========================================================
-   INITIAL STATE
+   START
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded",()=>{
+updateBalance();
 
-    /*
-     * IMPORTANT:
-     * We intentionally DO NOT have a function here
-     * that randomly assigns animations to cards.
-     *
-     * Each card's animation is physically defined
-     * inside its own card:
-     *
-     * aviator -> aviator-scene
-     * keno    -> keno-scene
-     * bingo   -> bingo-scene
-     * roulette-> roulette-scene
-     *
-     * Therefore they cannot interchange.
-     */
+buildKeno();
 
-});
+buildBingo();
 
-</script></body>
+buildRoulette();
+
+buildAviator();
+
+showTab("my");
+
+
+/* Start a continuous DEMO cycle.
+   The production server should replace this
+   with authoritative backend state. */
+
+setInterval(()=>{
+
+  if(
+    document
+      .getElementById("gameScreen")
+      .style.display==="block"
+  ){
+
+    advanceRound();
+
+  }
+
+},35000);
+
+</script>
+
+</body>
 </html>
