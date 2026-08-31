@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport"
       content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DESTA PLAY — Demo</title>
+<title>DESTA PLAY</title>
 
 <style>
 :root{
@@ -68,14 +68,6 @@ button{
   font-weight:900;
   color:var(--gold);
   letter-spacing:1px;
-}
-
-.demoBadge{
-  font-size:10px;
-  padding:5px 8px;
-  border:1px solid #e8aa00;
-  border-radius:8px;
-  color:#ffd45b;
 }
 
 .languageBox{
@@ -466,6 +458,104 @@ button{
 }
 
 /* ================= KENO ================= */
+
+.kenoSelectionPanel{
+  padding:8px;
+  background:#100707;
+  border-bottom:1px solid #402020;
+}
+
+.kenoSlotSelections{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+
+.kenoChosenBox{
+  min-height:55px;
+  background:linear-gradient(145deg,#251010,#111);
+  border:1px solid #702222;
+  border-radius:10px;
+  padding:7px;
+}
+
+.kenoChosenTitle{
+  color:var(--gold);
+  font-size:10px;
+  font-weight:900;
+  text-align:center;
+  margin-bottom:5px;
+}
+
+.kenoChosenNumbers{
+  min-height:27px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:3px;
+}
+
+.chosenBall{
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(145deg,#ffd43b,#bd7600);
+  color:#150900;
+  border:1px solid #ffe67d;
+  font-size:9px;
+  font-weight:900;
+}
+
+.noChosen{
+  color:#777;
+  font-size:9px;
+  padding:6px;
+}
+
+.spotTitle{
+  text-align:center;
+  color:#ffd43b;
+  font-size:10px;
+  font-weight:900;
+  padding:7px 0 4px;
+}
+
+.spotSelector{
+  display:grid;
+  grid-template-columns:repeat(9,1fr);
+  gap:3px;
+  padding:4px 0 2px;
+}
+
+.spotButton{
+  border:1px solid #6e2020;
+  background:#220b0b;
+  color:#ddd;
+  border-radius:6px;
+  min-height:29px;
+  font-size:9px;
+  font-weight:900;
+}
+
+.spotButton.active{
+  background:linear-gradient(180deg,#ffcf3b,#bd7900);
+  color:#190900;
+  border-color:#ffd95a;
+}
+
+.spotButton.disabledSpot{
+  opacity:.42;
+}
+
+.activeSlotLabel{
+  text-align:center;
+  color:#aaa;
+  font-size:9px;
+  padding-top:3px;
+}
 
 .kenoBoard{
   padding:8px;
@@ -909,6 +999,7 @@ button{
 /* ================= RESPONSIVE ================= */
 
 @media(max-width:360px){
+
   .gameGrid{
     gap:7px;
     padding:7px;
@@ -938,27 +1029,32 @@ button{
   .amountControl button{
     font-size:11px;
   }
+
+  .spotSelector{
+    gap:2px;
+  }
+
+  .spotButton{
+    font-size:8px;
+  }
+
 }
 </style>
 </head>
 
 <body>
 
-<!-- ======================================================
-     HOME
-====================================================== -->
-
 <section id="home">
 
   <div class="homeHeader">
     <div class="logo">DESTA PLAY</div>
-    <div class="demoBadge">DEMO CREDITS</div>
   </div>
 
   <div class="languageBox">
     <button id="langEN" class="active" onclick="setLanguage('en')">
       English
     </button>
+
     <button id="langAM" onclick="setLanguage('am')">
       አማርኛ
     </button>
@@ -966,7 +1062,6 @@ button{
 
   <div class="gameGrid">
 
-    <!-- AVIATOR -->
     <div class="gameCard">
       <h3>AVIATOR</h3>
 
@@ -975,13 +1070,13 @@ button{
       </div>
 
       <small>Fly • Cash Out</small>
+
       <button class="gameOpen"
               onclick="openGame('aviator')">
         PLAY
       </button>
     </div>
 
-    <!-- BINGO -->
     <div class="gameCard">
       <h3>BINGO</h3>
 
@@ -993,13 +1088,13 @@ button{
       </div>
 
       <small>Cartela • Draw</small>
+
       <button class="gameOpen"
               onclick="openGame('bingo')">
         PLAY
       </button>
     </div>
 
-    <!-- KENO -->
     <div class="gameCard">
       <h3>KENO</h3>
 
@@ -1012,19 +1107,20 @@ button{
       </div>
 
       <small>1–80 • 20 Draw</small>
+
       <button class="gameOpen"
               onclick="openGame('keno')">
         PLAY
       </button>
     </div>
 
-    <!-- ROULETTE -->
     <div class="gameCard">
       <h3>ROULETTE</h3>
 
       <div class="rouletteHome"></div>
 
       <small>Spin • Number • Color</small>
+
       <button class="gameOpen"
               onclick="openGame('roulette')">
         PLAY
@@ -1035,10 +1131,6 @@ button{
 </section>
 
 
-<!-- ======================================================
-     GAME SCREEN
-====================================================== -->
-
 <section id="gameScreen">
 
   <header class="gameHeader">
@@ -1048,6 +1140,7 @@ button{
     </div>
 
     <div class="headerRight">
+
       <div class="balance">
         💰 <span id="balance">1000.00</span> ETB
       </div>
@@ -1056,6 +1149,7 @@ button{
               onclick="openHelp()">
         ?
       </button>
+
     </div>
 
   </header>
@@ -1067,7 +1161,8 @@ button{
 
   <main class="gameArea">
 
-    <!-- KENO -->
+    <!-- ================= KENO ================= -->
+
     <div id="kenoGame" class="hidden">
 
       <div class="drawStatus">
@@ -1076,8 +1171,65 @@ button{
         </span>
       </div>
 
+      <!-- NEW: SELECTED NUMBERS UNDER KENO TITLE -->
+
+      <div class="kenoSelectionPanel">
+
+        <div class="kenoSlotSelections">
+
+          <div class="kenoChosenBox">
+
+            <div class="kenoChosenTitle">
+              SLOT 1
+            </div>
+
+            <div id="kenoChosen1"
+                 class="kenoChosenNumbers">
+              <span class="noChosen">
+                Choose numbers
+              </span>
+            </div>
+
+          </div>
+
+          <div class="kenoChosenBox">
+
+            <div class="kenoChosenTitle">
+              SLOT 2
+            </div>
+
+            <div id="kenoChosen2"
+                 class="kenoChosenNumbers">
+              <span class="noChosen">
+                Choose numbers
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- NEW: 1–18 SPOT SELECTOR -->
+
+        <div class="spotTitle">
+          NUMBER OF CHOSEN NUMBERS
+        </div>
+
+        <div class="spotSelector"
+             id="spotSelector">
+
+        </div>
+
+        <div class="activeSlotLabel"
+             id="activeSlotLabel">
+          SLOT 1 ACTIVE
+        </div>
+
+      </div>
+
       <div class="kenoBoard"
-           id="kenoBoard"></div>
+           id="kenoBoard">
+      </div>
 
       <div class="drawStatus"
            id="kenoDrawStatus">
@@ -1085,15 +1237,22 @@ button{
       </div>
 
       <div class="drawBalls"
-           id="kenoDrawBalls"></div>
+           id="kenoDrawBalls">
+      </div>
 
       <div class="betSlots">
 
         <div class="betSlot">
-          <div class="slotTitle">SLOT 1</div>
+
+          <div class="slotTitle">
+            SLOT 1
+          </div>
 
           <div class="amountControl">
-            <button onclick="changeAmount('k1',-10)">−</button>
+
+            <button onclick="changeAmount('k1',-10)">
+              −
+            </button>
 
             <input id="k1"
                    type="number"
@@ -1101,20 +1260,32 @@ button{
                    min="1"
                    inputmode="decimal">
 
-            <button onclick="changeAmount('k1',10)">+</button>
+            <button onclick="changeAmount('k1',10)">
+              +
+            </button>
+
           </div>
 
-          <button class="placeBtn"
-                  onclick="placeDemoBet(1)">
+          <button id="kenoPlace1"
+                  class="placeBtn"
+                  onclick="placeKenoBet(1)">
             PLACE BET
           </button>
+
         </div>
 
+
         <div class="betSlot">
-          <div class="slotTitle">SLOT 2</div>
+
+          <div class="slotTitle">
+            SLOT 2
+          </div>
 
           <div class="amountControl">
-            <button onclick="changeAmount('k2',-10)">−</button>
+
+            <button onclick="changeAmount('k2',-10)">
+              −
+            </button>
 
             <input id="k2"
                    type="number"
@@ -1122,33 +1293,46 @@ button{
                    min="1"
                    inputmode="decimal">
 
-            <button onclick="changeAmount('k2',10)">+</button>
+            <button onclick="changeAmount('k2',10)">
+              +
+            </button>
+
           </div>
 
-          <button class="placeBtn"
-                  onclick="placeDemoBet(2)">
+          <button id="kenoPlace2"
+                  class="placeBtn"
+                  onclick="placeKenoBet(2)">
             PLACE BET
           </button>
+
         </div>
 
       </div>
 
       <div class="feed">
+
         <div class="feedRow">
-          <span>Selected</span>
-          <span id="kenoSelected">0 / 10</span>
+          <span>Slot 1 selected</span>
+          <span id="kenoSelected1">0 / 10</span>
+        </div>
+
+        <div class="feedRow">
+          <span>Slot 2 selected</span>
+          <span id="kenoSelected2">0 / 10</span>
         </div>
 
         <div class="feedRow">
           <span>Current catches</span>
           <span id="kenoCatches">0</span>
         </div>
+
       </div>
 
     </div>
 
 
-    <!-- BINGO -->
+    <!-- ================= BINGO ================= -->
+
     <div id="bingoGame" class="hidden">
 
       <div class="bingoAnimation">
@@ -1185,6 +1369,7 @@ button{
       <div class="cartelaInputs">
 
         <div class="cartelaBox">
+
           <input id="cartela1"
                  type="number"
                  min="1"
@@ -1195,9 +1380,11 @@ button{
           <div id="cartelaFeedback1"
                class="cartelaFeedback">
           </div>
+
         </div>
 
         <div class="cartelaBox">
+
           <input id="cartela2"
                  type="number"
                  min="1"
@@ -1208,21 +1395,24 @@ button{
           <div id="cartelaFeedback2"
                class="cartelaFeedback">
           </div>
+
         </div>
 
       </div>
 
       <div class="slotTitle"
            style="padding-top:4px">
-        BINGO DEMO BET AMOUNT
+        BINGO BET AMOUNT
       </div>
 
       <div class="amountGrid"
-           id="bingoAmounts"></div>
+           id="bingoAmounts">
+      </div>
 
       <div class="betSlots">
 
         <div class="betSlot">
+
           <div class="slotTitle">
             CARTELA 1 BET
           </div>
@@ -1236,9 +1426,11 @@ button{
                   onclick="placeBingoBet(1)">
             PLACE BET
           </button>
+
         </div>
 
         <div class="betSlot">
+
           <div class="slotTitle">
             CARTELA 2 BET
           </div>
@@ -1252,6 +1444,7 @@ button{
                   onclick="placeBingoBet(2)">
             PLACE BET
           </button>
+
         </div>
 
       </div>
@@ -1259,7 +1452,8 @@ button{
     </div>
 
 
-    <!-- ROULETTE -->
+    <!-- ================= ROULETTE ================= -->
+
     <div id="rouletteGame" class="hidden">
 
       <div class="countdown"
@@ -1270,7 +1464,8 @@ button{
       <div class="rouletteArea">
 
         <div class="rouletteWheel"
-             id="rouletteWheel"></div>
+             id="rouletteWheel">
+        </div>
 
         <div class="rouletteResult"
              id="rouletteResult">
@@ -1280,15 +1475,22 @@ button{
       </div>
 
       <div class="rouletteGrid"
-           id="rouletteGrid"></div>
+           id="rouletteGrid">
+      </div>
 
       <div class="betSlots">
 
         <div class="betSlot">
-          <div class="slotTitle">SLOT 1</div>
+
+          <div class="slotTitle">
+            SLOT 1
+          </div>
 
           <div class="amountControl">
-            <button onclick="changeAmount('r1',-10)">−</button>
+
+            <button onclick="changeAmount('r1',-10)">
+              −
+            </button>
 
             <input id="r1"
                    type="number"
@@ -1296,20 +1498,30 @@ button{
                    min="1"
                    inputmode="decimal">
 
-            <button onclick="changeAmount('r1',10)">+</button>
+            <button onclick="changeAmount('r1',10)">
+              +
+            </button>
+
           </div>
 
           <button class="placeBtn"
-                  onclick="placeDemoBet(1)">
+                  onclick="placeBet(1)">
             PLACE BET
           </button>
+
         </div>
 
         <div class="betSlot">
-          <div class="slotTitle">SLOT 2</div>
+
+          <div class="slotTitle">
+            SLOT 2
+          </div>
 
           <div class="amountControl">
-            <button onclick="changeAmount('r2',-10)">−</button>
+
+            <button onclick="changeAmount('r2',-10)">
+              −
+            </button>
 
             <input id="r2"
                    type="number"
@@ -1317,13 +1529,17 @@ button{
                    min="1"
                    inputmode="decimal">
 
-            <button onclick="changeAmount('r2',10)">+</button>
+            <button onclick="changeAmount('r2',10)">
+              +
+            </button>
+
           </div>
 
           <button class="placeBtn"
-                  onclick="placeDemoBet(2)">
+                  onclick="placeBet(2)">
             PLACE BET
           </button>
+
         </div>
 
       </div>
@@ -1331,11 +1547,13 @@ button{
     </div>
 
 
-    <!-- AVIATOR -->
+    <!-- ================= AVIATOR ================= -->
+
     <div id="aviatorGame" class="hidden">
 
       <div class="aviatorHistory"
-           id="aviatorHistory"></div>
+           id="aviatorHistory">
+      </div>
 
       <div class="countdown"
            id="aviatorCountdown">
@@ -1387,7 +1605,7 @@ button{
           </div>
 
           <button class="placeBtn"
-                  onclick="placeDemoBet(1)">
+                  onclick="placeBet(1)">
             PLACE BET
           </button>
 
@@ -1418,7 +1636,7 @@ button{
           </div>
 
           <button class="placeBtn"
-                  onclick="placeDemoBet(2)">
+                  onclick="placeBet(2)">
             PLACE BET
           </button>
 
@@ -1430,8 +1648,6 @@ button{
 
   </main>
 
-
-  <!-- COMMON TABS -->
 
   <div class="mainTabs">
 
@@ -1494,9 +1710,7 @@ button{
 </section>
 
 
-<!-- ======================================================
-     HELP
-====================================================== -->
+<!-- ================= HELP ================= -->
 
 <div id="helpOverlay"
      class="helpOverlay hidden">
@@ -1521,12 +1735,7 @@ button{
 
 <script>
 
-/* =========================================================
-   DEMO STATE
-   No real-money wagering or payment processing.
-========================================================= */
-
-const state = {
+const state={
 
   language:"en",
 
@@ -1541,7 +1750,22 @@ const state = {
     aviator:1
   },
 
-  selectedKeno:[],
+  activeKenoSlot:1,
+
+  kenoSpots:{
+    1:1,
+    2:1
+  },
+
+  selectedKeno:{
+    1:[],
+    2:[]
+  },
+
+  kenoBets:{
+    1:false,
+    2:false
+  },
 
   kenoDraw:[],
 
@@ -1572,9 +1796,7 @@ const state = {
 };
 
 
-/* =========================================================
-   LANGUAGE
-========================================================= */
+/* ================= LANGUAGE ================= */
 
 function setLanguage(lang){
 
@@ -1591,9 +1813,7 @@ function setLanguage(lang){
 }
 
 
-/* =========================================================
-   ROUND FORMAT
-========================================================= */
+/* ================= ROUND ================= */
 
 function roundText(n){
 
@@ -1601,10 +1821,17 @@ function roundText(n){
 
 }
 
+function updateRound(){
 
-/* =========================================================
-   OPEN GAME
-========================================================= */
+  document
+    .getElementById("roundNumber")
+    .textContent=
+      roundText(state.rounds[state.game]);
+
+}
+
+
+/* ================= OPEN GAME ================= */
 
 function openGame(game){
 
@@ -1620,8 +1847,7 @@ function openGame(game){
 
   document
     .getElementById("gameTitle")
-    .textContent=
-      game.toUpperCase();
+    .textContent=game.toUpperCase();
 
   updateRound();
 
@@ -1638,9 +1864,7 @@ function openGame(game){
 }
 
 
-/* =========================================================
-   HOME
-========================================================= */
+/* ================= HOME ================= */
 
 function goHome(){
 
@@ -1655,9 +1879,7 @@ function goHome(){
 }
 
 
-/* =========================================================
-   HIDE GAMES
-========================================================= */
+/* ================= HIDE GAMES ================= */
 
 function hideAllGames(){
 
@@ -1677,9 +1899,7 @@ function hideAllGames(){
 }
 
 
-/* =========================================================
-   BUILD GAME
-========================================================= */
+/* ================= BUILD GAME ================= */
 
 function buildGame(){
 
@@ -1698,25 +1918,7 @@ function buildGame(){
 }
 
 
-/* =========================================================
-   ROUND DISPLAY
-========================================================= */
-
-function updateRound(){
-
-  document
-    .getElementById("roundNumber")
-    .textContent=
-      roundText(
-        state.rounds[state.game]
-      );
-
-}
-
-
-/* =========================================================
-   BALANCE
-========================================================= */
+/* ================= BALANCE ================= */
 
 function updateBalance(){
 
@@ -1728,9 +1930,7 @@ function updateBalance(){
 }
 
 
-/* =========================================================
-   KENO BOARD
-========================================================= */
+/* ================= KENO ================= */
 
 function buildKeno(){
 
@@ -1755,36 +1955,137 @@ function buildKeno(){
 
   }
 
+  buildSpotSelector();
+
   updateKenoSelection();
 
 }
 
 
-/* =========================================================
-   KENO SELECT
-========================================================= */
+/* ================= KENO SPOT SELECTOR ================= */
+
+function buildSpotSelector(){
+
+  const box=
+    document.getElementById("spotSelector");
+
+  box.innerHTML="";
+
+  for(let n=1;n<=18;n++){
+
+    const button=
+      document.createElement("button");
+
+    button.className="spotButton";
+
+    button.textContent=n;
+
+    if(n>10){
+
+      button.classList.add("disabledSpot");
+
+      button.title=
+        "Maximum 10 selected numbers";
+
+    }else{
+
+      button.onclick=()=>{
+        chooseKenoSpot(n);
+      };
+
+    }
+
+    if(
+      n===state.kenoSpots[state.activeKenoSlot]
+    ){
+      button.classList.add("active");
+    }
+
+    box.appendChild(button);
+
+  }
+
+  document
+    .getElementById("activeSlotLabel")
+    .textContent=
+      "SLOT "+
+      state.activeKenoSlot+
+      " ACTIVE";
+
+}
+
+
+/* ================= CHOOSE KENO SPOTS ================= */
+
+function chooseKenoSpot(count){
+
+  if(count<1 || count>10)
+    return;
+
+  state.kenoSpots[
+    state.activeKenoSlot
+  ]=count;
+
+  const selected=
+    state.selectedKeno[
+      state.activeKenoSlot
+    ];
+
+  if(selected.length>count){
+
+    state.selectedKeno[
+      state.activeKenoSlot
+    ]=selected.slice(0,count);
+
+  }
+
+  buildSpotSelector();
+
+  updateKenoSelection();
+
+  refreshKenoBoard();
+
+}
+
+
+/* ================= KENO SELECT ================= */
 
 function selectKeno(n,button){
 
+  if(
+    state.kenoBets[
+      state.activeKenoSlot
+    ]
+  ){
+    return;
+  }
+
+  const slot=
+    state.activeKenoSlot;
+
+  const selected=
+    state.selectedKeno[slot];
+
   const index=
-    state.selectedKeno.indexOf(n);
+    selected.indexOf(n);
 
   if(index>=0){
 
-    state.selectedKeno.splice(index,1);
+    selected.splice(index,1);
 
     button.classList.remove("selected");
 
   }else{
 
-    if(state.selectedKeno.length>=10){
+    const maximum=
+      state.kenoSpots[slot];
 
-      alert("Maximum 10 numbers.");
+    if(selected.length>=maximum){
 
       return;
     }
 
-    state.selectedKeno.push(n);
+    selected.push(n);
 
     button.classList.add("selected");
 
@@ -1795,24 +2096,192 @@ function selectKeno(n,button){
 }
 
 
-/* =========================================================
-   KENO SELECTION
-========================================================= */
+/* ================= KENO BOARD REFRESH ================= */
 
-function updateKenoSelection(){
+function refreshKenoBoard(){
 
-  document
-    .getElementById("kenoSelected")
-    .textContent=
-      state.selectedKeno.length+
-      " / 10";
+  const buttons=
+    document.querySelectorAll(".kenoNumber");
+
+  buttons.forEach((button,index)=>{
+
+    const n=index+1;
+
+    button.classList.remove("selected");
+
+    if(
+      state.selectedKeno[1].includes(n) ||
+      state.selectedKeno[2].includes(n)
+    ){
+
+      button.classList.add("selected");
+
+    }
+
+  });
 
 }
 
 
-/* =========================================================
-   KENO DRAW
-========================================================= */
+/* ================= KENO SELECTED DISPLAY ================= */
+
+function renderChosenNumbers(slot){
+
+  const box=
+    document.getElementById(
+      "kenoChosen"+slot
+    );
+
+  const selected=
+    state.selectedKeno[slot];
+
+  box.innerHTML="";
+
+  if(selected.length===0){
+
+    box.innerHTML=
+      `<span class="noChosen">
+        Choose numbers
+       </span>`;
+
+    return;
+
+  }
+
+  selected
+    .slice()
+    .sort((a,b)=>a-b)
+    .forEach(n=>{
+
+      const ball=
+        document.createElement("span");
+
+      ball.className="chosenBall";
+
+      ball.textContent=
+        String(n).padStart(2,"0");
+
+      box.appendChild(ball);
+
+    });
+
+}
+
+
+/* ================= KENO COUNTER ================= */
+
+function updateKenoSelection(){
+
+  const s1=
+    state.selectedKeno[1].length;
+
+  const s2=
+    state.selectedKeno[2].length;
+
+  document
+    .getElementById("kenoSelected1")
+    .textContent=
+      s1+" / "+
+      state.kenoSpots[1];
+
+  document
+    .getElementById("kenoSelected2")
+    .textContent=
+      s2+" / "+
+      state.kenoSpots[2];
+
+  renderChosenNumbers(1);
+
+  renderChosenNumbers(2);
+
+  refreshKenoBoard();
+
+}
+
+
+/* ================= KENO SLOT SWITCH ================= */
+
+function activateKenoSlot(slot){
+
+  state.activeKenoSlot=slot;
+
+  buildSpotSelector();
+
+  refreshKenoBoard();
+
+}
+
+
+/* ================= KENO BET ================= */
+
+function placeKenoBet(slot){
+
+  const selected=
+    state.selectedKeno[slot];
+
+  const required=
+    state.kenoSpots[slot];
+
+  if(selected.length!==required){
+
+    alert(
+      "Select exactly "+
+      required+
+      " number"+
+      (required===1?"":"s")+
+      " for Slot "+slot+"."
+    );
+
+    activateKenoSlot(slot);
+
+    return;
+
+  }
+
+  const input=
+    document.getElementById("k"+slot);
+
+  const amount=
+    Number(input.value)||0;
+
+  if(amount<1){
+
+    alert("Enter a valid amount.");
+
+    return;
+
+  }
+
+  if(amount>state.balance){
+
+    alert("Insufficient balance.");
+
+    return;
+
+  }
+
+  state.balance-=amount;
+
+  state.kenoBets[slot]=true;
+
+  updateBalance();
+
+  const button=
+    document.getElementById(
+      "kenoPlace"+slot
+    );
+
+  button.textContent=
+    "WAITING FOR NEXT ROUND";
+
+  button.classList.add("waiting");
+
+  button.disabled=true;
+
+}
+
+
+/* ================= KENO DRAW ================= */
 
 function runKenoDraw(){
 
@@ -1838,7 +2307,9 @@ function runKenoDraw(){
   }
 
   const balls=
-    document.getElementById("kenoDrawBalls");
+    document.getElementById(
+      "kenoDrawBalls"
+    );
 
   balls.innerHTML="";
 
@@ -1862,16 +2333,25 @@ function runKenoDraw(){
       balls.appendChild(ball);
 
       const boardButtons=
-        document.querySelectorAll(".kenoNumber");
+        document.querySelectorAll(
+          ".kenoNumber"
+        );
 
       const target=
         boardButtons[n-1];
 
-      target.classList.add("drawn");
+      if(target){
 
-      if(state.selectedKeno.includes(n)){
+        target.classList.add("drawn");
 
-        target.classList.add("hit");
+        if(
+          state.selectedKeno[1].includes(n) ||
+          state.selectedKeno[2].includes(n)
+        ){
+
+          target.classList.add("hit");
+
+        }
 
       }
 
@@ -1898,9 +2378,7 @@ function runKenoDraw(){
 }
 
 
-/* =========================================================
-   KENO HISTORY
-========================================================= */
+/* ================= KENO HISTORY ================= */
 
 function saveKenoHistory(){
 
@@ -1918,9 +2396,7 @@ function saveKenoHistory(){
 }
 
 
-/* =========================================================
-   BINGO
-========================================================= */
+/* ================= BINGO ================= */
 
 function buildBingo(){
 
@@ -1929,9 +2405,7 @@ function buildBingo(){
 }
 
 
-/* =========================================================
-   BINGO AMOUNTS
-========================================================= */
+/* ================= BINGO AMOUNTS ================= */
 
 function buildBingoAmounts(){
 
@@ -1988,9 +2462,7 @@ function buildBingoAmounts(){
 }
 
 
-/* =========================================================
-   CARTELA VALIDATION
-========================================================= */
+/* ================= CARTELA ================= */
 
 function validateCartela(slot){
 
@@ -2032,7 +2504,7 @@ function validateCartela(slot){
   }
 
   feedback.textContent=
-    "✓ Cartela "+value+" valid";
+    "✓ Cartela "+value+" selected";
 
   feedback.className=
     "cartelaFeedback valid";
@@ -2042,9 +2514,7 @@ function validateCartela(slot){
 }
 
 
-/* =========================================================
-   BINGO BET
-========================================================= */
+/* ================= BINGO BET ================= */
 
 function placeBingoBet(slot){
 
@@ -2066,7 +2536,7 @@ function placeBingoBet(slot){
 
   if(amount>state.balance){
 
-    alert("Insufficient demo balance.");
+    alert("Insufficient balance.");
 
     return;
 
@@ -2077,15 +2547,15 @@ function placeBingoBet(slot){
   updateBalance();
 
   alert(
-    `Demo bet accepted.\nCartela ${cartela}\nAmount ${amount} ETB`
+    "Cartela "+
+    cartela+
+    " accepted for the next round."
   );
 
 }
 
 
-/* =========================================================
-   ROULETTE
-========================================================= */
+/* ================= ROULETTE ================= */
 
 function buildRoulette(){
 
@@ -2117,9 +2587,11 @@ function buildRoulette(){
 
     b.className=
       "rouletteNum "+
-      (redNums.includes(n)
-        ?"red"
-        :"black");
+      (
+        redNums.includes(n)
+          ?"red"
+          :"black"
+      );
 
     b.textContent=n;
 
@@ -2130,9 +2602,7 @@ function buildRoulette(){
 }
 
 
-/* =========================================================
-   ROULETTE SPIN
-========================================================= */
+/* ================= ROULETTE SPIN ================= */
 
 function spinRoulette(){
 
@@ -2184,9 +2654,7 @@ function spinRoulette(){
 }
 
 
-/* =========================================================
-   AVIATOR
-========================================================= */
+/* ================= AVIATOR ================= */
 
 function buildAviator(){
 
@@ -2202,9 +2670,7 @@ function buildAviator(){
 }
 
 
-/* =========================================================
-   AVIATOR DEMO FLIGHT
-========================================================= */
+/* ================= AVIATOR ================= */
 
 function runAviator(){
 
@@ -2213,16 +2679,6 @@ function runAviator(){
   const countdown=
     document.getElementById(
       "aviatorCountdown"
-    );
-
-  const multiplier=
-    document.getElementById(
-      "aviatorMultiplier"
-    );
-
-  const plane=
-    document.getElementById(
-      "plane"
     );
 
   const bettingTimer=
@@ -2246,9 +2702,7 @@ function runAviator(){
 }
 
 
-/* =========================================================
-   FLIGHT
-========================================================= */
+/* ================= FLIGHT ================= */
 
 function startFlight(){
 
@@ -2305,9 +2759,7 @@ function startFlight(){
 }
 
 
-/* =========================================================
-   BET AMOUNT
-========================================================= */
+/* ================= AMOUNT ================= */
 
 function changeAmount(id,delta){
 
@@ -2327,24 +2779,74 @@ function changeAmount(id,delta){
 }
 
 
-/* =========================================================
-   DEMO BET
-========================================================= */
+/* ================= BET ================= */
 
-function placeDemoBet(slot){
+function placeBet(slot){
 
-  alert(
-    "Demo mode: bet interface activated for Slot "+
-    slot+
-    ". No real money is wagered."
-  );
+  const amountIds={
+    aviator:["a1","a2"],
+    roulette:["r1","r2"]
+  };
+
+  const ids=
+    amountIds[state.game];
+
+  if(!ids)
+    return;
+
+  const input=
+    document.getElementById(
+      ids[slot-1]
+    );
+
+  const amount=
+    Number(input.value)||0;
+
+  if(amount<1){
+
+    alert("Enter a valid amount.");
+
+    return;
+
+  }
+
+  if(amount>state.balance){
+
+    alert("Insufficient balance.");
+
+    return;
+
+  }
+
+  state.balance-=amount;
+
+  updateBalance();
+
+  const buttons=
+    document.querySelectorAll(
+      "#"+
+      state.game+
+      "Game .placeBtn"
+    );
+
+  const button=
+    buttons[slot-1];
+
+  if(button){
+
+    button.textContent=
+      "WAITING FOR NEXT ROUND";
+
+    button.classList.add("waiting");
+
+    button.disabled=true;
+
+  }
 
 }
 
 
-/* =========================================================
-   TABS
-========================================================= */
+/* ================= TABS ================= */
 
 function showTab(tab){
 
@@ -2386,7 +2888,7 @@ function showTab(tab){
       .innerHTML=
         `<div class="feedRow">
            <span>MY BETS</span>
-           <span>No active demo bets</span>
+           <span>Current selections</span>
          </div>`;
 
   }
@@ -2398,17 +2900,17 @@ function showTab(tab){
       .innerHTML=
         `
         <div class="feedRow">
-          <span>DemoPlayer21</span>
+          <span>Player 21</span>
           <span>50 ETB</span>
         </div>
 
         <div class="feedRow">
-          <span>DemoPlayer08</span>
+          <span>Player 08</span>
           <span>100 ETB</span>
         </div>
 
         <div class="feedRow">
-          <span>DemoPlayer44</span>
+          <span>Player 44</span>
           <span>20 ETB</span>
         </div>
         `;
@@ -2417,7 +2919,8 @@ function showTab(tab){
 
   if(tab==="top"){
 
-    showTop("daily",
+    showTop(
+      "daily",
       document.querySelector(
         ".subTabs button"
       )
@@ -2428,9 +2931,7 @@ function showTab(tab){
 }
 
 
-/* =========================================================
-   TOP
-========================================================= */
+/* ================= TOP ================= */
 
 function showTop(period,button){
 
@@ -2444,7 +2945,7 @@ function showTop(period,button){
     button.classList.add("active");
 
   const names=[
-    "DemoWinner",
+    "Player001",
     "LuckyPlayer",
     "GoldenStar",
     "RedLion",
@@ -2469,9 +2970,7 @@ function showTop(period,button){
 }
 
 
-/* =========================================================
-   HELP
-========================================================= */
+/* ================= HELP ================= */
 
 function openHelp(){
 
@@ -2490,22 +2989,29 @@ function openHelp(){
     keno:{
       title:"How to Play Keno",
       html:`
+        <h3>Choose your slot</h3>
+        <p>
+          Slot 1 and Slot 2 are independent.
+          Each slot can contain from 1 to 10 selected numbers.
+        </p>
+
+        <h3>Choose number count</h3>
+        <p>
+          Select the number of spots for the active slot.
+          The interface displays 1–18, while a maximum of 10
+          numbers can be selected for one slot.
+        </p>
+
         <h3>Choose numbers</h3>
         <p>
-          Select 1–10 numbers from the 1–80 board.
-          The game draws 20 numbers.
+          Select numbers from 1–80. Your selected numbers
+          appear directly under their corresponding slot.
         </p>
 
-        <h3>Drawing</h3>
+        <h3>Draw</h3>
         <p>
-          The numbers appear progressively as balls.
-          Matching your selected numbers are highlighted.
-        </p>
-
-        <h3>Results</h3>
-        <p>
-          The completed round displays its 20 drawn numbers,
-          and previous rounds can be reviewed.
+          Twenty unique numbers are drawn progressively.
+          Matching selected numbers are highlighted.
         </p>
       `
     },
@@ -2515,25 +3021,23 @@ function openHelp(){
       html:`
         <h3>Choose a Cartela</h3>
         <p>
-          Each slot has its own Cartela number.
-          Valid Cartela numbers are 1–120.
+          Each slot has its own Cartela number from 1–120.
         </p>
 
         <h3>Two Cartelas</h3>
         <p>
-          You may use Slot 1, Slot 2, or both.
-          Each slot is independent.
+          Slot 1 and Slot 2 can be used independently.
         </p>
 
         <h3>Bet amount</h3>
         <p>
-          Select one of the available preset demo amounts.
+          Select one of the available amounts.
         </p>
 
         <h3>Draw</h3>
         <p>
-          Numbers are drawn progressively.
-          A winning Cartela is identified by its Cartela number.
+          Numbers are drawn progressively and the result
+          identifies the winning Cartela.
         </p>
       `
     },
@@ -2548,13 +3052,12 @@ function openHelp(){
 
         <h3>Spin</h3>
         <p>
-          The wheel spins and stops on a result.
-          The winning number is highlighted.
+          The numbered wheel spins and stops on a result.
         </p>
 
         <h3>Result</h3>
         <p>
-          The result displays the winning number and its color.
+          The winning number is highlighted.
         </p>
       `
     },
@@ -2564,19 +3067,13 @@ function openHelp(){
       html:`
         <h3>Betting period</h3>
         <p>
-          The demo displays a 30-second betting countdown.
+          Place your selection during the 30-second
+          betting period.
         </p>
 
         <h3>Flight</h3>
         <p>
-          The plane flies while the multiplier increases.
-        </p>
-
-        <h3>Cash Out</h3>
-        <p>
-          A real-money implementation would require a
-          properly regulated backend and verified game rules.
-          This interface is demo-only.
+          The plane flies while the displayed multiplier rises.
         </p>
 
         <h3>Previous rounds</h3>
@@ -2610,9 +3107,7 @@ function closeHelp(){
 }
 
 
-/* =========================================================
-   DEMO ROUND LOOP
-========================================================= */
+/* ================= ROUND RESET ================= */
 
 function advanceRound(){
 
@@ -2622,7 +3117,22 @@ function advanceRound(){
 
   if(state.game==="keno"){
 
-    state.selectedKeno=[];
+    state.selectedKeno={
+      1:[],
+      2:[]
+    };
+
+    state.kenoBets={
+      1:false,
+      2:false
+    };
+
+    state.kenoSpots={
+      1:1,
+      2:1
+    };
+
+    state.activeKenoSlot=1;
 
     document
       .querySelectorAll(".kenoNumber")
@@ -2642,6 +3152,29 @@ function advanceRound(){
       .getElementById("kenoDrawStatus")
       .textContent=
         "BETTING OPEN";
+
+    const buttons=[
+      document.getElementById("kenoPlace1"),
+      document.getElementById("kenoPlace2")
+    ];
+
+    buttons.forEach(button=>{
+
+      if(button){
+
+        button.disabled=false;
+
+        button.classList.remove("waiting");
+
+        button.textContent="PLACE BET";
+
+      }
+
+    });
+
+    buildSpotSelector();
+
+    updateKenoSelection();
 
     setTimeout(
       runKenoDraw,
@@ -2678,9 +3211,7 @@ function advanceRound(){
 }
 
 
-/* =========================================================
-   START
-========================================================= */
+/* ================= START ================= */
 
 updateBalance();
 
@@ -2694,26 +3225,8 @@ buildAviator();
 
 showTab("my");
 
-
-/* Start a continuous DEMO cycle.
-   The production server should replace this
-   with authoritative backend state. */
-
-setInterval(()=>{
-
-  if(
-    document
-      .getElementById("gameScreen")
-      .style.display==="block"
-  ){
-
-    advanceRound();
-
-  }
-
-},35000);
-
 </script>
 
 </body>
 </html>
+```0
