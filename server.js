@@ -1,25 +1,47 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
+/*
+|--------------------------------------------------------------------------
+| GAME ENGINES
+|--------------------------------------------------------------------------
+*/
 
 const keno = require("./games/keno");
 const bingo = require("./games/bingo");
-const aviator = require("./games/aviator");
-// If you already created roulette.js, keep this.
-// If you have not created it yet, comment the next line
-// and the roulette section below.
 const roulette = require("./games/roulette");
+const aviator = require("./games/aviator");
+
+
+/*
+|--------------------------------------------------------------------------
+| APP
+|--------------------------------------------------------------------------
+*/
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+/*
+ * If index.html is inside:
+ *
+ * public/index.html
+ *
+ * Express will serve it automatically.
+ */
+app.use(express.static(path.join(__dirname, "public")));
+
 const PORT = process.env.PORT || 10000;
 
 
-/* =========================================================
-   GAME CONFIGURATION
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| GAMES
+|--------------------------------------------------------------------------
+*/
 
 const games = {
     keno,
@@ -29,293 +51,1062 @@ const games = {
 };
 
 
-/* =========================================================
-   CURRENT ROUND STORAGE
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| ROUND STORAGE
+|--------------------------------------------------------------------------
+|
+| The server is the authority for the current round.
+|
+*/
 
 const rounds = {};
 
 
-/* =========================================================
-   ROUND CREATION
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| TIMING CONFIGURATION
+|--------------------------------------------------------------------------
+|
+| These are the delays AFTER betting finishes.
+|
+*/
+
+const DRAW_INTERVALS = {
+    keno: 1800,       // 1.8 seconds between numbers
+    bingo: 4000,      // 4 seconds between numbers
+    roulette: 5000    // 5 seconds for spin/result animation
+};
+
+const NEXT_ROUND_DELAY = 2000;
+
+
+/*
+|--------------------------------------------------------------------------
+| ROUND CREATION
+|--------------------------------------------------------------------------
+*/
+
+function makeRoundId(gameName) {
+
+    return (
+        `${gameName}-` +
+        `${Date.now()}-` +
+        `${Math.floor(Math.random() * 1000000)}`
+    );
+}
+
 
 function createGameRound(gameName) {
 
     const game = games[gameName];
 
     if (!game) {
-        throw new Error(
-            `Unknown game: ${gameName}`
-        );
+        throw new Error(`Unknown game: ${gameName}`);
     }
 
-    const round = game.createRound();
+    const engineRound = game.createRound();
 
-    round.id =
-        `${gameName}-${Date.now()}-${Math.floor(
-            Math.random() * 100000
-        )}`;
+    const now = Date.now();
 
-    round.startedAt =
-        new Date().toISOString();
+    const bettingSeconds =
+        Number(engineRound.bettingSeconds);
 
-    round.status = "BETTING";
+    const round = {
+
+        id: makeRoundId(gameName),
+
+        game: gameName,
+
+        status: "BETTING",
+
+        createdAt:
+            new Date(now).toISOString(),
+
+        startedAt:
+            new Date(now).toISOString(),
+
+        bettingSeconds,
+
+        bettingStartedAt: now,
+
+        bettingEndsAt:
+            now + bettingSeconds * 1000,
+
+        remainingSeconds:
+            bettingSeconds,
+
+        /*
+         * Game-specific state.
+         */
+        draw: [],
+
+        drawnNumbers: [],
+
+        drawIndex: 0,
+
+        totalDraws: 0,
+
+        currentNumber: null,
+
+        result: null,
+
+        crashPoint: null,
+
+        multiplier: null,
+
+        flyingStartedAt: null,
+
+        finishedAt: null,
+
+        nextRoundAt: null
+
+    };
+
+
+    /*
+     * KENO
+     *
+     * Generate the complete secret draw now,
+     * but reveal it progressively.
+     */
+    if (gameName === "keno") {
+
+        const completeDraw =
+            game.createDraw();
+
+        round.secretDraw =
+            completeDraw;
+
+        round.totalDraws =
+            completeDraw.length;
+    }
+
+
+    /*
+     * BINGO
+     *
+     * Generate the complete draw order now,
+     * but reveal one number at a time.
+     */
+    if (gameName === "bingo") {
+
+        const completeDraw =
+            game.generateDrawOrder();
+
+        round.secretDraw =
+            completeDraw;
+
+        round.totalDraws =
+            completeDraw.length;
+    }
+
+
+    /*
+     * AVIATOR
+     *
+     * Generate the crash point before flying,
+     * but NEVER expose it to the client
+     * until the crash happens.
+     */
+    if (gameName === "aviator") {
+
+        const crash =
+            game.generateCrashPoint();
+
+        round.secretCrashPoint =
+            Number(crash.multiplier);
+
+        round.multiplier =
+            1.00;
+    }
+
 
     rounds[gameName] = round;
 
     console.log(
-        `[${gameName}] New round: ${round.id}`
+        `[${gameName}] ROUND STARTED: ${round.id}`
     );
 
     return round;
 }
 
 
-/* =========================================================
-   ROUND FINISHING
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| PUBLIC ROUND STATE
+|--------------------------------------------------------------------------
+|
+| Never expose:
+|
+| - Keno future numbers
+| - Bingo future numbers
+| - Aviator crash point before crash
+|
+*/
 
-function finishGameRound(gameName) {
+function getPublicRound(gameName) {
 
-    const game =
-        games[gameName];
-
-    const currentRound =
+    const round =
         rounds[gameName];
 
-    if (!game || !currentRound) {
-        return;
+    if (!round) {
+        return null;
     }
 
-    if (
-        currentRound.status === "FINISHED"
-    ) {
-        return;
+    const now =
+        Date.now();
+
+    let remainingSeconds = 0;
+
+    /*
+     * BETTING COUNTDOWN
+     */
+    if (round.status === "BETTING") {
+
+        remainingSeconds =
+            Math.max(
+                0,
+                Math.ceil(
+                    (round.bettingEndsAt - now) / 1000
+                )
+            );
     }
 
+    /*
+     * AVIATOR FLYING
+     */
+    if (gameName === "aviator" &&
+        round.status === "FLYING") {
 
-    /* -----------------------------------------------------
-       KENO
-       Exactly 20 unique numbers from 1–80.
-    ----------------------------------------------------- */
-
-    if (
-        gameName === "keno"
-    ) {
-
-        const drawnNumbers =
-            game.createDraw();
-
-        currentRound.status =
-            "FINISHED";
-
-        currentRound.drawnNumbers =
-            drawnNumbers;
-
-        currentRound.finishedAt =
-            new Date().toISOString();
-
-        console.log(
-            `[keno] Round ${currentRound.id} finished`
-        );
-
-        console.log(
-            `[keno] Draw: ${drawnNumbers.join(", ")}`
-        );
-
-        return;
+        remainingSeconds = 0;
     }
 
+    const publicRound = {
 
-    /* -----------------------------------------------------
-       BINGO
-       Generate automatic draw order.
-    ----------------------------------------------------- */
+        id:
+            round.id,
 
+        game:
+            round.game,
+
+        status:
+            round.status,
+
+        bettingSeconds:
+            round.bettingSeconds,
+
+        remainingSeconds,
+
+        createdAt:
+            round.createdAt,
+
+        startedAt:
+            round.startedAt,
+
+        bettingStartedAt:
+            round.bettingStartedAt,
+
+        bettingEndsAt:
+            new Date(
+                round.bettingEndsAt
+            ).toISOString(),
+
+        currentNumber:
+            round.currentNumber,
+
+        drawIndex:
+            round.drawIndex,
+
+        totalDraws:
+            round.totalDraws,
+
+        drawnNumbers:
+            [...round.drawnNumbers],
+
+        draw:
+            [...round.drawnNumbers],
+
+        result:
+            round.result,
+
+        multiplier:
+            round.multiplier,
+
+        finishedAt:
+            round.finishedAt,
+
+        nextRoundAt:
+            round.nextRoundAt
+
+    };
+
+
+    /*
+     * AVIATOR
+     *
+     * Only show the crash point after
+     * the flight has crashed.
+     */
     if (
-        gameName === "bingo"
-    ) {
-
-        const draw =
-            game.generateDrawOrder();
-
-        currentRound.status =
-            "FINISHED";
-
-        currentRound.draw =
-            draw;
-
-        currentRound.finishedAt =
-            new Date().toISOString();
-
-        console.log(
-            `[bingo] Round ${currentRound.id} finished`
-        );
-
-        return;
-    }
-
-
-    /* -----------------------------------------------------
-       ROULETTE
-    ----------------------------------------------------- */
-
-    if (
-        gameName === "roulette"
-    ) {
-
-        const result =
-            game.spin();
-
-        currentRound.status =
-            "FINISHED";
-
-        currentRound.result =
-            result;
-
-        currentRound.finishedAt =
-            new Date().toISOString();
-
-        console.log(
-            `[roulette] Round ${currentRound.id} finished`
-        );
-
-        return;
-    }
-
-
-    /* -----------------------------------------------------
-       AVIATOR
-    ----------------------------------------------------- */
-
-    if (
-        gameName === "aviator"
+        gameName === "aviator" &&
+        round.status === "CRASHED"
     ) {
 
-        const crashPoint =
-            game.generateCrashPoint();
-
-        currentRound.status =
-            "FINISHED";
-
-        currentRound.crashPoint =
-            crashPoint;
-
-        currentRound.finishedAt =
-            new Date().toISOString();
-
-        console.log(
-            `[aviator] Round ${currentRound.id} finished`
-        );
-
-        return;
+        publicRound.crashPoint =
+            round.crashPoint;
     }
 
+
+    return publicRound;
 }
 
 
-/* =========================================================
-   AUTOMATIC ROUND LOOP
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| FINISH ROUND
+|--------------------------------------------------------------------------
+*/
 
-function startGameLoop(
-    gameName
-) {
+function finishRound(gameName) {
 
-    const game =
-        games[gameName];
+    const round =
+        rounds[gameName];
 
-    if (!game) {
-        console.error(
-            `Cannot start loop for ${gameName}`
-        );
+    if (!round) {
+        return;
+    }
+
+    if (
+        round.status === "FINISHED" ||
+        round.status === "CRASHED"
+    ) {
         return;
     }
 
 
-    function runRound() {
+    /*
+     * KENO
+     *
+     * Reveal remaining numbers immediately
+     * only if the server is being shut down
+     * or the round is being forced.
+     *
+     * Normal operation uses progressiveDraw().
+     */
+    if (gameName === "keno") {
+
+        round.status =
+            "FINISHED";
+
+        round.finishedAt =
+            new Date().toISOString();
+
+        round.nextRoundAt =
+            new Date(
+                Date.now() + NEXT_ROUND_DELAY
+            ).toISOString();
+
+        console.log(
+            `[keno] FINISHED ${round.id}`
+        );
+
+        scheduleNextRound(
+            gameName
+        );
+
+        return;
+    }
+
+
+    /*
+     * BINGO
+     */
+    if (gameName === "bingo") {
+
+        round.status =
+            "FINISHED";
+
+        round.finishedAt =
+            new Date().toISOString();
+
+        round.nextRoundAt =
+            new Date(
+                Date.now() + NEXT_ROUND_DELAY
+            ).toISOString();
+
+        console.log(
+            `[bingo] FINISHED ${round.id}`
+        );
+
+        scheduleNextRound(
+            gameName
+        );
+
+        return;
+    }
+
+
+    /*
+     * ROULETTE
+     */
+    if (gameName === "roulette") {
+
+        const result =
+            roulette.spin();
+
+        round.result =
+            result;
+
+        round.status =
+            "FINISHED";
+
+        round.finishedAt =
+            new Date().toISOString();
+
+        round.nextRoundAt =
+            new Date(
+                Date.now() + NEXT_ROUND_DELAY
+            ).toISOString();
+
+        console.log(
+            `[roulette] ${round.id} result:`,
+            result
+        );
+
+        scheduleNextRound(
+            gameName
+        );
+
+        return;
+    }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| START KENO DRAW
+|--------------------------------------------------------------------------
+*/
+
+function startKenoDraw(gameName) {
+
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.status !== "BETTING"
+    ) {
+        return;
+    }
+
+    round.status =
+        "DRAWING";
+
+    round.drawIndex =
+        0;
+
+    round.drawnNumbers =
+        [];
+
+    round.currentNumber =
+        null;
+
+    console.log(
+        `[keno] DRAWING started: ${round.id}`
+    );
+
+    revealNextKenoNumber(
+        gameName
+    );
+}
+
+
+function revealNextKenoNumber(gameName) {
+
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.status !== "DRAWING"
+    ) {
+        return;
+    }
+
+
+    if (
+        round.drawIndex >=
+        round.secretDraw.length
+    ) {
+
+        finishRound(
+            gameName
+        );
+
+        return;
+    }
+
+
+    const number =
+        round.secretDraw[
+            round.drawIndex
+        ];
+
+
+    round.currentNumber =
+        number;
+
+    round.drawnNumbers.push(
+        number
+    );
+
+    round.drawIndex++;
+
+
+    console.log(
+        `[keno] ${round.id} DRAW ${round.drawIndex}/${round.totalDraws}: ${number}`
+    );
+
+
+    /*
+     * Wait before revealing the next number.
+     */
+    setTimeout(
+        () => {
+
+            revealNextKenoNumber(
+                gameName
+            );
+
+        },
+        DRAW_INTERVALS.keno
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| START BINGO DRAW
+|--------------------------------------------------------------------------
+*/
+
+function startBingoDraw(gameName) {
+
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.status !== "BETTING"
+    ) {
+        return;
+    }
+
+    round.status =
+        "DRAWING";
+
+    round.drawIndex =
+        0;
+
+    round.drawnNumbers =
+        [];
+
+    round.currentNumber =
+        null;
+
+    console.log(
+        `[bingo] DRAWING started: ${round.id}`
+    );
+
+    revealNextBingoNumber(
+        gameName
+    );
+}
+
+
+function revealNextBingoNumber(gameName) {
+
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.status !== "DRAWING"
+    ) {
+        return;
+    }
+
+
+    if (
+        round.drawIndex >=
+        round.secretDraw.length
+    ) {
+
+        finishRound(
+            gameName
+        );
+
+        return;
+    }
+
+
+    const number =
+        round.secretDraw[
+            round.drawIndex
+        ];
+
+
+    round.currentNumber =
+        number;
+
+    round.drawnNumbers.push(
+        number
+    );
+
+    round.drawIndex++;
+
+
+    console.log(
+        `[bingo] ${round.id} DRAW ${round.drawIndex}/${round.totalDraws}: ${number}`
+    );
+
+
+    /*
+     * Slow enough for the player to listen
+     * and tap their cartela number.
+     */
+    setTimeout(
+        () => {
+
+            revealNextBingoNumber(
+                gameName
+            );
+
+        },
+        DRAW_INTERVALS.bingo
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| ROULETTE ROUND
+|--------------------------------------------------------------------------
+*/
+
+function startRouletteSpin() {
+
+    const round =
+        rounds.roulette;
+
+    if (!round) return;
+
+    if (
+        round.status !== "BETTING"
+    ) {
+        return;
+    }
+
+    round.status =
+        "SPINNING";
+
+    console.log(
+        `[roulette] SPINNING ${round.id}`
+    );
+
+
+    setTimeout(
+        () => {
+
+            if (
+                round.status !== "SPINNING"
+            ) {
+                return;
+            }
+
+            const result =
+                roulette.spin();
+
+            round.result =
+                result;
+
+            round.status =
+                "FINISHED";
+
+            round.finishedAt =
+                new Date().toISOString();
+
+            round.nextRoundAt =
+                new Date(
+                    Date.now() +
+                    NEXT_ROUND_DELAY
+                ).toISOString();
+
+            console.log(
+                `[roulette] RESULT ${round.id}:`,
+                result
+            );
+
+            scheduleNextRound(
+                "roulette"
+            );
+
+        },
+        DRAW_INTERVALS.roulette
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| AVIATOR
+|--------------------------------------------------------------------------
+*/
+
+function startAviatorFlight() {
+
+    const round =
+        rounds.aviator;
+
+    if (!round) return;
+
+    if (
+        round.status !== "BETTING"
+    ) {
+        return;
+    }
+
+
+    round.status =
+        "FLYING";
+
+    round.flyingStartedAt =
+        Date.now();
+
+    round.multiplier =
+        1.00;
+
+    console.log(
+        `[aviator] FLYING ${round.id}`
+    );
+
+    updateAviator(
+        round.id
+    );
+}
+
+
+function updateAviator(roundId) {
+
+    const round =
+        rounds.aviator;
+
+    if (!round) return;
+
+    if (
+        round.id !== roundId
+    ) {
+        return;
+    }
+
+    if (
+        round.status !== "FLYING"
+    ) {
+        return;
+    }
+
+
+    const elapsed =
+        (Date.now() -
+        round.flyingStartedAt) /
+        1000;
+
+
+    /*
+     * Smooth exponential flight.
+     *
+     * This is only the visual/game
+     * progression. The crash point itself
+     * was generated by aviator.js.
+     */
+    const calculatedMultiplier =
+        Math.pow(
+            1.12,
+            elapsed
+        );
+
+
+    const crashPoint =
+        round.secretCrashPoint;
+
+
+    /*
+     * Crash condition.
+     */
+    if (
+        calculatedMultiplier >=
+        crashPoint
+    ) {
+
+        round.multiplier =
+            crashPoint;
+
+        round.crashPoint =
+            crashPoint;
+
+        round.status =
+            "CRASHED";
+
+        round.finishedAt =
+            new Date().toISOString();
+
+        round.nextRoundAt =
+            new Date(
+                Date.now() +
+                NEXT_ROUND_DELAY
+            ).toISOString();
+
+        console.log(
+            `[aviator] CRASH ${round.id} at ${crashPoint.toFixed(2)}x`
+        );
+
+        scheduleNextRound(
+            "aviator"
+        );
+
+        return;
+    }
+
+
+    round.multiplier =
+        Number(
+            calculatedMultiplier.toFixed(2)
+        );
+
+
+    /*
+     * Update approximately 10 times
+     * per second.
+     */
+    setTimeout(
+        () => {
+
+            updateAviator(
+                roundId
+            );
+
+        },
+        100
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| NEXT ROUND
+|--------------------------------------------------------------------------
+*/
+
+function scheduleNextRound(gameName) {
+
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.nextRoundScheduled
+    ) {
+        return;
+    }
+
+    round.nextRoundScheduled =
+        true;
+
+
+    setTimeout(
+        () => {
+
+            createGameRound(
+                gameName
+            );
+
+        },
+        NEXT_ROUND_DELAY
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| MAIN ROUND CONTROLLER
+|--------------------------------------------------------------------------
+*/
+
+function startGameLoop(gameName) {
+
+    function startNewRound() {
 
         const round =
             createGameRound(
                 gameName
             );
 
-        const bettingSeconds =
-            Number(
-                round.bettingSeconds
-            );
 
-
-        if (
-            !Number.isFinite(
-                bettingSeconds
-            ) ||
-            bettingSeconds <= 0
-        ) {
-
-            console.error(
-                `[${gameName}] Invalid bettingSeconds`
-            );
-
-            return;
-        }
-
-
-        console.log(
-            `[${gameName}] Betting open for ${bettingSeconds}s`
-        );
-
-
+        /*
+         * Betting phase.
+         */
         setTimeout(
             () => {
 
-                finishGameRound(
-                    gameName
-                );
+                const current =
+                    rounds[gameName];
+
+                /*
+                 * Make sure this is still
+                 * the same round.
+                 */
+                if (
+                    !current ||
+                    current.id !== round.id
+                ) {
+                    return;
+                }
+
+
+                if (
+                    current.status !==
+                    "BETTING"
+                ) {
+                    return;
+                }
 
 
                 /*
-                 * Small delay before the next
-                 * round starts.
-                 *
-                 * This prevents two rounds from
-                 * being created at exactly the
-                 * same millisecond.
+                 * KENO
                  */
+                if (
+                    gameName === "keno"
+                ) {
 
-                setTimeout(
-                    runRound,
-                    1000
-                );
+                    startKenoDraw(
+                        gameName
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * BINGO
+                 */
+                if (
+                    gameName === "bingo"
+                ) {
+
+                    startBingoDraw(
+                        gameName
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * ROULETTE
+                 */
+                if (
+                    gameName === "roulette"
+                ) {
+
+                    startRouletteSpin();
+
+                    return;
+                }
+
+
+                /*
+                 * AVIATOR
+                 */
+                if (
+                    gameName === "aviator"
+                ) {
+
+                    startAviatorFlight();
+
+                    return;
+                }
 
             },
-            bettingSeconds * 1000
+            round.bettingSeconds * 1000
         );
-
     }
 
 
-    runRound();
+    /*
+     * Start first round immediately.
+     */
+    startNewRound();
 
+
+    /*
+     * The next rounds are normally
+     * scheduled by the round itself.
+     *
+     * This watcher makes sure a game
+     * cannot remain stuck if a transition
+     * unexpectedly fails.
+     */
+    setInterval(
+        () => {
+
+            if (
+                !rounds[gameName]
+            ) {
+
+                startNewRound();
+
+            }
+
+        },
+        5000
+    );
 }
 
 
-/* =========================================================
-   ROOT
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| HOME
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/",
     (req, res) => {
 
+        /*
+         * If public/index.html exists,
+         * express.static() normally serves it.
+         *
+         * This JSON route is only used if
+         * no index.html is found.
+         */
+
         res.json({
 
             success: true,
 
-            app: "DESTA PLAY",
+            app:
+                "DESTA PLAY",
 
-            status: "online",
+            status:
+                "online",
 
             games:
                 Object.keys(games)
@@ -326,25 +1117,47 @@ app.get(
 );
 
 
-/* =========================================================
-   SERVER STATUS
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| STATUS
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/status",
     (req, res) => {
 
+        const gameState = {};
+
+
+        for (
+            const gameName
+            of Object.keys(games)
+        ) {
+
+            gameState[gameName] =
+                getPublicRound(
+                    gameName
+                );
+
+        }
+
+
         res.json({
 
             success: true,
 
-            status: "online",
+            status:
+                "online",
+
+            serverTime:
+                new Date().toISOString(),
+
+            serverTimestamp:
+                Date.now(),
 
             games:
-                Object.keys(games),
-
-            time:
-                new Date().toISOString()
+                gameState
 
         });
 
@@ -352,9 +1165,11 @@ app.get(
 );
 
 
-/* =========================================================
-   GAME INFORMATION
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| GAME CONFIGURATION
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/games",
@@ -392,7 +1207,10 @@ app.get(
                         bingo.BETTING_SECONDS,
 
                     numbers:
-                        bingo.BINGO_NUMBERS
+                        bingo.BINGO_NUMBERS,
+
+                    size:
+                        bingo.BINGO_SIZE
 
                 },
 
@@ -408,7 +1226,13 @@ app.get(
                 aviator: {
 
                     bettingSeconds:
-                        aviator.BETTING_SECONDS
+                        aviator.BETTING_SECONDS,
+
+                    minMultiplier:
+                        aviator.MIN_MULTIPLIER,
+
+                    maxMultiplier:
+                        aviator.MAX_MULTIPLIER
 
                 }
 
@@ -420,9 +1244,11 @@ app.get(
 );
 
 
-/* =========================================================
-   CURRENT ROUND
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| UNIVERSAL CURRENT ROUND
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/game/:game/round",
@@ -440,7 +1266,8 @@ app.get(
                 .status(404)
                 .json({
 
-                    success: false,
+                    success:
+                        false,
 
                     error:
                         "Game not found"
@@ -461,94 +1288,21 @@ app.get(
         }
 
 
-        const round =
-            rounds[gameName];
-
-
-        /*
-         * Do not expose hidden future
-         * results while betting is open.
-         */
-
-        const publicRound = {
-            id: round.id,
-
-            game: round.game,
-
-            status: round.status,
-
-            bettingSeconds:
-                round.bettingSeconds,
-
-            startedAt:
-                round.startedAt,
-
-            createdAt:
-                round.createdAt
-        };
-
-
-        /*
-         * Only expose the result after
-         * the round has finished.
-         */
-
-        if (
-            round.status ===
-            "FINISHED"
-        ) {
-
-            if (
-                gameName === "keno"
-            ) {
-
-                publicRound.drawnNumbers =
-                    round.drawnNumbers;
-
-            }
-
-
-            if (
-                gameName === "bingo"
-            ) {
-
-                publicRound.draw =
-                    round.draw;
-
-            }
-
-
-            if (
-                gameName === "roulette"
-            ) {
-
-                publicRound.result =
-                    round.result;
-
-            }
-
-
-            if (
-                gameName === "aviator"
-            ) {
-
-                publicRound.crashPoint =
-                    round.crashPoint;
-
-            }
-
-            publicRound.finishedAt =
-                round.finishedAt;
-
-        }
-
-
         res.json({
 
-            success: true,
+            success:
+                true,
+
+            serverTime:
+                new Date().toISOString(),
+
+            serverTimestamp:
+                Date.now(),
 
             round:
-                publicRound
+                getPublicRound(
+                    gameName
+                )
 
         });
 
@@ -556,9 +1310,11 @@ app.get(
 );
 
 
-/* =========================================================
-   KENO SELECTION VALIDATION
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| KENO
+|--------------------------------------------------------------------------
+*/
 
 app.post(
     "/api/keno/validate-selection",
@@ -574,7 +1330,8 @@ app.post(
 
             res.json({
 
-                success: true,
+                success:
+                    true,
 
                 selection
 
@@ -586,7 +1343,8 @@ app.post(
                 .status(400)
                 .json({
 
-                    success: false,
+                    success:
+                        false,
 
                     error:
                         error.message
@@ -599,23 +1357,11 @@ app.post(
 );
 
 
-/* =========================================================
-   KENO — NO PLAYER DRAW ROUTE
-=========================================================
-
-   IMPORTANT:
-   There is deliberately NO:
-
-   POST /api/keno/test-draw
-
-   The server automatically creates the draw
-   when the betting timer expires.
-========================================================= */
-
-
-/* =========================================================
-   BINGO CARTELA
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| BINGO CARTELA
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/bingo/cartela/:number",
@@ -639,7 +1385,8 @@ app.get(
                     .status(400)
                     .json({
 
-                        success: false,
+                        success:
+                            false,
 
                         error:
                             "Cartela number must be between 1 and 120"
@@ -649,16 +1396,6 @@ app.get(
             }
 
 
-            /*
-             * IMPORTANT:
-             * This calls the cartela engine
-             * with the player's requested
-             * cartela number.
-             *
-             * The same number must always
-             * return the same configuration.
-             */
-
             const cartela =
                 bingo.generateCartela(
                     number
@@ -667,7 +1404,8 @@ app.get(
 
             res.json({
 
-                success: true,
+                success:
+                    true,
 
                 cartela
 
@@ -679,7 +1417,8 @@ app.get(
                 .status(400)
                 .json({
 
-                    success: false,
+                    success:
+                        false,
 
                     error:
                         error.message
@@ -692,18 +1431,90 @@ app.get(
 );
 
 
-/* =========================================================
-   BINGO — NO PLAYER DRAW ROUTE
-=========================================================
+/*
+|--------------------------------------------------------------------------
+| BINGO WIN CHECK
+|--------------------------------------------------------------------------
+|
+| The frontend can submit the player's
+| current cartela and the numbers that
+| have actually been called.
+|
+*/
 
-   The bingo draw is controlled by the
-   automatic round engine above.
-========================================================= */
+app.post(
+    "/api/bingo/check",
+    (req, res) => {
+
+        try {
+
+            const {
+                cartela,
+                calledNumbers
+            } = req.body;
 
 
-/* =========================================================
-   ROULETTE
-========================================================= */
+            if (
+                !Array.isArray(cartela) ||
+                !Array.isArray(calledNumbers)
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+
+                        success:
+                            false,
+
+                        error:
+                            "Cartela and calledNumbers are required"
+
+                    });
+
+            }
+
+
+            const winning =
+                bingo.isWinningCard(
+                    cartela,
+                    calledNumbers
+                );
+
+
+            res.json({
+
+                success:
+                    true,
+
+                winning
+
+            });
+
+        } catch (error) {
+
+            res
+                .status(400)
+                .json({
+
+                    success:
+                        false,
+
+                    error:
+                        error.message
+
+                });
+
+        }
+
+    }
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| ROULETTE ROUND
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/roulette/round",
@@ -722,10 +1533,19 @@ app.get(
 
         res.json({
 
-            success: true,
+            success:
+                true,
+
+            serverTime:
+                new Date().toISOString(),
+
+            serverTimestamp:
+                Date.now(),
 
             round:
-                rounds.roulette
+                getPublicRound(
+                    "roulette"
+                )
 
         });
 
@@ -733,9 +1553,11 @@ app.get(
 );
 
 
-/* =========================================================
-   AVIATOR
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| AVIATOR ROUND
+|--------------------------------------------------------------------------
+*/
 
 app.get(
     "/api/aviator/round",
@@ -754,10 +1576,19 @@ app.get(
 
         res.json({
 
-            success: true,
+            success:
+                true,
+
+            serverTime:
+                new Date().toISOString(),
+
+            serverTimestamp:
+                Date.now(),
 
             round:
-                rounds.aviator
+                getPublicRound(
+                    "aviator"
+                )
 
         });
 
@@ -765,22 +1596,79 @@ app.get(
 );
 
 
-/* =========================================================
-   ERROR HANDLER
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| HEALTH CHECK
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+    "/health",
+    (req, res) => {
+
+        res.json({
+
+            success:
+                true,
+
+            status:
+                "healthy",
+
+            timestamp:
+                new Date().toISOString()
+
+        });
+
+    }
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| 404
+|--------------------------------------------------------------------------
+*/
+
+app.use(
+    (req, res) => {
+
+        res
+            .status(404)
+            .json({
+
+                success:
+                    false,
+
+                error:
+                    "Route not found"
+
+            });
+
+    }
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| ERROR HANDLER
+|--------------------------------------------------------------------------
+*/
 
 app.use(
     (error, req, res, next) => {
 
         console.error(
+            "[SERVER ERROR]",
             error
         );
+
 
         res
             .status(500)
             .json({
 
-                success: false,
+                success:
+                    false,
 
                 error:
                     "Internal server error"
@@ -791,9 +1679,11 @@ app.use(
 );
 
 
-/* =========================================================
-   START AUTOMATIC GAME LOOPS
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| START GAME LOOPS
+|--------------------------------------------------------------------------
+*/
 
 for (
     const gameName
@@ -807,9 +1697,11 @@ for (
 }
 
 
-/* =========================================================
-   START SERVER
-========================================================= */
+/*
+|--------------------------------------------------------------------------
+| START SERVER
+|--------------------------------------------------------------------------
+*/
 
 app.listen(
     PORT,
@@ -817,11 +1709,31 @@ app.listen(
     () => {
 
         console.log(
-            `DESTA PLAY backend running on port ${PORT}`
+            "========================================"
         );
 
         console.log(
-            "Automatic game rounds started:"
+            "        DESTA PLAY BACKEND"
+        );
+
+        console.log(
+            "========================================"
+        );
+
+        console.log(
+            `Port: ${PORT}`
+        );
+
+        console.log(
+            "Automatic rounds: ENABLED"
+        );
+
+        console.log(
+            "Live API state: ENABLED"
+        );
+
+        console.log(
+            "Games:"
         );
 
         for (
@@ -830,10 +1742,14 @@ app.listen(
         ) {
 
             console.log(
-                ` - ${gameName}`
+                `  ✓ ${gameName}`
             );
 
         }
 
+        console.log(
+            "========================================"
+        );
+
     }
-);
+);u
