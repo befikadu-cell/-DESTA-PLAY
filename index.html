@@ -2,3814 +2,3651 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0,
-               maximum-scale=1.0, user-scalable=no">
-
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+>
+<meta name="theme-color" content="#090607">
 <title>DESTA PLAY</title>
 
 <style>
 :root {
-    --bg: #090909;
-    --panel: #151515;
-    --panel2: #1d1d1d;
-    --red: #b40000;
-    --red2: #e00000;
-    --gold: #ffc400;
-    --gold2: #ffdf57;
-    --white: #ffffff;
-    --muted: #a9a9a9;
-    --green: #00c853;
-    --danger: #ff3030;
-    --border: rgba(255,255,255,.08);
+  --bg: #090607;
+  --panel: #160b0d;
+  --panel2: #210c0f;
+  --red: #a90018;
+  --red2: #e00025;
+  --gold: #d9a928;
+  --yellow: #ffd84a;
+  --text: #fff8df;
+  --muted: #b9a99a;
+  --green: #26d47a;
+  --border: rgba(217,169,40,.42);
+  --shadow: 0 12px 35px rgba(0,0,0,.45);
 }
 
 * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    min-height: 100%;
-    background: var(--bg);
-    color: var(--white);
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-body {
-    overflow-x: hidden;
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(224,0,37,.28), transparent 38%),
+    radial-gradient(circle at 0% 50%, rgba(217,169,40,.08), transparent 30%),
+    var(--bg);
+  color: var(--text);
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 button,
 input {
-    font: inherit;
+  font: inherit;
 }
 
 button {
-    cursor: pointer;
+  cursor: pointer;
 }
 
-.app {
-    width: 100%;
-    max-width: 520px;
-    margin: auto;
-    min-height: 100vh;
-    background:
-        radial-gradient(circle at top,
-        rgba(180,0,0,.16),
-        transparent 32%),
-        var(--bg);
-    padding-bottom: 82px;
+.hidden {
+  display: none !important;
 }
 
-/* =====================================================
+/* =========================================================
    HEADER
-===================================================== */
+========================================================= */
 
 .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    background: rgba(9,9,9,.94);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(35,8,11,.98),
+      rgba(9,6,7,.96)
+    );
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
 }
 
 .logo {
-    font-size: 19px;
-    font-weight: 900;
-    letter-spacing: 1px;
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: 1.4px;
+  color: var(--yellow);
+  text-shadow: 0 0 15px rgba(255,216,74,.3);
 }
 
-.logo span {
-    color: var(--gold);
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 7px;
+.lang-btn,
+.help-btn {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.045);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.language-button {
-    border: 1px solid rgba(255,196,0,.35);
-    background: #17120a;
-    color: var(--gold2);
-    border-radius: 20px;
-    padding: 7px 10px;
-    font-size: 12px;
-    font-weight: 800;
+.lang-btn.active {
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--yellow), var(--gold));
 }
 
-/* =====================================================
-   VIEWS
-===================================================== */
+/* =========================================================
+   HOME
+========================================================= */
 
-.view {
-    display: none;
+.page {
+  width: 100%;
+  max-width: 980px;
+  margin: auto;
+  padding: 10px;
 }
 
-.view.active {
-    display: block;
+.home-title {
+  margin: 7px 2px 10px;
+  font-size: 20px;
+  font-weight: 950;
 }
 
-.section {
-    padding: 13px;
-}
-
-.section-title {
-    font-size: 17px;
-    font-weight: 900;
-    margin-bottom: 11px;
-}
-
-/* =====================================================
-   HOME GAME CARDS
-===================================================== */
-
-.game-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
 }
 
 .game-card {
-    position: relative;
-    height: 165px;
-    overflow: hidden;
-    border-radius: 16px;
-    border: 1px solid rgba(255,196,0,.13);
-    background:
-        linear-gradient(145deg,
-        #1b0000,
-        #101010 60%,
-        #160d00);
-    box-shadow: 0 8px 28px rgba(0,0,0,.35);
-    cursor: pointer;
+  position: relative;
+  min-height: 145px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(224,0,37,.28),
+      rgba(22,11,13,.95) 55%,
+      rgba(217,169,40,.08)
+    );
+  box-shadow: var(--shadow);
+  padding: 10px;
+  transition: transform .18s ease, border-color .18s ease;
 }
 
 .game-card:active {
-    transform: scale(.98);
+  transform: scale(.975);
 }
 
-.card-title {
-    position: absolute;
-    z-index: 5;
-    left: 12px;
-    bottom: 11px;
-    font-weight: 900;
-    font-size: 15px;
-    letter-spacing: .5px;
+.game-card::after {
+  content: "";
+  position: absolute;
+  inset: -80%;
+  background:
+    radial-gradient(
+      circle,
+      rgba(255,216,74,.12),
+      transparent 55%
+    );
+  animation: cardGlow 5s linear infinite;
+  pointer-events: none;
 }
 
-.card-subtitle {
-    position: absolute;
-    z-index: 5;
-    left: 12px;
-    bottom: 31px;
-    color: var(--gold2);
-    font-size: 10px;
-    font-weight: 700;
+@keyframes cardGlow {
+  from {
+    transform: translate(-20%, -20%) rotate(0deg);
+  }
+  to {
+    transform: translate(20%, 20%) rotate(360deg);
+  }
 }
 
-.card-glow {
-    position: absolute;
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    background: rgba(180,0,0,.20);
-    filter: blur(20px);
-    right: -40px;
-    top: -35px;
-}
-
-/* =====================================================
-   AVIATOR HOME ANIMATION
-===================================================== */
-
-.home-plane {
-    position: absolute;
-    top: 40px;
-    left: -40px;
-    font-size: 30px;
-    animation: homePlane 5s linear infinite;
-}
-
-.home-flight-line {
-    position: absolute;
-    width: 190px;
-    height: 90px;
-    left: 10px;
-    top: 18px;
-    border-top: 2px solid rgba(255,196,0,.55);
-    border-radius: 50%;
-    transform: rotate(-20deg);
-}
-
-@keyframes homePlane {
-    0% {
-        transform: translateX(0) translateY(20px) rotate(-5deg);
-    }
-    50% {
-        transform: translateX(115px) translateY(-5px) rotate(-10deg);
-    }
-    100% {
-        transform: translateX(250px) translateY(-35px) rotate(-15deg);
-    }
-}
-
-/* =====================================================
-   KENO HOME
-===================================================== */
-
-.home-balls {
-    position: absolute;
-    top: 24px;
-    left: 10px;
-    right: 10px;
-    display: flex;
-    justify-content: center;
-    gap: 7px;
-    flex-wrap: wrap;
-}
-
-.home-ball {
-    width: 31px;
-    height: 31px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: linear-gradient(#e8e8e8,#777);
-    color: #090909;
-    font-size: 11px;
-    font-weight: 900;
-    box-shadow: 0 3px 8px rgba(0,0,0,.6);
-    animation: ballFloat 1.8s ease-in-out infinite alternate;
-}
-
-.home-ball:nth-child(2) {
-    animation-delay: .2s;
-}
-
-.home-ball:nth-child(3) {
-    animation-delay: .4s;
-}
-
-.home-ball:nth-child(4) {
-    animation-delay: .6s;
-}
-
-.home-ball:nth-child(5) {
-    animation-delay: .8s;
-}
-
-@keyframes ballFloat {
-    from { transform: translateY(0) rotate(0); }
-    to { transform: translateY(-9px) rotate(12deg); }
-}
-
-/* =====================================================
-   BINGO HOME
-===================================================== */
-
-.home-bingo {
-    position: absolute;
-    top: 22px;
-    left: 14px;
-    right: 14px;
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-}
-
-.bingo-mini-ball {
-    width: 29px;
-    height: 29px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #191919;
-    border: 1px solid var(--gold);
-    color: var(--gold2);
-    font-size: 10px;
-    font-weight: 900;
-    animation: bingoPulse 1.5s infinite;
-}
-
-.bingo-mini-ball:nth-child(2) { animation-delay:.15s; }
-.bingo-mini-ball:nth-child(3) { animation-delay:.3s; }
-.bingo-mini-ball:nth-child(4) { animation-delay:.45s; }
-.bingo-mini-ball:nth-child(5) { animation-delay:.6s; }
-
-@keyframes bingoPulse {
-    0%,100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
-}
-
-/* =====================================================
-   ROULETTE HOME
-===================================================== */
-
-.home-wheel {
-    position: absolute;
-    width: 95px;
-    height: 95px;
-    left: 50%;
-    top: 13px;
-    transform: translateX(-50%);
-    border-radius: 50%;
-    border: 7px solid #222;
-    background:
-        conic-gradient(
-            #b40000 0deg 10deg,
-            #111 10deg 20deg,
-            #b40000 20deg 30deg,
-            #111 30deg 40deg,
-            #b40000 40deg 50deg,
-            #111 50deg 60deg,
-            #b40000 60deg 70deg,
-            #111 70deg 80deg,
-            #b40000 80deg 90deg,
-            #111 90deg 100deg,
-            #b40000 100deg 110deg,
-            #111 110deg 120deg,
-            #b40000 120deg 130deg,
-            #111 130deg 140deg,
-            #b40000 140deg 150deg,
-            #111 150deg 160deg,
-            #b40000 160deg 170deg,
-            #111 170deg 180deg,
-            #b40000 180deg 190deg,
-            #111 190deg 200deg,
-            #b40000 200deg 210deg,
-            #111 210deg 220deg,
-            #b40000 220deg 230deg,
-            #111 230deg 240deg,
-            #b40000 240deg 250deg,
-            #111 250deg 260deg,
-            #b40000 260deg 270deg,
-            #111 270deg 280deg,
-            #b40000 280deg 290deg,
-            #111 290deg 300deg,
-            #b40000 300deg 310deg,
-            #111 310deg 320deg,
-            #b40000 320deg 330deg,
-            #111 330deg 340deg,
-            #b40000 340deg 350deg,
-            #111 350deg 360deg
-        );
-    animation: wheelSpin 5s linear infinite;
-}
-
-@keyframes wheelSpin {
-    to { transform: translateX(-50%) rotate(360deg); }
-}
-
-/* =====================================================
-   GAME VIEW
-===================================================== */
-
-.game-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 13px 5px;
-}
-
-.back-button {
-    width: 34px;
-    height: 34px;
-    border: 0;
-    border-radius: 10px;
-    background: #202020;
-    color: white;
-    font-size: 18px;
+.game-icon {
+  position: relative;
+  z-index: 2;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 50px;
 }
 
 .game-name {
-    font-size: 18px;
-    font-weight: 900;
+  position: relative;
+  z-index: 2;
+  font-size: 14px;
+  font-weight: 950;
 }
 
-.game-status {
-    margin-left: auto;
-    color: var(--gold2);
-    font-size: 11px;
-    font-weight: 900;
+.game-sub {
+  position: relative;
+  z-index: 2;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
 }
 
-/* =====================================================
-   HISTORY
-===================================================== */
-
-.history {
-    display: flex;
-    gap: 7px;
-    overflow-x: auto;
-    padding: 6px 13px 10px;
-    scrollbar-width: none;
+/* Keno home animation */
+.keno-balls {
+  display: flex;
+  gap: 5px;
+  animation: ballFloat 2.5s ease-in-out infinite;
 }
 
-.history::-webkit-scrollbar {
-    display: none;
+.home-ball {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 25%, #fff6a8, var(--yellow) 35%, #a66a00 100%);
+  color: #3a1800;
+  font-size: 9px;
+  font-weight: 1000;
+  box-shadow: 0 0 14px rgba(255,216,74,.35);
 }
 
-.history-item {
-    flex: 0 0 auto;
-    padding: 5px 9px;
-    border-radius: 12px;
-    background: #181818;
-    border: 1px solid var(--border);
-    font-size: 11px;
-    font-weight: 900;
+.home-ball:nth-child(2) {
+  transform: translateY(-10px);
 }
 
-.history-item.high {
-    color: var(--gold2);
+.home-ball:nth-child(3) {
+  transform: translateY(7px);
 }
 
-.history-item.low {
-    color: #ff7070;
+@keyframes ballFloat {
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
-/* =====================================================
-   ROUND PANEL
-===================================================== */
+/* Roulette home */
+.home-wheel {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 7px solid var(--gold);
+  background:
+    conic-gradient(
+      #a90018 0deg 12deg,
+      #111 12deg 24deg,
+      #a90018 24deg 36deg,
+      #111 36deg 48deg,
+      #a90018 48deg 60deg,
+      #111 60deg 72deg,
+      #a90018 72deg 84deg,
+      #111 84deg 96deg,
+      #a90018 96deg 108deg,
+      #111 108deg 120deg,
+      #a90018 120deg 132deg,
+      #111 132deg 144deg,
+      #a90018 144deg 156deg,
+      #111 156deg 168deg,
+      #a90018 168deg 180deg,
+      #111 180deg 192deg,
+      #a90018 192deg 204deg,
+      #111 204deg 216deg,
+      #a90018 216deg 228deg,
+      #111 228deg 240deg,
+      #a90018 240deg 252deg,
+      #111 252deg 264deg,
+      #a90018 264deg 276deg,
+      #111 276deg 288deg,
+      #a90018 288deg 300deg,
+      #111 300deg 312deg,
+      #a90018 312deg 324deg,
+      #111 324deg 336deg,
+      #a90018 336deg 348deg,
+      #111 348deg 360deg
+    );
+  animation: wheelSpin 5s linear infinite;
+  box-shadow: 0 0 22px rgba(217,169,40,.25);
+}
+
+@keyframes wheelSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Aviator home */
+.home-plane {
+  font-size: 46px;
+  animation:
+    planeFly 3s ease-in-out infinite,
+    planeTilt 1.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 12px rgba(255,216,74,.6));
+}
+
+@keyframes planeFly {
+  0% { transform: translateX(-22px); }
+  50% { transform: translateX(22px) translateY(-8px); }
+  100% { transform: translateX(-22px); }
+}
+
+@keyframes planeTilt {
+  from { rotate: -7deg; }
+  to { rotate: 7deg; }
+}
+
+/* Bingo home */
+.bingo-cage {
+  display: flex;
+  gap: 5px;
+  animation: cageMove 2s ease-in-out infinite;
+}
+
+@keyframes cageMove {
+  50% {
+    transform: rotate(3deg) translateY(-4px);
+  }
+}
+
+/* =========================================================
+   GAME VIEW
+========================================================= */
+
+.game-view {
+  display: none;
+}
+
+.game-view.active {
+  display: block;
+}
+
+.game-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.back-btn {
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 5px;
+}
+
+.game-title {
+  font-size: 18px;
+  font-weight: 1000;
+}
+
+.live-pill {
+  border: 1px solid rgba(255,216,74,.5);
+  color: var(--yellow);
+  background: rgba(255,216,74,.08);
+  border-radius: 20px;
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 1000;
+  animation: livePulse 1.4s infinite;
+}
+
+@keyframes livePulse {
+  50% {
+    box-shadow: 0 0 16px rgba(255,216,74,.35);
+  }
+}
+
+/* =========================================================
+   SHARED ROUND PANEL
+========================================================= */
 
 .round-panel {
-    margin: 0 13px 10px;
-    min-height: 210px;
-    position: relative;
-    overflow: hidden;
-    border-radius: 18px;
-    border: 1px solid rgba(255,196,0,.15);
-    background:
-        radial-gradient(circle at 50% 30%,
-        rgba(180,0,0,.25),
-        transparent 45%),
-        #111;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 9px;
+  margin-bottom: 9px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(169,0,24,.24),
+      rgba(18,8,10,.95)
+    );
+  box-shadow: var(--shadow);
 }
 
-.round-state {
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: 800;
+.round-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.round-label {
+  font-size: 9px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.round-id {
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .countdown {
-    position: absolute;
-    top: 10px;
-    right: 14px;
-    color: var(--gold2);
-    font-size: 15px;
-    font-weight: 900;
+  min-width: 55px;
+  text-align: center;
+  color: var(--yellow);
+  font-size: 20px;
+  font-weight: 1000;
 }
 
-.multiplier {
-    position: absolute;
-    left: 50%;
-    top: 43%;
-    transform: translate(-50%,-50%);
-    font-size: 39px;
-    font-weight: 900;
-    color: var(--gold2);
-    text-shadow: 0 0 20px rgba(255,196,0,.3);
+.status-text {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
 }
 
-.plane {
-    position: absolute;
-    font-size: 30px;
-    left: 15%;
-    bottom: 22%;
-    animation: flight 4s linear infinite;
-}
-
-.flight-path {
-    position: absolute;
-    left: 10%;
-    bottom: 20%;
-    width: 75%;
-    height: 100px;
-    border-top: 2px solid rgba(255,196,0,.35);
-    border-radius: 50%;
-    transform: rotate(-18deg);
-}
-
-@keyframes flight {
-    0% {
-        transform: translate(0,20px) rotate(-4deg);
-    }
-    100% {
-        transform: translate(280px,-100px) rotate(-14deg);
-    }
-}
-
-.crashed .plane {
-    animation: crashPlane .7s ease forwards;
-}
-
-@keyframes crashPlane {
-    to {
-        transform: translate(170px,100px) rotate(30deg);
-        opacity: 0;
-    }
-}
-
-/* =====================================================
-   KENO
-===================================================== */
-
-.selected-balls {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 13px;
-}
-
-.number-ball {
-    flex: 0 0 auto;
-    width: 39px;
-    height: 39px;
-    border-radius: 50%;
-    background: linear-gradient(#f2f2f2,#888);
-    color: #111;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    border: 2px solid transparent;
-    transition: .25s;
-}
-
-.number-ball.match {
-    background: var(--gold);
-    border-color: white;
-    box-shadow: 0 0 16px rgba(255,196,0,.65);
-    transform: scale(1.1);
-}
-
-.number-grid {
-    display: grid;
-    grid-template-columns: repeat(10,1fr);
-    gap: 5px;
-    padding: 10px 13px;
-}
-
-.keno-number {
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 1px solid #383838;
-    background: #181818;
-    color: white;
-    font-size: 11px;
-    font-weight: 800;
-}
-
-.keno-number.selected {
-    border-color: var(--gold);
-    color: var(--gold2);
-}
-
-.keno-number.drawn {
-    background: var(--red);
-    border-color: var(--red2);
-}
-
-.keno-number.selected.drawn {
-    background: var(--gold);
-    color: #111;
-    border-color: white;
-    box-shadow: 0 0 12px rgba(255,196,0,.7);
-}
-
-/* =====================================================
-   ODDS
-===================================================== */
-
-.odds-panel {
-    margin: 10px 13px;
-    padding: 10px;
-    border-radius: 13px;
-    background: #151515;
-    border: 1px solid var(--border);
-}
-
-.odds-title {
-    font-size: 11px;
-    font-weight: 900;
-    color: var(--muted);
-    margin-bottom: 7px;
-}
-
-.odds-row {
-    display: flex;
-    gap: 7px;
-    overflow-x: auto;
-}
-
-.odd-chip {
-    flex: 0 0 auto;
-    padding: 7px 10px;
-    border-radius: 9px;
-    background: #211600;
-    color: var(--gold2);
-    border: 1px solid rgba(255,196,0,.15);
-    font-size: 11px;
-    font-weight: 900;
-}
-
-/* =====================================================
-   ROULETTE
-===================================================== */
-
-.roulette-wheel {
-    width: 190px;
-    height: 190px;
-    margin: 14px auto;
-    border-radius: 50%;
-    border: 10px solid #252525;
-    background:
-        conic-gradient(
-            #b40000 0 10deg,
-            #111 10deg 20deg,
-            #b40000 20deg 30deg,
-            #111 30deg 40deg,
-            #b40000 40deg 50deg,
-            #111 50deg 60deg,
-            #b40000 60deg 70deg,
-            #111 70deg 80deg,
-            #b40000 80deg 90deg,
-            #111 90deg 100deg,
-            #b40000 100deg 110deg,
-            #111 110deg 120deg,
-            #b40000 120deg 130deg,
-            #111 130deg 140deg,
-            #b40000 140deg 150deg,
-            #111 150deg 160deg,
-            #b40000 160deg 170deg,
-            #111 170deg 180deg,
-            #b40000 180deg 190deg,
-            #111 190deg 200deg,
-            #b40000 200deg 210deg,
-            #111 210deg 220deg,
-            #b40000 220deg 230deg,
-            #111 230deg 240deg,
-            #b40000 240deg 250deg,
-            #111 250deg 260deg,
-            #b40000 260deg 270deg,
-            #111 270deg 280deg,
-            #b40000 280deg 290deg,
-            #111 290deg 300deg,
-            #b40000 300deg 310deg,
-            #111 310deg 320deg,
-            #b40000 320deg 330deg,
-            #111 330deg 340deg,
-            #b40000 340deg 350deg,
-            #111 350deg 360deg
-        );
-    position: relative;
-    transition: transform 3s cubic-bezier(.12,.75,.18,1);
-}
-
-.roulette-center {
-    position: absolute;
-    width: 55px;
-    height: 55px;
-    border-radius: 50%;
-    background: #171717;
-    border: 3px solid var(--gold);
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%,-50%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    color: var(--gold2);
-}
-
-.roulette-result {
-    text-align: center;
-    padding-bottom: 8px;
-}
-
-.result-number {
-    font-size: 30px;
-    font-weight: 900;
-}
-
-.result-color {
-    color: var(--gold2);
-    font-size: 11px;
-    font-weight: 900;
-}
-
-/* =====================================================
-   BET SLOTS
-===================================================== */
+/* =========================================================
+   TWO SLOTS
+========================================================= */
 
 .slots {
-    padding: 4px 13px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .slot {
-    margin-bottom: 9px;
-    padding: 10px;
-    border-radius: 14px;
-    background: #151515;
-    border: 1px solid var(--border);
+  min-width: 0;
+  border: 1px solid rgba(217,169,40,.38);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      160deg,
+      rgba(224,0,37,.15),
+      rgba(17,8,10,.97)
+    );
+  padding: 8px;
+  box-shadow: 0 8px 22px rgba(0,0,0,.3);
 }
 
-.slot-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 7px;
-}
-
-.slot-title {
-    font-size: 12px;
-    font-weight: 900;
+.slot-number {
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .7px;
 }
 
 .slot-state {
-    font-size: 10px;
-    color: var(--muted);
+  margin-top: 3px;
+  min-height: 15px;
+  font-size: 9px;
+  color: var(--muted);
 }
 
-.amount-row {
-    display: grid;
-    grid-template-columns: 40px 1fr 40px;
-    gap: 7px;
+/* =========================================================
+   PREVIOUS RESULTS
+========================================================= */
+
+.section-title {
+  margin: 9px 0 5px;
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: .7px;
 }
 
-.amount-button {
-    border: 0;
-    border-radius: 9px;
-    background: #292929;
-    color: var(--gold2);
-    font-size: 20px;
-    font-weight: 900;
+.result-row {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 2px 0 5px;
+  scrollbar-width: none;
 }
 
-.amount-input {
-    width: 100%;
-    min-width: 0;
-    border: 1px solid #343434;
-    border-radius: 9px;
-    background: #0d0d0d;
-    color: white;
-    text-align: center;
-    font-weight: 900;
-    outline: none;
+.result-row::-webkit-scrollbar {
+  display: none;
 }
 
-.amount-input:focus {
-    border-color: var(--gold);
+.result-ball {
+  flex: 0 0 auto;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 25%, #fff7bc, var(--yellow) 38%, #8b5600);
+  color: #351800;
+  font-size: 8px;
+  font-weight: 1000;
+  border: 1px solid rgba(255,216,74,.55);
+  box-shadow: 0 0 10px rgba(255,216,74,.16);
 }
 
-.bet-button {
-    width: 100%;
-    height: 42px;
-    margin-top: 8px;
-    border: 0;
-    border-radius: 10px;
-    background: linear-gradient(135deg,var(--red2),var(--red));
-    color: white;
-    font-weight: 900;
-    letter-spacing: .3px;
+.result-ball.current {
+  animation: newBall .55s ease-out;
 }
 
-.bet-button:active {
-    transform: scale(.98);
+@keyframes newBall {
+  0% {
+    transform: scale(.35);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-.bet-button.waiting {
-    background: #5a4100;
-    color: var(--gold2);
+/* =========================================================
+   KENO
+========================================================= */
+
+.keno-board {
+  min-height: 90px;
+  border: 1px solid rgba(217,169,40,.2);
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(0,0,0,.18);
 }
 
-.bet-button.accepted {
-    background: #164d2a;
-    color: #8cffaf;
+.selected-row {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.cashout-button {
-    width: 100%;
-    height: 42px;
-    margin-top: 8px;
-    border: 0;
-    border-radius: 10px;
-    background: linear-gradient(135deg,#ffc400,#d99c00);
-    color: #111;
-    font-weight: 900;
+.selected-row::-webkit-scrollbar {
+  display: none;
 }
 
-.remove-slot {
-    border: 0;
-    background: transparent;
-    color: #ff6b6b;
-    font-size: 11px;
+.selected-number {
+  flex: 0 0 auto;
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,216,74,.3);
+  background: #291116;
+  color: #eee;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 900;
 }
 
-.add-slot {
-    width: 100%;
-    height: 38px;
-    border: 1px dashed rgba(255,196,0,.35);
-    background: transparent;
-    color: var(--gold2);
-    border-radius: 10px;
-    font-weight: 800;
+.selected-number.hit {
+  background: var(--yellow);
+  color: #3b1800;
+  border-color: #fff1a3;
+  box-shadow: 0 0 15px rgba(255,216,74,.75);
+  animation: hitPulse .7s ease-in-out infinite alternate;
 }
 
-/* =====================================================
-   INFO PANELS
-===================================================== */
-
-.info-tabs {
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    gap: 5px;
-    margin: 10px 13px;
+@keyframes hitPulse {
+  to {
+    transform: scale(1.08);
+  }
 }
 
-.info-tab {
-    border: 0;
-    border-radius: 9px;
-    padding: 9px 4px;
-    background: #181818;
-    color: #aaa;
-    font-size: 10px;
-    font-weight: 900;
+/* =========================================================
+   BINGO
+========================================================= */
+
+.cartela {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #10090a;
 }
 
-.info-tab.active {
-    background: #3b0909;
-    color: var(--gold2);
+.cartela-title {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px;
+  background: linear-gradient(90deg, #7e0015, #b5001e);
+  color: var(--yellow);
+  font-size: 10px;
+  font-weight: 1000;
 }
 
-.info-panel {
-    margin: 0 13px 10px;
-    padding: 11px;
-    border-radius: 13px;
-    background: #141414;
-    border: 1px solid var(--border);
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 4px;
 }
 
-.info-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 7px 0;
-    border-bottom: 1px solid rgba(255,255,255,.05);
-    font-size: 11px;
+.bingo-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: #211114;
+  color: #fff8df;
+  font-size: 10px;
+  font-weight: 900;
 }
 
-.info-row:last-child {
-    border-bottom: 0;
+.bingo-cell.called {
+  background: var(--yellow);
+  color: #3b1800;
+  box-shadow: 0 0 9px rgba(255,216,74,.45);
 }
 
-.info-muted {
-    color: var(--muted);
+.bingo-cell.free {
+  background: var(--gold);
+  color: #321500;
 }
 
-/* =====================================================
+/* =========================================================
+   ROULETTE
+========================================================= */
+
+.roulette-stage {
+  display: grid;
+  place-items: center;
+  padding: 9px 0;
+}
+
+.roulette-wheel {
+  width: min(180px, 52vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 9px solid var(--gold);
+  background:
+    conic-gradient(
+      #a90018 0deg 9.73deg,
+      #090909 9.73deg 19.46deg,
+      #a90018 19.46deg 29.19deg,
+      #090909 29.19deg 38.92deg,
+      #a90018 38.92deg 48.65deg,
+      #090909 48.65deg 58.38deg,
+      #a90018 58.38deg 68.11deg,
+      #090909 68.11deg 77.84deg,
+      #a90018 77.84deg 87.57deg,
+      #090909 87.57deg 97.3deg,
+      #a90018 97.3deg 107.03deg,
+      #090909 107.03deg 116.76deg,
+      #a90018 116.76deg 126.49deg,
+      #090909 126.49deg 136.22deg,
+      #a90018 136.22deg 145.95deg,
+      #090909 145.95deg 155.68deg,
+      #a90018 155.68deg 165.41deg,
+      #090909 165.41deg 175.14deg,
+      #a90018 175.14deg 184.87deg,
+      #090909 184.87deg 194.6deg,
+      #a90018 194.6deg 204.33deg,
+      #090909 204.33deg 214.06deg,
+      #a90018 214.06deg 223.79deg,
+      #090909 223.79deg 233.52deg,
+      #a90018 233.52deg 243.25deg,
+      #090909 243.25deg 252.98deg,
+      #a90018 252.98deg 262.71deg,
+      #090909 262.71deg 272.44deg,
+      #a90018 272.44deg 282.17deg,
+      #090909 282.17deg 291.9deg,
+      #a90018 291.9deg 301.63deg,
+      #090909 301.63deg 311.36deg,
+      #a90018 311.36deg 321.09deg,
+      #090909 321.09deg 330.82deg,
+      #a90018 330.82deg 340.55deg,
+      #090909 340.55deg 350.28deg,
+      #a90018 350.28deg 360deg
+    );
+  box-shadow:
+    0 0 25px rgba(217,169,40,.25),
+    inset 0 0 25px rgba(0,0,0,.7);
+  transition: transform 4s cubic-bezier(.12,.65,.15,1);
+}
+
+.roulette-pointer {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 20px solid var(--yellow);
+  transform: translateY(-90px);
+  z-index: 3;
+  filter: drop-shadow(0 0 6px rgba(255,216,74,.7));
+}
+
+.roulette-result {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 25px;
+  font-weight: 1000;
+  color: var(--yellow);
+}
+
+/* =========================================================
+   AVIATOR
+========================================================= */
+
+.aviator-stage {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 70% 25%, rgba(217,169,40,.14), transparent 28%),
+    linear-gradient(
+      150deg,
+      #28070c,
+      #10080a 60%,
+      #050506
+    );
+}
+
+.aviator-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,216,74,.65) 1px, transparent 1.5px);
+  background-size: 47px 39px;
+  animation: starsMove 5s linear infinite;
+  opacity: .35;
+}
+
+@keyframes starsMove {
+  to {
+    transform: translate(-47px, 39px);
+  }
+}
+
+.flight-line {
+  position: absolute;
+  left: -10%;
+  bottom: 25px;
+  width: 120%;
+  height: 2px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--red2),
+      var(--yellow),
+      transparent
+    );
+  transform: rotate(-12deg);
+  transform-origin: center;
+  opacity: .8;
+}
+
+.plane-live {
+  position: absolute;
+  left: 18%;
+  bottom: 48px;
+  font-size: 46px;
+  filter: drop-shadow(0 0 13px rgba(255,216,74,.7));
+  transition:
+    left .8s linear,
+    bottom .8s linear,
+    transform .4s ease;
+}
+
+.multiplier {
+  position: absolute;
+  top: 13px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 1000;
+  color: var(--yellow);
+  text-shadow: 0 0 20px rgba(255,216,74,.4);
+}
+
+.crashed {
+  color: #ff4d4d;
+  animation: crashFlash .4s ease-in-out 3;
+}
+
+@keyframes crashFlash {
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.history {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.history::-webkit-scrollbar {
+  display: none;
+}
+
+.history-item {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: #211014;
+  border: 1px solid rgba(217,169,40,.2);
+  color: var(--yellow);
+  font-size: 9px;
+  font-weight: 1000;
+}
+
+/* =========================================================
+   BET PANEL — POINTS ONLY
+========================================================= */
+
+.bet-panel {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(217,169,40,.16);
+}
+
+.bet-label {
+  font-size: 9px;
+  color: var(--muted);
+}
+
+.amount-control {
+  display: grid;
+  grid-template-columns: 30px 1fr 30px;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.amount-control button {
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #2a1014;
+  color: var(--yellow);
+  font-size: 17px;
+  font-weight: 1000;
+}
+
+.amount-control input {
+  width: 100%;
+  height: 34px;
+  border: 1px solid rgba(217,169,40,.35);
+  border-radius: 8px;
+  background: #0e0809;
+  color: var(--text);
+  text-align: center;
+  outline: none;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.place-btn {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 9px;
+  background:
+    linear-gradient(
+      135deg,
+      var(--red2),
+      var(--red)
+    );
+  color: white;
+  font-size: 10px;
+  font-weight: 1000;
+  box-shadow: 0 5px 15px rgba(224,0,37,.22);
+}
+
+.place-btn:active {
+  transform: scale(.97);
+}
+
+.place-btn.waiting {
+  background: #3a2b0c;
+  color: var(--yellow);
+}
+
+.place-btn:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+/* =========================================================
    HELP
-===================================================== */
+========================================================= */
 
-.help-button {
-    margin: 3px 13px 12px;
-    width: calc(100% - 26px);
-    border: 1px solid rgba(255,196,0,.2);
-    border-radius: 11px;
-    background: #17120a;
-    color: var(--gold2);
-    padding: 10px;
-    font-size: 11px;
-    font-weight: 900;
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(7px);
 }
 
-/* =====================================================
-   BOTTOM NAV
-===================================================== */
-
-.bottom-nav {
-    position: fixed;
-    z-index: 200;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 520px;
-    height: 70px;
-    display: grid;
-    grid-template-columns: repeat(5,1fr);
-    background: rgba(12,12,12,.97);
-    border-top: 1px solid var(--border);
-    backdrop-filter: blur(15px);
+.modal.open {
+  display: flex;
 }
 
-.nav-button {
-    border: 0;
-    background: transparent;
-    color: #777;
-    font-size: 10px;
-    font-weight: 800;
+.modal-box {
+  width: min(440px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--gold);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      150deg,
+      #27090d,
+      #100708
+    );
+  box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  padding: 15px;
 }
 
-.nav-button.active {
-    color: var(--gold2);
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.nav-icon {
-    display: block;
-    font-size: 19px;
-    margin-bottom: 2px;
+.modal-title {
+  color: var(--yellow);
+  font-size: 17px;
+  font-weight: 1000;
 }
 
-/* =====================================================
-   ACCOUNT
-===================================================== */
-
-.account-card {
-    margin: 18px 13px;
-    padding: 20px;
-    border-radius: 18px;
-    background:
-        linear-gradient(145deg,#230000,#111);
-    border: 1px solid rgba(255,196,0,.15);
+.close-btn {
+  border: 0;
+  background: transparent;
+  color: white;
+  font-size: 22px;
 }
 
-.account-card h2 {
-    margin-top: 0;
+.modal-body {
+  margin-top: 10px;
+  color: #ddd0c1;
+  font-size: 12px;
+  line-height: 1.65;
 }
 
-.form-input {
-    width: 100%;
-    height: 44px;
-    margin: 6px 0;
-    border-radius: 9px;
-    border: 1px solid #333;
-    background: #090909;
-    color: white;
-    padding: 0 12px;
-    outline: none;
-}
-
-.primary-button {
-    width: 100%;
-    height: 44px;
-    margin-top: 8px;
-    border: 0;
-    border-radius: 10px;
-    background: linear-gradient(135deg,var(--red2),var(--red));
-    color: white;
-    font-weight: 900;
-}
-
-/* =====================================================
+/* =========================================================
    TOAST
-===================================================== */
+========================================================= */
 
 .toast {
-    position: fixed;
-    z-index: 500;
-    left: 50%;
-    bottom: 85px;
-    transform: translateX(-50%) translateY(20px);
-    max-width: 90%;
-    padding: 10px 15px;
-    border-radius: 10px;
-    background: #222;
-    border: 1px solid rgba(255,196,0,.25);
-    color: white;
-    font-size: 11px;
-    font-weight: 800;
-    opacity: 0;
-    pointer-events: none;
-    transition: .25s;
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  z-index: 700;
+  transform: translateX(-50%) translateY(30px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 9px 13px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: #21090d;
+  color: var(--yellow);
+  font-size: 10px;
+  font-weight: 900;
+  transition: .25s ease;
 }
 
 .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
-/* =====================================================
+/* =========================================================
    RESPONSIVE
-===================================================== */
+========================================================= */
 
-@media (min-width: 600px) {
-    body {
-        background: #050505;
-    }
+@media (min-width: 700px) {
+  .page {
+    padding: 18px;
+  }
 
-    .app {
-        box-shadow: 0 0 50px rgba(0,0,0,.5);
-    }
+  .home-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .game-card {
+    min-height: 175px;
+  }
+}
+
+@media (max-width: 360px) {
+  .page {
+    padding: 7px;
+  }
+
+  .header {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .slot {
+    padding: 6px;
+  }
+
+  .result-ball,
+  .selected-number {
+    width: 27px;
+    height: 27px;
+  }
+
+  .place-btn {
+    font-size: 9px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div class="app">
+<header class="header">
+  <div class="logo">DESTA PLAY</div>
 
-    <!-- =================================================
-         HEADER
-    ================================================== -->
+  <div class="header-right">
+    <button
+      class="help-btn"
+      id="helpBtn"
+      type="button"
+    >HELP</button>
 
-    <header class="header">
-        <div class="logo">
-            DESTA <span>PLAY</span>
+    <button
+      class="lang-btn active"
+      id="langEn"
+      type="button"
+    >EN</button>
+
+    <button
+      class="lang-btn"
+      id="langAm"
+      type="button"
+    >አማ</button>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- =====================================================
+       HOME
+  ====================================================== -->
+
+  <section id="homeView">
+
+    <div class="home-title" id="homeTitle">
+      Choose a game
+    </div>
+
+    <div class="home-grid">
+
+      <button
+        class="game-card"
+        data-game="keno"
+        type="button"
+      >
+        <div class="game-icon">
+          <div class="keno-balls">
+            <span class="home-ball">07</span>
+            <span class="home-ball">42</span>
+            <span class="home-ball">18</span>
+          </div>
         </div>
+        <div class="game-name">KENO</div>
+        <div class="game-sub">Live number draw</div>
+      </button>
 
-        <div class="header-actions">
-            <button
-                class="language-button"
-                id="languageButton"
-                onclick="toggleLanguage()">
-                🇬🇧 English
-            </button>
+      <button
+        class="game-card"
+        data-game="bingo"
+        type="button"
+      >
+        <div class="game-icon">
+          <div class="bingo-cage">
+            <span class="home-ball">B</span>
+            <span class="home-ball">I</span>
+            <span class="home-ball">O</span>
+          </div>
         </div>
-    </header>
+        <div class="game-name">BINGO</div>
+        <div class="game-sub">Live cartela draw</div>
+      </button>
 
-
-    <!-- =================================================
-         HOME
-    ================================================== -->
-
-    <main id="homeView" class="view active">
-
-        <section class="section">
-
-            <div class="section-title" data-i18n="games">
-                Games
-            </div>
-
-            <div class="game-grid">
-
-                <!-- AVIATOR -->
-
-                <div class="game-card"
-                     onclick="openGame('aviator')">
-
-                    <div class="card-glow"></div>
-
-                    <div class="home-flight-line"></div>
-
-                    <div class="home-plane">
-                        ✈️
-                    </div>
-
-                    <div class="card-subtitle">
-                        Fly & Cash Out
-                    </div>
-
-                    <div class="card-title">
-                        AVIATOR
-                    </div>
-
-                </div>
-
-
-                <!-- KENO -->
-
-                <div class="game-card"
-                     onclick="openGame('keno')">
-
-                    <div class="card-glow"></div>
-
-                    <div class="home-balls">
-
-                        <div class="home-ball">7</div>
-                        <div class="home-ball">18</div>
-                        <div class="home-ball">32</div>
-                        <div class="home-ball">44</div>
-                        <div class="home-ball">71</div>
-
-                    </div>
-
-                    <div class="card-subtitle">
-                        Pick & Match
-                    </div>
-
-                    <div class="card-title">
-                        KENO
-                    </div>
-
-                </div>
-
-
-                <!-- BINGO -->
-
-                <div class="game-card"
-                     onclick="openGame('bingo')">
-
-                    <div class="card-glow"></div>
-
-                    <div class="home-bingo">
-
-                        <div class="bingo-mini-ball">B</div>
-                        <div class="bingo-mini-ball">I</div>
-                        <div class="bingo-mini-ball">N</div>
-                        <div class="bingo-mini-ball">G</div>
-                        <div class="bingo-mini-ball">O</div>
-
-                    </div>
-
-                    <div class="card-subtitle">
-                        Mark & Win
-                    </div>
-
-                    <div class="card-title">
-                        BINGO
-                    </div>
-
-                </div>
-
-
-                <!-- ROULETTE -->
-
-                <div class="game-card"
-                     onclick="openGame('roulette')">
-
-                    <div class="card-glow"></div>
-
-                    <div class="home-wheel"></div>
-
-                    <div class="card-subtitle">
-                        Spin & Win
-                    </div>
-
-                    <div class="card-title">
-                        ROULETTE
-                    </div>
-
-                </div>
-
-            </div>
-        </section>
-
-
-        <!-- HOME HELP -->
-
-        <section class="section">
-
-            <div class="section-title">
-                <span data-i18n="howToPlay">
-                    How to Play
-                </span>
-            </div>
-
-            <div class="info-panel">
-
-                <div class="info-row">
-                    <span>Aviator</span>
-                    <span class="info-muted">
-                        Fly and cash out
-                    </span>
-                </div>
-
-                <div class="info-row">
-                    <span>Keno</span>
-                    <span class="info-muted">
-                        Select numbers
-                    </span>
-                </div>
-
-                <div class="info-row">
-                    <span>Bingo</span>
-                    <span class="info-muted">
-                        Mark your cartela
-                    </span>
-                </div>
-
-                <div class="info-row">
-                    <span>Roulette</span>
-                    <span class="info-muted">
-                        Choose your bet
-                    </span>
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
-
-    <!-- =================================================
-         GAME VIEW
-    ================================================== -->
-
-    <main id="gameView" class="view">
-
-        <div class="game-top">
-
-            <button
-                class="back-button"
-                onclick="goHome()">
-                ←
-            </button>
-
-            <div
-                id="gameName"
-                class="game-name">
-                AVIATOR
-            </div>
-
-            <div
-                id="gameStatus"
-                class="game-status">
-                BETTING
-            </div>
-
+      <button
+        class="game-card"
+        data-game="roulette"
+        type="button"
+      >
+        <div class="game-icon">
+          <div class="home-wheel"></div>
         </div>
+        <div class="game-name">ROULETTE</div>
+        <div class="game-sub">Live wheel</div>
+      </button>
+
+      <button
+        class="game-card"
+        data-game="aviator"
+        type="button"
+      >
+        <div class="game-icon">
+          <div class="home-plane">✈</div>
+        </div>
+        <div class="game-name">AVIATOR</div>
+        <div class="game-sub">Live flight</div>
+      </button>
+
+    </div>
+  </section>
 
 
-        <!-- HISTORY -->
+  <!-- =====================================================
+       KENO
+  ====================================================== -->
+
+  <section
+    id="kenoView"
+    class="game-view"
+  >
+
+    <div class="game-top">
+      <button class="back-btn" type="button">‹ HOME</button>
+      <div class="game-title">KENO</div>
+      <div class="live-pill">● LIVE</div>
+    </div>
+
+    <div class="round-panel">
+
+      <div class="round-line">
+        <div>
+          <div class="round-label">ROUND</div>
+          <div
+            class="round-id"
+            id="kenoRound"
+          >—</div>
+        </div>
 
         <div
-            id="history"
-            class="history">
-        </div>
+          class="countdown"
+          id="kenoCountdown"
+        >—</div>
+      </div>
 
+      <div
+        class="status-text"
+        id="kenoStatus"
+      >Connecting…</div>
 
-        <!-- ROUND -->
+    </div>
 
-        <section
-            id="roundPanel"
-            class="round-panel">
+    <div class="round-panel">
 
-            <div
-                id="roundState"
-                class="round-state">
-                Waiting for round
-            </div>
+      <div class="section-title">
+        LAST WINNING NUMBERS
+      </div>
 
-            <div
-                id="countdown"
-                class="countdown">
-                00:40
-            </div>
+      <div
+        class="result-row"
+        id="kenoPrevious"
+      ></div>
 
-            <div
-                id="multiplier"
-                class="multiplier">
-                1.00x
-            </div>
+      <div class="section-title">
+        CURRENT DRAW
+      </div>
 
-            <div
-                id="flightPath"
-                class="flight-path">
-            </div>
+      <div
+        class="result-row"
+        id="kenoCurrent"
+      ></div>
 
-            <div
-                id="plane"
-                class="plane">
-                ✈️
-            </div>
+    </div>
 
-        </section>
+    <div class="slots">
 
-
-        <!-- KENO SELECTED -->
-
-        <section
-            id="kenoSelectedSection"
-            style="display:none">
-
-            <div class="section-title section">
-                Your Numbers
-            </div>
-
-            <div
-                id="selectedBalls"
-                class="selected-balls">
-            </div>
-
-            <div
-                id="kenoMatchInfo"
-                class="odds-panel">
-            </div>
-
-            <div
-                id="kenoGrid"
-                class="number-grid">
-            </div>
-
-        </section>
-
-
-        <!-- BINGO -->
-
-        <section
-            id="bingoSection"
-            style="display:none">
-
-            <div class="section">
-
-                <div class="info-panel">
-
-                    <div class="info-row">
-                        <span>Cartela</span>
-                        <span id="cartelaNumber">
-                            #30
-                        </span>
-                    </div>
-
-                    <div class="info-row">
-                        <span>Called</span>
-                        <span id="bingoCalled">
-                            —
-                        </span>
-                    </div>
-
-                </div>
-
-                <div
-                    id="bingoGrid"
-                    class="number-grid">
-                </div>
-
-                <button
-                    class="bet-button"
-                    onclick="checkBingo()">
-                    BINGO
-                </button>
-
-            </div>
-
-        </section>
-
-
-        <!-- ROULETTE -->
-
-        <section
-            id="rouletteSection"
-            style="display:none">
-
-            <div class="roulette-wheel"
-                 id="rouletteWheel">
-
-                <div
-                    class="roulette-center"
-                    id="rouletteCenter">
-                    0
-                </div>
-
-            </div>
-
-            <div class="roulette-result">
-
-                <div
-                    id="rouletteResultNumber"
-                    class="result-number">
-                    —
-                </div>
-
-                <div
-                    id="rouletteResultColor"
-                    class="result-color">
-                    —
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ODDS -->
-
-        <section
-            id="oddsSection"
-            class="odds-panel">
-
-            <div class="odds-title">
-                PAYOUTS / ODDS
-            </div>
-
-            <div
-                id="oddsRow"
-                class="odds-row">
-            </div>
-
-        </section>
-
-
-        <!-- BET SLOTS -->
-
-        <section class="slots">
-
-            <div
-                id="slotsContainer">
-            </div>
-
-            <button
-                id="addSlotButton"
-                class="add-slot"
-                onclick="addSlot()">
-                + ADD SLOT
-            </button>
-
-        </section>
-
-
-        <!-- INFO -->
-
-        <div class="info-tabs">
-
-            <button
-                class="info-tab active"
-                onclick="showInfo('all',this)">
-                ALL BETS
-            </button>
-
-            <button
-                class="info-tab"
-                onclick="showInfo('mine',this)">
-                MY BETS
-            </button>
-
-            <button
-                class="info-tab"
-                onclick="showInfo('top',this)">
-                TOP
-            </button>
-
-        </div>
-
+      <div class="slot" data-slot="1">
+        <div class="slot-number">SLOT 01</div>
 
         <div
-            id="infoPanel"
-            class="info-panel">
-        </div>
+          class="slot-state"
+          id="kenoSlotState1"
+        >Ready</div>
 
+        <div class="bet-panel">
 
-        <button
-            class="help-button"
-            onclick="showHelp()">
-            ❔ HELP & INSTRUCTIONS
-        </button>
+          <div class="bet-label">
+            POINTS
+          </div>
 
-    </main>
-
-
-    <!-- =================================================
-         ACCOUNT
-    ================================================== -->
-
-    <main id="accountView" class="view">
-
-        <section class="account-card">
-
-            <h2>
-                Create Account
-            </h2>
-
-            <p class="info-muted">
-                Demo account setup.
-            </p>
+          <div class="amount-control">
+            <button
+              type="button"
+              data-action="minus"
+              data-slot="1"
+            >−</button>
 
             <input
-                id="accountName"
-                class="form-input"
-                placeholder="Name">
-
-            <input
-                id="accountPhone"
-                class="form-input"
-                placeholder="Phone / Contact"
-                inputmode="tel">
+              id="kenoAmount1"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
 
             <button
-                class="primary-button"
-                onclick="createDemoAccount()">
-                CONTINUE
-            </button>
+              type="button"
+              data-action="plus"
+              data-slot="1"
+            >+</button>
+          </div>
 
-        </section>
+          <button
+            class="place-btn"
+            id="kenoPlace1"
+            type="button"
+            data-game="keno"
+            data-slot="1"
+          >PLACE BET</button>
 
-    </main>
-
-
-    <!-- =================================================
-         WALLET
-    ================================================== -->
-
-    <main id="walletView" class="view">
-
-        <section class="section">
-
-            <div class="section-title">
-                Wallet
-            </div>
-
-            <div class="info-panel">
-
-                <div class="info-row">
-                    <span>Demo Balance</span>
-                    <strong id="demoBalance">
-                        1,000 ETB
-                    </strong>
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
+        </div>
+      </div>
 
 
-    <!-- =================================================
-         TOP
-    ================================================== -->
+      <div class="slot" data-slot="2">
+        <div class="slot-number">SLOT 02</div>
 
-    <main id="topView" class="view">
+        <div
+          class="slot-state"
+          id="kenoSlotState2"
+        >Ready</div>
 
-        <section class="section">
+        <div class="bet-panel">
 
-            <div class="section-title">
-                Top Wins
-            </div>
+          <div class="bet-label">
+            POINTS
+          </div>
 
-            <div class="info-tabs">
+          <div class="amount-control">
+            <button
+              type="button"
+              data-action="minus"
+              data-slot="2"
+            >−</button>
 
-                <button
-                    class="info-tab active"
-                    onclick="setTopPeriod('daily',this)">
-                    DAILY
-                </button>
+            <input
+              id="kenoAmount2"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
 
-                <button
-                    class="info-tab"
-                    onclick="setTopPeriod('weekly',this)">
-                    WEEKLY
-                </button>
+            <button
+              type="button"
+              data-action="plus"
+              data-slot="2"
+            >+</button>
+          </div>
 
-                <button
-                    class="info-tab"
-                    onclick="setTopPeriod('monthly',this)">
-                    MONTHLY
-                </button>
+          <button
+            class="place-btn"
+            id="kenoPlace2"
+            type="button"
+            data-game="keno"
+            data-slot="2"
+          >PLACE BET</button>
 
-            </div>
+        </div>
+      </div>
 
-            <div
-                id="globalTopPanel"
-                class="info-panel">
-            </div>
+    </div>
 
-        </section>
-
-    </main>
-
-
-    <!-- =================================================
-         PROFILE
-    ================================================== -->
-
-    <main id="profileView" class="view">
-
-        <section class="account-card">
-
-            <h2>
-                Profile
-            </h2>
-
-            <div class="info-row">
-                <span>Name</span>
-                <span id="profileName">
-                    Demo Player
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span>Phone</span>
-                <span id="profilePhone">
-                    —
-                </span>
-            </div>
-
-        </section>
-
-    </main>
+  </section>
 
 
-    <!-- =================================================
-         BOTTOM NAV
-    ================================================== -->
+  <!-- =====================================================
+       BINGO
+  ====================================================== -->
 
-    <nav class="bottom-nav">
+  <section
+    id="bingoView"
+    class="game-view"
+  >
 
-        <button
-            class="nav-button active"
-            onclick="showMainView('homeView',this)">
+    <div class="game-top">
+      <button class="back-btn" type="button">‹ HOME</button>
+      <div class="game-title">BINGO</div>
+      <div class="live-pill">● LIVE</div>
+    </div>
 
-            <span class="nav-icon">🏠</span>
-            Home
+    <div class="round-panel">
 
-        </button>
+      <div class="round-line">
 
-        <button
-            class="nav-button"
-            onclick="showMainView('walletView',this)">
+        <div>
+          <div class="round-label">ROUND</div>
+          <div
+            class="round-id"
+            id="bingoRound"
+          >—</div>
+        </div>
 
-            <span class="nav-icon">💰</span>
-            Wallet
+        <div
+          class="countdown"
+          id="bingoCountdown"
+        >—</div>
 
-        </button>
+      </div>
 
-        <button
-            class="nav-button"
-            onclick="showMainView('topView',this)">
+      <div
+        class="status-text"
+        id="bingoStatus"
+      >Connecting…</div>
 
-            <span class="nav-icon">🏆</span>
-            Top
+    </div>
 
-        </button>
+    <div class="round-panel">
 
-        <button
-            class="nav-button"
-            onclick="showMainView('accountView',this)">
+      <div class="section-title">
+        LAST DRAW
+      </div>
 
-            <span class="nav-icon">🎮</span>
-            Games
+      <div
+        class="result-row"
+        id="bingoPrevious"
+      ></div>
 
-        </button>
+      <div class="section-title">
+        CURRENT DRAW
+      </div>
 
-        <button
-            class="nav-button"
-            onclick="showMainView('profileView',this)">
+      <div
+        class="result-row"
+        id="bingoCurrent"
+      ></div>
 
-            <span class="nav-icon">👤</span>
-            Profile
+    </div>
 
-        </button>
+    <div class="slots">
 
-    </nav>
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 01
+        </div>
+
+        <div
+          class="slot-state"
+          id="bingoSlotState1"
+        >Ready</div>
+
+        <div class="cartela">
+
+          <div class="cartela-title">
+            <span>CARTELA</span>
+            <span id="cartelaNumber1">30</span>
+          </div>
+
+          <div
+            class="bingo-grid"
+            id="bingoGrid1"
+          ></div>
+
+        </div>
+
+        <div class="bet-panel">
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-slot="1"
+              data-game="bingo"
+            >−</button>
+
+            <input
+              id="bingoAmount1"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-slot="1"
+              data-game="bingo"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="bingoPlace1"
+            type="button"
+          >PLACE BET</button>
+
+          <button
+            class="place-btn"
+            id="bingoButton1"
+            type="button"
+          >BINGO</button>
+
+        </div>
+
+      </div>
+
+
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 02
+        </div>
+
+        <div
+          class="slot-state"
+          id="bingoSlotState2"
+        >Ready</div>
+
+        <div class="cartela">
+
+          <div class="cartela-title">
+            <span>CARTELA</span>
+            <span id="cartelaNumber2">30</span>
+          </div>
+
+          <div
+            class="bingo-grid"
+            id="bingoGrid2"
+          ></div>
+
+        </div>
+
+        <div class="bet-panel">
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-slot="2"
+              data-game="bingo"
+            >−</button>
+
+            <input
+              id="bingoAmount2"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-slot="2"
+              data-game="bingo"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="bingoPlace2"
+            type="button"
+          >PLACE BET</button>
+
+          <button
+            class="place-btn"
+            id="bingoButton2"
+            type="button"
+          >BINGO</button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       ROULETTE
+  ====================================================== -->
+
+  <section
+    id="rouletteView"
+    class="game-view"
+  >
+
+    <div class="game-top">
+      <button class="back-btn" type="button">‹ HOME</button>
+      <div class="game-title">ROULETTE</div>
+      <div class="live-pill">● LIVE</div>
+    </div>
+
+    <div class="round-panel">
+
+      <div class="round-line">
+
+        <div>
+          <div class="round-label">ROUND</div>
+          <div
+            class="round-id"
+            id="rouletteRound"
+          >—</div>
+        </div>
+
+        <div
+          class="countdown"
+          id="rouletteCountdown"
+        >—</div>
+
+      </div>
+
+      <div
+        class="status-text"
+        id="rouletteStatus"
+      >Connecting…</div>
+
+    </div>
+
+    <div class="round-panel">
+
+      <div class="section-title">
+        PREVIOUS RESULTS
+      </div>
+
+      <div
+        class="result-row"
+        id="rouletteHistory"
+      ></div>
+
+      <div class="roulette-stage">
+
+        <div class="roulette-pointer"></div>
+
+        <div
+          class="roulette-wheel"
+          id="rouletteWheel"
+        ></div>
+
+      </div>
+
+      <div
+        class="roulette-result"
+        id="rouletteResult"
+      >—</div>
+
+    </div>
+
+    <div class="slots">
+
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 01
+        </div>
+
+        <div
+          class="slot-state"
+          id="rouletteSlotState1"
+        >Ready</div>
+
+        <div class="bet-panel">
+
+          <div class="bet-label">
+            POINTS
+          </div>
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-game="roulette"
+              data-slot="1"
+            >−</button>
+
+            <input
+              id="rouletteAmount1"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-game="roulette"
+              data-slot="1"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="roulettePlace1"
+            type="button"
+          >PLACE BET</button>
+
+        </div>
+
+      </div>
+
+
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 02
+        </div>
+
+        <div
+          class="slot-state"
+          id="rouletteSlotState2"
+        >Ready</div>
+
+        <div class="bet-panel">
+
+          <div class="bet-label">
+            POINTS
+          </div>
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-game="roulette"
+              data-slot="2"
+            >−</button>
+
+            <input
+              id="rouletteAmount2"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-game="roulette"
+              data-slot="2"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="roulettePlace2"
+            type="button"
+          >PLACE BET</button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       AVIATOR
+  ====================================================== -->
+
+  <section
+    id="aviatorView"
+    class="game-view"
+  >
+
+    <div class="game-top">
+
+      <button class="back-btn" type="button">
+        ‹ HOME
+      </button>
+
+      <div class="game-title">
+        AVIATOR
+      </div>
+
+      <div class="live-pill">
+        ● LIVE
+      </div>
+
+    </div>
+
+    <div class="round-panel">
+
+      <div class="round-line">
+
+        <div>
+          <div class="round-label">
+            ROUND
+          </div>
+
+          <div
+            class="round-id"
+            id="aviatorRound"
+          >—</div>
+        </div>
+
+        <div
+          class="countdown"
+          id="aviatorCountdown"
+        >—</div>
+
+      </div>
+
+      <div
+        class="status-text"
+        id="aviatorStatus"
+      >Connecting…</div>
+
+    </div>
+
+    <div class="round-panel">
+
+      <div class="section-title">
+        PREVIOUS ROUNDS
+      </div>
+
+      <div
+        class="history"
+        id="aviatorHistory"
+      ></div>
+
+    </div>
+
+    <div class="aviator-stage">
+
+      <div class="aviator-stars"></div>
+
+      <div class="flight-line"></div>
+
+      <div
+        class="multiplier"
+        id="aviatorMultiplier"
+      >1.00×</div>
+
+      <div
+        class="plane-live"
+        id="aviatorPlane"
+      >✈</div>
+
+    </div>
+
+    <div class="slots">
+
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 01
+        </div>
+
+        <div
+          class="slot-state"
+          id="aviatorSlotState1"
+        >Ready</div>
+
+        <div class="bet-panel">
+
+          <div class="bet-label">
+            POINTS
+          </div>
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-game="aviator"
+              data-slot="1"
+            >−</button>
+
+            <input
+              id="aviatorAmount1"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-game="aviator"
+              data-slot="1"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="aviatorPlace1"
+            type="button"
+          >PLACE BET</button>
+
+        </div>
+
+      </div>
+
+
+      <div class="slot">
+
+        <div class="slot-number">
+          SLOT 02
+        </div>
+
+        <div
+          class="slot-state"
+          id="aviatorSlotState2"
+        >Ready</div>
+
+        <div class="bet-panel">
+
+          <div class="bet-label">
+            POINTS
+          </div>
+
+          <div class="amount-control">
+
+            <button
+              type="button"
+              data-action="minus"
+              data-game="aviator"
+              data-slot="2"
+            >−</button>
+
+            <input
+              id="aviatorAmount2"
+              type="number"
+              min="1"
+              value="10"
+              inputmode="numeric"
+            >
+
+            <button
+              type="button"
+              data-action="plus"
+              data-game="aviator"
+              data-slot="2"
+            >+</button>
+
+          </div>
+
+          <button
+            class="place-btn"
+            id="aviatorPlace2"
+            type="button"
+          >PLACE BET</button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- =======================================================
+     HELP MODAL
+======================================================== -->
+
+<div
+  class="modal"
+  id="helpModal"
+>
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div
+        class="modal-title"
+        id="helpTitle"
+      >Help & Instructions</div>
+
+      <button
+        class="close-btn"
+        id="closeHelp"
+        type="button"
+      >×</button>
+
+    </div>
+
+    <div
+      class="modal-body"
+      id="helpBody"
+    >
+      Select a game from the home screen.
+      The game display follows the live server round.
+      Both slots show the same round.
+      Use the plus and minus controls to change your
+      demo points amount.
+    </div>
+
+  </div>
 
 </div>
 
 
 <div
-    id="toast"
-    class="toast">
-</div>
+  class="toast"
+  id="toast"
+></div>
 
 
 <script>
-/* =====================================================
-   CONFIG
-===================================================== */
+/* =========================================================
+   DESTA PLAY — LIVE FRONTEND
+========================================================= */
 
-const API_BASE = "";
+const state = {
+  language: "en",
+  currentGame: null,
 
-const MIN_BET = 1;
-const MAX_SLOTS = 4;
-const DEFAULT_SLOTS = 2;
+  rounds: {
+    keno: null,
+    bingo: null,
+    roulette: null,
+    aviator: null
+  },
 
-let language = localStorage.getItem("desta_language") || "en";
+  previous: {
+    keno: [],
+    bingo: [],
+    roulette: [],
+    aviator: []
+  },
 
-let currentGame = null;
-
-let slots = [];
-
-let gameTimer = null;
-let pollTimer = null;
-let animationTimer = null;
-
-let currentRound = null;
-
-let currentMultiplier = 1.00;
-
-let demoBalance = 1000;
-
-let selectedKenoNumbers = [];
-
-let bingoMarked = new Set();
-
-let infoMode = "all";
-
-let topPeriod = "daily";
-
-
-/* =====================================================
-   TRANSLATIONS
-===================================================== */
-
-const translations = {
-
-    en: {
-
-        games: "Games",
-        howToPlay: "How to Play",
-        placeBet: "PLACE BET",
-        waiting: "WAITING FOR NEXT ROUND",
-        accepted: "BET ACCEPTED",
-        cashOut: "CASH OUT",
-        addSlot: "+ ADD SLOT",
-        payout: "PAYOUTS / ODDS",
-        allBets: "ALL BETS",
-        myBets: "MY BETS",
-        top: "TOP",
-        help: "❔ HELP & INSTRUCTIONS",
-        betting: "BETTING",
-        playing: "PLAYING",
-        finished: "FINISHED",
-        bingoWin: "Cartela number {number} wins!",
-        bingoLose: "Cartela number {number} is not a winning cartela.",
-        nextRound: "Waiting for next round"
-
+  slots: {
+    keno: {
+      1: false,
+      2: false
     },
 
-    am: {
+    bingo: {
+      1: false,
+      2: false
+    },
 
-        games: "ጨዋታዎች",
-        howToPlay: "እንዴት እንደሚጫወት",
-        placeBet: "ውርርድ ያስገቡ",
-        waiting: "ቀጣዩን ዙር በመጠበቅ ላይ",
-        accepted: "ውርርዱ ተቀብሏል",
-        cashOut: "ገንዘብ ውሰድ",
-        addSlot: "+ ስሎት ጨምር",
-        payout: "ክፍያ / ማባዣ",
-        allBets: "ሁሉም ውርርዶች",
-        myBets: "የእኔ ውርርዶች",
-        top: "ከፍተኛ",
-        help: "❔ እርዳታ እና መመሪያ",
-        betting: "ውርርድ",
-        playing: "በመጫወት ላይ",
-        finished: "ተጠናቋል",
-        bingoWin: "ካርቴላ ቁጥር {number} አሸንፏል!",
-        bingoLose: "ካርቴላ ቁጥር {number} አላሸነፈም።",
-        nextRound: "ቀጣዩን ዙር በመጠበቅ ላይ"
+    roulette: {
+      1: false,
+      2: false
+    },
 
+    aviator: {
+      1: false,
+      2: false
     }
+  }
+};
+
+
+/* =========================================================
+   TRANSLATIONS
+========================================================= */
+
+const TEXT = {
+
+  en: {
+    home: "Choose a game",
+    help: "Help & Instructions",
+    place: "PLACE BET",
+    waiting: "WAITING FOR NEXT ROUND",
+    ready: "Ready",
+    checking: "CHECKING…",
+    win: "WIN",
+    lose: "NOT A WIN",
+    connecting: "Connecting…",
+    live: "● LIVE"
+  },
+
+  am: {
+    home: "ጨዋታ ይምረጡ",
+    help: "እርዳታ እና መመሪያ",
+    place: "ውርርድ ያስገቡ",
+    waiting: "ቀጣዩን ዙር በመጠበቅ ላይ",
+    ready: "ዝግጁ",
+    checking: "በመፈተሽ ላይ…",
+    win: "አሸንፈዋል",
+    lose: "አልተሳካም",
+    connecting: "በመገናኘት ላይ…",
+    live: "● ቀጥታ"
+  }
 
 };
 
 
-/* =====================================================
+/* =========================================================
+   HELP
+========================================================= */
+
+const helpBtn =
+  document.getElementById("helpBtn");
+
+const helpModal =
+  document.getElementById("helpModal");
+
+const closeHelp =
+  document.getElementById("closeHelp");
+
+helpBtn.addEventListener(
+  "click",
+  () => {
+
+    document.getElementById("helpTitle")
+      .textContent =
+      TEXT[state.language].help;
+
+    helpModal.classList.add("open");
+
+  }
+);
+
+closeHelp.addEventListener(
+  "click",
+  () => {
+
+    helpModal.classList.remove("open");
+
+  }
+);
+
+helpModal.addEventListener(
+  "click",
+  event => {
+
+    if (event.target === helpModal) {
+      helpModal.classList.remove("open");
+    }
+
+  }
+);
+
+
+/* =========================================================
    LANGUAGE
-===================================================== */
+========================================================= */
 
-function t(key) {
-    return translations[language][key] ||
-           translations.en[key] ||
-           key;
-}
+function setLanguage(language) {
 
-function toggleLanguage() {
+  state.language = language;
 
-    language =
-        language === "en"
-            ? "am"
-            : "en";
-
-    localStorage.setItem(
-        "desta_language",
-        language
+  document
+    .getElementById("langEn")
+    .classList.toggle(
+      "active",
+      language === "en"
     );
 
-    updateLanguageButton();
+  document
+    .getElementById("langAm")
+    .classList.toggle(
+      "active",
+      language === "am"
+    );
 
-    updateStaticText();
+  document
+    .getElementById("homeTitle")
+    .textContent =
+    TEXT[language].home;
 
-    if (currentGame) {
-        renderGame();
-    }
+  document
+    .getElementById("helpTitle")
+    .textContent =
+    TEXT[language].help;
+
+  updateButtonTexts();
+
 }
 
-function updateLanguageButton() {
+document
+  .getElementById("langEn")
+  .addEventListener(
+    "click",
+    () => setLanguage("en")
+  );
 
-    const button =
-        document.getElementById(
-            "languageButton"
+document
+  .getElementById("langAm")
+  .addEventListener(
+    "click",
+    () => setLanguage("am")
+  );
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function showGame(game) {
+
+  state.currentGame = game;
+
+  document
+    .getElementById("homeView")
+    .style.display = "none";
+
+  document
+    .querySelectorAll(".game-view")
+    .forEach(view => {
+      view.classList.remove("active");
+    });
+
+  const target =
+    document.getElementById(
+      `${game}View`
+    );
+
+  if (target) {
+    target.classList.add("active");
+  }
+
+}
+
+function showHome() {
+
+  state.currentGame = null;
+
+  document
+    .querySelectorAll(".game-view")
+    .forEach(view => {
+      view.classList.remove("active");
+    });
+
+  document
+    .getElementById("homeView")
+    .style.display = "block";
+
+}
+
+document
+  .querySelectorAll(".game-card")
+  .forEach(card => {
+
+    card.addEventListener(
+      "click",
+      () => {
+
+        showGame(
+          card.dataset.game
         );
 
-    button.textContent =
-        language === "en"
-            ? "🇬🇧 English"
-            : "🇪🇹 አማርኛ";
-}
+      }
+    );
 
-function updateStaticText() {
+  });
 
-    document
-        .querySelectorAll("[data-i18n]")
-        .forEach(element => {
+document
+  .querySelectorAll(".back-btn")
+  .forEach(button => {
 
-            const key =
-                element.dataset.i18n;
+    button.addEventListener(
+      "click",
+      showHome
+    );
 
-            element.textContent =
-                t(key);
-
-        });
-}
+  });
 
 
-/* =====================================================
-   VIEW MANAGEMENT
-===================================================== */
+/* =========================================================
+   AMOUNT CONTROLS
+========================================================= */
 
-function hideAllViews() {
+document
+  .querySelectorAll(
+    "[data-action='plus']"
+  )
+  .forEach(button => {
 
-    document
-        .querySelectorAll(".view")
-        .forEach(view => {
+    button.addEventListener(
+      "click",
+      () => {
 
-            view.classList.remove(
-                "active"
-            );
+        const game =
+          button.dataset.game ||
+          state.currentGame;
 
-        });
-}
+        const slot =
+          button.dataset.slot;
 
-function showMainView(
-    id,
-    button
-) {
+        if (!game) return;
 
-    hideAllViews();
+        const input =
+          document.getElementById(
+            `${game}Amount${slot}`
+          );
 
-    document
-        .getElementById(id)
-        .classList.add("active");
+        if (!input) return;
 
-    document
-        .querySelectorAll(".nav-button")
-        .forEach(btn =>
-            btn.classList.remove("active")
-        );
+        const value =
+          Number(input.value) || 0;
 
-    if (button) {
-        button.classList.add("active");
-    }
-}
+        input.value =
+          value + 1;
 
-function goHome() {
+      }
+    );
 
-    stopPolling();
-
-    currentGame = null;
-    currentRound = null;
-
-    hideAllViews();
-
-    document
-        .getElementById("homeView")
-        .classList.add("active");
-
-    document
-        .querySelectorAll(".nav-button")
-        .forEach(btn =>
-            btn.classList.remove("active")
-        );
-
-    document
-        .querySelector(".nav-button")
-        .classList.add("active");
-}
+  });
 
 
-/* =====================================================
-   OPEN GAME
-===================================================== */
+document
+  .querySelectorAll(
+    "[data-action='minus']"
+  )
+  .forEach(button => {
 
-function openGame(game) {
+    button.addEventListener(
+      "click",
+      () => {
 
-    currentGame = game;
+        const game =
+          button.dataset.game ||
+          state.currentGame;
 
-    hideAllViews();
+        const slot =
+          button.dataset.slot;
 
-    document
-        .getElementById("gameView")
-        .classList.add("active");
+        if (!game) return;
 
-    resetGameUI();
+        const input =
+          document.getElementById(
+            `${game}Amount${slot}`
+          );
 
-    createDefaultSlots();
+        if (!input) return;
 
-    renderGame();
+        const value =
+          Number(input.value) || 1;
 
-    startPolling();
+        input.value =
+          Math.max(
+            1,
+            value - 1
+          );
 
-    loadRound();
-}
+      }
+    );
 
-
-/* =====================================================
-   RESET GAME
-===================================================== */
-
-function resetGameUI() {
-
-    document
-        .getElementById("kenoSelectedSection")
-        .style.display =
-        currentGame === "keno"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("bingoSection")
-        .style.display =
-        currentGame === "bingo"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("rouletteSection")
-        .style.display =
-        currentGame === "roulette"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("flightPath")
-        .style.display =
-        currentGame === "aviator"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("plane")
-        .style.display =
-        currentGame === "aviator"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("multiplier")
-        .style.display =
-        currentGame === "aviator"
-            ? "block"
-            : "none";
-
-    document
-        .getElementById("history")
-        .innerHTML = "";
-
-    selectedKenoNumbers = [];
-
-    bingoMarked = new Set();
-
-    currentMultiplier = 1.00;
-}
+  });
 
 
-/* =====================================================
-   SLOTS
-===================================================== */
+/* =========================================================
+   PLACE BUTTONS
+========================================================= */
 
-function createDefaultSlots() {
+document
+  .querySelectorAll(".place-btn")
+  .forEach(button => {
 
-    slots = [];
-
-    for (
-        let i = 0;
-        i < DEFAULT_SLOTS;
-        i++
+    if (
+      button.id.includes("bingoButton")
     ) {
-
-        slots.push({
-            id: i + 1,
-            amount: 10,
-            state: "READY",
-            queued: false,
-            accepted: false,
-            cashedOut: false,
-            cashOutAmount: 0
-        });
-
+      return;
     }
 
-    renderSlots();
-}
+    button.addEventListener(
+      "click",
+      () => {
 
-function addSlot() {
+        const game =
+          button.dataset.game ||
+          state.currentGame;
 
-    if (slots.length >= MAX_SLOTS) {
+        const slot =
+          button.dataset.slot ||
+          "1";
 
-        toast(
-            language === "en"
-                ? "Maximum 4 slots"
-                : "ከፍተኛው 4 ስሎቶች ናቸው"
+        if (!game) return;
+
+        state.slots[game][slot] = true;
+
+        button.textContent =
+          TEXT[state.language].waiting;
+
+        button.classList.add(
+          "waiting"
         );
 
+        button.disabled = true;
+
+        const stateElement =
+          document.getElementById(
+            `${game}SlotState${slot}`
+          );
+
+        if (stateElement) {
+
+          stateElement.textContent =
+            TEXT[state.language].waiting;
+
+        }
+
+      }
+    );
+
+  });
+
+
+/* =========================================================
+   BUTTON TEXT
+========================================================= */
+
+function updateButtonTexts() {
+
+  document
+    .querySelectorAll(".place-btn")
+    .forEach(button => {
+
+      if (
+        button.id.includes("bingoButton")
+      ) {
         return;
-    }
+      }
 
-    slots.push({
+      const match =
+        button.id.match(
+          /Place(\d+)$/i
+        );
 
-        id: slots.length + 1,
+      if (!match) return;
 
-        amount: 10,
+      const game =
+        button.id
+          .replace(/Place\d+$/i, "")
+          .toLowerCase();
 
-        state: "READY",
+      const slot =
+        match[1];
 
-        queued: false,
+      if (
+        state.slots[game] &&
+        state.slots[game][slot]
+      ) {
 
-        accepted: false,
+        button.textContent =
+          TEXT[state.language].waiting;
 
-        cashedOut: false,
+      } else {
 
-        cashOutAmount: 0
+        button.textContent =
+          TEXT[state.language].place;
+
+      }
 
     });
 
-    renderSlots();
 }
 
-function removeSlot(index) {
 
-    /*
-     * Slot 1 is permanent.
-     */
+/* =========================================================
+   RESET SLOTS WHEN A NEW ROUND STARTS
+========================================================= */
 
-    if (index === 0) {
+function resetGameSlots(game) {
 
-        toast(
-            language === "en"
-                ? "Slot 1 cannot be removed"
-                : "ስሎት 1 ሊወገድ አይችልም"
-        );
+  if (!state.slots[game]) return;
 
-        return;
+  for (const slot of [1, 2]) {
+
+    state.slots[game][slot] =
+      false;
+
+    const button =
+      document.getElementById(
+        `${game}Place${slot}`
+      );
+
+    if (button) {
+
+      button.disabled = false;
+
+      button.classList.remove(
+        "waiting"
+      );
+
+      button.textContent =
+        TEXT[state.language].place;
+
     }
 
-    if (
-        slots[index].queued ||
-        slots[index].accepted
-    ) {
+    const stateElement =
+      document.getElementById(
+        `${game}SlotState${slot}`
+      );
 
-        toast(
-            language === "en"
-                ? "This slot already has a bet"
-                : "ይህ ስሎት ውርርድ አለው"
-        );
+    if (stateElement) {
 
-        return;
+      stateElement.textContent =
+        TEXT[state.language].ready;
+
     }
 
-    slots.splice(index,1);
+  }
 
-    renderSlots();
 }
 
-function changeAmount(
-    index,
-    amount
+
+/* =========================================================
+   ROUND IDENTIFIER
+========================================================= */
+
+function displayRoundId(
+  elementId,
+  round
 ) {
 
-    const slot = slots[index];
+  const element =
+    document.getElementById(
+      elementId
+    );
 
-    if (
-        slot.queued ||
-        slot.accepted
-    ) {
-        return;
-    }
+  if (!element) return;
 
-    let value =
-        Number(slot.amount) + amount;
+  element.textContent =
+    round?.id || "—";
 
-    if (
-        !Number.isFinite(value)
-    ) {
-        value = MIN_BET;
-    }
-
-    value =
-        Math.max(
-            MIN_BET,
-            Math.floor(value)
-        );
-
-    slot.amount = value;
-
-    renderSlots();
 }
 
-function editAmount(
-    index,
-    value
+
+/* =========================================================
+   COUNTDOWN
+========================================================= */
+
+function getRemainingSeconds(round) {
+
+  if (!round) return null;
+
+  if (
+    typeof round.remainingSeconds ===
+    "number"
+  ) {
+
+    return Math.max(
+      0,
+      Math.ceil(
+        round.remainingSeconds
+      )
+    );
+
+  }
+
+  if (
+    typeof round.countdown ===
+    "number"
+  ) {
+
+    return Math.max(
+      0,
+      Math.ceil(
+        round.countdown
+      )
+    );
+
+  }
+
+  if (round.endsAt) {
+
+    const remaining =
+      (
+        new Date(
+          round.endsAt
+        ).getTime()
+        -
+        Date.now()
+      ) / 1000;
+
+    return Math.max(
+      0,
+      Math.ceil(
+        remaining
+      )
+    );
+
+  }
+
+  return null;
+
+}
+
+function updateCountdowns() {
+
+  for (
+    const game of [
+      "keno",
+      "bingo",
+      "roulette",
+      "aviator"
+    ]
+  ) {
+
+    const round =
+      state.rounds[game];
+
+    if (!round) continue;
+
+    const seconds =
+      getRemainingSeconds(
+        round
+      );
+
+    const element =
+      document.getElementById(
+        `${game}Countdown`
+      );
+
+    if (!element) continue;
+
+    element.textContent =
+      seconds === null
+        ? "—"
+        : `${seconds}s`;
+
+  }
+
+}
+
+setInterval(
+  updateCountdowns,
+  250
+);
+
+
+/* =========================================================
+   KENO RENDER
+========================================================= */
+
+function renderKeno(round) {
+
+  if (!round) return;
+
+  displayRoundId(
+    "kenoRound",
+    round
+  );
+
+  const status =
+    document.getElementById(
+      "kenoStatus"
+    );
+
+  if (status) {
+
+    status.textContent =
+      formatStatus(
+        round.status
+      );
+
+  }
+
+  const previous =
+    round.previousDraw ||
+    round.lastDraw ||
+    state.previous.keno ||
+    [];
+
+  const current =
+    round.drawnNumbers ||
+    round.currentDraw ||
+    [];
+
+  renderNumberRow(
+    "kenoPrevious",
+    previous
+  );
+
+  renderNumberRow(
+    "kenoCurrent",
+    current,
+    true
+  );
+
+}
+
+
+/* =========================================================
+   BINGO RENDER
+========================================================= */
+
+function renderBingo(round) {
+
+  if (!round) return;
+
+  displayRoundId(
+    "bingoRound",
+    round
+  );
+
+  const status =
+    document.getElementById(
+      "bingoStatus"
+    );
+
+  if (status) {
+
+    status.textContent =
+      formatStatus(
+        round.status
+      );
+
+  }
+
+  const previous =
+    round.previousDraw ||
+    round.lastDraw ||
+    state.previous.bingo ||
+    [];
+
+  const current =
+    round.draw ||
+    round.drawnNumbers ||
+    round.currentDraw ||
+    [];
+
+  renderNumberRow(
+    "bingoPrevious",
+    previous
+  );
+
+  renderNumberRow(
+    "bingoCurrent",
+    current,
+    true
+  );
+
+  updateBingoGrids(
+    current
+  );
+
+}
+
+
+/* =========================================================
+   BINGO GRID
+========================================================= */
+
+function buildDemoCartela(
+  cartelaNumber
 ) {
 
-    const slot = slots[index];
+  const seed =
+    Number(cartelaNumber) || 30;
 
-    if (
-        slot.queued ||
-        slot.accepted
-    ) {
-        return;
-    }
+  const values = [];
 
-    let amount =
-        Number(value);
+  for (
+    let i = 0;
+    i < 24;
+    i++
+  ) {
 
-    if (
-        !Number.isFinite(amount) ||
-        amount < MIN_BET
-    ) {
-        amount = MIN_BET;
-    }
+    values.push(
+      ((seed * 17 + i * 11) % 75) + 1
+    );
 
-    slot.amount =
-        Math.floor(amount);
+  }
 
-    renderSlots();
+  return [
+    ...values.slice(0, 12),
+    0,
+    ...values.slice(12)
+  ];
+
 }
 
+function renderBingoGrid(
+  elementId,
+  cartelaNumber,
+  called
+) {
 
-/* =====================================================
-   BET BUTTON
-===================================================== */
+  const grid =
+    document.getElementById(
+      elementId
+    );
 
-async function placeBet(index) {
+  if (!grid) return;
 
-    const slot = slots[index];
+  const numbers =
+    buildDemoCartela(
+      cartelaNumber
+    );
 
-    if (!slot) {
-        return;
-    }
+  grid.innerHTML = "";
 
-    /*
-     * IMPORTANT:
-     *
-     * The button stays clickable even when
-     * the current game is already playing.
-     *
-     * The backend decides:
-     *
-     * BETTING -> current round
-     * PLAYING -> next round queue
-     */
+  numbers.forEach(
+    (number, index) => {
 
-    if (
-        slot.queued ||
-        slot.accepted
-    ) {
-        return;
-    }
-
-    const amount =
-        Number(slot.amount);
-
-    if (
-        !Number.isFinite(amount) ||
-        amount < MIN_BET
-    ) {
-
-        toast(
-            language === "en"
-                ? "Invalid bet amount"
-                : "የተሳሳተ የውርርድ መጠን"
+      const cell =
+        document.createElement(
+          "div"
         );
 
-        return;
+      cell.className =
+        "bingo-cell";
+
+      if (index === 12) {
+
+        cell.textContent =
+          "FREE";
+
+        cell.classList.add(
+          "free"
+        );
+
+      } else {
+
+        cell.textContent =
+          String(number);
+
+        if (
+          called.includes(number)
+        ) {
+
+          cell.classList.add(
+            "called"
+          );
+
+        }
+
+      }
+
+      grid.appendChild(cell);
+
     }
+  );
 
-    /*
-     * Demo frontend state.
-     *
-     * Connect this function to your
-     * authenticated backend bet endpoint
-     * before using real money.
-     */
+}
 
-    slot.queued = true;
-    slot.state = "WAITING";
+function updateBingoGrids(
+  called
+) {
 
-    renderSlots();
+  renderBingoGrid(
+    "bingoGrid1",
+    document.getElementById(
+      "cartelaNumber1"
+    ).textContent,
+    called
+  );
 
-    toast(t("waiting"));
+  renderBingoGrid(
+    "bingoGrid2",
+    document.getElementById(
+      "cartelaNumber2"
+    ).textContent,
+    called
+  );
+
 }
 
 
-/* =====================================================
-   AVIATOR CASH OUT
-===================================================== */
+/* =========================================================
+   ROULETTE RENDER
+========================================================= */
 
-function cashOut(index) {
+function renderRoulette(round) {
 
-    const slot = slots[index];
+  if (!round) return;
 
-    if (!slot) {
-        return;
-    }
+  displayRoundId(
+    "rouletteRound",
+    round
+  );
+
+  const status =
+    document.getElementById(
+      "rouletteStatus"
+    );
+
+  if (status) {
+
+    status.textContent =
+      formatStatus(
+        round.status
+      );
+
+  }
+
+  const result =
+    round.result;
+
+  const resultElement =
+    document.getElementById(
+      "rouletteResult"
+    );
+
+  if (
+    resultElement &&
+    result
+  ) {
+
+    const number =
+      result.number ??
+      result.result ??
+      "—";
+
+    const color =
+      result.color ||
+      "";
+
+    resultElement.textContent =
+      `${number} ${color}`;
+
+  }
+
+  if (
+    round.result &&
+    typeof round.result.number ===
+      "number"
+  ) {
+
+    animateRoulette();
+
+  }
+
+}
+
+
+/* =========================================================
+   ROULETTE ANIMATION
+========================================================= */
+
+let rouletteRotation = 0;
+
+function animateRoulette() {
+
+  const wheel =
+    document.getElementById(
+      "rouletteWheel"
+    );
+
+  if (!wheel) return;
+
+  rouletteRotation +=
+    1440 +
+    Math.floor(
+      Math.random() * 720
+    );
+
+  wheel.style.transform =
+    `rotate(${rouletteRotation}deg)`;
+
+}
+
+
+/* =========================================================
+   AVIATOR RENDER
+========================================================= */
+
+function renderAviator(round) {
+
+  if (!round) return;
+
+  displayRoundId(
+    "aviatorRound",
+    round
+  );
+
+  const status =
+    document.getElementById(
+      "aviatorStatus"
+    );
+
+  if (status) {
+
+    status.textContent =
+      formatStatus(
+        round.status
+      );
+
+  }
+
+  let multiplier =
+    round.multiplier;
+
+  if (
+    typeof multiplier !==
+    "number"
+  ) {
+
+    multiplier =
+      round.currentMultiplier;
+
+  }
+
+  if (
+    typeof multiplier !==
+    "number"
+  ) {
+
+    multiplier = 1;
+
+  }
+
+  const multiplierElement =
+    document.getElementById(
+      "aviatorMultiplier"
+    );
+
+  if (multiplierElement) {
+
+    multiplierElement.textContent =
+      `${multiplier.toFixed(2)}×`;
 
     if (
-        !slot.accepted ||
-        slot.cashedOut
+      round.status ===
+      "CRASHED"
     ) {
-        return;
+
+      multiplierElement.classList.add(
+        "crashed"
+      );
+
+    } else {
+
+      multiplierElement.classList.remove(
+        "crashed"
+      );
+
     }
 
-    /*
-     * Demo calculation.
-     *
-     * A production server must calculate and
-     * authorize the actual settlement.
-     */
+  }
 
-    slot.cashedOut = true;
+  animatePlane(
+    multiplier
+  );
 
-    slot.cashOutAmount =
+  const history =
+    round.previousRounds ||
+    round.history ||
+    state.previous.aviator ||
+    [];
+
+  renderAviatorHistory(
+    history
+  );
+
+}
+
+
+/* =========================================================
+   AVIATOR PLANE
+========================================================= */
+
+function animatePlane(
+  multiplier
+) {
+
+  const plane =
+    document.getElementById(
+      "aviatorPlane"
+    );
+
+  if (!plane) return;
+
+  const progress =
+    Math.min(
+      1,
+      Math.max(
+        0,
+        Math.log(multiplier) / 4
+      )
+    );
+
+  plane.style.left =
+    `${15 + progress * 72}%`;
+
+  plane.style.bottom =
+    `${42 + progress * 85}px`;
+
+  plane.style.transform =
+    `rotate(${-8 + progress * 18}deg)`;
+
+}
+
+
+/* =========================================================
+   AVIATOR HISTORY
+========================================================= */
+
+function renderAviatorHistory(
+  values
+) {
+
+  const container =
+    document.getElementById(
+      "aviatorHistory"
+    );
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  values
+    .slice(-12)
+    .reverse()
+    .forEach(value => {
+
+      const item =
+        document.createElement(
+          "div"
+        );
+
+      item.className =
+        "history-item";
+
+      const numeric =
         Number(
-            (
-                slot.amount *
-                currentMultiplier
-            ).toFixed(2)
+          typeof value === "object"
+            ? value.multiplier
+            : value
         );
 
-    slot.state = "CASHED_OUT";
+      item.textContent =
+        Number.isFinite(numeric)
+          ? `${numeric.toFixed(2)}×`
+          : String(value);
 
-    renderSlots();
+      container.appendChild(item);
 
-    toast(
-        language === "en"
-            ? `Cashed out at ${currentMultiplier.toFixed(2)}x`
-            : `${currentMultiplier.toFixed(2)}x ላይ ገንዘብ ወስደዋል`
-    );
+    });
+
 }
 
 
-/* =====================================================
-   RENDER SLOTS
-===================================================== */
+/* =========================================================
+   NUMBER ROW
+========================================================= */
 
-function renderSlots() {
+function renderNumberRow(
+  elementId,
+  numbers,
+  animate = false
+) {
 
-    const container =
-        document.getElementById(
-            "slotsContainer"
+  const container =
+    document.getElementById(
+      elementId
+    );
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (!Array.isArray(numbers)) {
+    return;
+  }
+
+  numbers.forEach(
+    (number, index) => {
+
+      const ball =
+        document.createElement(
+          "div"
         );
 
-    container.innerHTML = "";
+      ball.className =
+        "result-ball";
 
-    slots.forEach(
-        (slot,index) => {
+      if (
+        animate &&
+        index === numbers.length - 1
+      ) {
 
-            const wrapper =
-                document.createElement(
-                    "div"
-                );
+        ball.classList.add(
+          "current"
+        );
 
-            wrapper.className = "slot";
+      }
 
-            let buttonText =
-                t("placeBet");
+      ball.textContent =
+        String(
+          typeof number === "object"
+            ? (
+                number.number ??
+                number.value ??
+                ""
+              )
+            : number
+        );
 
-            let buttonClass =
-                "bet-button";
+      container.appendChild(
+        ball
+      );
 
-            if (slot.queued) {
+    }
+  );
 
-                buttonText =
-                    t("waiting");
-
-                buttonClass +=
-                    " waiting";
-
-            }
-
-            if (slot.accepted) {
-
-                buttonText =
-                    t("accepted");
-
-                buttonClass +=
-                    " accepted";
-
-            }
-
-            let html = `
-
-                <div class="slot-header">
-
-                    <div class="slot-title">
-                        SLOT ${index + 1}
-                    </div>
-
-                    <div class="slot-state">
-                        ${slot.state}
-                    </div>
-
-                    ${
-                        index > 0 &&
-                        !slot.queued &&
-                        !slot.accepted
-                        ? `
-                        <button
-                            class="remove-slot"
-                            onclick="removeSlot(${index})">
-                            − REMOVE
-                        </button>
-                        `
-                        : ""
-                    }
-
-                </div>
-
-                <div class="amount-row">
-
-                    <button
-                        class="amount-button"
-                        onclick="changeAmount(${index},-1)">
-                        −
-                    </button>
-
-                    <input
-                        class="amount-input"
-                        type="number"
-                        min="${MIN_BET}"
-                        step="1"
-                        value="${slot.amount}"
-                        oninput="editAmount(${index},this.value)"
-                        ${slot.queued || slot.accepted ? "readonly" : ""}
-                    >
-
-                    <button
-                        class="amount-button"
-                        onclick="changeAmount(${index},1)">
-                        +
-                    </button>
-
-                </div>
-
-                <button
-                    class="${buttonClass}"
-                    onclick="placeBet(${index})">
-
-                    ${buttonText}
-
-                </button>
-            `;
+}
 
 
-            /*
-             * Aviator gets an independent
-             * Cash Out button per slot.
-             */
+/* =========================================================
+   STATUS
+========================================================= */
 
-            if (
-                currentGame === "aviator" &&
-                slot.accepted &&
-                !slot.cashedOut
-            ) {
+function formatStatus(
+  status
+) {
 
-                html += `
+  if (!status) {
 
-                    <button
-                        class="cashout-button"
-                        onclick="cashOut(${index})">
+    return TEXT[
+      state.language
+    ].connecting;
 
-                        ${t("cashOut")}
-                        ${currentMultiplier.toFixed(2)}x
+  }
 
-                    </button>
+  const value =
+    String(status)
+      .replaceAll("_", " ")
+      .toLowerCase();
 
-                `;
+  return value
+    .replace(
+      /\b\w/g,
+      char =>
+        char.toUpperCase()
+    );
 
-            }
+}
 
-            if (
-                currentGame === "aviator" &&
-                slot.cashedOut
-            ) {
 
-                html += `
+/* =========================================================
+   LIVE STATE APPLICATION
+========================================================= */
 
-                    <div
-                        style="
-                        text-align:center;
-                        margin-top:8px;
-                        color:#8cffaf;
-                        font-size:11px;
-                        font-weight:900;">
+function applyGameState(
+  game,
+  round
+) {
 
-                        CASHED OUT:
-                        ${slot.cashOutAmount.toFixed(2)} ETB
+  if (!round) return;
 
-                    </div>
+  const oldRound =
+    state.rounds[game];
 
-                `;
+  const oldId =
+    oldRound?.id;
 
-            }
+  const newId =
+    round.id;
 
-            wrapper.innerHTML = html;
+  state.rounds[game] =
+    round;
 
-            container.appendChild(
-                wrapper
+  /*
+   * When the server creates a new
+   * round, reset the two local slots.
+   */
+
+  if (
+    oldId &&
+    newId &&
+    oldId !== newId
+  ) {
+
+    resetGameSlots(
+      game
+    );
+
+  }
+
+  /*
+   * If the server explicitly supplies
+   * the previous completed draw,
+   * retain it for the history area.
+   */
+
+  if (
+    round.previousDraw
+  ) {
+
+    state.previous[game] =
+      round.previousDraw;
+
+  }
+
+  if (
+    round.lastDraw
+  ) {
+
+    state.previous[game] =
+      round.lastDraw;
+
+  }
+
+  if (
+    game === "keno"
+  ) {
+
+    renderKeno(round);
+
+  }
+
+  if (
+    game === "bingo"
+  ) {
+
+    renderBingo(round);
+
+  }
+
+  if (
+    game === "roulette"
+  ) {
+
+    renderRoulette(round);
+
+  }
+
+  if (
+    game === "aviator"
+  ) {
+
+    renderAviator(round);
+
+  }
+
+}
+
+
+/* =========================================================
+   LIVE CONNECTION
+=========================================================
+
+   Expected server endpoint:
+
+       GET /api/live
+
+   Server should send:
+
+       data: {
+         "games": {
+           "keno": {...},
+           "bingo": {...},
+           "roulette": {...},
+           "aviator": {...}
+         }
+       }
+
+   SSE is used because the server can push the
+   current state to the browser continuously.
+========================================================= */
+
+let liveConnection = null;
+
+function connectLive() {
+
+  if (
+    typeof EventSource ===
+    "undefined"
+  ) {
+
+    showToast(
+      "Live connection is not supported by this browser."
+    );
+
+    return;
+
+  }
+
+  try {
+
+    liveConnection =
+      new EventSource(
+        "/api/live"
+      );
+
+    liveConnection.onopen =
+      () => {
+
+        console.log(
+          "DESTA PLAY live connection opened."
+        );
+
+      };
+
+    liveConnection.onmessage =
+      event => {
+
+        try {
+
+          const payload =
+            JSON.parse(
+              event.data
             );
+
+          consumePayload(
+            payload
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Invalid live state:",
+            error
+          );
 
         }
+
+      };
+
+    liveConnection.onerror =
+      () => {
+
+        console.warn(
+          "Live connection interrupted. Browser will reconnect."
+        );
+
+      };
+
+  } catch (error) {
+
+    console.error(
+      error
     );
 
-    const addButton =
-        document.getElementById(
-            "addSlotButton"
-        );
-
-    addButton.style.display =
-        slots.length >= MAX_SLOTS
-            ? "none"
-            : "block";
-}
-
-
-/* =====================================================
-   RENDER GAME
-===================================================== */
-
-function renderGame() {
-
-    const names = {
-
-        aviator: "AVIATOR",
-        keno: "KENO",
-        bingo: "BINGO",
-        roulette: "ROULETTE"
-
-    };
-
-    document
-        .getElementById("gameName")
-        .textContent =
-        names[currentGame];
-
-    renderOdds();
-
-    renderSlots();
-
-    if (currentGame === "keno") {
-        renderKeno();
-    }
-
-    if (currentGame === "bingo") {
-        renderBingo();
-    }
+  }
 
 }
 
 
-/* =====================================================
-   ODDS
-===================================================== */
+/* =========================================================
+   PAYLOAD PARSER
+========================================================= */
 
-function renderOdds() {
+function consumePayload(
+  payload
+) {
 
-    const row =
-        document.getElementById(
-            "oddsRow"
-        );
+  if (!payload) return;
 
-    row.innerHTML = "";
+  /*
+   * Format 1:
+   *
+   * {
+   *   games: {
+   *      keno: {...},
+   *      bingo: {...}
+   *   }
+   * }
+   */
 
-    let odds = [];
-
-    if (currentGame === "roulette") {
-
-        /*
-         * These match the payout model from
-         * your current roulette engine.
-         */
-
-        odds = [
-
-            ["Straight", "28.8x"],
-            ["Split", "14.4x"],
-            ["Street", "9.33x"],
-            ["Corner", "6.6x"],
-            ["Six Line", "4.33x"],
-            ["Dozen", "1.67x"],
-            ["Column", "1.67x"],
-            ["Red/Black", "0.8x"],
-            ["Odd/Even", "0.8x"],
-            ["Low/High", "0.8x"]
-
-        ];
-
-    }
-
-    if (currentGame === "aviator") {
-
-        odds = [
-            ["Current", currentMultiplier.toFixed(2) + "x"]
-        ];
-
-    }
-
-    if (currentGame === "keno") {
-
-        const count =
-            Math.max(
-                1,
-                selectedKenoNumbers.length
-            );
-
-        /*
-         * Frontend display placeholder.
-         *
-         * The authoritative Keno payout must come
-         * from the backend paytable.
-         */
-
-        odds = [
-            [
-                `${count} SPOT`,
-                "SERVER PAYTABLE"
-            ]
-        ];
-
-    }
-
-    if (currentGame === "bingo") {
-
-        odds = [
-            ["BINGO", "SERVER PRIZE"]
-        ];
-
-    }
-
-    odds.forEach(
-        item => {
-
-            const chip =
-                document.createElement(
-                    "div"
-                );
-
-            chip.className =
-                "odd-chip";
-
-            chip.textContent =
-                `${item[0]} ${item[1]}`;
-
-            row.appendChild(chip);
-
-        }
-    );
-}
-
-
-/* =====================================================
-   KENO
-===================================================== */
-
-function renderKeno() {
-
-    const selected =
-        document.getElementById(
-            "selectedBalls"
-        );
-
-    selected.innerHTML = "";
-
-    selectedKenoNumbers
-        .sort((a,b) => a-b)
-        .forEach(number => {
-
-            const ball =
-                document.createElement(
-                    "div"
-                );
-
-            ball.className =
-                "number-ball";
-
-            ball.dataset.number =
-                number;
-
-            ball.textContent =
-                number;
-
-            selected.appendChild(
-                ball
-            );
-
-        });
-
-    const grid =
-        document.getElementById(
-            "kenoGrid"
-        );
-
-    grid.innerHTML = "";
+  if (
+    payload.games &&
+    typeof payload.games ===
+      "object"
+  ) {
 
     for (
-        let number = 1;
-        number <= 80;
-        number++
+      const game of [
+        "keno",
+        "bingo",
+        "roulette",
+        "aviator"
+      ]
     ) {
 
-        const button =
-            document.createElement(
-                "button"
-            );
+      if (
+        payload.games[game]
+      ) {
 
-        button.className =
-            "keno-number";
-
-        button.textContent =
-            number;
-
-        if (
-            selectedKenoNumbers
-                .includes(number)
-        ) {
-
-            button.classList.add(
-                "selected"
-            );
-
-        }
-
-        button.onclick =
-            () => toggleKenoNumber(number);
-
-        grid.appendChild(
-            button
+        applyGameState(
+          game,
+          payload.games[game]
         );
+
+      }
 
     }
 
-    document
-        .getElementById(
-            "kenoMatchInfo"
-        )
-        .innerHTML = `
+    return;
 
-            <div class="info-row">
+  }
 
-                <span>
-                    Selected
-                </span>
+  /*
+   * Format 2:
+   *
+   * {
+   *   game: "keno",
+   *   round: {...}
+   * }
+   */
 
-                <strong>
-                    ${selectedKenoNumbers.length}/10
-                </strong>
+  if (
+    payload.game &&
+    payload.round
+  ) {
 
-            </div>
-
-            <div class="info-row">
-
-                <span>
-                    Matches
-                </span>
-
-                <strong id="kenoMatches">
-                    0
-                </strong>
-
-            </div>
-
-        `;
-
-    renderOdds();
-}
-
-function toggleKenoNumber(number) {
-
-    const index =
-        selectedKenoNumbers
-            .indexOf(number);
-
-    if (index >= 0) {
-
-        selectedKenoNumbers.splice(
-            index,
-            1
-        );
-
-    } else {
-
-        if (
-            selectedKenoNumbers.length >= 10
-        ) {
-
-            toast(
-                language === "en"
-                    ? "Maximum 10 numbers"
-                    : "ከፍተኛው 10 ቁጥሮች"
-            );
-
-            return;
-        }
-
-        selectedKenoNumbers.push(
-            number
-        );
-    }
-
-    renderKeno();
-}
-
-
-/* =====================================================
-   BINGO
-===================================================== */
-
-function renderBingo() {
-
-    const grid =
-        document.getElementById(
-            "bingoGrid"
-        );
-
-    grid.innerHTML = "";
-
-    const numbers = [
-        4, 18, 32, 47, 66,
-        8, 22, 37, 51, 73,
-        2, 19, 34, 55, 70,
-        11, 26, 41, 58, 75,
-        14, 29, 44, 62, 68
-    ];
-
-    numbers.forEach(
-        (number,index) => {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-            button.className =
-                "keno-number";
-
-            button.textContent =
-                number;
-
-            if (
-                bingoMarked.has(number)
-            ) {
-
-                button.classList.add(
-                    "selected"
-                );
-
-            }
-
-            button.onclick =
-                () => {
-
-                    bingoMarked.add(
-                        number
-                    );
-
-                    renderBingo();
-
-                };
-
-            grid.appendChild(
-                button
-            );
-
-        }
+    applyGameState(
+      payload.game,
+      payload.round
     );
-}
 
-function checkBingo() {
+    return;
 
-    const cartelaNumber = 30;
+  }
 
-    /*
-     * This is a visual/demo placeholder.
-     *
-     * A production Bingo result must be
-     * checked by the server against the
-     * actual called numbers and the player's
-     * actual cartela.
-     */
+  /*
+   * Format 3:
+   *
+   * {
+   *   game: "keno",
+   *   id: "...",
+   *   status: "DRAWING"
+   * }
+   */
 
-    const possibleWin =
-        bingoMarked.size >= 5;
+  if (
+    payload.game
+  ) {
 
-    if (possibleWin) {
+    applyGameState(
+      payload.game,
+      payload
+    );
 
-        speak(
-            language === "en"
-                ? `Cartela number ${cartelaNumber} wins!`
-                : `ካርቴላ ቁጥር ${cartelaNumber} አሸንፏል!`
-        );
+  }
 
-        toast(
-            t("bingoWin")
-                .replace(
-                    "{number}",
-                    cartelaNumber
-                )
-        );
-
-    } else {
-
-        speak(
-            language === "en"
-                ? `Cartela number ${cartelaNumber} is not a winner.`
-                : `ካርቴላ ቁጥር ${cartelaNumber} አላሸነፈም።`
-        );
-
-        toast(
-            t("bingoLose")
-                .replace(
-                    "{number}",
-                    cartelaNumber
-                )
-        );
-    }
 }
 
 
-/* =====================================================
-   POLLING
-===================================================== */
+/* =========================================================
+   FALLBACK POLLING
+=========================================================
 
-function startPolling() {
+   This lets the frontend still display
+   the current state if /api/live has not
+   been added to the server yet.
 
-    stopPolling();
+   Once the SSE endpoint exists, SSE remains
+   the primary live connection.
+========================================================= */
 
-    pollTimer =
-        setInterval(
-            loadRound,
-            1000
-        );
-}
+let pollingTimer = null;
 
-function stopPolling() {
+async function pollRounds() {
 
-    if (pollTimer) {
-
-        clearInterval(
-            pollTimer
-        );
-
-        pollTimer = null;
-    }
-
-    if (gameTimer) {
-
-        clearInterval(
-            gameTimer
-        );
-
-        gameTimer = null;
-    }
-}
-
-
-/* =====================================================
-   LOAD ROUND
-===================================================== */
-
-async function loadRound() {
-
-    if (!currentGame) {
-        return;
-    }
+  for (
+    const game of [
+      "keno",
+      "bingo",
+      "roulette",
+      "aviator"
+    ]
+  ) {
 
     try {
 
-        const response =
-            await fetch(
-                `${API_BASE}/api/game/${currentGame}/round`,
-                {
-                    cache: "no-store"
-                }
-            );
-
-        if (!response.ok) {
-            return;
-        }
-
-        const data =
-            await response.json();
-
-        if (!data.success) {
-            return;
-        }
-
-        currentRound =
-            data.round;
-
-        updateRoundUI(
-            currentRound
+      const response =
+        await fetch(
+          `/api/game/${game}/round`,
+          {
+            cache: "no-store"
+          }
         );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data =
+        await response.json();
+
+      if (
+        data &&
+        data.round
+      ) {
+
+        applyGameState(
+          game,
+          data.round
+        );
+
+      }
 
     } catch (error) {
 
-        /*
-         * Do not crash the UI if backend
-         * is temporarily unavailable.
-         */
-
-        console.warn(
-            "Round API unavailable:",
-            error
-        );
-
-    }
-}
-
-
-/* =====================================================
-   ROUND UI
-===================================================== */
-
-function updateRoundUI(round) {
-
-    if (!round) {
-        return;
-    }
-
-    const status =
-        round.status || "BETTING";
-
-    document
-        .getElementById(
-            "gameStatus"
-        )
-        .textContent =
-        status;
-
-
-    if (status === "BETTING") {
-
-        document
-            .getElementById(
-                "roundState"
-            )
-            .textContent =
-            t("betting");
-
-    } else {
-
-        document
-            .getElementById(
-                "roundState"
-            )
-            .textContent =
-            t("nextRound");
+      console.warn(
+        `Unable to fetch ${game} state`
+      );
 
     }
 
-
-    /*
-     * Calculate countdown from server
-     * timestamp rather than starting a timer
-     * when the player clicks the game.
-     */
-
-    if (round.startedAt) {
-
-        const bettingSeconds =
-            Number(
-                round.bettingSeconds || 40
-            );
-
-        const start =
-            new Date(
-                round.startedAt
-            ).getTime();
-
-        const elapsed =
-            Math.floor(
-                (
-                    Date.now() - start
-                ) / 1000
-            );
-
-        const remaining =
-            Math.max(
-                0,
-                bettingSeconds - elapsed
-            );
-
-        document
-            .getElementById(
-                "countdown"
-            )
-            .textContent =
-            formatSeconds(
-                remaining
-            );
-
-    }
-
-
-    /*
-     * AVIATOR
-     */
-
-    if (
-        currentGame === "aviator"
-    ) {
-
-        updateAviator(round);
-
-    }
-
-
-    /*
-     * KENO
-     */
-
-    if (
-        currentGame === "keno"
-    ) {
-
-        updateKeno(round);
-
-    }
-
-
-    /*
-     * BINGO
-     */
-
-    if (
-        currentGame === "bingo"
-    ) {
-
-        updateBingo(round);
-
-    }
-
-
-    /*
-     * ROULETTE
-     */
-
-    if (
-        currentGame === "roulette"
-    ) {
-
-        updateRoulette(round);
-
-    }
-}
-
-
-/* =====================================================
-   AVIATOR
-===================================================== */
-
-function updateAviator(round) {
-
-    if (
-        round.status === "BETTING"
-    ) {
-
-        currentMultiplier = 1;
-
-        document
-            .getElementById(
-                "multiplier"
-            )
-            .textContent =
-            "1.00x";
-
-        document
-            .getElementById(
-                "roundPanel"
-            )
-            .classList.remove(
-                "crashed"
-            );
-
-        return;
-    }
-
-    /*
-     * Frontend animation only.
-     *
-     * The authoritative multiplier/crash
-     * must come from the server.
-     */
-
-    const start =
-        round.startedAt
-            ? new Date(
-                round.startedAt
-              ).getTime()
-            : Date.now();
-
-    const elapsed =
-        Math.max(
-            0,
-            (
-                Date.now() - start
-            ) / 1000
-        );
-
-    currentMultiplier =
-        Math.max(
-            1,
-            Math.exp(
-                elapsed * 0.035
-            )
-        );
-
-    document
-        .getElementById(
-            "multiplier"
-        )
-        .textContent =
-        currentMultiplier.toFixed(2)
-        + "x";
-
-    renderOdds();
-
-    renderSlots();
-
-
-    if (
-        round.status === "FINISHED"
-    ) {
-
-        document
-            .getElementById(
-                "roundPanel"
-            )
-            .classList.add(
-                "crashed"
-            );
-
-        addHistory(
-            currentMultiplier
-        );
-    }
-}
-
-
-/* =====================================================
-   KENO ROUND
-===================================================== */
-
-function updateKeno(round) {
-
-    if (
-        !Array.isArray(
-            round.drawnNumbers
-        )
-    ) {
-        return;
-    }
-
-    const drawn =
-        new Set(
-            round.drawnNumbers
-        );
-
-    document
-        .querySelectorAll(
-            ".keno-number"
-        )
-        .forEach(button => {
-
-            const number =
-                Number(
-                    button.textContent
-                );
-
-            button.classList.toggle(
-                "drawn",
-                drawn.has(number)
-            );
-
-            button.classList.toggle(
-                "selected",
-                selectedKenoNumbers
-                    .includes(number)
-            );
-
-            if (
-                drawn.has(number) &&
-                selectedKenoNumbers
-                    .includes(number)
-            ) {
-
-                button.classList.add(
-                    "drawn"
-                );
-
-            }
-
-        });
-
-    document
-        .querySelectorAll(
-            ".number-ball"
-        )
-        .forEach(ball => {
-
-            const number =
-                Number(
-                    ball.dataset.number
-                );
-
-            ball.classList.toggle(
-                "match",
-                drawn.has(number)
-            );
-
-        });
-
-    const matches =
-        selectedKenoNumbers.filter(
-            n => drawn.has(n)
-        ).length;
-
-    const matchElement =
-        document.getElementById(
-            "kenoMatches"
-        );
-
-    if (matchElement) {
-
-        matchElement.textContent =
-            matches;
-
-    }
-}
-
-
-/* =====================================================
-   BINGO ROUND
-===================================================== */
-
-function updateBingo(round) {
-
-    let called = null;
-
-    if (
-        Array.isArray(
-            round.draw
-        ) &&
-        round.draw.length
-    ) {
-
-        called =
-            round.draw[
-                round.draw.length - 1
-            ];
-
-    }
-
-    document
-        .getElementById(
-            "bingoCalled"
-        )
-        .textContent =
-        called || "—";
+  }
 
 }
 
+function startFallbackPolling() {
 
-/* =====================================================
-   ROULETTE ROUND
-===================================================== */
+  pollRounds();
 
-function updateRoulette(round) {
-
-    if (
-        !round.result
-    ) {
-        return;
-    }
-
-    const result =
-        round.result;
-
-    document
-        .getElementById(
-            "rouletteResultNumber"
-        )
-        .textContent =
-        result.number;
-
-    document
-        .getElementById(
-            "rouletteResultColor"
-        )
-        .textContent =
-        String(
-            result.color || ""
-        ).toUpperCase();
-
-    document
-        .getElementById(
-            "rouletteCenter"
-        )
-        .textContent =
-        result.number;
-
-    /*
-     * The actual result should be used by
-     * the backend to settle the player's bet.
-     */
-
-    if (
-        round.status === "FINISHED"
-    ) {
-
-        addHistory(
-            result.number
-        );
-
-    }
-}
-
-
-/* =====================================================
-   HISTORY
-===================================================== */
-
-function addHistory(value) {
-
-    const history =
-        document.getElementById(
-            "history"
-        );
-
-    if (!history) {
-        return;
-    }
-
-    const item =
-        document.createElement(
-            "div"
-        );
-
-    item.className =
-        "history-item";
-
-    if (
-        typeof value === "number" &&
-        value >= 10
-    ) {
-
-        item.classList.add(
-            "high"
-        );
-
-    } else {
-
-        item.classList.add(
-            "low"
-        );
-
-    }
-
-    item.textContent =
-        currentGame === "aviator"
-            ? Number(value).toFixed(2) + "x"
-            : value;
-
-    history.prepend(item);
-
-    while (
-        history.children.length > 12
-    ) {
-
-        history.removeChild(
-            history.lastChild
-        );
-
-    }
-}
-
-
-/* =====================================================
-   INFO PANELS
-===================================================== */
-
-function showInfo(
-    mode,
-    button
-) {
-
-    infoMode = mode;
-
-    document
-        .querySelectorAll(
-            ".info-tab"
-        )
-        .forEach(
-            tab =>
-                tab.classList.remove(
-                    "active"
-                )
-        );
-
-    button.classList.add(
-        "active"
+  pollingTimer =
+    setInterval(
+      pollRounds,
+      1000
     );
 
-    const panel =
-        document.getElementById(
-            "infoPanel"
-        );
-
-    if (mode === "all") {
-
-        panel.innerHTML = `
-
-            <div class="info-row">
-                <span>
-                    Current round
-                </span>
-                <span class="info-muted">
-                    Real bets only
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span>
-                    Players
-                </span>
-                <span class="info-muted">
-                    —
-                </span>
-            </div>
-
-        `;
-
-    }
-
-    if (mode === "mine") {
-
-        panel.innerHTML = `
-
-            <div class="info-row">
-                <span>
-                    My Bets
-                </span>
-                <span class="info-muted">
-                    ${slots.length} slots
-                </span>
-            </div>
-
-        `;
-
-    }
-
-    if (mode === "top") {
-
-        panel.innerHTML = `
-
-            <div class="info-row">
-                <span>Daily</span>
-                <span class="info-muted">
-                    Verified wins only
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span>Weekly</span>
-                <span class="info-muted">
-                    Verified wins only
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span>Monthly</span>
-                <span class="info-muted">
-                    Verified wins only
-                </span>
-            </div>
-
-        `;
-
-    }
 }
 
 
-/* =====================================================
-   TOP PERIOD
-===================================================== */
+/* =========================================================
+   BINGO BUTTON
+========================================================= */
 
-function setTopPeriod(
-    period,
-    button
-) {
+document
+  .getElementById("bingoButton1")
+  .addEventListener(
+    "click",
+    () => {
 
-    topPeriod = period;
+      checkBingo(1);
 
-    document
-        .querySelectorAll(
-            "#topView .info-tab"
-        )
-        .forEach(
-            tab =>
-                tab.classList.remove(
-                    "active"
-                )
-        );
-
-    button.classList.add(
-        "active"
-    );
-
-    document
-        .getElementById(
-            "globalTopPanel"
-        )
-        .innerHTML = `
-
-            <div class="info-row">
-                <span>
-                    ${period.toUpperCase()}
-                </span>
-
-                <span class="info-muted">
-                    Verified results only
-                </span>
-            </div>
-
-        `;
-}
-
-
-/* =====================================================
-   HELP
-===================================================== */
-
-function showHelp() {
-
-    const instructions = {
-
-        aviator: {
-            en:
-                "Place your bet during betting or queue it for the next round. During flight, cash out each slot independently before the crash.",
-            am:
-                "በውርርድ ጊዜ ውርርድዎን ያስገቡ ወይም ለቀጣዩ ዙር ያስቀምጡ። በበረራ ጊዜ እያንዳንዱን ስሎት ለብቻው ከመውደቁ በፊት ገንዘብ ይውሰዱ።"
-        },
-
-        keno: {
-            en:
-                "Choose up to 10 numbers. Numbers are drawn progressively. Matching selected numbers are highlighted.",
-            am:
-                "እስከ 10 ቁጥሮች ይምረጡ። ቁጥሮች በተከታታይ ይወጣሉ። የተመረጡ እና የወጡ ቁጥሮች ይበራሉ።"
-        },
-
-        bingo: {
-            en:
-                "Watch the called numbers, mark them on your cartela, and press BINGO when you believe you have a winning pattern.",
-            am:
-                "የሚወጡትን ቁጥሮች ይከታተሉ፣ በካርቴላዎ ላይ ምልክት ያድርጉ እና የማሸነፊያ ቅርጽ ሲሟላ BINGO ይጫኑ።"
-        },
-
-        roulette: {
-            en:
-                "Choose a roulette bet and see its payout before placing it. When the wheel stops, the winning number and color are highlighted.",
-            am:
-                "የሩሌት ውርርድ ይምረጡ። ከመወርረድዎ በፊት ክፍያውን ይመልከቱ። ጎማው ሲቆም የአሸናፊው ቁጥር እና ቀለም ይታያሉ።"
-        }
-
-    };
-
-    const text =
-        instructions[currentGame]
-            ? instructions[currentGame][language]
-            : "";
-
-    alert(text);
-}
-
-
-/* =====================================================
-   ACCOUNT
-===================================================== */
-
-function createDemoAccount() {
-
-    const name =
-        document.getElementById(
-            "accountName"
-        ).value.trim();
-
-    const phone =
-        document.getElementById(
-            "accountPhone"
-        ).value.trim();
-
-    if (!name || !phone) {
-
-        toast(
-            language === "en"
-                ? "Enter your name and contact"
-                : "ስም እና የመገኛ መረጃ ያስገቡ"
-        );
-
-        return;
     }
+  );
 
-    localStorage.setItem(
-        "desta_demo_name",
-        name
-    );
+document
+  .getElementById("bingoButton2")
+  .addEventListener(
+    "click",
+    () => {
 
-    localStorage.setItem(
-        "desta_demo_phone",
-        phone
-    );
+      checkBingo(2);
 
-    document
-        .getElementById(
-            "profileName"
-        )
-        .textContent =
-        name;
-
-    document
-        .getElementById(
-            "profilePhone"
-        )
-        .textContent =
-        phone;
-
-    toast(
-        language === "en"
-            ? "Account created"
-            : "መለያ ተፈጥሯል"
-    );
-
-    showMainView(
-        "homeView",
-        document.querySelector(
-            ".nav-button"
-        )
-    );
-}
-
-
-/* =====================================================
-   SPEECH
-===================================================== */
-
-function speak(text) {
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-        return;
     }
+  );
 
-    window.speechSynthesis.cancel();
+function checkBingo(slot) {
 
-    const utterance =
-        new SpeechSynthesisUtterance(
-            text
-        );
-
-    utterance.lang =
-        language === "am"
-            ? "am-ET"
-            : "en-US";
-
-    utterance.rate = .9;
-
-    window.speechSynthesis.speak(
-        utterance
+  const element =
+    document.getElementById(
+      `bingoSlotState${slot}`
     );
+
+  if (!element) return;
+
+  element.textContent =
+    TEXT[state.language].checking;
+
+  /*
+   * This frontend intentionally does
+   * not decide a real-money result.
+   *
+   * The server should perform the
+   * authoritative Bingo validation.
+   */
+
+  showToast(
+    TEXT[state.language].checking
+  );
+
 }
 
 
-/* =====================================================
+/* =========================================================
    TOAST
-===================================================== */
+========================================================= */
 
 let toastTimer = null;
 
-function toast(message) {
+function showToast(
+  message
+) {
 
-    const element =
-        document.getElementById(
-            "toast"
-        );
-
-    element.textContent =
-        message;
-
-    element.classList.add(
-        "show"
+  const toast =
+    document.getElementById(
+      "toast"
     );
 
-    clearTimeout(
-        toastTimer
+  if (!toast) return;
+
+  toast.textContent =
+    message;
+
+  toast.classList.add(
+    "show"
+  );
+
+  clearTimeout(
+    toastTimer
+  );
+
+  toastTimer =
+    setTimeout(
+      () => {
+
+        toast.classList.remove(
+          "show"
+        );
+
+      },
+      2200
     );
 
-    toastTimer =
-        setTimeout(
-            () => {
-
-                element.classList.remove(
-                    "show"
-                );
-
-            },
-            2200
-        );
 }
 
 
-/* =====================================================
-   FORMAT TIME
-===================================================== */
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
-function formatSeconds(seconds) {
+setLanguage("en");
 
-    seconds =
-        Math.max(
-            0,
-            Math.floor(seconds)
-        );
+renderBingoGrid(
+  "bingoGrid1",
+  30,
+  []
+);
 
-    const minutes =
-        Math.floor(
-            seconds / 60
-        );
+renderBingoGrid(
+  "bingoGrid2",
+  30,
+  []
+);
 
-    const remaining =
-        seconds % 60;
+connectLive();
+startFallbackPolling();
 
-    return String(minutes)
-        .padStart(2,"0")
-        + ":"
-        + String(remaining)
-            .padStart(2,"0");
-}
-
-
-/* =====================================================
-   INITIALIZE
-===================================================== */
-
-function initialize() {
-
-    updateLanguageButton();
-
-    updateStaticText();
-
-    const name =
-        localStorage.getItem(
-            "desta_demo_name"
-        );
-
-    const phone =
-        localStorage.getItem(
-            "desta_demo_phone"
-        );
-
-    if (name) {
-
-        document
-            .getElementById(
-                "profileName"
-            )
-            .textContent =
-            name;
-
-    }
-
-    if (phone) {
-
-        document
-            .getElementById(
-                "profilePhone"
-            )
-            .textContent =
-            phone;
-
-    }
-
-    document
-        .getElementById(
-            "demoBalance"
-        )
-        .textContent =
-        demoBalance + " ETB";
-
-}
-
-initialize();
+console.log(
+  "DESTA PLAY frontend initialized."
+);
 
 </script>
 
