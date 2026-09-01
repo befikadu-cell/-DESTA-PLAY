@@ -1,14 +1,13 @@
 /*
 |--------------------------------------------------------------------------
-| DESTA PLAY — PERSISTENT BACKEND (PVP MULTI-TIER BINGO ENGINE)
+| DESTA PLAY — PERSISTENT 24/7 BACKEND (FIXED CONTINUOUS LOOPS)
 |--------------------------------------------------------------------------
 |
 | Features:
-|   - Telegram accounts & Argon2id password hashing
-|   - Wallet balance & transaction ledger tracking (Supabase)
-|   - House Games: Keno, Roulette, Aviator (House Model)
-|   - PVP Bingo Rooms: Multi-tier continuous loops (10 to 500 ETB)
-|   - Dynamic Bingo Pool: 10% Platform Rake / 90% Player Winner Prize
+|   - Multi-Tier PVP Bingo Loops (10, 20, 30, 50, 80, 100, 150, 200, 300, 500 ETB)
+|   - Guaranteed 10% Platform Rake / 90% Winner Payout for Bingo
+|   - Continuous House Loops for Keno, Roulette, and Aviator
+|   - Argon2id Authentication & Supabase Transaction Ledger Integration
 |
 |--------------------------------------------------------------------------
 */
@@ -29,7 +28,7 @@ const aviator = require("./games/aviator");
 
 /*
 |--------------------------------------------------------------------------
-| ENVIRONMENT & SETUP
+| ENVIRONMENT & DATABASE SETUP
 |--------------------------------------------------------------------------
 */
 
@@ -55,19 +54,18 @@ const games = { keno, roulette, aviator };
 const rounds = {};
 
 const DRAW_INTERVALS = { keno: 1800, roulette: 5000, bingo: 3000 };
-const NEXT_ROUND_DELAY = 2000;
+const BETTING_TIMERS = { bingo: 30, keno: 30, roulette: 20, aviator: 10 };
+const NEXT_ROUND_DELAY = 5000;
 const TARGET_RTP = 0.70;
 
 /*
 |--------------------------------------------------------------------------
-| PVP BINGO TIERS & CONTINUOUS ROOM ENGINE
+| PVP BINGO TIERS & CONTINUOUS 24/7 LOOP ENGINE
 |--------------------------------------------------------------------------
 */
 
 const BINGO_TIERS = [10, 20, 30, 50, 80, 100, 150, 200, 300, 500];
 const HOUSE_RAKE_PERCENT = 0.10; // 10% Platform Rake
-const BINGO_BETTING_SECONDS = 30;
-
 const bingoRooms = {};
 
 function generateBingoDraw() {
@@ -82,43 +80,40 @@ function generateBingoDraw() {
 
 function initBingoRooms() {
     BINGO_TIERS.forEach(tier => {
-        bingoRooms[tier] = {
-            id: `bingo-${tier}-${Date.now()}`,
-            tierId: tier,
-            entryFee: tier,
-            status: "BETTING",
-            bettingEndsAt: Date.now() + BINGO_BETTING_SECONDS * 1000,
-            players: [],
-            secretDraw: generateBingoDraw(),
-            drawnNumbers: [],
-            drawIndex: 0,
-            currentNumber: null,
-            winner: null,
-            totalPool: 0,
-            houseRake: 0,
-            winnerPrize: 0
-        };
-        scheduleBingoBettingTimer(tier);
+        startNewBingoRound(tier);
     });
 }
 
-function scheduleBingoBettingTimer(tier) {
-    const room = bingoRooms[tier];
-    const remaining = Math.max(0, room.bettingEndsAt - Date.now());
+function startNewBingoRound(tier) {
+    const bettingEndsAt = Date.now() + BETTING_TIMERS.bingo * 1000;
+    
+    bingoRooms[tier] = {
+        id: `bingo-${tier}-${Date.now()}`,
+        tierId: tier,
+        entryFee: tier,
+        status: "BETTING",
+        bettingEndsAt,
+        players: [],
+        secretDraw: generateBingoDraw(),
+        drawnNumbers: [],
+        drawIndex: 0,
+        currentNumber: null,
+        winner: null,
+        totalPool: 0,
+        houseRake: 0,
+        winnerPrize: 0
+    };
+
+    console.log(`[BINGO TIER ${tier}] New 24/7 round initialized.`);
 
     setTimeout(() => {
         startBingoDrawPhase(tier);
-    }, remaining);
+    }, BETTING_TIMERS.bingo * 1000);
 }
 
 function startBingoDrawPhase(tier) {
     const room = bingoRooms[tier];
-    if (room.status !== "BETTING") return;
-
-    if (room.players.length === 0) {
-        resetBingoRoom(tier);
-        return;
-    }
+    if (!room || room.status !== "BETTING") return;
 
     room.status = "DRAWING";
     room.drawIndex = 0;
@@ -140,7 +135,7 @@ function revealNextBingoNumber(tier) {
     room.drawnNumbers.push(number);
     room.drawIndex++;
 
-    // Check if any player hit Bingo
+    // Check if any registered player hit Bingo
     let winningPlayer = null;
     for (const player of room.players) {
         if (bingo.isWinningCard(player.cartela, room.drawnNumbers)) {
@@ -160,7 +155,7 @@ function revealNextBingoNumber(tier) {
 
 async function resolveBingoWinner(tier, winnerObj = null) {
     const room = bingoRooms[tier];
-    if (room.status === "FINISHED") return;
+    if (!room || room.status === "FINISHED") return;
 
     room.status = "FINISHED";
     const grossPool = room.players.length * room.entryFee;
@@ -184,40 +179,21 @@ async function resolveBingoWinner(tier, winnerObj = null) {
                 roundId: room.id,
                 metadata: { tier, grossPool, houseRake, winnerPrize }
             });
-            console.log(`[BINGO TIER ${tier}] Winner: ${winningPlayer.telegramName} | Pool: ${grossPool} ETB | Prize: ${winnerPrize} ETB | Rake: ${houseRake} ETB`);
+            console.log(`[BINGO TIER ${tier}] Winner: ${winningPlayer.telegramName} | Pool: ${grossPool} ETB | Winner Share: ${winnerPrize} ETB | House Rake: ${houseRake} ETB`);
         } catch (error) {
             console.error(`[BINGO TIER ${tier}] Payout error:`, error);
         }
     }
 
+    // Always reset loop continuously
     setTimeout(() => {
-        resetBingoRoom(tier);
+        startNewBingoRound(tier);
     }, NEXT_ROUND_DELAY);
-}
-
-function resetBingoRoom(tier) {
-    bingoRooms[tier] = {
-        id: `bingo-${tier}-${Date.now()}`,
-        tierId: tier,
-        entryFee: tier,
-        status: "BETTING",
-        bettingEndsAt: Date.now() + BINGO_BETTING_SECONDS * 1000,
-        players: [],
-        secretDraw: generateBingoDraw(),
-        drawnNumbers: [],
-        drawIndex: 0,
-        currentNumber: null,
-        winner: null,
-        totalPool: 0,
-        houseRake: 0,
-        winnerPrize: 0
-    };
-    scheduleBingoBettingTimer(tier);
 }
 
 /*
 |--------------------------------------------------------------------------
-| HELPERS & AUTHENTICATION
+| AUTHENTICATION & WALLET HELPER ROUTINES
 |--------------------------------------------------------------------------
 */
 
@@ -333,7 +309,7 @@ async function changeBalance({ playerId, amount, type, game = null, roundId = nu
 
 /*
 |--------------------------------------------------------------------------
-| ACCOUNT & WALLET API ENDPOINTS
+| REST APIs (ACCOUNTS, WALLET, BINGO ROOMS)
 |--------------------------------------------------------------------------
 */
 
@@ -355,16 +331,10 @@ app.post("/api/account/login", async (req, res) => {
     } catch (error) { res.status(401).json({ success: false, error: error.message }); }
 });
 
-app.post("/api/account/logout", (req, res) => {
-    const header = req.headers.authorization || "";
-    if (header.startsWith("Bearer ")) sessions.delete(header.slice(7).trim());
-    res.json({ success: true });
-});
-
 app.get("/api/account/me", requirePlayer, async (req, res) => {
     res.json({
         success: true,
-        player: { playerId: req.player.player_id, telegramId: req.player.telegram_id, telegramName: req.player.telegram_name, balance: Number(req.player.balance || 0), createdAt: req.player.created_at }
+        player: { playerId: req.player.player_id, telegramId: req.player.telegram_id, telegramName: req.player.telegram_name, balance: Number(req.player.balance || 0) }
     });
 });
 
@@ -375,28 +345,24 @@ app.get("/api/wallet", requirePlayer, async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: "Could not load wallet" }); }
 });
 
-/*
-|--------------------------------------------------------------------------
-| BINGO PVP ROOM ENDPOINTS
-|--------------------------------------------------------------------------
-*/
-
 app.get("/api/bingo/rooms", (req, res) => {
     const roomState = {};
     BINGO_TIERS.forEach(tier => {
         const room = bingoRooms[tier];
-        roomState[tier] = {
-            tier,
-            entryFee: room.entryFee,
-            status: room.status,
-            remainingSeconds: Math.max(0, Math.ceil((room.bettingEndsAt - Date.now()) / 1000)),
-            totalPlayers: room.players.length,
-            grossPool: room.players.length * room.entryFee,
-            winnerPrize: (room.players.length * room.entryFee) * (1 - HOUSE_RAKE_PERCENT),
-            currentNumber: room.currentNumber,
-            drawnNumbers: room.drawnNumbers,
-            winner: room.winner ? room.winner.telegramName : null
-        };
+        if (room) {
+            roomState[tier] = {
+                tier,
+                entryFee: room.entryFee,
+                status: room.status,
+                remainingSeconds: Math.max(0, Math.ceil((room.bettingEndsAt - Date.now()) / 1000)),
+                totalPlayers: room.players.length,
+                grossPool: room.players.length * room.entryFee,
+                winnerPrize: (room.players.length * room.entryFee) * (1 - HOUSE_RAKE_PERCENT),
+                currentNumber: room.currentNumber,
+                drawnNumbers: room.drawnNumbers,
+                winner: room.winner ? room.winner.telegramName : null
+            };
+        }
     });
     res.json({ success: true, rooms: roomState });
 });
@@ -410,7 +376,6 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
         if (!room) return res.status(404).json({ success: false, error: "Invalid bingo room tier" });
         if (room.status !== "BETTING") return res.status(400).json({ success: false, error: "Betting closed for active round" });
 
-        // Deduct ticket cost from user wallet balance
         await changeBalance({
             playerId: req.player.player_id,
             amount: -selectedTier,
@@ -452,7 +417,7 @@ app.get("/api/bingo/cartela/:number", (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
-| HOUSE GAME LOOPS (KENO, ROULETTE, AVIATOR)
+| HOUSE CONTINUOUS LOOPS (KENO, ROULETTE, AVIATOR)
 |--------------------------------------------------------------------------
 */
 
@@ -472,16 +437,12 @@ function generateCrashPoint() {
     return Math.max(1.00, parseFloat((TARGET_RTP / (1 - rand)).toFixed(2)));
 }
 
-async function createGameRound(gameName) {
-    const game = games[gameName];
-    if (!game) return;
-
-    const engineRound = game.createRound();
+function startHouseRound(gameName) {
+    const bettingSeconds = BETTING_TIMERS[gameName] || 20;
     const now = Date.now();
-    const bettingSeconds = Number(engineRound.bettingSeconds);
 
     const round = {
-        id: gameName + "-" + Date.now() + "-" + crypto.randomBytes(5).toString("hex"),
+        id: `${gameName}-${now}-${crypto.randomBytes(4).toString("hex")}`,
         game: gameName,
         status: "BETTING",
         createdAt: nowIso(),
@@ -494,16 +455,20 @@ async function createGameRound(gameName) {
         currentNumber: null,
         result: null,
         crashPoint: null,
-        multiplier: null,
-        finishedAt: null
+        multiplier: 1.00
     };
 
     if (gameName === "keno") round.secretDraw = generateKenoDraw();
-    if (gameName === "aviator") { round.secretCrashPoint = generateCrashPoint(); round.multiplier = 1.00; }
+    if (gameName === "aviator") round.secretCrashPoint = generateCrashPoint();
 
     rounds[gameName] = round;
     saveRound(round).catch(console.error);
-    return round;
+
+    setTimeout(() => {
+        if (gameName === "keno") startKenoDraw(gameName);
+        if (gameName === "roulette") startRouletteSpin();
+        if (gameName === "aviator") startAviatorFlight();
+    }, bettingSeconds * 1000);
 }
 
 async function saveRound(round) {
@@ -558,7 +523,7 @@ function startRouletteSpin() {
         round.result = roulette.spin();
         round.status = "FINISHED";
         await saveRound(round);
-        scheduleNextHouseRound("roulette");
+        finishHouseRound("roulette");
     }, DRAW_INTERVALS.roulette);
 }
 
@@ -582,7 +547,7 @@ function updateAviator(roundId) {
         round.crashPoint = round.secretCrashPoint;
         round.status = "CRASHED";
         saveRound(round).catch(console.error);
-        scheduleNextHouseRound("aviator");
+        finishHouseRound("aviator");
         return;
     }
     round.multiplier = Number(calculated.toFixed(2));
@@ -592,26 +557,17 @@ function updateAviator(roundId) {
 function finishHouseRound(gameName) {
     const round = rounds[gameName];
     if (!round) return;
-    round.status = "FINISHED";
+    if (round.status !== "CRASHED") round.status = "FINISHED";
     saveRound(round).catch(console.error);
-    scheduleNextHouseRound(gameName);
-}
 
-function scheduleNextHouseRound(gameName) {
-    setTimeout(async () => {
-        await createGameRound(gameName);
-        const current = rounds[gameName];
-        setTimeout(() => {
-            if (gameName === "keno") startKenoDraw(gameName);
-            if (gameName === "roulette") startRouletteSpin();
-            if (gameName === "aviator") startAviatorFlight();
-        }, current.bettingSeconds * 1000);
+    setTimeout(() => {
+        startHouseRound(gameName);
     }, NEXT_ROUND_DELAY);
 }
 
 /*
 |--------------------------------------------------------------------------
-| GENERAL STATUS & ROUTING
+| GENERAL STATUS & SYSTEM ROUTES
 |--------------------------------------------------------------------------
 */
 
@@ -631,29 +587,23 @@ app.get("/health", (req, res) => res.json({ success: true, status: "healthy" }))
 
 /*
 |--------------------------------------------------------------------------
-| SERVER INITIALIZATION
+| LAUNCH CONTINUOUS 24/7 ENGINES
 |--------------------------------------------------------------------------
 */
 
 app.listen(PORT, "0.0.0.0", async () => {
     console.log("========================================");
-    console.log("        DESTA PLAY BACKEND ENGINE       ");
+    console.log("       DESTA PLAY BACKEND SERVER        ");
     console.log("========================================");
     console.log(`Port: ${PORT}`);
-    console.log("Bingo PVP Engine: MULTI-TIER (10 ETB - 500 ETB)");
-    console.log("Bingo Platform Rake: 10% (Winner gets 90%)");
-    console.log("House Games: Keno, Roulette, Aviator Active");
+    console.log("Bingo PVP Rooms: 10 ETB - 500 ETB Active");
+    console.log("Bingo Rake: 10% Platform / 90% Player Winner");
+    console.log("House Loop Engines: Keno, Roulette, Aviator Active");
     console.log("========================================");
 
     initBingoRooms();
 
-    for (const g of Object.keys(games)) {
-        await createGameRound(g);
-        const r = rounds[g];
-        setTimeout(() => {
-            if (g === "keno") startKenoDraw(g);
-            if (g === "roulette") startRouletteSpin();
-            if (g === "aviator") startAviatorFlight();
-        }, r.bettingSeconds * 1000);
+    for (const gameName of Object.keys(games)) {
+        startHouseRound(gameName);
     }
 });
