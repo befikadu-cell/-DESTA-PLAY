@@ -2451,7 +2451,7 @@ const state = {
 
   game:"keno",
 
-  balance:1000,
+  balance:0,
 
   accountCreated:false,
 
@@ -4900,302 +4900,303 @@ function openWithdraw(){
 
 
 /* =========================================================
-   ROUND ENGINE
-   45 seconds betting window for Keno/Bingo/Roulette.
-========================================================= */
+   SERVER-AUTHORITATIVE LIVE ROUND STATE
+   ========================================================= */
 
-let roundTimer=null;
+let liveRoundTimer = null;
+let liveRoundBusy = false;
+let lastServerRoundId = {};
 
+function updateCountdownFromServer(round){
+  const game = round.game;
+  const el = document.getElementById(game + "Countdown") ||
+             document.getElementById(game + "Status");
+  if(!el) return;
 
-function startGameRound(){
+  const seconds = Number(round.remainingSeconds || 0);
+  const betting = round.status === "BETTING";
 
-  clearInterval(roundTimer);
+  el.textContent = betting
+    ? "BETTING " + seconds + "s"
+    : (round.status === "DRAWING" ? "DRAWING" :
+       round.status === "FLYING" ? "FLYING" :
+       round.status === "SPINNING" ? "SPINNING" :
+       round.status === "CRASHED" ? "CRASHED" :
+       "BETTING CLOSED");
 
-  state.bettingOpen=true;
-
-  state.countdown=
-    state.game==="aviator"
-      ?10
-      :45;
-
-  updateCountdown();
-
-  roundTimer=
-    setInterval(()=>{
-
-      state.countdown--;
-
-      updateCountdown();
-
-      if(state.countdown<=0){
-
-        clearInterval(roundTimer);
-
-        startGameDraw();
-
-      }
-
-    },1000);
-
+  el.classList.toggle("closed", !betting);
 }
 
+function applyServerRound(round){
+  if(!round || !round.game) return;
 
-function updateCountdown(){
+  const game = round.game;
+  const previousId = lastServerRoundId[game];
+  const isNewRound = previousId && previousId !== round.id;
+  lastServerRoundId[game] = round.id;
 
-  const id=
-    state.game+"Countdown";
-
-  const el=
-    document.getElementById(id);
-
-  if(!el)
-    return;
-
-  el.textContent=
-    state.bettingOpen
-      ?"BETTING "+
-        state.countdown+"s"
-      :"BETTING CLOSED";
-
-  el.classList.toggle(
-    "closed",
-    !state.bettingOpen
-  );
-
-}
-
-
-function startGameDraw(){
-
-  state.bettingOpen=false;
-
-  if(state.game==="keno")
-    runKenoDraw();
-
-  if(state.game==="bingo")
-    runBingoDraw();
-
-  if(state.game==="roulette")
-    runRoulette();
-
-  if(state.game==="aviator")
-    runAviator();
-
-}
-
-
-/* =========================================================
-   NEW ROUND
-========================================================= */
-
-function startNextRound(){
-
-  state.rounds[state.game]++;
+  state.roundIds = state.roundIds || {};
+  state.roundIds[game] = round.id;
+  state.rounds[game] = Number(round.roundNumber || round.id.split("-")[1] || state.rounds[game] || 1);
+  state.bettingOpen = round.status === "BETTING";
+  state.countdown = Number(round.remainingSeconds || 0);
 
   updateRound();
+  updateCountdownFromServer(round);
 
-  state.bettingOpen=true;
+  if(game === "keno"){
+    const drawn = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
+    const changed = JSON.stringify(state.kenoDraw) !== JSON.stringify(drawn);
+    state.kenoDraw = [...drawn];
 
-  if(state.game==="keno"){
+    if(isNewRound){
+      state.kenoSelections = {1:[],2:[]};
+      state.kenoBets = {1:null,2:null};
+      const balls = document.getElementById("kenoDrawBalls");
+      if(balls) balls.innerHTML = "";
+    }
 
-    state.kenoSelections={
-      1:[],
-      2:[]
-    };
-
-    state.kenoBets={
-      1:null,
-      2:null
-    };
-
-    document
-      .getElementById("kenoDrawBalls")
-      .innerHTML="";
-
-    document
-      .getElementById("kenoDrawStatus")
-      .textContent=
-        "Waiting for draw...";
-
-    buildKeno();
-
+    if(changed || isNewRound) renderServerKeno(round);
   }
 
-  if(state.game==="bingo"){
+  if(game === "bingo"){
+    const called = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
+    const changed = JSON.stringify(state.bingoDraw) !== JSON.stringify(called);
+    state.bingoDraw = [...called];
 
-    state.bingoDraw=[];
+    if(isNewRound){
+      state.bingoDraw = [];
+      const display = document.getElementById("bingoDraw");
+      if(display) display.innerHTML = "";
+      const b1 = document.getElementById("bingoButton1");
+      const b2 = document.getElementById("bingoButton2");
+      if(b1) b1.disabled = true;
+      if(b2) b2.disabled = true;
+    }
 
-    document
-      .getElementById("bingoDraw")
-      .innerHTML="";
-
-    document
-      .getElementById("bingoStatus")
-      .textContent=
-        "Waiting for next draw...";
-
-    document
-      .getElementById("bingoButton1")
-      .disabled=true;
-
-    document
-      .getElementById("bingoButton2")
-      .disabled=true;
-
+    if(changed || isNewRound) renderServerBingo(round);
   }
 
-  if(state.game==="roulette"){
-
-    state.rouletteSelection={
-      1:null,
-      2:null
-    };
-
-    document
-      .getElementById("rouletteResult")
-      .textContent=
-        "Waiting for spin...";
-
-    document
-      .querySelectorAll(".rouletteNum")
-      .forEach(b=>{
-        b.classList.remove(
-          "selected",
-          "winner"
-        );
-      });
-
+  if(game === "roulette"){
+    if(round.result && round.status === "FINISHED"){
+      const winner = typeof round.result === "object"
+        ? Number(round.result.number ?? round.result.result ?? round.result.winner)
+        : Number(round.result);
+      if(Number.isFinite(winner)) renderServerRoulette(winner);
+    }
   }
 
-  if(state.game==="aviator"){
+  if(game === "aviator"){
+    const multiplier = Number(round.multiplier || 1);
+    const el = document.getElementById("aviatorMultiplier");
+    if(el) el.textContent = multiplier.toFixed(2) + "x";
 
-    state.aviatorBets={
-      1:null,
-      2:null
-    };
-
-    document
-      .getElementById(
-        "aviatorMultiplier"
-      )
-      .textContent="1.00x";
-
-    document
-      .getElementById(
-        "aviatorBtn1"
-      )
-      .textContent="PLACE BET";
-
-    document
-      .getElementById(
-        "aviatorBtn2"
-      )
-      .textContent="PLACE BET";
-
+    if(round.status === "CRASHED" && round.crashPoint != null){
+      if(el) el.textContent = Number(round.crashPoint).toFixed(2) + "x CRASH";
+    }
   }
-
-  startGameRound();
-
 }
 
+function renderServerKeno(round){
+  const balls = document.getElementById("kenoDrawBalls");
+  if(balls){
+    balls.innerHTML = (round.drawnNumbers || []).map(n =>
+      `<div class="ball">${String(n).padStart(2,"0")}</div>`
+    ).join("");
+  }
 
-/* =========================================================
-   COMPLETION HOOKS
-========================================================= */
+  const status = document.getElementById("kenoDrawStatus");
+  if(status){
+    status.textContent = round.status === "DRAWING"
+      ? `DRAWING ${(round.drawnNumbers || []).length} / ${round.totalDraws || 20}`
+      : round.status === "FINISHED"
+        ? "DRAW COMPLETE"
+        : round.status === "BETTING"
+          ? "Waiting for draw..."
+          : round.status;
+  }
 
-const originalFinishKeno=
-  finishKeno;
+  document.querySelectorAll(".kenoNumber").forEach(button => {
+    const n = Number(button.textContent);
+    button.classList.toggle("drawn", (round.drawnNumbers || []).includes(n));
+    button.classList.toggle("hit",
+      (round.drawnNumbers || []).includes(n) &&
+      ((state.kenoSelections[1] || []).includes(n) ||
+       (state.kenoSelections[2] || []).includes(n))
+    );
+  });
+}
 
-finishKeno=function(){
+function renderServerBingo(round){
+  const display = document.getElementById("bingoDraw");
+  if(display){
+    display.innerHTML = (round.drawnNumbers || []).map(n =>
+      `<div class="bingoCalled">${n}</div>`
+    ).join("");
+  }
 
-  originalFinishKeno();
+  const status = document.getElementById("bingoStatus");
+  if(status){
+    const nums = round.drawnNumbers || [];
+    status.textContent = round.status === "DRAWING"
+      ? `CALLED ${nums.length} / ${round.totalDraws || 20}${nums.length ? " — " + nums[nums.length-1] : ""}`
+      : round.status === "FINISHED"
+        ? "DRAW COMPLETE"
+        : round.status === "BETTING"
+          ? "Waiting for next draw..."
+          : round.status;
+  }
 
-  setTimeout(
-    startNextRound,
-    2500
-  );
+  if(typeof renderCartela === "function") renderCartela();
+}
 
-};
+function renderServerRoulette(winner){
+  state.rouletteWinner = winner;
 
+  const result = document.getElementById("rouletteResult");
+  if(result) result.textContent = "RESULT: " + winner + " — " + rouletteColor(winner).toUpperCase();
 
-const originalFinishBingo=
-  finishBingo;
+  document.querySelectorAll(".rouletteNum").forEach(b => {
+    b.classList.toggle("winner", Number(b.textContent) === winner);
+  });
+}
 
-finishBingo=function(){
+async function fetchLiveRound(game){
+  try{
+    const response = await fetch(`/api/game/${encodeURIComponent(game)}/round`, {
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
+    });
 
-  originalFinishBingo();
+    if(!response.ok) return;
 
-  setTimeout(
-    startNextRound,
-    2500
-  );
+    const data = await response.json();
+    if(data && data.success && data.round){
+      applyServerRound(data.round);
+    }
+  }catch(error){
+    console.warn("Live round connection error:", error);
+  }
+}
 
-};
+async function fetchAllLiveRounds(){
+  if(liveRoundBusy) return;
+  liveRoundBusy = true;
+  try{
+    await Promise.all([
+      fetchLiveRound("keno"),
+      fetchLiveRound("bingo"),
+      fetchLiveRound("roulette"),
+      fetchLiveRound("aviator")
+    ]);
+  }finally{
+    liveRoundBusy = false;
+  }
+}
 
+async function loadRoundHistory(game){
+  try{
+    const response = await fetch(`/api/game/${encodeURIComponent(game)}/history`, {
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
+    });
+    if(!response.ok) return;
+    const data = await response.json();
+    if(!data.success || !Array.isArray(data.rounds)) return;
 
-const originalRunRoulette=
-  runRoulette;
+    const rows = data.rounds.slice(0,10);
 
-runRoulette=function(){
+    if(game === "keno"){
+      state.kenoHistory = rows.map(r => ({
+        round:r.round_id,
+        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+      }));
+      renderKenoHistory();
+    }
 
-  originalRunRoulette();
+    if(game === "bingo"){
+      state.bingoHistory = rows.map(r => ({
+        round:r.round_id,
+        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+      }));
+      renderBingoHistory();
+    }
 
-  setTimeout(
-    startNextRound,
-    7000
-  );
+    if(game === "roulette"){
+      state.rouletteHistory = rows.map(r => {
+        const value = typeof r.result === "object"
+          ? Number(r.result.number ?? r.result.result ?? r.result.winner)
+          : Number(r.result);
+        return {
+          round:r.round_id,
+          result:value,
+          color:rouletteColor(value)
+        };
+      });
+      renderRouletteHistory();
+    }
 
-};
+    if(game === "aviator"){
+      state.aviatorHistory = rows.map(r => ({
+        round:r.round_id,
+        multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
+      }));
+      renderAviatorHistory();
+    }
+  }catch(error){
+    console.warn("History connection error:", error);
+  }
+}
 
+function startLiveRoundSync(){
+  clearInterval(liveRoundTimer);
+  fetchAllLiveRounds();
+  ["keno","bingo","roulette","aviator"].forEach(loadRoundHistory);
+  liveRoundTimer = setInterval(() => {
+    fetchAllLiveRounds();
+  }, 1000);
+}
 
-const originalFinishAviator=
-  finishAviator;
+/* The server owns the round. The browser never creates or advances rounds. */
+function startGameRound(){
+  startLiveRoundSync();
+}
 
-finishAviator=function(){
+function startGameDraw(){
+  /* Server-authoritative: no local draw is generated here. */
+  fetchAllLiveRounds();
+}
 
-  originalFinishAviator();
-
-  setTimeout(
-    startNextRound,
-    2500
-  );
-
-};
-
+function startNextRound(){
+  fetchAllLiveRounds();
+  loadRoundHistory(state.game);
+}
 
 /* =========================================================
    INITIALIZE
-========================================================= */
+   ========================================================= */
 
 loadTelegramUser();
 
-const existingAccount=
-  localStorage.getItem(
-    "destaAccountCreated"
-  );
+const existingAccount =
+  localStorage.getItem("destaAccountCreated");
 
-if(existingAccount==="true"){
-
-  state.accountCreated=true;
-
+if(existingAccount === "true"){
+  state.accountCreated = true;
   showHome();
-
 }else{
-
   document
     .getElementById("accountScreen")
     .classList.remove("hidden");
-
 }
 
-
-/* Initial game setup */
-
+/* Initial UI setup */
 buildKeno();
 buildBingo();
 buildRoulette();
 buildAviator();
 showTab("my");
+startLiveRoundSync();
 
 </script>
 
