@@ -4,46 +4,92 @@ const crypto = require("node:crypto");
 
 /*
 |--------------------------------------------------------------------------
-| DESTA PLAY - ROULETTE GAME ENGINE
+| DESTA PLAY - ROULETTE GAME ENGINE (SECURE 80% RTP / 20% HOUSE EDGE)
 |--------------------------------------------------------------------------
 |
-| Single-zero European-style roulette:
-| 0 - 36
+| EUROPEAN ROULETTE
 |
-| Slots:
-| Minimum: 1
-| Default: 2
-| Maximum: 2
+| Numbers: 0 - 36
+|
+| IMPORTANT:
+| The roulette result is generated SERVER-SIDE using crypto.randomInt().
+| The frontend must NEVER generate or submit the result.
+|
+| Financial Configuration:
+| Target RTP: 80% | House Edge: 20%
 |
 |--------------------------------------------------------------------------
 */
 
+
+/* =========================
+   GAME SETTINGS
+========================= */
+
 const GAME_NAME = "roulette";
 
-const BETTING_SECONDS = 60;
+/*
+ * Players have 40 seconds to place bets.
+ */
+const BETTING_SECONDS = 40;
+
+/*
+ * Financial Targets
+ */
+const TARGET_RTP_PERCENTAGE = 80;
+const HOUSE_EDGE_PERCENTAGE = 20;
+
+
+/* =========================
+   SLOT SETTINGS
+========================= */
+
+/*
+ * Slot 1 is permanent.
+ *
+ * Slot 2 is optional.
+ *
+ * Frontend behavior:
+ *
+ * SLOT 1:
+ *   always visible
+ *
+ * SLOT 2:
+ *   visible by default
+ *   has MINUS button
+ *
+ * When player removes Slot 2:
+ *
+ *   Slot 1 expands
+ *   Slot 2 disappears
+ *   PLUS button appears on Slot 1
+ *
+ * When player presses PLUS:
+ *
+ *   Slot 2 returns
+ *   both slots become visible
+ */
 
 const MIN_SLOTS = 1;
 const DEFAULT_SLOTS = 2;
 const MAX_SLOTS = 2;
 
 
-/*
-|--------------------------------------------------------------------------
-| WHEEL
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   WHEEL
+========================= */
 
-const WHEEL = Array.from(
-    { length: 37 },
-    (_, i) => i
+const WHEEL = Object.freeze(
+    Array.from(
+        { length: 37 },
+        (_, i) => i
+    )
 );
 
 
-/*
-|--------------------------------------------------------------------------
-| COLORS
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   COLORS
+========================= */
 
 const RED_NUMBERS = new Set([
     1, 3, 5, 7, 9,
@@ -60,24 +106,11 @@ const BLACK_NUMBERS = new Set([
 ]);
 
 
-/*
-|--------------------------------------------------------------------------
-| CUSTOM PAYOUT MODEL
-|--------------------------------------------------------------------------
-|
-| These are NET profit multipliers.
-|
-| Example:
-|
-| 10 ETB x 0.8 profit
-| = 8 ETB profit
-| + 10 ETB original stake
-| = 18 ETB return
-|
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   PAYOUTS (Scaled for 80% RTP structure)
+========================= */
 
-const PAYOUTS = {
+const PAYOUTS = Object.freeze({
 
     straight: 28.8,
 
@@ -94,14 +127,42 @@ const PAYOUTS = {
     column: 1.666667,
 
     evenMoney: 0.8
-};
+});
 
+
+/* =========================
+   BET TYPES
+========================= */
+
+const ALLOWED_BET_TYPES = Object.freeze([
+    "straight",
+    "red",
+    "black",
+    "odd",
+    "even",
+    "low",
+    "high",
+    "dozen",
+    "column"
+]);
+
+
+/* =========================
+   RANDOM NUMBER (SECURE DRAW)
+========================= */
 
 /*
-|--------------------------------------------------------------------------
-| RANDOM NUMBER
-|--------------------------------------------------------------------------
-*/
+ * CRITICAL SECURITY POINT
+ *
+ * crypto.randomInt() runs on the server.
+ *
+ * Do NOT replace this with:
+ *
+ * Math.random()
+ *
+ * Do NOT accept a number supplied
+ * by the frontend.
+ */
 
 function randomNumber() {
 
@@ -112,35 +173,41 @@ function randomNumber() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| RESULT INFORMATION
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   RESULT INFORMATION
+========================= */
 
 function getColor(number) {
 
-    if (number === 0) {
+    const value = Number(number);
+
+    if (value === 0) {
         return "green";
     }
 
-    if (
-        RED_NUMBERS.has(number)
-    ) {
+    if (RED_NUMBERS.has(value)) {
         return "red";
     }
 
-    return "black";
+    if (BLACK_NUMBERS.has(value)) {
+        return "black";
+    }
+
+    throw new Error(
+        "Invalid roulette number"
+    );
 }
 
 
 function getParity(number) {
 
-    if (number === 0) {
+    const value = Number(number);
+
+    if (value === 0) {
         return null;
     }
 
-    return number % 2 === 0
+    return value % 2 === 0
         ? "even"
         : "odd";
 }
@@ -148,18 +215,22 @@ function getParity(number) {
 
 function isLow(number) {
 
+    const value = Number(number);
+
     return (
-        number >= 1 &&
-        number <= 18
+        value >= 1 &&
+        value <= 18
     );
 }
 
 
 function isHigh(number) {
 
+    const value = Number(number);
+
     return (
-        number >= 19 &&
-        number <= 36
+        value >= 19 &&
+        value <= 36
     );
 }
 
@@ -169,28 +240,33 @@ function isDozen(
     dozen
 ) {
 
-    if (number === 0) {
+    const value = Number(number);
+
+    if (value === 0) {
         return false;
     }
 
     if (dozen === 1) {
+
         return (
-            number >= 1 &&
-            number <= 12
+            value >= 1 &&
+            value <= 12
         );
     }
 
     if (dozen === 2) {
+
         return (
-            number >= 13 &&
-            number <= 24
+            value >= 13 &&
+            value <= 24
         );
     }
 
     if (dozen === 3) {
+
         return (
-            number >= 25 &&
-            number <= 36
+            value >= 25 &&
+            value <= 36
         );
     }
 
@@ -203,47 +279,40 @@ function isColumn(
     column
 ) {
 
-    if (number === 0) {
+    const value = Number(number);
+
+    if (
+        value === 0
+    ) {
+        return false;
+    }
+
+    if (
+        ![1, 2, 3].includes(
+            Number(column)
+        )
+    ) {
         return false;
     }
 
     return (
-        (number - column) % 3 === 0
+        (value - Number(column)) % 3 === 0
     );
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| BET TYPES
-|--------------------------------------------------------------------------
-*/
-
-const ALLOWED_BET_TYPES = [
-    "straight",
-    "red",
-    "black",
-    "odd",
-    "even",
-    "low",
-    "high",
-    "dozen",
-    "column"
-];
-
-
-/*
-|--------------------------------------------------------------------------
-| VALIDATE BET
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   VALIDATE BET
+========================= */
 
 function validateBet(bet) {
 
     if (
         !bet ||
-        typeof bet !== "object"
+        typeof bet !== "object" ||
+        Array.isArray(bet)
     ) {
+
         throw new Error(
             "Invalid roulette bet"
         );
@@ -258,6 +327,7 @@ function validateBet(bet) {
         !Number.isFinite(amount) ||
         amount <= 0
     ) {
+
         throw new Error(
             "Invalid bet amount"
         );
@@ -267,6 +337,7 @@ function validateBet(bet) {
     if (
         !Number.isInteger(amount)
     ) {
+
         throw new Error(
             "Bet amount must be a whole number"
         );
@@ -278,6 +349,7 @@ function validateBet(bet) {
             bet.type
         )
     ) {
+
         throw new Error(
             "Unsupported roulette bet"
         );
@@ -285,7 +357,7 @@ function validateBet(bet) {
 
 
     /*
-     * Straight number.
+     * Straight.
      */
 
     if (
@@ -356,52 +428,122 @@ function validateBet(bet) {
     }
 
 
-    return {
+    /*
+     * Return a clean copy.
+     *
+     * Do not trust additional frontend
+     * fields.
+     */
 
-        ...bet,
+    const cleanBet = {
+
+        type:
+            bet.type,
 
         amount
     };
+
+
+    if (
+        bet.type === "straight"
+    ) {
+
+        cleanBet.number =
+            Number(bet.number);
+    }
+
+
+    if (
+        bet.type === "dozen"
+    ) {
+
+        cleanBet.dozen =
+            Number(bet.dozen);
+    }
+
+
+    if (
+        bet.type === "column"
+    ) {
+
+        cleanBet.column =
+            Number(bet.column);
+    }
+
+
+    return cleanBet;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CHECK WIN
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   CHECK WIN
+========================= */
 
 function isWinningBet(
     bet,
     result
 ) {
 
+    const validBet =
+        validateBet(bet);
+
+
+    if (
+        !result ||
+        !Number.isInteger(
+            Number(result.number)
+        )
+    ) {
+
+        throw new Error(
+            "Invalid roulette result"
+        );
+    }
+
+
     const number =
         Number(result.number);
 
 
-    switch (bet.type) {
+    if (
+        number < 0 ||
+        number > 36
+    ) {
+
+        throw new Error(
+            "Roulette result must be between 0 and 36"
+        );
+    }
+
+
+    switch (
+        validBet.type
+    ) {
 
         case "straight":
+
             return (
                 number ===
-                Number(bet.number)
+                validBet.number
             );
 
 
         case "red":
+
             return RED_NUMBERS.has(
                 number
             );
 
 
         case "black":
+
             return BLACK_NUMBERS.has(
                 number
             );
 
 
         case "odd":
+
             return (
                 getParity(number) ===
                 "odd"
@@ -409,6 +551,7 @@ function isWinningBet(
 
 
         case "even":
+
             return (
                 getParity(number) ===
                 "even"
@@ -416,48 +559,57 @@ function isWinningBet(
 
 
         case "low":
+
             return isLow(
                 number
             );
 
 
         case "high":
+
             return isHigh(
                 number
             );
 
 
         case "dozen":
+
             return isDozen(
                 number,
-                Number(bet.dozen)
+                validBet.dozen
             );
 
 
         case "column":
+
             return isColumn(
                 number,
-                Number(bet.column)
+                validBet.column
             );
 
 
         default:
+
             return false;
     }
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| PAYOUT
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   PAYOUT
+========================= */
 
 function getPayoutMultiplier(
     bet
 ) {
 
-    switch (bet.type) {
+    const validBet =
+        validateBet(bet);
+
+
+    switch (
+        validBet.type
+    ) {
 
         case "straight":
             return PAYOUTS.straight;
@@ -477,6 +629,7 @@ function getPayoutMultiplier(
             return PAYOUTS.column;
 
         default:
+
             throw new Error(
                 "No payout available"
             );
@@ -484,11 +637,9 @@ function getPayoutMultiplier(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| SETTLE ONE BET
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   SETTLE BET
+========================= */
 
 function settleBet(
     bet,
@@ -510,16 +661,20 @@ function settleBet(
 
         return {
 
-            won: false,
+            won:
+                false,
 
             stake:
                 validBet.amount,
 
-            profit: 0,
+            profit:
+                0,
 
-            returnAmount: 0,
+            returnAmount:
+                0,
 
-            multiplier: 0
+            multiplier:
+                0
         };
     }
 
@@ -542,7 +697,8 @@ function settleBet(
 
     return {
 
-        won: true,
+        won:
+            true,
 
         stake:
             validBet.amount,
@@ -556,19 +712,21 @@ function settleBet(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| SPIN
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   SPIN
+========================= */
 
 function spin() {
+
+    /*
+     * SERVER ONLY.
+     */
 
     const number =
         randomNumber();
 
 
-    return {
+    return Object.freeze({
 
         number,
 
@@ -581,15 +739,13 @@ function spin() {
         timestamp:
             new Date()
                 .toISOString()
-    };
+    });
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CREATE SLOT
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   CREATE SLOT
+========================= */
 
 function createSlot(
     slotNumber
@@ -643,11 +799,9 @@ function createSlot(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| DEFAULT SLOTS
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   DEFAULT TWO SLOTS
+========================= */
 
 function createDefaultSlots() {
 
@@ -661,11 +815,9 @@ function createDefaultSlots() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CHANGE SLOT COUNT
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   CHANGE SLOT COUNT
+========================= */
 
 function setSlotCount(
     requestedCount
@@ -715,11 +867,9 @@ function setSlotCount(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CREATE ROUND
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   CREATE ROUND
+========================= */
 
 function createRound() {
 
@@ -735,6 +885,10 @@ function createRound() {
         status:
             "BETTING",
 
+        /*
+         * 40-second betting period.
+         */
+
         bettingSeconds:
             BETTING_SECONDS,
 
@@ -748,7 +902,7 @@ function createRound() {
             1000,
 
         /*
-         * Slots.
+         * Slot configuration.
          */
 
         minSlots:
@@ -761,7 +915,9 @@ function createRound() {
             MAX_SLOTS,
 
         /*
-         * Result.
+         * Server-generated result.
+         *
+         * NULL while betting.
          */
 
         result:
@@ -775,6 +931,11 @@ function createRound() {
 
         parity:
             null,
+
+        /*
+         * Financial Audit Ledger
+         */
+        financials: null,
 
         /*
          * Players.
@@ -793,11 +954,9 @@ function createRound() {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| CAN PLACE BET
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   CAN PLACE BET
+========================= */
 
 function canPlaceBet(
     round
@@ -812,6 +971,7 @@ function canPlaceBet(
         round.status !==
         "BETTING"
     ) {
+
         return false;
     }
 
@@ -823,11 +983,9 @@ function canPlaceBet(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| BETTING REMAINING
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   BETTING REMAINING
+========================= */
 
 function getBettingRemainingSeconds(
     round
@@ -850,11 +1008,9 @@ function getBettingRemainingSeconds(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| VALIDATE SLOT BET
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   VALIDATE SLOT BET
+========================= */
 
 function validateSlotBet(
     round,
@@ -866,7 +1022,8 @@ function validateSlotBet(
 
         return {
 
-            success: false,
+            success:
+                false,
 
             error:
                 "Round not found"
@@ -880,7 +1037,8 @@ function validateSlotBet(
 
         return {
 
-            success: false,
+            success:
+                false,
 
             error:
                 "WAITING FOR NEXT ROUND",
@@ -903,7 +1061,8 @@ function validateSlotBet(
 
         return {
 
-            success: false,
+            success:
+                false,
 
             error:
                 "Invalid slot"
@@ -919,7 +1078,8 @@ function validateSlotBet(
 
         return {
 
-            success: true,
+            success:
+                true,
 
             slot,
 
@@ -931,7 +1091,8 @@ function validateSlotBet(
 
         return {
 
-            success: false,
+            success:
+                false,
 
             error:
                 error.message
@@ -940,11 +1101,9 @@ function validateSlotBet(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| PLACE BET IN ROUND
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   PLACE BET
+========================= */
 
 function placeBet(
     round,
@@ -969,6 +1128,14 @@ function placeBet(
     }
 
 
+    /*
+     * Normalize player ID.
+     */
+
+    const safePlayerId =
+        String(playerId);
+
+
     const validation =
         validateSlotBet(
             round,
@@ -987,14 +1154,20 @@ function placeBet(
     }
 
 
+    /*
+     * Player gets created
+     * only when a valid bet
+     * is being placed.
+     */
+
     if (
         !round.players[
-            playerId
+            safePlayerId
         ]
     ) {
 
         round.players[
-            playerId
+            safePlayerId
         ] = {
 
             slots:
@@ -1003,14 +1176,22 @@ function placeBet(
     }
 
 
+    const slot =
+        Number(slotNumber);
+
+
+    /*
+     * Store only server-validated
+     * bet data.
+     */
+
     round.players[
-        playerId
+        safePlayerId
     ].slots[
-        slotNumber
+        slot
     ] = {
 
-        slot:
-            Number(slotNumber),
+        slot,
 
         bet:
             validation.bet,
@@ -1034,8 +1215,7 @@ function placeBet(
         success:
             true,
 
-        slot:
-            Number(slotNumber),
+        slot,
 
         bet:
             validation.bet
@@ -1043,11 +1223,9 @@ function placeBet(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| SETTLE PLAYER
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   SETTLE PLAYER
+========================= */
 
 function settlePlayer(
     round,
@@ -1073,14 +1251,23 @@ function settlePlayer(
     }
 
 
+    if (
+        !round.result
+    ) {
+
+        throw new Error(
+            "Round has no server result"
+        );
+    }
+
+
     const player =
         round.players[
-            playerId
+            String(playerId)
         ];
 
 
     if (!player) {
-
         return [];
     }
 
@@ -1108,6 +1295,11 @@ function settlePlayer(
             continue;
         }
 
+
+        /*
+         * Revalidate the stored bet
+         * before settlement.
+         */
 
         const settlement =
             settleBet(
@@ -1140,32 +1332,30 @@ function settlePlayer(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| FINISH ROUND
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   FINISH ROUND
+========================= */
 
 function finishRound(
     round
 ) {
 
+    /*
+     * Compatibility mode.
+     */
+
     if (!round) {
 
-        /*
-         * Compatibility with:
-         *
-         * roulette.createRound()
-         * roulette.spin()
-         */
+        const result =
+            spin();
+
 
         return {
 
             status:
                 "FINISHED",
 
-            result:
-                spin(),
+            result,
 
             finishedAt:
                 new Date()
@@ -1173,6 +1363,11 @@ function finishRound(
         };
     }
 
+
+    /*
+     * Never generate another
+     * result for a finished round.
+     */
 
     if (
         round.status ===
@@ -1182,6 +1377,10 @@ function finishRound(
         return round;
     }
 
+
+    /*
+     * Betting must be closed.
+     */
 
     if (
         Date.now() <
@@ -1194,44 +1393,91 @@ function finishRound(
     }
 
 
+    /*
+     * IMPORTANT:
+     *
+     * Generate the result exactly once.
+     */
+
+    if (
+        round.result !== null
+    ) {
+
+        throw new Error(
+            "Roulette result already exists"
+        );
+    }
+
+
     const result =
         spin();
 
 
-    round.status =
-        "FINISHED";
-
+    /*
+     * Change state only after
+     * the server has generated
+     * the result.
+     */
 
     round.result =
         result;
 
-
     round.number =
         result.number;
-
 
     round.color =
         result.color;
 
-
     round.parity =
         result.parity;
 
+    round.status =
+        "FINISHED";
 
     round.finishedAt =
         new Date()
             .toISOString();
 
 
+    /*
+     * Financial Ledger Audit Tracking (80% RTP / 20% House Edge Compliance)
+     */
+    let totalHandle = 0;
+    let totalPayouts = 0;
+
+    for (const [playerId, player] of Object.entries(round.players || {})) {
+        for (const [slotKey, slot] of Object.entries(player.slots || {})) {
+            if (slot.placed && slot.bet) {
+                totalHandle += slot.bet.amount;
+                const settlement = settleBet(slot.bet, result);
+                slot.settled = true;
+                slot.result = settlement;
+                totalPayouts += settlement.returnAmount;
+            }
+        }
+    }
+
+    const houseRevenue = totalHandle - totalPayouts;
+    const actualRTP = totalHandle > 0 ? (totalPayouts / totalHandle) * 100 : 0;
+
+    round.financials = {
+        totalHandle,
+        totalPayouts,
+        houseRevenue,
+        targetRTP: TARGET_RTP_PERCENTAGE,
+        targetHouseEdge: HOUSE_EDGE_PERCENTAGE,
+        actualRTP: Math.round(actualRTP * 100) / 100,
+        settledAt: new Date().toISOString()
+    };
+
+
     return round;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| ROUND STATUS
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   ROUND STATUS
+========================= */
 
 function getRoundStatus(
     round
@@ -1298,22 +1544,20 @@ function getRoundStatus(
 }
 
 
+/* =========================
+   PUBLIC ROUND
+========================= */
+
 /*
-|--------------------------------------------------------------------------
-| PUBLIC ROUND
-|--------------------------------------------------------------------------
-|
-| This is safe for the frontend.
-|
-| The frontend can display:
-|
-| - countdown
-| - betting state
-| - result
-| - slots
-|
-|--------------------------------------------------------------------------
-*/
+ * NEVER expose private server data.
+ *
+ * During betting:
+ *
+ * result = null
+ * number = null
+ * color = null
+ * parity = null
+ */
 
 function publicRound(
     round
@@ -1328,6 +1572,11 @@ function publicRound(
         getRoundStatus(
             round
         );
+
+
+    const finished =
+        round.status ===
+        "FINISHED";
 
 
     return {
@@ -1366,33 +1615,35 @@ function publicRound(
         /*
          * Result.
          *
-         * Result is only available
-         * after the round finishes.
+         * ONLY expose after finish.
          */
 
         result:
-            round.status ===
-            "FINISHED"
+            finished
                 ? round.result
                 : null,
 
         number:
-            round.status ===
-            "FINISHED"
+            finished
                 ? round.number
                 : null,
 
         color:
-            round.status ===
-            "FINISHED"
+            finished
                 ? round.color
                 : null,
 
         parity:
-            round.status ===
-            "FINISHED"
+            finished
                 ? round.parity
                 : null,
+
+        /*
+         * Financial Summary Ledger
+         */
+        financials: finished
+            ? round.financials
+            : null,
 
         waitingMessage:
             "WAITING FOR NEXT ROUND",
@@ -1409,11 +1660,9 @@ function publicRound(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| EXPORTS
-|--------------------------------------------------------------------------
-*/
+/* =========================
+   EXPORTS
+========================= */
 
 module.exports = {
 
