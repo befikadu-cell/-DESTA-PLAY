@@ -1,308 +1,654 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DESTA PLAY — 24/7 Live Gaming Platform</title>
-    <style>
-        :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --accent-green: #22c55e;
-            --accent-gold: #eab308;
-            --accent-red: #ef4444;
-            --text-light: #f8fafc;
-            --text-muted: #94a3b8;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DESTA PLAY — 24/7 Live Casino</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: #0d0e12;
+      --card-bg: #16181f;
+      --accent-color: #f39c12;
+      --accent-green: #18d66b;
+      --accent-red: #ff3b2f;
+      --text-main: #ffffff;
+      --text-muted: #8e94a0;
+      --border-color: #262933;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-        header {
-            width: 100%;
-            max-width: 1000px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #334155;
-        }
+    /* HEADER & WALLET */
+    header {
+      background-color: var(--card-bg);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
 
-        h1 { font-size: 1.8rem; color: var(--accent-gold); }
-        .live-badge {
-            background: #22c55e22;
-            color: var(--accent-green);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-color), #d35400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1000px;
-        }
+    .balance-box {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid #334155;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+    .balance-amount {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .btn-action {
+      background: var(--accent-color);
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
 
-        .status-pill {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
+    /* GAME NAVIGATION */
+    nav.game-tabs {
+      display: flex;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
 
-        .status-BETTING { background: #3b82f633; color: #60a5fa; }
-        .status-DRAWING, .status-SPINNING, .status-FLYING { background: #eab30833; color: #fde047; }
-        .status-FINISHED, .status-CRASHED { background: #ef444433; color: #fca5a5; }
+    .tab-btn {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
 
-        .timer-display {
-            font-size: 2.2rem;
-            font-weight: 800;
-            text-align: center;
-            margin: 10px 0;
-            color: var(--text-light);
-        }
+    .tab-btn.active {
+      color: var(--accent-color);
+      border-bottom-color: var(--accent-color);
+    }
 
-        .draw-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            min-height: 45px;
-            align-items: center;
-        }
+    /* MAIN CONTENT ARENA */
+    main {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-        .ball {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #334155;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
-        .ball.active { background: var(--accent-green); }
+    .game-container {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      display: none;
+    }
 
-        select, button {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-        }
+    .game-container.active {
+      display: block;
+    }
 
-        select { background: #0f172a; color: white; border: 1px solid #334155; }
-        button { background: var(--accent-green); color: #000; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-    </style>
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* BINGO SERVER-DRIVEN UI */
+    .bingo-cartela-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 12px 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .cartela-badge {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      padding: 8px;
+      text-align: center;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .cartela-badge.selected {
+      border-color: var(--accent-color);
+      background: rgba(243, 156, 18, 0.2);
+    }
+
+    .cartela-badge.occupied {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: var(--accent-red);
+    }
+
+    .bingo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .bingo-cell {
+      aspect-ratio: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border-radius: 6px;
+    }
+
+    .bingo-cell.drawn {
+      background: var(--accent-color);
+      color: #000;
+    }
+
+    .drawn-balls-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 8px 0;
+      min-height: 44px;
+    }
+
+    .ball {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    /* CONTROLS & INPUTS */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .input-amount {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 10px;
+      border-radius: 6px;
+    }
+
+    .btn-submit {
+      background: var(--accent-green);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-submit:disabled {
+      background: var(--border-color);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* LIVE LIVE FEED */
+    .feed-section {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+    }
+
+    .feed-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+
+    .feed-row:last-child {
+      border-bottom: none;
+    }
+
+    .win-val {
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
 
-    <header>
-        <h1>DESTA PLAY 24/7</h1>
-        <div class="live-badge">
-            <div class="live-dot"></div> CONTINUOUS ENGINE
-        </div>
-    </header>
+  <!-- HEADER -->
+  <header>
+    <div class="user-info">
+      <div class="avatar" id="userAvatar">U</div>
+      <div>
+        <div id="userName" style="font-weight: bold; font-size: 14px;">Guest</div>
+        <div id="userId" style="font-size: 11px; color: var(--text-muted);">ID: ----</div>
+      </div>
+    </div>
+    <div class="balance-box">
+      <span class="balance-amount" id="balanceDisplay">0.00 ETB</span>
+      <button class="btn-action" onclick="openDeposit()">+</button>
+    </div>
+  </header>
 
-    <div class="grid">
-        <!-- PVP BINGO ROOMS CARD -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Multi-Tier Bingo</h3>
-                <span id="bingo-status" class="status-pill status-BETTING">BETTING</span>
-            </div>
-            
-            <label for="bingo-tier-select" style="font-size: 0.85rem; color: var(--text-muted);">Select Stake Tier:</label>
-            <select id="bingo-tier-select" onchange="renderBingoTier()">
-                <option value="10">10 ETB Tier</option>
-                <option value="20">20 ETB Tier</option>
-                <option value="50">50 ETB Tier</option>
-                <option value="100">100 ETB Tier</option>
-                <option value="500">500 ETB Tier</option>
-            </select>
+  <!-- GAME SELECTION TABS -->
+  <nav class="game-tabs">
+    <button class="tab-btn active" onclick="switchGame('bingo')">24/7 BINGO</button>
+    <button class="tab-btn" onclick="switchGame('keno')">KENO</button>
+    <button class="tab-btn" onclick="switchGame('aviator')">AVIATOR</button>
+    <button class="tab-btn" onclick="switchGame('roulette')">ROULETTE</button>
+  </nav>
 
-            <div id="bingo-timer" class="timer-display">00s</div>
-            
-            <div style="font-size: 0.85rem; color: var(--text-muted);">
-                Players: <span id="bingo-players" style="color:#fff;">0</span> | 
-                Prize Pool: <span id="bingo-pool" style="color:var(--accent-gold);">0 ETB</span>
-            </div>
+  <main>
+    <!-- 24/7 BINGO GAME CONTAINER -->
+    <div id="bingoGame" class="game-container active">
+      <div class="status-bar">
+        <span>Round: <strong id="bingoRound">#0000</strong></span>
+        <span>Status: <strong id="bingoStatus" style="color:var(--accent-color)">WAITING FOR BETS</strong></span>
+        <span>Timer: <strong id="bingoTimer">00:00</strong></span>
+      </div>
 
-            <div class="draw-grid" id="bingo-balls"></div>
-        </div>
-
-        <!-- LIVE HOUSE KENO CARD -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Continuous Keno</h3>
-                <span id="keno-status" class="status-pill status-BETTING">BETTING</span>
-            </div>
-            <div id="keno-timer" class="timer-display">00s</div>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">Drawn Numbers (20 Max):</div>
-            <div class="draw-grid" id="keno-balls"></div>
+      <div id="bingoBettingPhase">
+        <p style="font-size: 13px; color: var(--text-muted);">Select an Available Cartela (1 - 120):</p>
+        <div class="bingo-cartela-selector" id="cartelaList">
+          <!-- Populated by JavaScript -->
         </div>
 
-        <!-- AVIATOR CRASH CARD -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Aviator Crash</h3>
-                <span id="aviator-status" class="status-pill status-BETTING">BETTING</span>
-            </div>
-            <div id="aviator-multiplier" class="timer-display" style="color: var(--accent-gold);">1.00x</div>
-            <div id="aviator-sub" style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">Waiting for takeoff...</div>
+        <div class="controls">
+          <input type="number" id="bingoBetAmount" class="input-amount" placeholder="Stake (ETB)" value="50">
+          <button class="btn-submit" id="btnPlaceBingoBet" onclick="placeBingoBet()">BUY CARTELA</button>
         </div>
+      </div>
+
+      <div id="bingoDrawPhase" class="hidden">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Live Drawn Balls:</p>
+        <div class="drawn-balls-strip" id="drawnBallsContainer"></div>
+
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 10px;">Your Active Board (<span id="activeCartelaNum">None</span>):</p>
+        <div class="bingo-grid" id="userBingoGrid"></div>
+      </div>
     </div>
 
-    <script>
-        const API_BASE = window.location.origin;
-        let globalBingoRooms = {};
+    <!-- KENO GAME CONTAINER -->
+    <div id="kenoGame" class="game-container">
+      <div class="status-bar">
+        <span>Round: <strong id="kenoRound">#0000</strong></span>
+        <span>Timer: <strong id="kenoTimer">00:00</strong></span>
+      </div>
+      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Keno Synchronizing with Server...</p>
+    </div>
 
-        async function fetchLiveEngineState() {
-            try {
-                // Fetch Bingo PVP state
-                const bingoRes = await fetch(`${API_BASE}/api/bingo/rooms`);
-                const bingoData = await bingoRes.json();
-                if (bingoData.success) {
-                    globalBingoRooms = bingoData.rooms;
-                    renderBingoTier();
-                }
+    <!-- AVIATOR GAME CONTAINER -->
+    <div id="aviatorGame" class="game-container">
+      <div class="status-bar">
+        <span>Multiplier: <strong id="aviatorMult" style="color:var(--accent-green); font-size: 20px;">1.00x</strong></span>
+      </div>
+      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Aviator Synchronizing with Server...</p>
+    </div>
 
-                // Fetch House games status (Keno, Roulette, Aviator)
-                const houseRes = await fetch(`${API_BASE}/api/status`);
-                const houseData = await houseRes.json();
-                if (houseData.success && houseData.games) {
-                    updateHouseGamesUI(houseData.games);
-                }
-            } catch (err) {
-                console.error("Syncing error with 24/7 backend loop:", err);
-            }
+    <!-- ROULETTE GAME CONTAINER -->
+    <div id="rouletteGame" class="game-container">
+      <div class="status-bar">
+        <span>Spin Status: <strong id="rouletteStatus">Waiting</strong></span>
+      </div>
+      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Roulette Synchronizing with Server...</p>
+    </div>
+
+    <!-- LIVE GLOBAL FEED -->
+    <div class="feed-section">
+      <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px;">LIVE COMMUNITY FEED</div>
+      <div id="feedContent">
+        <div class="feed-row"><span>Connecting to 24/7 server...</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* =========================================================
+       SYSTEM CONFIG & STATE MANAGEMENT
+    ========================================================= */
+    const CONFIG = {
+      API_BASE: window.location.origin,
+      WS_URL: window.location.origin.replace(/^http/, 'ws')
+    };
+
+    const state = {
+      user: { telegramId: null, username: 'Guest', balance: 0 },
+      currentGame: 'bingo',
+      socket: null,
+      bingo: {
+        selectedCartela: null,
+        userCartelaData: null,
+        myActiveBet: null,
+        occupiedCartelas: [],
+        drawnBalls: []
+      }
+    };
+
+    /* =========================================================
+       INITIALIZATION & TELEGRAM AUTH
+    ========================================================= */
+    window.addEventListener("DOMContentLoaded", () => {
+      initTelegram();
+      connectWebSocket();
+      fetchUserData();
+      renderCartelas();
+    });
+
+    function initTelegram() {
+      if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+          const u = tg.initDataUnsafe.user;
+          state.user.telegramId = String(u.id);
+          state.user.username = u.username || u.first_name || "Player";
+          
+          document.getElementById("userName").textContent = state.user.username;
+          document.getElementById("userId").textContent = `ID: ${u.id}`;
+          document.getElementById("userAvatar").textContent = state.user.username.charAt(0).toUpperCase();
         }
+      }
+    }
 
-        function renderBingoTier() {
-            const selectedTier = document.getElementById("bingo-tier-select").value;
-            const room = globalBingoRooms[selectedTier];
-            if (!room) return;
-
-            const statusEl = document.getElementById("bingo-status");
-            statusEl.textContent = room.status;
-            statusEl.className = `status-pill status-${room.status}`;
-
-            document.getElementById("bingo-timer").textContent = room.remainingSeconds > 0 ? `${room.remainingSeconds}s` : "--";
-            document.getElementById("bingo-players").textContent = room.totalPlayers;
-            document.getElementById("bingo-pool").textContent = `${room.winnerPrize} ETB`;
-
-            const ballsContainer = document.getElementById("bingo-balls");
-            ballsContainer.innerHTML = "";
-            (room.drawnNumbers || []).slice(-10).forEach(num => {
-                const ball = document.createElement("div");
-                ball.className = "ball active";
-                ball.textContent = num;
-                ballsContainer.appendChild(ball);
-            });
+    async function fetchUserData() {
+      if (!state.user.telegramId) return;
+      try {
+        const res = await fetch(`${CONFIG.API_BASE}/api/user/${state.user.telegramId}`);
+        const data = await res.json();
+        if (data.success) {
+          state.user.balance = data.balance;
+          updateBalanceDisplay();
         }
+      } catch (e) {
+        console.error("User sync error:", e);
+      }
+    }
 
-        function updateHouseGamesUI(games) {
-            // Update Keno
-            const keno = games.keno;
-            if (keno) {
-                const kenoStatus = document.getElementById("keno-status");
-                kenoStatus.textContent = keno.status;
-                kenoStatus.className = `status-pill status-${keno.status}`;
-                document.getElementById("keno-timer").textContent = keno.remainingSeconds > 0 ? `${keno.remainingSeconds}s` : "--";
-                
-                const kenoBalls = document.getElementById("keno-balls");
-                kenoBalls.innerHTML = "";
-                (keno.drawnNumbers || []).forEach(num => {
-                    const ball = document.createElement("div");
-                    ball.className = "ball active";
-                    ball.textContent = num;
-                    kenoBalls.appendChild(ball);
-                });
-            }
+    function updateBalanceDisplay() {
+      document.getElementById("balanceDisplay").textContent = `${state.user.balance.toFixed(2)} ETB`;
+    }
 
-            // Update Aviator
-            const aviator = games.aviator;
-            if (aviator) {
-                const aviatorStatus = document.getElementById("aviator-status");
-                aviatorStatus.textContent = aviator.status;
-                aviatorStatus.className = `status-pill status-${aviator.status}`;
+    /* =========================================================
+       WEBSOCKET REAL-TIME SYNC (24/7 ENGINE CONNECTOR)
+    ========================================================= */
+    function connectWebSocket() {
+      state.socket = new WebSocket(CONFIG.WS_URL);
 
-                const multEl = document.getElementById("aviator-multiplier");
-                const subEl = document.getElementById("aviator-sub");
-
-                if (aviator.status === "BETTING") {
-                    multEl.textContent = "1.00x";
-                    multEl.style.color = "var(--text-light)";
-                    subEl.textContent = `Next flight in ${aviator.remainingSeconds}s`;
-                } else if (aviator.status === "FLYING") {
-                    multEl.textContent = `${aviator.multiplier.toFixed(2)}x`;
-                    multEl.style.color = "var(--accent-gold)";
-                    subEl.textContent = "Plane in flight!";
-                } else if (aviator.status === "CRASHED") {
-                    multEl.textContent = `${aviator.crashPoint.toFixed(2)}x`;
-                    multEl.style.color = "var(--accent-red)";
-                    subEl.textContent = "Flew Away!";
-                }
-            }
+      state.socket.onopen = () => {
+        console.log("Connected to 24/7 Game Engine Server");
+        if (state.user.telegramId) {
+          state.socket.send(JSON.stringify({ type: "AUTH", telegramId: state.user.telegramId }));
         }
+      };
 
-        // START LIVE 24/7 POLLING ENGINE (Ticks every 1 second)
-        fetchLiveEngineState();
-        setInterval(fetchLiveEngineState, 1000);
-    </script>
+      state.socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        handleServerEvent(msg);
+      };
+
+      state.socket.onclose = () => {
+        console.warn("WebSocket connection lost. Reconnecting in 3 seconds...");
+        setTimeout(connectWebSocket, 3000);
+      };
+    }
+
+    function handleServerEvent(msg) {
+      switch (msg.type) {
+        case "INIT_STATE":
+        case "BINGO_TICK":
+          handleBingoStateUpdate(msg.data || msg);
+          break;
+        case "BINGO_BALL_DRAWN":
+          handleBingoBallDrawn(msg.ball);
+          break;
+        case "BINGO_GAME_OVER":
+          handleBingoGameOver(msg.winner);
+          break;
+        case "BALANCE_UPDATE":
+          state.user.balance = msg.balance;
+          updateBalanceDisplay();
+          break;
+        case "FEED_UPDATE":
+          renderFeed(msg.events);
+          break;
+      }
+    }
+
+    /* =========================================================
+       24/7 CONTINUOUS BINGO GAME LOGIC
+    ========================================================= */
+    function renderCartelas() {
+      const container = document.getElementById("cartelaList");
+      container.innerHTML = "";
+      for (let i = 1; i <= 120; i++) {
+        const badge = document.createElement("div");
+        badge.className = "cartela-badge";
+        badge.id = `cartela-${i}`;
+        badge.textContent = `#${i}`;
+        badge.onclick = () => selectCartela(i);
+        container.appendChild(badge);
+      }
+    }
+
+    function selectCartela(num) {
+      if (state.bingo.occupiedCartelas.includes(num)) return;
+      
+      document.querySelectorAll(".cartela-badge").forEach(el => el.classList.remove("selected"));
+      state.bingo.selectedCartela = num;
+      
+      const el = document.getElementById(`cartela-${num}`);
+      if (el) el.classList.add("selected");
+    }
+
+    function handleBingoStateUpdate(data) {
+      if (!data) return;
+      document.getElementById("bingoRound").textContent = `#${String(data.roundId).padStart(4, '0')}`;
+      document.getElementById("bingoTimer").textContent = `${data.timeLeft}s`;
+
+      // Update cartela occupancies from server broadcast
+      if (data.occupiedCartelas) {
+        state.bingo.occupiedCartelas = data.occupiedCartelas;
+        for (let i = 1; i <= 120; i++) {
+          const badge = document.getElementById(`cartela-${i}`);
+          if (badge) {
+            if (data.occupiedCartelas.includes(i)) {
+              badge.classList.add("occupied");
+            } else {
+              badge.classList.remove("occupied");
+            }
+          }
+        }
+      }
+
+      if (data.phase === "BETTING") {
+        document.getElementById("bingoStatus").textContent = "WAITING FOR BETS";
+        document.getElementById("bingoStatus").style.color = "var(--accent-color)";
+        document.getElementById("bingoBettingPhase").classList.remove("hidden");
+        document.getElementById("bingoDrawPhase").classList.add("hidden");
+        document.getElementById("btnPlaceBingoBet").disabled = false;
+        state.bingo.drawnBalls = [];
+      } else if (data.phase === "DRAWING") {
+        document.getElementById("bingoStatus").textContent = "DRAW IN PROGRESS";
+        document.getElementById("bingoStatus").style.color = "var(--accent-green)";
+        document.getElementById("bingoBettingPhase").classList.add("hidden");
+        document.getElementById("bingoDrawPhase").classList.remove("hidden");
+        document.getElementById("btnPlaceBingoBet").disabled = true;
+      }
+    }
+
+    async function placeBingoBet() {
+      if (!state.bingo.selectedCartela) {
+        alert("Please select a Cartela number standardly (1-120).");
+        return;
+      }
+
+      const amount = parseFloat(document.getElementById("bingoBetAmount").value);
+      if (isNaN(amount) || amount <= 0 || amount > state.user.balance) {
+        alert("Invalid stake amount or insufficient balance.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/api/bingo/bet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telegramId: state.user.telegramId,
+            cartelaId: state.bingo.selectedCartela,
+            amount: amount
+          })
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          state.user.balance -= amount;
+          updateBalanceDisplay();
+          state.bingo.myActiveBet = state.bingo.selectedCartela;
+          state.bingo.userCartelaData = res.cartelaGrid;
+          
+          document.getElementById("activeCartelaNum").textContent = `#${state.bingo.selectedCartela}`;
+          renderUserBingoGrid(res.cartelaGrid);
+          alert(`Cartela #${state.bingo.selectedCartela} successfully registered!`);
+        } else {
+          alert(res.message || "Failed to place bet.");
+        }
+      } catch (err) {
+        console.error("Bet request failed:", err);
+        alert("Error connecting to server backend.");
+      }
+    }
+
+    function renderUserBingoGrid(grid) {
+      const container = document.getElementById("userBingoGrid");
+      container.innerHTML = "";
+      grid.flat().forEach(val => {
+        const cell = document.createElement("div");
+        cell.className = "bingo-cell";
+        cell.id = `bcell-${val}`;
+        cell.textContent = val === 0 ? "FREE" : val;
+        if (val === 0) cell.classList.add("drawn");
+        container.appendChild(cell);
+      });
+    }
+
+    function handleBingoBallDrawn(ball) {
+      state.bingo.drawnBalls.push(ball);
+      
+      const container = document.getElementById("drawnBallsContainer");
+      const ballNode = document.createElement("div");
+      ballNode.className = "ball";
+      ballNode.textContent = ball;
+      container.prepend(ballNode);
+
+      const cell = document.getElementById(`bcell-${ball}`);
+      if (cell) cell.classList.add("drawn");
+    }
+
+    function handleBingoGameOver(winner) {
+      if (winner && winner.telegramId === state.user.telegramId) {
+        alert(`🎉 BINGO! You won ${winner.payout} ETB!`);
+      } else if (winner) {
+        alert(`Round Over. Winner: Player ${winner.username} (+${winner.payout} ETB)`);
+      } else {
+        alert("Round Over. No winners this round.");
+      }
+      fetchUserData();
+    }
+
+    /* =========================================================
+       INTERFACE HELPERS & FEED
+    ========================================================= */
+    function switchGame(gameName) {
+      state.currentGame = gameName;
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      document.querySelectorAll(".game-container").forEach(c => c.classList.remove("active"));
+
+      event.target.classList.add("active");
+      document.getElementById(`${gameName}Game`).classList.add("active");
+    }
+
+    function renderFeed(events) {
+      if (!events || !events.length) return;
+      const container = document.getElementById("feedContent");
+      container.innerHTML = events.map(e => `
+        <div class="feed-row">
+          <span>${e.player} (${e.game})</span>
+          <span class="win-val">+${e.amount.toFixed(2)} ETB</span>
+        </div>
+      `).join("");
+    }
+
+    function openDeposit() {
+      alert("Redirecting to Deposit Integration...");
+    }
+  </script>
 </body>
 </html>
