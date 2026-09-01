@@ -3,640 +3,823 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
 <title>DESTA PLAY - Virtual Gaming Platform</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <style>
-:root {
-    --bg-color:#0f172a;
-    --card-bg:#1e293b;
+:root{
+    --bg:#080d18;
+    --card:#111827;
+    --card2:#172033;
+    --border:rgba(255,255,255,.08);
+    --text:#f8fafc;
+    --muted:#94a3b8;
     --accent:#6366f1;
-    --accent-hover:#4f46e5;
-    --text-main:#f8fafc;
-    --text-muted:#94a3b8;
+    --accent2:#8b5cf6;
     --success:#22c55e;
     --danger:#ef4444;
     --warning:#f59e0b;
+    --pink:#ff3b81;
 
-    --bingo-b:#22c55e;
-    --bingo-i:#facc15;
-    --bingo-n:#fb923c;
-    --bingo-g:#38bdf8;
-    --bingo-o:#a78bfa;
-    --bingo-mark:#ff3b81;
+    --b:#22c55e;
+    --i:#facc15;
+    --n:#fb923c;
+    --g:#38bdf8;
+    --o:#a78bfa;
 }
 
-* {
+*{
     box-sizing:border-box;
     margin:0;
     padding:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     -webkit-tap-highlight-color:transparent;
 }
 
-body {
-    background:var(--bg-color);
-    color:var(--text-main);
+body{
+    background:
+        radial-gradient(circle at top,#172554 0%,#080d18 42%);
+    color:var(--text);
     min-height:100vh;
     overflow-x:hidden;
 }
 
-header {
-    background:var(--card-bg);
-    padding:12px 16px;
+button{
+    font-family:inherit;
+}
+
+header{
+    height:58px;
+    background:rgba(17,24,39,.94);
+    backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+    padding:0 15px;
     display:flex;
-    justify-content:space-between;
     align-items:center;
-    border-bottom:1px solid rgba(255,255,255,.08);
+    justify-content:space-between;
     position:sticky;
     top:0;
     z-index:100;
 }
 
-.logo {
-    font-weight:800;
-    font-size:1.2rem;
-    letter-spacing:.5px;
-    background:linear-gradient(135deg,#6366f1,#a855f7);
+.logo{
+    font-size:1.18rem;
+    font-weight:900;
+    letter-spacing:.6px;
+    background:linear-gradient(135deg,#818cf8,#c084fc);
     -webkit-background-clip:text;
     -webkit-text-fill-color:transparent;
 }
 
-.user-pill {
-    background:rgba(255,255,255,.05);
-    padding:6px 12px;
-    border-radius:20px;
-    font-size:.85rem;
+.user-pill{
     display:flex;
     align-items:center;
     gap:6px;
-    border:1px solid rgba(255,255,255,.1);
+    padding:6px 10px;
+    border-radius:20px;
+    background:rgba(255,255,255,.05);
+    border:1px solid var(--border);
+    font-size:.75rem;
 }
 
-.container {
+.connection-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--danger);
+}
+
+.connection-dot.online{
+    background:var(--success);
+    box-shadow:0 0 8px rgba(34,197,94,.7);
+}
+
+.container{
     width:100%;
-    max-width:600px;
-    margin:0 auto;
-    padding:16px 16px 85px;
+    max-width:620px;
+    margin:auto;
+    padding:15px 14px 90px;
 }
 
-.screen {
+.screen{
     display:none;
-    animation:fadeIn .2s ease-in-out;
+    animation:screenIn .2s ease;
 }
 
-.screen.active {
+.screen.active{
     display:block;
 }
 
-@keyframes fadeIn {
-    from {opacity:0;transform:translateY(4px)}
-    to {opacity:1;transform:translateY(0)}
+@keyframes screenIn{
+    from{
+        opacity:0;
+        transform:translateY(5px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
 }
 
-.panel {
-    background:var(--card-bg);
-    border-radius:14px;
-    padding:16px;
-    margin-bottom:16px;
-    border:1px solid rgba(255,255,255,.05);
+.panel{
+    background:linear-gradient(145deg,rgba(23,32,51,.98),rgba(15,23,42,.98));
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:15px;
+    margin-bottom:13px;
+    box-shadow:0 8px 25px rgba(0,0,0,.16);
 }
 
-.btn {
-    background:var(--accent);
-    color:#fff;
-    border:none;
+.btn{
     width:100%;
-    padding:12px;
+    border:0;
     border-radius:10px;
-    font-weight:600;
-    font-size:.95rem;
+    padding:12px;
+    color:white;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    font-weight:800;
     cursor:pointer;
 }
 
-.btn.secondary {
-    background:rgba(255,255,255,.1);
+.btn.secondary{
+    background:rgba(255,255,255,.07);
+    border:1px solid var(--border);
 }
 
-.back-btn {
+.back-btn{
+    border:1px solid var(--border);
     background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.1);
-    color:var(--text-main);
-    padding:8px 14px;
-    border-radius:8px;
-    font-size:.85rem;
+    color:white;
+    padding:8px 13px;
+    border-radius:9px;
+    margin-bottom:13px;
     cursor:pointer;
-    margin-bottom:16px;
 }
 
-.hidden {
+.hidden{
     display:none!important;
 }
 
-/* LOBBY */
+/* =========================================================
+   COMMON ROUND HEADER
+========================================================= */
 
-.lobby-grid {
+.game-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:7px;
+}
+
+.game-top h3{
+    font-size:1rem;
+}
+
+.round-meta{
+    color:var(--muted);
+    font-size:.72rem;
+    margin-top:4px;
+}
+
+.status-pill{
+    display:inline-flex;
+    align-items:center;
+    padding:4px 9px;
+    border-radius:20px;
+    font-size:.64rem;
+    font-weight:900;
+    letter-spacing:.4px;
+    background:rgba(99,102,241,.15);
+    color:#a5b4fc;
+    border:1px solid rgba(99,102,241,.2);
+}
+
+/* =========================================================
+   LOBBY
+========================================================= */
+
+.lobby-hero{
+    background:
+        radial-gradient(circle at top right,#4338ca,transparent 55%),
+        linear-gradient(135deg,#111827,#1e1b4b);
+}
+
+.lobby-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-top:12px;
+    gap:11px;
 }
 
-.game-card {
-    background:var(--card-bg);
+.game-card{
+    background:linear-gradient(145deg,#172033,#101827);
+    border:1px solid var(--border);
     border-radius:16px;
-    padding:16px;
+    padding:17px 12px;
     text-align:center;
-    border:1px solid rgba(255,255,255,.05);
     cursor:pointer;
+    transition:.15s;
 }
 
-.game-card:active {
+.game-card:active{
     transform:scale(.97);
 }
 
-.game-card.featured {
+.game-card.featured{
     grid-column:span 2;
-    background:linear-gradient(135deg,#1e293b,#312e81);
+    background:
+        radial-gradient(circle at top right,#4c1d95,transparent 60%),
+        linear-gradient(145deg,#172033,#111827);
 }
 
-.game-icon {
-    font-size:2.2rem;
-    margin-bottom:8px;
+.game-icon{
+    font-size:2rem;
+    margin-bottom:7px;
 }
 
-.game-title {
-    font-weight:700;
-    font-size:1rem;
-    margin-bottom:4px;
+.game-title{
+    font-weight:850;
 }
 
-.game-desc {
-    font-size:.75rem;
-    color:var(--text-muted);
+.game-desc{
+    font-size:.7rem;
+    color:var(--muted);
+    margin-top:3px;
 }
 
-/* NAV */
+/* =========================================================
+   NAV
+========================================================= */
 
-nav {
+nav{
     position:fixed;
     bottom:0;
     left:0;
     right:0;
-    background:var(--card-bg);
+    height:68px;
+    background:rgba(17,24,39,.97);
+    backdrop-filter:blur(15px);
+    border-top:1px solid var(--border);
     display:flex;
-    justify-content:space-around;
-    padding:10px 0;
-    border-top:1px solid rgba(255,255,255,.08);
-    z-index:100;
+    z-index:200;
 }
 
-.nav-item {
+.nav-item{
+    flex:1;
+    border:0;
     background:none;
-    border:none;
-    color:var(--text-muted);
-    font-size:.75rem;
+    color:var(--muted);
+    font-size:.7rem;
     display:flex;
     flex-direction:column;
+    justify-content:center;
     align-items:center;
     gap:4px;
-    cursor:pointer;
-    flex:1;
 }
 
-.nav-item.active {
-    color:var(--accent);
-}
-
-.nav-item span {
+.nav-item span{
     font-size:1.2rem;
 }
 
-/* COMMON */
+.nav-item.active{
+    color:#818cf8;
+}
 
-.status-pill {
-    display:inline-block;
-    padding:4px 10px;
-    border-radius:12px;
-    font-size:.75rem;
-    font-weight:600;
+/* =========================================================
+   PROFESSIONAL ROUND HISTORY
+========================================================= */
+
+.history-box{
+    margin-bottom:11px;
+    padding:10px;
+    border-radius:13px;
+    background:rgba(2,6,23,.55);
+    border:1px solid rgba(255,255,255,.06);
+}
+
+.history-title-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:7px;
+}
+
+.history-title{
+    font-size:.64rem;
+    color:var(--muted);
+    font-weight:850;
+    letter-spacing:.6px;
     text-transform:uppercase;
 }
 
-.flex-row {
-    display:flex;
-    gap:8px;
+.history-toggle{
+    width:28px;
+    height:25px;
+    flex:none;
+    border:1px solid rgba(255,255,255,.1);
+    background:rgba(255,255,255,.06);
+    color:white;
+    border-radius:7px;
+    font-weight:900;
+    cursor:pointer;
 }
 
-/* KENO */
+.history-strip{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    width:100%;
+    overflow:hidden;
+    white-space:nowrap;
+}
 
-.keno-grid {
+.history-item{
+    flex:0 0 auto;
+    min-width:55px;
+    height:28px;
+    padding:0 9px;
+    border-radius:8px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:.67rem;
+    font-weight:900;
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.08);
+}
+
+.history-item.newest{
+    background:rgba(34,197,94,.15);
+    border-color:rgba(34,197,94,.35);
+    color:#86efac;
+}
+
+.history-expanded{
+    display:none;
+    grid-template-columns:repeat(5,1fr);
+    gap:6px;
+}
+
+.history-box.expanded .history-strip{
+    display:none;
+}
+
+.history-box.expanded .history-expanded{
+    display:grid;
+}
+
+.history-box.expanded .history-toggle{
+    transform:none;
+}
+
+@media(max-width:360px){
+    .history-expanded{
+        grid-template-columns:repeat(4,1fr);
+    }
+}
+
+/* =========================================================
+   KENO
+========================================================= */
+
+.keno-grid{
     display:grid;
     grid-template-columns:repeat(10,1fr);
     gap:4px;
-    margin:12px 0;
+    margin:13px 0;
 }
 
-.keno-cell {
+.keno-cell{
     aspect-ratio:1;
-    background:rgba(255,255,255,.03);
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:6px;
     display:flex;
-    align-items:center;
     justify-content:center;
-    font-size:.75rem;
-    font-weight:600;
+    align-items:center;
+    border-radius:6px;
+    background:rgba(255,255,255,.035);
+    border:1px solid rgba(255,255,255,.08);
+    font-size:.7rem;
+    font-weight:800;
     cursor:pointer;
 }
 
-.keno-cell.selected {
+.keno-cell.selected{
     background:var(--accent);
-    border-color:var(--accent);
+    border-color:#818cf8;
+    box-shadow:0 0 8px rgba(99,102,241,.35);
 }
 
-.keno-cell.drawn {
+.keno-cell.drawn{
     background:var(--warning);
-    color:#000;
-    border-color:var(--warning);
+    color:#111827;
 }
 
-/* BINGO */
+/* =========================================================
+   BINGO
+========================================================= */
 
-.tier-grid {
+.tier-grid{
     display:grid;
     grid-template-columns:repeat(2,1fr);
     gap:8px;
-    margin-top:12px;
 }
 
-.tier-btn {
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.1);
-    padding:12px;
-    border-radius:10px;
-    color:var(--text-main);
+.tier-btn{
+    background:rgba(255,255,255,.045);
+    border:1px solid var(--border);
+    border-radius:11px;
+    padding:11px;
+    color:white;
     text-align:left;
-    cursor:pointer;
 }
 
-.tier-btn .amount {
-    font-size:1.1rem;
-    font-weight:700;
-    color:var(--success);
+.tier-btn .amount{
+    color:#4ade80;
+    font-size:1.05rem;
+    font-weight:900;
+    margin-top:2px;
 }
 
-.bingo-live-info {
+.bingo-live-info{
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:6px;
-    margin:10px 0;
+    margin-top:11px;
 }
 
-.bingo-stat {
+.bingo-stat{
     background:rgba(255,255,255,.04);
+    border-radius:9px;
     padding:8px;
-    border-radius:8px;
     text-align:center;
 }
 
-.bingo-stat small {
+.bingo-stat small{
+    color:var(--muted);
+    font-size:.6rem;
     display:block;
-    color:var(--text-muted);
-    font-size:.65rem;
 }
 
-.bingo-stat strong {
-    font-size:.85rem;
+.bingo-stat strong{
+    font-size:.78rem;
 }
 
-/* CARTELA SELECTOR */
-
-.cartela-selector {
-    margin-top:12px;
-}
-
-.cartela-selector-row {
+.cartela-selector-row{
     display:flex;
-    gap:8px;
+    gap:7px;
+    margin-top:10px;
 }
 
-.cartela-selector input {
-    flex:1;
+.cartela-selector input{
     min-width:0;
-    background:#0f172a;
-    border:1px solid rgba(255,255,255,.12);
+    flex:1;
+    background:#080d18;
     color:white;
-    padding:12px;
+    border:1px solid var(--border);
     border-radius:9px;
-    outline:none;
+    padding:11px;
 }
 
-.cartela-selector button {
-    padding:0 16px;
+.cartela-selector button{
+    padding:0 15px;
     border:0;
     border-radius:9px;
     background:var(--accent);
     color:white;
-    font-weight:700;
+    font-weight:900;
 }
 
-.cartela-tabs {
+.cartela-tabs{
     display:flex;
-    gap:8px;
-    margin:12px 0;
+    gap:7px;
+    margin:11px 0;
 }
 
-.cartela-tab {
+.cartela-tab{
     flex:1;
-    padding:10px;
-    text-align:center;
-    background:rgba(255,255,255,.05);
-    border:1px solid rgba(255,255,255,.08);
+    padding:9px;
     border-radius:9px;
-    font-size:.75rem;
-    cursor:pointer;
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--border);
+    text-align:center;
+    font-size:.7rem;
 }
 
-.cartela-tab.active {
-    background:rgba(99,102,241,.25);
+.cartela-tab.active{
     border-color:var(--accent);
+    background:rgba(99,102,241,.18);
 }
 
-/* CARTELA */
-
-.cartela-container {
+.cartela-container{
     background:#f8fafc;
     color:#111827;
-    border-radius:12px;
-    padding:8px;
-    margin-top:12px;
-    box-shadow:0 10px 30px rgba(0,0,0,.3);
+    border-radius:11px;
+    padding:7px;
 }
 
-.cartela-title {
-    color:#111827;
+.cartela-title{
     text-align:center;
-    font-size:.8rem;
-    font-weight:800;
+    font-size:.75rem;
+    font-weight:900;
     margin-bottom:6px;
 }
 
-.cartela-grid {
+.cartela-grid{
     display:grid;
     grid-template-columns:repeat(5,1fr);
     gap:4px;
 }
 
-.cartela-header {
-    height:36px;
+.cartela-header{
+    height:34px;
     border-radius:6px;
     display:flex;
-    align-items:center;
     justify-content:center;
-    color:#fff;
-    font-size:1rem;
+    align-items:center;
+    color:white;
     font-weight:900;
 }
 
-.cartela-header.b { background:var(--bingo-b); }
-.cartela-header.i { background:var(--bingo-i); color:#111; }
-.cartela-header.n { background:var(--bingo-n); }
-.cartela-header.g { background:var(--bingo-g); color:#111; }
-.cartela-header.o { background:var(--bingo-o); }
+.cartela-header.b{background:var(--b)}
+.cartela-header.i{background:var(--i);color:#111}
+.cartela-header.n{background:var(--n)}
+.cartela-header.g{background:var(--g);color:#111}
+.cartela-header.o{background:var(--o)}
 
-.cartela-number {
+.cartela-number{
     aspect-ratio:1;
+    background:white;
     border:1px solid #cbd5e1;
     border-radius:6px;
-    background:#fff;
-    color:#111827;
     display:flex;
-    align-items:center;
     justify-content:center;
-    font-size:.82rem;
-    font-weight:800;
-    cursor:pointer;
-    user-select:none;
-    transition:.15s;
+    align-items:center;
+    color:#111827;
+    font-size:.78rem;
+    font-weight:850;
 }
 
-.cartela-number.called {
+.cartela-number.called{
     box-shadow:inset 0 0 0 3px #111827;
-    transform:scale(.96);
 }
 
-.cartela-number.marked {
-    background:var(--bingo-mark)!important;
+.cartela-number.marked{
+    background:var(--pink)!important;
     color:white!important;
-    border-color:var(--bingo-mark)!important;
-    box-shadow:0 0 0 2px #fff,0 0 0 4px var(--bingo-mark);
 }
 
-.cartela-number.free {
+.cartela-number.free{
     background:#64748b;
-    color:#fff;
-    cursor:default;
-    font-size:.65rem;
+    color:white;
+    font-size:.6rem;
 }
 
-/* Bingo column subtle identity */
-
-.cartela-grid > .b-col { background:#ecfdf5; }
-.cartela-grid > .i-col { background:#fefce8; }
-.cartela-grid > .n-col { background:#fff7ed; }
-.cartela-grid > .g-col { background:#f0f9ff; }
-.cartela-grid > .o-col { background:#f5f3ff; }
-
-.cartela-number.marked.b-col,
-.cartela-number.marked.i-col,
-.cartela-number.marked.n-col,
-.cartela-number.marked.g-col,
-.cartela-number.marked.o-col {
-    background:var(--bingo-mark)!important;
-}
-
-.bingo-draw-panel {
-    margin-top:12px;
-    padding:12px;
-    background:rgba(255,255,255,.04);
-    border-radius:10px;
+.bingo-draw-panel{
     text-align:center;
 }
 
-.last-called {
+.last-called{
     font-size:1.7rem;
-    font-weight:900;
+    font-weight:950;
     margin-top:4px;
 }
 
-.called-history {
+.called-history{
     display:flex;
+    justify-content:center;
     flex-wrap:wrap;
     gap:5px;
     margin-top:8px;
-    justify-content:center;
 }
 
-.called-ball {
-    width:30px;
-    height:30px;
+.called-ball{
+    width:29px;
+    height:29px;
     border-radius:50%;
+    background:rgba(255,255,255,.08);
     display:flex;
     align-items:center;
     justify-content:center;
-    background:rgba(255,255,255,.1);
-    font-size:.7rem;
-    font-weight:800;
-}
-
-.bingo-bets {
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-    margin-top:12px;
-}
-
-.bingo-bet-card {
-    background:rgba(255,255,255,.04);
-    border:1px solid rgba(255,255,255,.08);
-    padding:10px;
-    border-radius:10px;
-}
-
-.bingo-bet-card h4 {
-    font-size:.75rem;
-    margin-bottom:8px;
-}
-
-.bingo-bet-amount {
-    font-weight:800;
-    color:#ffd43c;
-    text-align:center;
-    margin-bottom:8px;
-}
-
-.bingo-place {
-    width:100%;
-    padding:9px;
-    border:0;
-    border-radius:8px;
-    background:var(--accent);
-    color:white;
-    font-weight:700;
-}
-
-.bingo-place:disabled {
-    opacity:.45;
-}
-
-.bingo-claim {
-    width:100%;
-    margin-top:10px;
-    padding:13px;
-    border:0;
-    border-radius:10px;
-    background:var(--success);
-    color:#001b08;
+    font-size:.65rem;
     font-weight:900;
 }
 
-.bingo-claim:disabled {
-    opacity:.35;
+.bingo-bets{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
 }
 
-.bingo-message {
-    text-align:center;
-    font-size:.8rem;
-    color:var(--text-muted);
-    margin-top:8px;
+.bingo-bet-card{
+    padding:10px;
+    border-radius:10px;
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--border);
 }
 
-/* ROULETTE */
+.bingo-bet-card h4{
+    font-size:.7rem;
+}
 
-.roulette-wheel-box {
+.bingo-bet-amount{
+    color:#ffd43c;
     text-align:center;
-    padding:24px 0;
-    font-size:2.5rem;
+    font-weight:900;
+    margin:7px 0;
+}
+
+.bingo-place,
+.bingo-claim{
+    width:100%;
+    border:0;
+    border-radius:8px;
+    padding:9px;
+    background:var(--accent);
+    color:white;
     font-weight:800;
-    background:rgba(0,0,0,.2);
-    border-radius:12px;
-    margin-bottom:12px;
 }
 
-.roulette-grid {
+.bingo-claim{
+    margin-top:9px;
+    background:var(--success);
+    color:#001b08;
+}
+
+button:disabled{
+    opacity:.4;
+}
+
+/* =========================================================
+   ROULETTE
+========================================================= */
+
+.roulette-wheel-box{
+    min-height:120px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:
+        radial-gradient(circle,#1e3a8a 0%,#080d18 72%);
+    margin-bottom:11px;
+}
+
+.roulette-number{
+    font-size:2.6rem;
+    font-weight:950;
+}
+
+.roulette-sub{
+    color:var(--muted);
+    font-size:.7rem;
+    margin-top:2px;
+}
+
+.roulette-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:6px;
 }
 
-.r-btn {
-    padding:10px;
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,.1);
-    background:var(--card-bg);
+.r-btn{
+    padding:11px 5px;
+    border-radius:9px;
+    border:1px solid var(--border);
     color:white;
-    font-weight:600;
+    background:#172033;
+    font-weight:800;
 }
 
-.r-btn.red {
-    background:rgba(239,68,68,.2);
-    border-color:var(--danger);
+/* =========================================================
+   AVIATOR
+========================================================= */
+
+.aviator-history{
+    background:
+        linear-gradient(135deg,rgba(17,24,39,.98),rgba(30,27,75,.95));
 }
 
-.r-btn.black {
-    background:rgba(15,23,42,.8);
-    border-color:#334155;
-}
-
-.r-btn.green {
-    background:rgba(34,197,94,.2);
-    border-color:var(--success);
-}
-
-/* AVIATOR */
-
-.aviator-screen {
-    height:180px;
-    background:radial-gradient(circle,#312e81 0%,#0f172a 100%);
-    border-radius:12px;
+.aviator-flight{
+    min-height:230px;
+    position:relative;
+    overflow:hidden;
+    border-radius:16px;
+    border:1px solid rgba(99,102,241,.22);
+    background:
+        radial-gradient(circle at 75% 35%,rgba(99,102,241,.28),transparent 22%),
+        radial-gradient(circle at 30% 80%,rgba(124,58,237,.18),transparent 35%),
+        linear-gradient(145deg,#171044,#080d18);
     display:flex;
     flex-direction:column;
-    align-items:center;
     justify-content:center;
-    position:relative;
-    margin-bottom:12px;
-    border:1px solid rgba(99,102,241,.2);
+    align-items:center;
+    text-align:center;
 }
 
-.multiplier-display {
-    font-size:2.8rem;
-    font-weight:900;
-    letter-spacing:1px;
-}
-
-/* WALLET */
-
-.wallet-balance {
-    font-size:2rem;
-    font-weight:900;
-    margin-top:10px;
-}
-
-/* CONNECTION */
-
-.connection-dot {
-    width:8px;
-    height:8px;
+.aviator-flight::before{
+    content:"";
+    position:absolute;
+    width:250px;
+    height:120px;
+    border-top:2px solid rgba(129,140,248,.25);
     border-radius:50%;
-    background:var(--danger);
-    display:inline-block;
+    transform:rotate(-17deg);
+    top:30%;
+    left:-20px;
 }
 
-.connection-dot.online {
-    background:var(--success);
+.aviator-plane{
+    position:absolute;
+    font-size:2.2rem;
+    left:18%;
+    top:27%;
+    transform:rotate(-10deg);
+    filter:drop-shadow(0 0 12px rgba(129,140,248,.65));
+    transition:left .2s linear,top .2s linear;
+}
+
+.multiplier-display{
+    position:relative;
+    z-index:2;
+    font-size:3.3rem;
+    font-weight:950;
+    letter-spacing:1px;
+    text-shadow:0 5px 25px rgba(129,140,248,.35);
+}
+
+.aviator-sub{
+    position:relative;
+    z-index:2;
+    color:var(--muted);
+    font-size:.72rem;
+    margin-top:5px;
+}
+
+.aviator-cashout{
+    margin-top:12px;
+    min-width:180px;
+    padding:10px 22px;
+    border:1px solid rgba(34,197,94,.35);
+    border-radius:13px;
+    background:rgba(34,197,94,.12);
+    color:#86efac;
+    cursor:pointer;
+}
+
+.cashout-money{
+    display:block;
+    font-size:1.25rem;
+    font-weight:950;
+}
+
+.cashout-label{
+    display:block;
+    font-size:.58rem;
+    letter-spacing:1px;
+    opacity:.8;
+    margin-top:1px;
+}
+
+/* =========================================================
+   WALLET / HELP
+========================================================= */
+
+.wallet-balance{
+    font-size:2rem;
+    font-weight:950;
+    margin-top:8px;
+}
+
+.help-section{
+    margin-bottom:15px;
+}
+
+.help-section h4{
+    margin-bottom:5px;
+    color:#a5b4fc;
+}
+
+.help-section p{
+    color:#cbd5e1;
+    font-size:.8rem;
+    line-height:1.55;
+}
+
+/* =========================================================
+   LANGUAGE
+========================================================= */
+
+.language-select{
+    width:100%;
+    padding:11px;
+    background:#080d18;
+    color:white;
+    border:1px solid var(--border);
+    border-radius:9px;
+    margin-top:8px;
 }
 </style>
 </head>
@@ -647,7 +830,7 @@ nav {
     <div class="logo">DESTA PLAY</div>
 
     <div class="user-pill">
-        <span>👤</span>
+        👤
         <span id="headerPlayerId">DP-------</span>
         <span id="connectionDot" class="connection-dot"></span>
     </div>
@@ -661,41 +844,52 @@ nav {
 
 <div id="screen-lobby" class="screen active">
 
-    <div class="panel" style="background:linear-gradient(135deg,#312e81,#1e293b);">
-        <h3 style="margin-bottom:4px;">Welcome to Desta Play</h3>
-        <p style="font-size:.8rem;color:var(--text-muted);">
+    <div class="panel lobby-hero">
+        <h3 data-i18n="welcome">Welcome to Desta Play</h3>
+
+        <p data-i18n="liveConnection"
+           style="font-size:.78rem;color:var(--muted);margin-top:4px;">
             Live game engine connection
         </p>
     </div>
 
-    <h4 style="font-size:.9rem;color:var(--text-muted);margin-bottom:8px;">
-        SELECT GAME
-    </h4>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+        <h4 data-i18n="selectGame"
+            style="font-size:.8rem;color:var(--muted);">
+            SELECT GAME
+        </h4>
+
+        <button
+            onclick="openHelp()"
+            style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:white;border-radius:8px;padding:6px 10px;font-size:.7rem;">
+            ❓ <span data-i18n="help">HELP</span>
+        </button>
+    </div>
 
     <div class="lobby-grid">
 
         <div class="game-card" onclick="switchGame('keno')">
             <div class="game-icon">🔢</div>
             <div class="game-title">Keno</div>
-            <div class="game-desc">80 Numbers Draw</div>
+            <div class="game-desc" data-i18n="kenoDesc">80 Numbers Draw</div>
         </div>
 
         <div class="game-card" onclick="switchGame('bingo')">
             <div class="game-icon">🎱</div>
             <div class="game-title">Bingo</div>
-            <div class="game-desc">Live PVP Bingo</div>
+            <div class="game-desc" data-i18n="bingoDesc">Live PVP Bingo</div>
         </div>
 
         <div class="game-card" onclick="switchGame('roulette')">
             <div class="game-icon">🎡</div>
             <div class="game-title">Roulette</div>
-            <div class="game-desc">European 37-Grid</div>
+            <div class="game-desc" data-i18n="rouletteDesc">European 37-Grid</div>
         </div>
 
         <div class="game-card featured" onclick="switchGame('aviator')">
             <div class="game-icon">🚀</div>
             <div class="game-title">Aviator Flight</div>
-            <div class="game-desc">
+            <div class="game-desc" data-i18n="aviatorDesc">
                 Continuous Multiplier Crash Game
             </div>
         </div>
@@ -710,37 +904,60 @@ nav {
 
 <div id="screen-keno" class="screen">
 
-    <button class="back-btn" onclick="switchScreen('screen-lobby')">
+    <button class="back-btn" onclick="switchScreen('screen-lobby')" data-i18n="back">
         ← Back to Lobby
     </button>
 
     <div class="panel">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <h3 style="font-size:1rem;">Keno Arena</h3>
+        <div class="game-top">
+            <h3>Keno</h3>
 
-            <span id="kenoStatus"
-                  class="status-pill"
-                  style="background:rgba(99,102,241,.2);color:var(--accent);">
-                Betting
+            <span id="kenoStatus" class="status-pill">
+                BETTING
             </span>
         </div>
 
-        <div style="font-size:.8rem;color:var(--text-muted);">
-            Round ID:
+        <div class="round-meta">
+            <span data-i18n="round">Round</span>:
             <span id="kenoRoundId">---</span>
-            |
-            Timer:
-            <span id="kenoTimer">--</span>s
+            &nbsp;•&nbsp;
+            <span data-i18n="time">Time</span>:
+            <strong id="kenoTimer">40</strong>s
         </div>
+
+    </div>
+
+    <div id="kenoHistory" class="history-box">
+
+        <div class="history-title-row">
+            <div class="history-title" data-i18n="previousRounds">
+                PREVIOUS ROUND
+            </div>
+
+            <button
+                class="history-toggle"
+                onclick="toggleHistory('kenoHistory')">
+                ›
+            </button>
+        </div>
+
+        <div id="kenoHistoryStrip" class="history-strip"></div>
+
+        <div id="kenoHistoryExpanded" class="history-expanded"></div>
+
+    </div>
+
+    <div class="panel">
 
         <div class="keno-grid" id="kenoGrid"></div>
 
-        <button class="btn" onclick="placeKenoBet()">
+        <button class="btn" onclick="placeKenoBet()" data-i18n="confirm">
             CONFIRM SELECTIONS
         </button>
 
     </div>
+
 </div>
 
 
@@ -750,19 +967,16 @@ nav {
 
 <div id="screen-bingo" class="screen">
 
-    <button class="back-btn" onclick="switchScreen('screen-lobby')">
+    <button class="back-btn" onclick="switchScreen('screen-lobby')" data-i18n="back">
         ← Back to Lobby
     </button>
 
-    <!-- STAKE SELECTION -->
-
     <div id="bingoLobbyView" class="panel">
 
-        <h3 style="margin-bottom:8px;">
-            Choose Bingo Stake
-        </h3>
+        <h3 data-i18n="chooseStake">Choose Bingo Stake</h3>
 
-        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px;">
+        <p data-i18n="stakeExplain"
+           style="font-size:.78rem;color:var(--muted);margin:5px 0 12px;">
             Select your fixed stake before entering the live Bingo room.
         </p>
 
@@ -771,48 +985,40 @@ nav {
     </div>
 
 
-    <!-- BINGO GAME -->
-
     <div id="bingoGameView" style="display:none;">
 
         <div class="panel">
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="game-top">
+                <h3 id="bingoRoomTitle">Bingo</h3>
 
-                <h3 id="bingoRoomTitle">
-                    Bingo
-                </h3>
-
-                <span id="bingoStatus"
-                      class="status-pill"
-                      style="background:rgba(34,197,94,.2);color:var(--success);">
+                <span id="bingoStatus" class="status-pill">
                     WAITING
                 </span>
-
             </div>
 
-            <div style="font-size:.8rem;color:var(--text-muted);">
-                Round:
+            <div class="round-meta">
+                <span data-i18n="round">Round</span>:
                 <span id="bingoRoundId">---</span>
-                |
-                Time:
-                <span id="bingoTimer">--</span>s
+                &nbsp;•&nbsp;
+                <span data-i18n="time">Time</span>:
+                <strong id="bingoTimer">40</strong>s
             </div>
 
             <div class="bingo-live-info">
 
                 <div class="bingo-stat">
-                    <small>STAKE</small>
+                    <small data-i18n="stake">STAKE</small>
                     <strong id="bingoStake">0 ETB</strong>
                 </div>
 
                 <div class="bingo-stat">
-                    <small>POT</small>
+                    <small data-i18n="pot">POT</small>
                     <strong id="bingoPot">0 ETB</strong>
                 </div>
 
                 <div class="bingo-stat">
-                    <small>PLAYERS</small>
+                    <small data-i18n="players">PLAYERS</small>
                     <strong id="bingoPlayersCount">0</strong>
                 </div>
 
@@ -820,96 +1026,90 @@ nav {
 
         </div>
 
+        <div id="bingoHistory" class="history-box">
 
-        <!-- CARTELA SELECTION -->
+            <div class="history-title-row">
+                <div class="history-title" data-i18n="previousRounds">
+                    PREVIOUS ROUND
+                </div>
+
+                <button
+                    class="history-toggle"
+                    onclick="toggleHistory('bingoHistory')">
+                    ›
+                </button>
+            </div>
+
+            <div id="bingoHistoryStrip" class="history-strip"></div>
+
+            <div id="bingoHistoryExpanded" class="history-expanded"></div>
+
+        </div>
 
         <div class="panel">
 
-            <h4>Choose Cartela</h4>
+            <h4 data-i18n="chooseCartela">Choose Cartela</h4>
 
-            <p style="font-size:.75rem;color:var(--text-muted);margin:5px 0 10px;">
+            <p data-i18n="cartelaExplain"
+               style="font-size:.73rem;color:var(--muted);margin:5px 0 9px;">
                 You can use up to two cartelas.
             </p>
 
-            <div class="cartela-selector">
+            <div class="cartela-selector-row">
 
-                <div class="cartela-selector-row">
+                <input
+                    id="cartelaEntry"
+                    type="number"
+                    min="1"
+                    max="120"
+                    placeholder="Cartela 1–120">
 
-                    <input
-                        id="cartelaEntry"
-                        type="number"
-                        min="1"
-                        max="120"
-                        inputmode="numeric"
-                        placeholder="Cartela 1–120">
-
-                    <button onclick="addCartela()">
-                        ADD
-                    </button>
-
-                </div>
+                <button onclick="addCartela()" data-i18n="add">
+                    ADD
+                </button>
 
             </div>
 
             <div class="cartela-tabs">
 
-                <div
-                    id="cartelaTab1"
-                    class="cartela-tab active"
-                    onclick="selectCartela(1)">
+                <div id="cartelaTab1"
+                     class="cartela-tab active"
+                     onclick="selectCartela(1)">
                     CARTELA 1
                 </div>
 
-                <div
-                    id="cartelaTab2"
-                    class="cartela-tab"
-                    onclick="selectCartela(2)">
+                <div id="cartelaTab2"
+                     class="cartela-tab"
+                     onclick="selectCartela(2)">
                     CARTELA 2
                 </div>
 
             </div>
 
-            <div
-                id="cartelaGridWrap"
-                style="display:none;">
-            </div>
+            <div id="cartelaGridWrap" style="display:none;"></div>
 
-            <div
-                id="cartelaStatus"
-                class="bingo-message">
+            <div id="cartelaStatus"
+                 style="text-align:center;color:var(--muted);font-size:.75rem;">
                 Enter a Cartela number.
             </div>
 
         </div>
 
-
-        <!-- LIVE DRAW -->
-
         <div class="panel bingo-draw-panel">
 
-            <div style="font-size:.7rem;color:var(--text-muted);">
-                LAST CALLED NUMBER
+            <div style="font-size:.65rem;color:var(--muted);">
+                <span data-i18n="lastCalled">LAST CALLED NUMBER</span>
             </div>
 
-            <div
-                id="bingoLastCalled"
-                class="last-called">
-                —
-            </div>
+            <div id="bingoLastCalled" class="last-called">—</div>
 
-            <div
-                id="bingoCalledHistory"
-                class="called-history">
-            </div>
+            <div id="bingoCalledHistory" class="called-history"></div>
 
         </div>
 
-
-        <!-- BETS -->
-
         <div class="panel">
 
-            <h4>Bingo Bets</h4>
+            <h4 data-i18n="bingoBets">Bingo Bets</h4>
 
             <div class="bingo-bets">
 
@@ -917,9 +1117,8 @@ nav {
 
                     <h4>CARTELA 1</h4>
 
-                    <div
-                        id="bingoAmount1"
-                        class="bingo-bet-amount">
+                    <div id="bingoAmount1"
+                         class="bingo-bet-amount">
                         0 ETB
                     </div>
 
@@ -927,20 +1126,19 @@ nav {
                         id="bingoPlace1"
                         class="bingo-place"
                         onclick="placeBingoBet(1)"
-                        disabled>
+                        disabled
+                        data-i18n="placeBet">
                         PLACE BET
                     </button>
 
                 </div>
 
-
                 <div class="bingo-bet-card">
 
                     <h4>CARTELA 2</h4>
 
-                    <div
-                        id="bingoAmount2"
-                        class="bingo-bet-amount">
+                    <div id="bingoAmount2"
+                         class="bingo-bet-amount">
                         0 ETB
                     </div>
 
@@ -948,7 +1146,8 @@ nav {
                         id="bingoPlace2"
                         class="bingo-place"
                         onclick="placeBingoBet(2)"
-                        disabled>
+                        disabled
+                        data-i18n="placeBet">
                         PLACE BET
                     </button>
 
@@ -956,34 +1155,29 @@ nav {
 
             </div>
 
-
-            <button
-                id="bingoClaim1"
-                class="bingo-claim"
-                onclick="claimBingo(1)"
-                disabled>
+            <button id="bingoClaim1"
+                    class="bingo-claim"
+                    onclick="claimBingo(1)"
+                    disabled>
                 BINGO — CARTELA 1
             </button>
 
-            <button
-                id="bingoClaim2"
-                class="bingo-claim"
-                onclick="claimBingo(2)"
-                disabled>
+            <button id="bingoClaim2"
+                    class="bingo-claim"
+                    onclick="claimBingo(2)"
+                    disabled>
                 BINGO — CARTELA 2
             </button>
 
-            <div
-                id="bingoMessage"
-                class="bingo-message">
+            <div id="bingoMessage"
+                 style="text-align:center;color:var(--muted);font-size:.75rem;margin-top:8px;">
             </div>
 
         </div>
 
-
-        <button
-            class="btn secondary"
-            onclick="backToBingoLobby()">
+        <button class="btn secondary"
+                onclick="backToBingoLobby()"
+                data-i18n="changeStake">
             CHANGE STAKE
         </button>
 
@@ -998,48 +1192,85 @@ nav {
 
 <div id="screen-roulette" class="screen">
 
-    <button class="back-btn" onclick="switchScreen('screen-lobby')">
+    <button class="back-btn"
+            onclick="switchScreen('screen-lobby')"
+            data-i18n="back">
         ← Back to Lobby
     </button>
 
     <div class="panel">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="game-top">
+            <h3>Roulette</h3>
 
-            <h3 style="font-size:1rem;">
-                European Roulette
-            </h3>
-
-            <span
-                id="rouletteStatus"
-                class="status-pill"
-                style="background:rgba(99,102,241,.2);color:var(--accent);">
-                Betting
+            <span id="rouletteStatus" class="status-pill">
+                BETTING
             </span>
-
         </div>
 
-        <div class="roulette-wheel-box" id="rouletteWheelBox">
-            🎡 --
+        <div class="round-meta">
+            <span data-i18n="round">Round</span>:
+            <span id="rouletteRoundId">---</span>
+            &nbsp;•&nbsp;
+            <span data-i18n="time">Time</span>:
+            <strong id="rouletteTimer">40</strong>s
+        </div>
+
+    </div>
+
+    <div id="rouletteHistory" class="history-box">
+
+        <div class="history-title-row">
+            <div class="history-title" data-i18n="previousRound">
+                PREVIOUS ROUND
+            </div>
+
+            <button
+                class="history-toggle"
+                onclick="toggleHistory('rouletteHistory')">
+                ›
+            </button>
+        </div>
+
+        <div id="rouletteHistoryStrip" class="history-strip"></div>
+
+        <div id="rouletteHistoryExpanded" class="history-expanded"></div>
+
+    </div>
+
+    <div class="panel">
+
+        <div class="roulette-wheel-box">
+
+            <div id="rouletteWheelBox"
+                 class="roulette-number">
+                —
+            </div>
+
+            <div class="roulette-sub"
+                 data-i18n="waitingResult">
+                Waiting for result
+            </div>
+
         </div>
 
         <div class="roulette-grid">
 
-            <button
-                class="r-btn red"
-                onclick="placeRouletteBet('red')">
+            <button class="r-btn"
+                    onclick="placeRouletteBet('red')"
+                    data-i18n="red">
                 Red
             </button>
 
-            <button
-                class="r-btn green"
-                onclick="placeRouletteBet('green')">
+            <button class="r-btn"
+                    onclick="placeRouletteBet('green')"
+                    data-i18n="zero">
                 Zero (0)
             </button>
 
-            <button
-                class="r-btn black"
-                onclick="placeRouletteBet('black')">
+            <button class="r-btn"
+                    onclick="placeRouletteBet('black')"
+                    data-i18n="black">
                 Black
             </button>
 
@@ -1056,50 +1287,112 @@ nav {
 
 <div id="screen-aviator" class="screen">
 
-    <button class="back-btn" onclick="switchScreen('screen-lobby')">
+    <button class="back-btn"
+            onclick="switchScreen('screen-lobby')"
+            data-i18n="back">
         ← Back to Lobby
     </button>
 
+    <!-- PREVIOUS AVIATOR ROUNDS -->
+
+    <div id="aviatorHistory" class="history-box aviator-history">
+
+        <div class="history-title-row">
+
+            <div class="history-title">
+                PREVIOUS ROUNDS
+            </div>
+
+            <button
+                id="aviatorHistoryToggle"
+                class="history-toggle"
+                onclick="toggleHistory('aviatorHistory')">
+                ›
+            </button>
+
+        </div>
+
+        <!-- RESPONSIVE ONE-LINE HISTORY -->
+
+        <div id="aviatorHistoryStrip"
+             class="history-strip">
+        </div>
+
+        <!-- EXPANDED 20-ROUND HISTORY -->
+
+        <div id="aviatorHistoryExpanded"
+             class="history-expanded">
+        </div>
+
+    </div>
+
+
+    <!-- CURRENT FLIGHT -->
+
     <div class="panel">
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="game-top">
 
-            <h3 style="font-size:1rem;">
-                Aviator Flight
-            </h3>
+            <h3>Aviator Flight</h3>
 
-            <span
-                id="aviatorStatus"
-                class="status-pill"
-                style="background:rgba(245,158,11,.2);color:var(--warning);">
+            <span id="aviatorStatus"
+                  class="status-pill">
                 WAITING
             </span>
 
         </div>
 
-        <div class="aviator-screen">
+        <div class="round-meta">
 
-            <div
-                class="multiplier-display"
-                id="aviatorMultiplier">
-                1.00x
-            </div>
+            <span data-i18n="round">Round</span>:
+            <span id="aviatorRoundId">---</span>
 
-            <div
-                style="font-size:.75rem;color:var(--text-muted);margin-top:4px;"
-                id="aviatorSubText">
-                Next flight starting soon
-            </div>
+            &nbsp;•&nbsp;
+
+            <span data-i18n="time">Next</span>:
+            <strong id="aviatorTimer">10</strong>s
 
         </div>
 
-        <div class="flex-row">
+    </div>
 
+
+    <div class="panel">
+
+        <div class="aviator-flight">
+
+            <div id="aviatorPlane"
+                 class="aviator-plane">
+                ✈️
+            </div>
+
+            <div id="aviatorMultiplier"
+                 class="multiplier-display">
+                1.00x
+            </div>
+
+            <div id="aviatorSubText"
+                 class="aviator-sub">
+                Next flight starting soon
+            </div>
+
+            <!-- LIVE CASHOUT -->
             <button
-                class="btn"
                 id="aviatorCashoutBtn"
-                onclick="cashOutAviator()">
-                CASH OUT
+                class="aviator-cashout"
+                onclick="cashOutAviator()"
+                disabled>
+
+                <span id="aviatorLiveMoney"
+                      class="cashout-money">
+                    0.00 ETB
+                </span>
+
+                <span class="cashout-label"
+                      data-i18n="cashOut">
+                    CASH OUT
+                </span>
+
             </button>
 
         </div>
@@ -1117,9 +1410,10 @@ nav {
 
     <div class="panel">
 
-        <h3>Player Wallet</h3>
+        <h3 data-i18n="wallet">Player Wallet</h3>
 
-        <p style="font-size:.8rem;color:var(--text-muted);margin-top:4px;">
+        <p data-i18n="liveBalance"
+           style="font-size:.75rem;color:var(--muted);margin-top:4px;">
             Live server balance
         </p>
 
@@ -1127,18 +1421,116 @@ nav {
             <span id="walletBalance">0.00</span> ETB
         </div>
 
-        <div style="margin-top:16px;padding:16px;background:rgba(255,255,255,.03);border-radius:10px;">
+        <div style="margin-top:15px;padding:14px;background:rgba(255,255,255,.035);border-radius:10px;">
 
-            <div style="font-size:.75rem;color:var(--text-muted);">
-                PLAYER IDENTIFIER
+            <div style="font-size:.65rem;color:var(--muted);">
+                <span data-i18n="playerIdentifier">
+                    PLAYER IDENTIFIER
+                </span>
             </div>
 
-            <div
-                id="walletPlayerId"
-                style="font-size:1.1rem;font-weight:700;margin-top:2px;">
+            <div id="walletPlayerId"
+                 style="font-size:1rem;font-weight:850;margin-top:2px;">
                 DP-------
             </div>
 
+        </div>
+
+    </div>
+
+    <div class="panel">
+
+        <h4 data-i18n="language">
+            Language
+        </h4>
+
+        <select id="languageSelect"
+                class="language-select"
+                onchange="setLanguage(this.value)">
+
+            <option value="en">English</option>
+            <option value="am">አማርኛ</option>
+
+        </select>
+
+    </div>
+
+    <button class="btn"
+            onclick="openHelp()">
+        ❓ <span data-i18n="howToPlay">HOW TO PLAY</span>
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     HELP
+========================================================= -->
+
+<div id="screen-help" class="screen">
+
+    <button class="back-btn"
+            onclick="switchScreen('screen-lobby')"
+            data-i18n="back">
+        ← Back to Lobby
+    </button>
+
+    <div class="panel">
+
+        <h3 data-i18n="howToPlay">
+            How to Play
+        </h3>
+
+        <div class="help-section">
+            <h4>Keno</h4>
+            <p data-i18n="helpKeno">
+                Select your numbers and confirm your bet. The server draws
+                numbers during the round. Your result depends on the numbers
+                selected and the official game rules.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h4>Bingo</h4>
+            <p data-i18n="helpBingo">
+                Choose a stake, enter a Cartela number, place your bet and
+                follow the live called numbers. Mark called numbers on your
+                Cartela. When your winning pattern is complete, submit Bingo.
+                The server verifies every claim.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h4>Roulette</h4>
+            <p data-i18n="helpRoulette">
+                Select Red, Black or Zero before betting closes. The wheel
+                produces the official result. The server determines whether
+                your bet wins.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h4>Aviator Flight</h4>
+            <p data-i18n="helpAviator">
+                Place your bet before the flight starts. During the flight,
+                the multiplier increases. Your live cash-out amount is your
+                bet multiplied by the current multiplier. Tap the running
+                amount to cash out before the flight crashes. If the flight
+                crashes before you cash out, the bet is lost. The server
+                controls the official multiplier and crash result.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h4 data-i18n="roundTimingTitle">
+                Round Timing
+            </h4>
+
+            <p data-i18n="roundTiming">
+                Aviator uses a 10-second interval between rounds. Keno, Bingo
+                and Roulette use a 40-second interval between rounds. The
+                server is authoritative for the actual timing.
+            </p>
         </div>
 
     </div>
@@ -1148,22 +1540,22 @@ nav {
 </div>
 
 
-<!-- NAVIGATION -->
+<!-- =========================================================
+     NAVIGATION
+========================================================= -->
 
 <nav>
 
-    <button
-        class="nav-item active"
-        onclick="switchNav('screen-lobby',this)">
+    <button class="nav-item active"
+            onclick="switchNav('screen-lobby',this)">
         <span>🏠</span>
-        Lobby
+        <span data-i18n="lobby">Lobby</span>
     </button>
 
-    <button
-        class="nav-item"
-        onclick="switchNav('screen-wallet',this)">
+    <button class="nav-item"
+            onclick="switchNav('screen-wallet',this)">
         <span>💳</span>
-        Wallet
+        <span data-i18n="wallet">Wallet</span>
     </button>
 
 </nav>
@@ -1171,54 +1563,42 @@ nav {
 
 <script>
 
-/* ============================================================
-   CONFIGURATION
-============================================================ */
-
-/*
- IMPORTANT:
-
- During local development:
-     http://localhost:3000
-
- When deployed, replace this with your real backend URL.
-
- Example:
-     https://your-backend.example.com
-
- If frontend and backend are hosted on the same domain,
- you can use:
-     window.location.origin
-*/
+/* =========================================================
+   CONFIG
+========================================================= */
 
 const BACKEND_URL =
     window.DEStaPlayBackendURL ||
     window.location.origin;
 
 
-/* ============================================================
+/* =========================================================
    TELEGRAM
-============================================================ */
+========================================================= */
 
 const tg = window.Telegram?.WebApp;
 
-if (tg) {
+if(tg){
     tg.ready();
     tg.expand();
 }
 
 
-/* ============================================================
+/* =========================================================
    PLAYER
-============================================================ */
+========================================================= */
 
-let playerId = localStorage.getItem("dp_player_id");
+let playerId =
+    localStorage.getItem("dp_player_id");
 
-if (!playerId) {
+if(!playerId){
 
     playerId =
         "DP-" +
-        Math.floor(100000 + Math.random() * 900000);
+        Math.floor(
+            100000 +
+            Math.random()*900000
+        );
 
     localStorage.setItem(
         "dp_player_id",
@@ -1226,52 +1606,59 @@ if (!playerId) {
     );
 }
 
-document.getElementById("headerPlayerId").innerText =
-    playerId;
+document.getElementById(
+    "headerPlayerId"
+).innerText = playerId;
 
-document.getElementById("walletPlayerId").innerText =
-    playerId;
+document.getElementById(
+    "walletPlayerId"
+).innerText = playerId;
 
 
-/* ============================================================
-   SOCKET.IO
-============================================================ */
+/* =========================================================
+   SOCKET
+========================================================= */
 
 let socket = null;
 
-try {
+try{
 
-    socket = io(BACKEND_URL, {
-        transports:["websocket","polling"],
-        reconnection:true,
-        reconnectionAttempts:Infinity,
-        reconnectionDelay:1000
-    });
+    socket = io(
+        BACKEND_URL,
+        {
+            transports:[
+                "websocket",
+                "polling"
+            ],
+            reconnection:true,
+            reconnectionAttempts:Infinity,
+            reconnectionDelay:1000
+        }
+    );
 
-    socket.on("connect", () => {
-
-        console.log(
-            "DESTA PLAY connected:",
-            socket.id
-        );
+    socket.on("connect",()=>{
 
         document
             .getElementById("connectionDot")
             .classList.add("online");
 
-        /*
-         Tell backend which player is connected.
-        */
+        socket.emit(
+            "player:identify",
+            {
+                playerId,
+                telegramUser:
+                    tg?.initDataUnsafe?.user || null
+            }
+        );
 
-        socket.emit("player:identify", {
-            playerId,
-            telegramUser:
-                tg?.initDataUnsafe?.user || null
-        });
+        socket.emit(
+            "state:request",
+            {playerId}
+        );
 
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect",()=>{
 
         document
             .getElementById("connectionDot")
@@ -1279,81 +1666,287 @@ try {
 
     });
 
-    socket.on("connect_error", error => {
-
-        console.warn(
-            "Backend connection error:",
-            error.message
-        );
-
-    });
-
-} catch(error) {
+}catch(error){
 
     console.error(error);
 
 }
 
 
-/* ============================================================
+/* =========================================================
    NAVIGATION
-============================================================ */
+========================================================= */
 
-function switchScreen(screenId) {
+function switchScreen(id){
 
     document
         .querySelectorAll(".container > .screen")
-        .forEach(screen =>
-            screen.classList.remove("active")
+        .forEach(s =>
+            s.classList.remove("active")
         );
 
     const screen =
-        document.getElementById(screenId);
+        document.getElementById(id);
 
-    if (screen) {
+    if(screen)
         screen.classList.add("active");
-    }
 }
 
 
-function switchNav(screenId, element) {
+function switchNav(id,element){
 
     document
-        .querySelectorAll("nav .nav-item")
-        .forEach(item =>
-            item.classList.remove("active")
+        .querySelectorAll(".nav-item")
+        .forEach(x =>
+            x.classList.remove("active")
         );
 
     element.classList.add("active");
 
-    switchScreen(screenId);
+    switchScreen(id);
 }
 
 
-function switchGame(gameName) {
+function switchGame(game){
 
     switchScreen(
-        "screen-" + gameName
+        "screen-" + game
     );
 
-    if (gameName === "bingo") {
+    if(game === "bingo")
         initBingoTiers();
+
+    if(game === "aviator")
+        renderAviatorHistory();
+
+}
+
+
+/* =========================================================
+   HELP
+========================================================= */
+
+function openHelp(){
+
+    switchScreen("screen-help");
+
+}
+
+
+/* =========================================================
+   HISTORY SYSTEM
+========================================================= */
+
+const gameHistories = {
+
+    aviator:[],
+    keno:[],
+    bingo:[],
+    roulette:[]
+};
+
+
+/*
+ Aviator:
+ maximum 20 previous rounds.
+
+ Other games:
+ maximum 10 previous rounds.
+*/
+
+function addHistory(game,value){
+
+    if(value === undefined || value === null)
+        return;
+
+    const history =
+        gameHistories[game];
+
+    history.unshift(value);
+
+    const max =
+        game === "aviator"
+            ? 20
+            : 10;
+
+    while(history.length > max)
+        history.pop();
+
+    renderHistory(game);
+}
+
+
+function renderHistory(game){
+
+    const history =
+        gameHistories[game];
+
+    const strip =
+        document.getElementById(
+            game + "HistoryStrip"
+        );
+
+    const expanded =
+        document.getElementById(
+            game + "HistoryExpanded"
+        );
+
+    if(!strip || !expanded)
+        return;
+
+    strip.innerHTML = "";
+    expanded.innerHTML = "";
+
+
+    /*
+     Other games:
+     collapsed view shows exactly
+     the last completed round.
+    */
+
+    const collapsed =
+        game === "aviator"
+            ? history
+            : history.slice(0,1);
+
+
+    collapsed.forEach(
+        (value,index)=>{
+
+            const item =
+                createHistoryItem(
+                    value,
+                    index === 0
+                );
+
+            strip.appendChild(item);
+
+        }
+    );
+
+
+    /*
+     Expanded:
+     Aviator = up to 20
+     Others = up to 10
+    */
+
+    history.forEach(
+        (value,index)=>{
+
+            const item =
+                createHistoryItem(
+                    value,
+                    index === 0
+                );
+
+            expanded.appendChild(item);
+
+        }
+    );
+
+}
+
+
+function createHistoryItem(
+    value,
+    newest=false
+){
+
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "history-item";
+
+    if(newest)
+        item.classList.add("newest");
+
+    item.innerText =
+        formatHistoryValue(value);
+
+    return item;
+}
+
+
+function formatHistoryValue(value){
+
+    /*
+     Aviator crash multiplier
+    */
+
+    if(
+        typeof value === "number" &&
+        value < 100
+    ){
+
+        if(
+            String(value).includes(".") ||
+            value > 1
+        ){
+
+            return Number(value)
+                .toFixed(2) +
+                "x";
+        }
+
+    }
+
+    return String(value);
+
+}
+
+
+/*
+ Important:
+
+ The expanded button belongs visually
+ at the end of the compact strip.
+
+ CSS keeps the control visible.
+*/
+
+function toggleHistory(id){
+
+    const box =
+        document.getElementById(id);
+
+    if(!box)
+        return;
+
+    const expanded =
+        box.classList.toggle("expanded");
+
+    const button =
+        box.querySelector(
+            ".history-toggle"
+        );
+
+    if(button){
+
+        button.innerText =
+            expanded
+                ? "‹"
+                : "›";
+
     }
 
 }
 
 
-/* ============================================================
+/* =========================================================
    KENO
-============================================================ */
+========================================================= */
 
 const kenoGrid =
-    document.getElementById("kenoGrid");
+    document.getElementById(
+        "kenoGrid"
+    );
 
 const selectedKenoNumbers =
     new Set();
 
-for (let i = 1; i <= 80; i++) {
+for(let i=1;i<=80;i++){
 
     const cell =
         document.createElement("div");
@@ -1363,17 +1956,11 @@ for (let i = 1; i <= 80; i++) {
 
     cell.innerText = i;
 
-    cell.onclick = () => {
+    cell.onclick = ()=>{
 
-        /*
-         Local selection is allowed.
-
-         The backend must validate the final bet.
-        */
-
-        if (
+        if(
             selectedKenoNumbers.has(i)
-        ) {
+        ){
 
             selectedKenoNumbers.delete(i);
 
@@ -1381,33 +1968,30 @@ for (let i = 1; i <= 80; i++) {
                 "selected"
             );
 
-        } else {
+        }else if(
+            selectedKenoNumbers.size < 10
+        ){
 
-            if (
-                selectedKenoNumbers.size < 10
-            ) {
+            selectedKenoNumbers.add(i);
 
-                selectedKenoNumbers.add(i);
-
-                cell.classList.add(
-                    "selected"
-                );
-
-            }
+            cell.classList.add(
+                "selected"
+            );
 
         }
 
     };
 
     kenoGrid.appendChild(cell);
+
 }
 
 
-function placeKenoBet() {
+function placeKenoBet(){
 
-    if (
+    if(
         selectedKenoNumbers.size === 0
-    ) {
+    ){
 
         alert(
             "Select at least one number."
@@ -1416,7 +2000,7 @@ function placeKenoBet() {
         return;
     }
 
-    if (!socket?.connected) {
+    if(!socket?.connected){
 
         alert(
             "Game server is not connected."
@@ -1439,145 +2023,150 @@ function placeKenoBet() {
 }
 
 
-/* ============================================================
-   LIVE KENO STATE
-============================================================ */
+if(socket){
 
-if (socket) {
+    socket.on(
+        "state:keno",
+        data=>{
 
-socket.on("state:keno", data => {
+            if(!data) return;
 
-    if (!data) return;
+            document.getElementById(
+                "kenoRoundId"
+            ).innerText =
+                data.roundId ?? "---";
 
-    document.getElementById(
-        "kenoRoundId"
-    ).innerText =
-        data.roundId ?? "---";
+            document.getElementById(
+                "kenoTimer"
+            ).innerText =
+                data.timeLeft ?? 40;
 
-    document.getElementById(
-        "kenoTimer"
-    ).innerText =
-        data.timeLeft ?? "--";
+            document.getElementById(
+                "kenoStatus"
+            ).innerText =
+                String(
+                    data.phase ?? "waiting"
+                ).toUpperCase();
 
-    document.getElementById(
-        "kenoStatus"
-    ).innerText =
-        String(
-            data.phase ?? "waiting"
-        ).toUpperCase();
+            const drawn =
+                Array.isArray(
+                    data.numbersDrawn
+                )
+                    ? data.numbersDrawn
+                    : [];
 
-    const drawn =
-        Array.isArray(data.numbersDrawn)
-            ? data.numbersDrawn
-            : [];
+            document
+                .querySelectorAll(
+                    ".keno-cell"
+                )
+                .forEach(cell=>{
 
-    document
-        .querySelectorAll(".keno-cell")
-        .forEach(cell => {
+                    const number =
+                        Number(
+                            cell.innerText
+                        );
 
-            const number =
-                Number(cell.innerText);
+                    cell.classList.toggle(
+                        "drawn",
+                        drawn.includes(number)
+                    );
 
-            cell.classList.toggle(
-                "drawn",
-                drawn.includes(number)
-            );
+                });
 
-        });
+            /*
+             Optional server history.
+            */
 
-});
+            if(
+                Array.isArray(
+                    data.previousRounds
+                )
+            ){
+
+                gameHistories.keno =
+                    data.previousRounds
+                        .slice(0,10);
+
+                renderHistory("keno");
+
+            }
+
+        }
+    );
 
 }
 
 
-/* ============================================================
+/* =========================================================
    BINGO
-============================================================ */
+========================================================= */
 
-/*
- EXACT FIXED STAKES REQUESTED
-*/
-
-const bingoTiersList = [
-    10,
-    20,
-    30,
-    50,
-    80,
-    100,
-    150,
-    200,
-    250,
-    300,
-    400,
-    500,
-    1000
+const bingoTiersList=[
+    10,20,30,50,80,100,150,
+    200,250,300,400,500,1000
 ];
 
-let currentBingoTier = null;
+let currentBingoTier=null;
 
-let activeCartela = 1;
+let activeCartela=1;
 
-let cartelas = {
+let cartelas={
     1:null,
     2:null
 };
 
-let placedBingoBets = {
+let placedBingoBets={
     1:false,
     2:false
 };
 
-let calledBingoNumbers = new Set();
+let calledBingoNumbers =
+    new Set();
 
-let bingoRoomState = null;
+let bingoRoomState=null;
 
 
-/* ============================================================
-   BINGO TIER UI
-============================================================ */
-
-function initBingoTiers() {
+function initBingoTiers(){
 
     const grid =
         document.getElementById(
             "bingoTierGrid"
         );
 
-    grid.innerHTML = "";
+    grid.innerHTML="";
 
-    bingoTiersList.forEach(stake => {
+    bingoTiersList.forEach(
+        stake=>{
 
-        const button =
-            document.createElement("button");
+            const button =
+                document.createElement(
+                    "button"
+                );
 
-        button.className =
-            "tier-btn";
+            button.className =
+                "tier-btn";
 
-        button.innerHTML = `
-            <div>Stake</div>
-            <div class="amount">
-                ${formatMoney(stake)} ETB
-            </div>
-        `;
+            button.innerHTML=`
+                <div>Stake</div>
+                <div class="amount">
+                    ${formatMoney(stake)} ETB
+                </div>
+            `;
 
-        button.onclick = () =>
-            joinBingoTier(stake);
+            button.onclick=() =>
+                joinBingoTier(stake);
 
-        grid.appendChild(button);
+            grid.appendChild(button);
 
-    });
+        }
+    );
 
 }
 
 
-/* ============================================================
-   JOIN BINGO ROOM
-============================================================ */
+function joinBingoTier(stake){
 
-function joinBingoTier(stake) {
-
-    if (!socket?.connected) {
+    if(!socket?.connected){
 
         alert(
             "Game server is not connected."
@@ -1608,37 +2197,25 @@ function joinBingoTier(stake) {
         " ETB";
 
 
-    /*
-     The backend decides whether
-     the player is allowed to join.
-
-     It should check:
-     - balance
-     - account
-     - current round
-     - stake
-     - player status
-    */
-
     socket.emit(
         "bingo:join",
         {
             playerId,
             stake
         },
-        response => {
+        response=>{
 
-            if (
+            if(
                 response &&
                 response.success === false
-            ) {
+            ){
 
                 alert(
                     response.error ||
                     "Unable to enter Bingo."
                 );
 
-                currentBingoTier = null;
+                currentBingoTier=null;
 
                 return;
             }
@@ -1651,23 +2228,15 @@ function joinBingoTier(stake) {
 }
 
 
-/*
- If the backend does not use Socket.IO
- acknowledgement, the live room event can
- still open the interface after the join.
-*/
-
-function openBingoGame() {
+function openBingoGame(){
 
     document.getElementById(
         "bingoLobbyView"
-    ).style.display =
-        "none";
+    ).style.display="none";
 
     document.getElementById(
         "bingoGameView"
-    ).style.display =
-        "block";
+    ).style.display="block";
 
     document.getElementById(
         "bingoRoomTitle"
@@ -1683,20 +2252,16 @@ function openBingoGame() {
 }
 
 
-/* ============================================================
-   BINGO RESET
-============================================================ */
+function resetBingoPlayerState(){
 
-function resetBingoPlayerState() {
+    activeCartela=1;
 
-    activeCartela = 1;
-
-    cartelas = {
+    cartelas={
         1:null,
         2:null
     };
 
-    placedBingoBets = {
+    placedBingoBets={
         1:false,
         2:false
     };
@@ -1706,8 +2271,7 @@ function resetBingoPlayerState() {
 
     document.getElementById(
         "cartelaGridWrap"
-    ).style.display =
-        "none";
+    ).style.display="none";
 
     document.getElementById(
         "cartelaStatus"
@@ -1716,7 +2280,7 @@ function resetBingoPlayerState() {
 
     document.getElementById(
         "cartelaEntry"
-    ).value = "";
+    ).value="";
 
     updateCartelaTabs();
 
@@ -1725,65 +2289,50 @@ function resetBingoPlayerState() {
 }
 
 
-/* ============================================================
-   CARTELA TAB
-============================================================ */
+function selectCartela(slot){
 
-function selectCartela(slot) {
-
-    activeCartela =
-        slot;
+    activeCartela=slot;
 
     updateCartelaTabs();
 
-    if (cartelas[slot]) {
+    if(cartelas[slot]){
 
         renderCartela(
             slot,
             cartelas[slot]
         );
 
-    } else {
+    }else{
 
         document.getElementById(
             "cartelaGridWrap"
-        ).style.display =
-            "none";
-
-        document.getElementById(
-            "cartelaStatus"
-        ).innerText =
-            "Enter a Cartela number.";
+        ).style.display="none";
 
     }
 
 }
 
 
-function updateCartelaTabs() {
+function updateCartelaTabs(){
 
-    document
-        .getElementById("cartelaTab1")
-        .classList.toggle(
-            "active",
-            activeCartela === 1
-        );
+    document.getElementById(
+        "cartelaTab1"
+    ).classList.toggle(
+        "active",
+        activeCartela===1
+    );
 
-    document
-        .getElementById("cartelaTab2")
-        .classList.toggle(
-            "active",
-            activeCartela === 2
-        );
+    document.getElementById(
+        "cartelaTab2"
+    ).classList.toggle(
+        "active",
+        activeCartela===2
+    );
 
 }
 
 
-/* ============================================================
-   ADD CARTELA
-============================================================ */
-
-function addCartela() {
+function addCartela(){
 
     const input =
         document.getElementById(
@@ -1793,11 +2342,11 @@ function addCartela() {
     const number =
         Number(input.value);
 
-    if (
+    if(
         !Number.isInteger(number) ||
-        number < 1 ||
-        number > 120
-    ) {
+        number<1 ||
+        number>120
+    ){
 
         alert(
             "Cartela must be between 1 and 120."
@@ -1806,15 +2355,7 @@ function addCartela() {
         return;
     }
 
-
-    /*
-     We don't generate a random cartela.
-
-     The backend should provide the official
-     combination for cartela 1–120.
-    */
-
-    if (!socket?.connected) {
+    if(!socket?.connected){
 
         alert(
             "Game server is not connected."
@@ -1823,7 +2364,6 @@ function addCartela() {
         return;
     }
 
-
     socket.emit(
         "bingo:getCartela",
         {
@@ -1831,12 +2371,12 @@ function addCartela() {
             stake:currentBingoTier,
             cartelaNumber:number
         },
-        response => {
+        response=>{
 
-            if (
+            if(
                 response &&
-                response.success === false
-            ) {
+                response.success===false
+            ){
 
                 alert(
                     response.error ||
@@ -1846,28 +2386,10 @@ function addCartela() {
                 return;
             }
 
-            /*
-             Expected backend response:
-
-             {
-                 success:true,
-                 cartela:{
-                     id:17,
-                     columns:{
-                         B:[...],
-                         I:[...],
-                         N:[...],
-                         G:[...],
-                         O:[...]
-                     }
-                 }
-             }
-            */
-
-            if (
+            if(
                 response &&
                 response.cartela
-            ) {
+            ){
 
                 cartelas[activeCartela] =
                     response.cartela;
@@ -1877,16 +2399,9 @@ function addCartela() {
                     response.cartela
                 );
 
-                input.value = "";
+                input.value="";
 
-                return;
             }
-
-            /*
-             If backend only acknowledges the
-             request, the authoritative cartela
-             should arrive through bingo:cartela.
-            */
 
         }
     );
@@ -1894,72 +2409,25 @@ function addCartela() {
 }
 
 
-/* ============================================================
-   RECEIVE CARTELA FROM SERVER
-============================================================ */
-
-if (socket) {
-
-socket.on(
-    "bingo:cartela",
-    data => {
-
-        if (!data) return;
-
-        if (
-            data.playerId &&
-            data.playerId !== playerId
-        ) {
-            return;
-        }
-
-        const slot =
-            data.slot === 2
-                ? 2
-                : activeCartela;
-
-        if (!data.cartela) return;
-
-        cartelas[slot] =
-            data.cartela;
-
-        renderCartela(
-            slot,
-            data.cartela
-        );
-
-    }
-);
-
-}
-
-
-/* ============================================================
-   RENDER CARTELA
-============================================================ */
-
 function renderCartela(
     slot,
     cartela
-) {
+){
 
     const wrap =
         document.getElementById(
             "cartelaGridWrap"
         );
 
-    wrap.style.display =
-        "block";
+    wrap.style.display="block";
 
-    wrap.innerHTML = "";
-
+    wrap.innerHTML="";
 
     const container =
         document.createElement("div");
 
     container.className =
         "cartela-container";
-
 
     const title =
         document.createElement("div");
@@ -1973,55 +2441,46 @@ function renderCartela(
 
     container.appendChild(title);
 
-
     const grid =
         document.createElement("div");
 
     grid.className =
         "cartela-grid";
 
-
-    const columns = [
+    const columns=[
         {
             letter:"B",
             className:"b",
             numbers:
-                cartela.columns?.B || []
+                cartela.columns?.B||[]
         },
         {
             letter:"I",
             className:"i",
             numbers:
-                cartela.columns?.I || []
+                cartela.columns?.I||[]
         },
         {
             letter:"N",
             className:"n",
             numbers:
-                cartela.columns?.N || []
+                cartela.columns?.N||[]
         },
         {
             letter:"G",
             className:"g",
             numbers:
-                cartela.columns?.G || []
+                cartela.columns?.G||[]
         },
         {
             letter:"O",
             className:"o",
             numbers:
-                cartela.columns?.O || []
+                cartela.columns?.O||[]
         }
     ];
 
-
-    /*
-     HEADER ROW
-
-     B I N G O
-     */
-
-    columns.forEach(column => {
+    columns.forEach(column=>{
 
         const header =
             document.createElement("div");
@@ -2037,28 +2496,9 @@ function renderCartela(
 
     });
 
+    for(let row=0;row<5;row++){
 
-    /*
-     NUMBER ROWS
-
-     Each column stays vertical.
-
-     B numbers are underneath B.
-     I numbers are underneath I.
-     N numbers are underneath N.
-     G numbers are underneath G.
-     O numbers are underneath O.
-    */
-
-    const maxRows = 5;
-
-    for (
-        let row = 0;
-        row < maxRows;
-        row++
-    ) {
-
-        columns.forEach(column => {
+        columns.forEach(column=>{
 
             const value =
                 column.numbers[row];
@@ -2067,47 +2507,33 @@ function renderCartela(
                 document.createElement("div");
 
             cell.className =
-                "cartela-number " +
-                column.className +
-                "-col";
+                "cartela-number";
 
-
-            /*
-             Standard Bingo N column:
-             center is FREE.
-
-             The backend can also explicitly
-             send "FREE".
-            */
-
-            if (
-                column.letter === "N" &&
-                row === 2 &&
+            if(
+                column.letter==="N" &&
+                row===2 &&
                 (
-                    value === undefined ||
-                    value === null
+                    value===undefined ||
+                    value===null
                 )
-            ) {
+            ){
 
-                cell.classList.add(
-                    "free"
-                );
+                cell.classList.add("free");
 
-                cell.innerText =
-                    "FREE";
+                cell.innerText="FREE";
 
-            } else {
+            }else{
 
                 cell.innerText =
                     value ?? "";
 
-                if (
-                    value !== undefined &&
-                    value !== null &&
-                    value !== ""
-                ) {
+                if(
+                    value!==undefined &&
+                    value!==null &&
+                    value!==""
+                ){
 
-                    cell.onclick = () =>
+                    cell.onclick=() =>
                         toggleCartelaNumber(
                             slot,
                             Number(value),
@@ -2118,26 +2544,18 @@ function renderCartela(
 
             }
 
-
-            /*
-             Restore called state visually.
-            */
-
-            if (
+            if(
                 Number.isInteger(
                     Number(value)
                 ) &&
                 calledBingoNumbers.has(
                     Number(value)
                 )
-            ) {
+            ){
 
-                cell.classList.add(
-                    "called"
-                );
+                cell.classList.add("called");
 
             }
-
 
             grid.appendChild(cell);
 
@@ -2145,11 +2563,9 @@ function renderCartela(
 
     }
 
-
     container.appendChild(grid);
 
     wrap.appendChild(container);
-
 
     document.getElementById(
         "cartelaStatus"
@@ -2163,50 +2579,22 @@ function renderCartela(
 }
 
 
-/* ============================================================
-   TAP CARTELA NUMBER
-============================================================ */
-
 function toggleCartelaNumber(
     slot,
     number,
     element
-) {
+){
 
-    /*
-     Player should normally mark only numbers
-     that have actually been called.
-
-     The visual is controlled locally,
-     but winning validation stays on server.
-    */
-
-    if (
+    if(
         !calledBingoNumbers.has(number)
-    ) {
-
-        /*
-         Don't allow marking a number
-         before the server calls it.
-        */
-
+    )
         return;
-    }
-
 
     element.classList.toggle(
         "marked"
     );
 
-
-    /*
-     Send the mark to the server.
-
-     Server can validate whether the number
-     belongs to this cartela and was called.
-    */
-
-    if (socket?.connected) {
+    if(socket?.connected){
 
         socket.emit(
             "bingo:mark",
@@ -2225,330 +2613,314 @@ function toggleCartelaNumber(
 }
 
 
-/* ============================================================
-   LIVE BINGO STATE
-============================================================ */
+if(socket){
 
-if (socket) {
+    socket.on(
+        "bingo:cartela",
+        data=>{
 
-socket.on(
-    "state:bingo",
-    data => {
+            if(!data) return;
 
-        if (!data) return;
-
-        bingoRoomState =
-            data;
-
-
-        /*
-         Only display state belonging to
-         the selected stake/room.
-        */
-
-        if (
-            currentBingoTier !== null &&
-            data.stake !== undefined &&
-            Number(data.stake) !==
-                Number(currentBingoTier)
-        ) {
-
-            return;
-        }
-
-
-        document.getElementById(
-            "bingoRoundId"
-        ).innerText =
-            data.roundId ?? "---";
-
-
-        document.getElementById(
-            "bingoTimer"
-        ).innerText =
-            data.timeLeft ?? "--";
-
-
-        document.getElementById(
-            "bingoStatus"
-        ).innerText =
-            String(
-                data.phase ?? "waiting"
-            ).toUpperCase();
-
-
-        document.getElementById(
-            "bingoPot"
-        ).innerText =
-            formatMoney(
-                data.pot ?? 0
-            ) +
-            " ETB";
-
-
-        document.getElementById(
-            "bingoPlayersCount"
-        ).innerText =
-            Array.isArray(data.players)
-                ? data.players.length
-                : (
-                    data.playersCount ?? 0
-                );
-
-
-        /*
-         Called numbers from server.
-        */
-
-        if (
-            Array.isArray(
-                data.calledNumbers
+            if(
+                data.playerId &&
+                data.playerId!==playerId
             )
-        ) {
+                return;
 
-            calledBingoNumbers =
-                new Set(
-                    data.calledNumbers.map(
-                        Number
-                    )
+            const slot =
+                data.slot===2
+                    ?2
+                    :activeCartela;
+
+            if(!data.cartela)
+                return;
+
+            cartelas[slot] =
+                data.cartela;
+
+            renderCartela(
+                slot,
+                data.cartela
+            );
+
+        }
+    );
+
+
+    socket.on(
+        "state:bingo",
+        data=>{
+
+            if(!data) return;
+
+            bingoRoomState=data;
+
+            if(
+                currentBingoTier!==null &&
+                data.stake!==undefined &&
+                Number(data.stake)!==
+                    Number(currentBingoTier)
+            )
+                return;
+
+            document.getElementById(
+                "bingoRoundId"
+            ).innerText =
+                data.roundId ?? "---";
+
+            document.getElementById(
+                "bingoTimer"
+            ).innerText =
+                data.timeLeft ?? 40;
+
+            document.getElementById(
+                "bingoStatus"
+            ).innerText =
+                String(
+                    data.phase ?? "waiting"
+                ).toUpperCase();
+
+            document.getElementById(
+                "bingoPot"
+            ).innerText =
+                formatMoney(
+                    data.pot ?? 0
+                ) +
+                " ETB";
+
+            document.getElementById(
+                "bingoPlayersCount"
+            ).innerText =
+                Array.isArray(data.players)
+                    ? data.players.length
+                    : (
+                        data.playersCount ?? 0
+                    );
+
+            if(
+                Array.isArray(
+                    data.calledNumbers
+                )
+            ){
+
+                calledBingoNumbers =
+                    new Set(
+                        data.calledNumbers.map(Number)
+                    );
+
+                updateRenderedCartelaCalls();
+
+            }
+
+            if(
+                data.lastCalled!==undefined &&
+                data.lastCalled!==null
+            ){
+
+                showBingoCalledNumber(
+                    Number(data.lastCalled)
                 );
+
+            }
+
+            /*
+             Server can send completed
+             round history.
+            */
+
+            if(
+                Array.isArray(
+                    data.previousRounds
+                )
+            ){
+
+                gameHistories.bingo =
+                    data.previousRounds
+                        .slice(0,10);
+
+                renderHistory("bingo");
+
+            }
+
+            updateBingoButtons();
+
+        }
+    );
+
+
+    socket.on(
+        "bingo:number",
+        data=>{
+
+            if(!data) return;
+
+            if(
+                data.stake!==undefined &&
+                currentBingoTier!==null &&
+                Number(data.stake)!==
+                    Number(currentBingoTier)
+            )
+                return;
+
+            const number =
+                Number(
+                    data.number ??
+                    data.calledNumber
+                );
+
+            if(!Number.isInteger(number))
+                return;
+
+            calledBingoNumbers.add(number);
+
+            showBingoCalledNumber(number);
 
             updateRenderedCartelaCalls();
 
+            speakBingoNumber(number);
+
         }
+    );
 
 
-        /*
-         If backend sends current called number.
-        */
+    socket.on(
+        "bingo:betAccepted",
+        data=>{
 
-        if (
-            data.lastCalled !== undefined &&
-            data.lastCalled !== null
-        ) {
+            if(
+                data.playerId &&
+                data.playerId!==playerId
+            )
+                return;
 
-            showBingoCalledNumber(
-                Number(
-                    data.lastCalled
-                )
+            const slot =
+                data.slot===2
+                    ?2
+                    :1;
+
+            placedBingoBets[slot]=true;
+
+            updateBingoButtons();
+
+        }
+    );
+
+
+    socket.on(
+        "bingo:claimResult",
+        data=>{
+
+            if(
+                data.playerId &&
+                data.playerId!==playerId
+            )
+                return;
+
+            showBingoMessage(
+                data.success
+                    ?(
+                        "BINGO VERIFIED! " +
+                        (
+                            data.message ||
+                            "Server confirmed your claim."
+                        )
+                    )
+                    :(
+                        data.error ||
+                        "Bingo claim rejected."
+                    )
             );
 
         }
-
-
-        updateBingoButtons();
-
-    }
-);
+    );
 
 }
 
 
-/* ============================================================
-   BINGO NUMBER DRAW EVENT
-============================================================ */
-
-if (socket) {
-
-socket.on(
-    "bingo:number",
-    data => {
-
-        if (!data) return;
-
-        if (
-            data.stake !== undefined &&
-            currentBingoTier !== null &&
-            Number(data.stake) !==
-                Number(currentBingoTier)
-        ) {
-            return;
-        }
-
-        const number =
-            Number(
-                data.number ??
-                data.calledNumber
-            );
-
-        if (
-            !Number.isInteger(number)
-        ) {
-            return;
-        }
-
-        calledBingoNumbers.add(
-            number
-        );
-
-        showBingoCalledNumber(
-            number
-        );
-
-        updateRenderedCartelaCalls();
-
-        speakBingoNumber(
-            number
-        );
-
-    }
-);
-
-}
-
-
-/* ============================================================
-   UPDATE CARTELA CALLED NUMBERS
-============================================================ */
-
-function updateRenderedCartelaCalls() {
+function updateRenderedCartelaCalls(){
 
     document
         .querySelectorAll(
             ".cartela-number"
         )
-        .forEach(cell => {
+        .forEach(cell=>{
 
             const number =
                 Number(
                     cell.innerText
                 );
 
-            if (
+            cell.classList.toggle(
+                "called",
                 Number.isInteger(number) &&
                 calledBingoNumbers.has(number)
-            ) {
-
-                cell.classList.add(
-                    "called"
-                );
-
-            }
+            );
 
         });
 
 }
 
 
-/* ============================================================
-   BINGO DRAW DISPLAY
-============================================================ */
-
-function showBingoCalledNumber(
-    number
-) {
-
-    const letter =
-        bingoLetter(number);
+function showBingoCalledNumber(number){
 
     document.getElementById(
         "bingoLastCalled"
     ).innerText =
-        letter +
+        bingoLetter(number) +
         " " +
         number;
-
 
     const history =
         document.getElementById(
             "bingoCalledHistory"
         );
 
-
     const ball =
         document.createElement("div");
 
-    ball.className =
-        "called-ball";
+    ball.className="called-ball";
 
     ball.innerText =
-        letter +
+        bingoLetter(number) +
         number;
 
-    history.prepend(
-        ball
-    );
+    history.prepend(ball);
 
-
-    /*
-     Keep last 20 visible.
-    */
-
-    while (
-        history.children.length > 20
-    ) {
-
+    while(history.children.length>20)
         history.removeChild(
             history.lastChild
         );
 
-    }
-
 }
 
 
-/* ============================================================
-   BINGO LETTER
-============================================================ */
+function bingoLetter(number){
 
-function bingoLetter(number) {
+    if(number>=1&&number<=15)return"B";
+    if(number>=16&&number<=30)return"I";
+    if(number>=31&&number<=45)return"N";
+    if(number>=46&&number<=60)return"G";
+    if(number>=61&&number<=75)return"O";
 
-    if (number >= 1 && number <= 15)
-        return "B";
-
-    if (number >= 16 && number <= 30)
-        return "I";
-
-    if (number >= 31 && number <= 45)
-        return "N";
-
-    if (number >= 46 && number <= 60)
-        return "G";
-
-    if (number >= 61 && number <= 75)
-        return "O";
-
-    return "";
+    return"";
 }
 
 
-/* ============================================================
-   BINGO VOICE
-============================================================ */
+function speakBingoNumber(number){
 
-function speakBingoNumber(
-    number
-) {
-
-    /*
-     Browser speech synthesis.
-
-     Example:
-       B 4
-       I 19
-       N 34
-       G 52
-       O 71
-    */
-
-    if (
+    if(
         !("speechSynthesis" in window)
-    ) {
+    )
         return;
-    }
-
-    const letter =
-        bingoLetter(number);
 
     const speech =
         new SpeechSynthesisUtterance(
-            letter +
+            bingoLetter(number) +
             " " +
             number
         );
 
-    speech.rate = .9;
-    speech.pitch = 1;
+    speech.rate=.9;
 
     window.speechSynthesis.cancel();
 
@@ -2559,17 +2931,9 @@ function speakBingoNumber(
 }
 
 
-/* ============================================================
-   BINGO BET
-============================================================ */
+function placeBingoBet(slot){
 
-function placeBingoBet(
-    slot
-) {
-
-    if (
-        !cartelas[slot]
-    ) {
+    if(!cartelas[slot]){
 
         alert(
             "Choose a cartela first."
@@ -2578,15 +2942,10 @@ function placeBingoBet(
         return;
     }
 
-    if (
-        placedBingoBets[slot]
-    ) {
+    if(placedBingoBets[slot])
         return;
-    }
 
-    if (
-        !socket?.connected
-    ) {
+    if(!socket?.connected){
 
         alert(
             "Game server is not connected."
@@ -2595,25 +2954,21 @@ function placeBingoBet(
         return;
     }
 
-
-    const cartelaId =
-        cartelas[slot].id;
-
-
     socket.emit(
         "bet:bingo",
         {
             playerId,
             stake:currentBingoTier,
             slot,
-            cartelaId
+            cartelaId:
+                cartelas[slot].id
         },
-        response => {
+        response=>{
 
-            if (
+            if(
                 response &&
-                response.success === false
-            ) {
+                response.success===false
+            ){
 
                 alert(
                     response.error ||
@@ -2623,14 +2978,7 @@ function placeBingoBet(
                 return;
             }
 
-            /*
-             Do not decide balance locally.
-
-             Server confirmation is authoritative.
-            */
-
-            placedBingoBets[slot] =
-                true;
+            placedBingoBets[slot]=true;
 
             updateBingoButtons();
 
@@ -2640,95 +2988,14 @@ function placeBingoBet(
 }
 
 
-/* ============================================================
-   SERVER BET CONFIRMATION
-============================================================ */
+function claimBingo(slot){
 
-if (socket) {
-
-socket.on(
-    "bingo:betAccepted",
-    data => {
-
-        if (
-            data.playerId &&
-            data.playerId !== playerId
-        ) {
-            return;
-        }
-
-        const slot =
-            data.slot === 2
-                ? 2
-                : 1;
-
-        placedBingoBets[slot] =
-            true;
-
-        updateBingoButtons();
-
-        showBingoMessage(
-            "Cartela " +
-            slot +
-            " bet accepted."
-        );
-
-    }
-);
-
-}
-
-
-/* ============================================================
-   BINGO CLAIM
-============================================================ */
-
-function claimBingo(
-    slot
-) {
-
-    if (
-        !placedBingoBets[slot]
-    ) {
-
-        alert(
-            "Place the bet first."
-        );
-
-        return;
-    }
-
-    if (
-        !cartelas[slot]
-    ) {
-
-        alert(
-            "Cartela not selected."
-        );
-
-        return;
-    }
-
-    if (
+    if(
+        !placedBingoBets[slot] ||
+        !cartelas[slot] ||
         !socket?.connected
-    ) {
-
-        alert(
-            "Game server is not connected."
-        );
-
+    )
         return;
-    }
-
-
-    /*
-     IMPORTANT:
-
-     The server checks the entire cartela.
-
-     The browser does NOT decide whether
-     the player won.
-    */
 
     socket.emit(
         "bingo:claim",
@@ -2746,60 +3013,10 @@ function claimBingo(
 }
 
 
-/* ============================================================
-   BINGO CLAIM RESULT
-============================================================ */
+function updateBingoButtons(){
 
-if (socket) {
-
-socket.on(
-    "bingo:claimResult",
-    data => {
-
-        if (
-            data.playerId &&
-            data.playerId !== playerId
-        ) {
-            return;
-        }
-
-        if (data.success) {
-
-            showBingoMessage(
-                "BINGO VERIFIED! " +
-                (
-                    data.message ||
-                    "Server confirmed your claim."
-                )
-            );
-
-        } else {
-
-            showBingoMessage(
-                data.error ||
-                "Bingo claim rejected."
-            );
-
-        }
-
-    }
-);
-
-}
-
-
-/* ============================================================
-   BINGO BUTTON STATE
-============================================================ */
-
-function updateBingoButtons() {
-
-    const has1 =
-        !!cartelas[1];
-
-    const has2 =
-        !!cartelas[2];
-
+    const has1=!!cartelas[1];
+    const has2=!!cartelas[2];
 
     document.getElementById(
         "bingoPlace1"
@@ -2812,7 +3029,6 @@ function updateBingoButtons() {
     ).disabled =
         !has2 ||
         placedBingoBets[2];
-
 
     document.getElementById(
         "bingoClaim1"
@@ -2827,38 +3043,21 @@ function updateBingoButtons() {
 }
 
 
-/* ============================================================
-   BINGO MESSAGE
-============================================================ */
-
-function showBingoMessage(
-    message
-) {
+function showBingoMessage(message){
 
     document.getElementById(
         "bingoMessage"
-    ).innerText =
-        message;
+    ).innerText=message;
 
 }
 
 
-/* ============================================================
-   BACK TO BINGO LOBBY
-============================================================ */
+function backToBingoLobby(){
 
-function backToBingoLobby() {
-
-    /*
-     Ask backend to leave the room.
-
-     Server decides whether leaving is allowed.
-    */
-
-    if (
+    if(
         socket?.connected &&
-        currentBingoTier !== null
-    ) {
+        currentBingoTier!==null
+    ){
 
         socket.emit(
             "bingo:leave",
@@ -2870,31 +3069,26 @@ function backToBingoLobby() {
 
     }
 
-
-    currentBingoTier = null;
+    currentBingoTier=null;
 
     document.getElementById(
         "bingoGameView"
-    ).style.display =
-        "none";
+    ).style.display="none";
 
     document.getElementById(
         "bingoLobbyView"
-    ).style.display =
-        "block";
+    ).style.display="block";
 
 }
 
 
-/* ============================================================
-   LIVE ROULETTE
-============================================================ */
+/* =========================================================
+   ROULETTE
+========================================================= */
 
-function placeRouletteBet(
-    type
-) {
+function placeRouletteBet(type){
 
-    if (!socket?.connected) {
+    if(!socket?.connected){
 
         alert(
             "Game server is not connected."
@@ -2914,61 +3108,101 @@ function placeRouletteBet(
 }
 
 
-if (socket) {
+if(socket){
 
-socket.on(
-    "state:roulette",
-    data => {
+    socket.on(
+        "state:roulette",
+        data=>{
 
-        if (!data) return;
-
-        document.getElementById(
-            "rouletteStatus"
-        ).innerText =
-            String(
-                data.phase ?? "waiting"
-            ).toUpperCase();
-
-        if (
-            data.winningNumber !== null &&
-            data.winningNumber !== undefined
-        ) {
+            if(!data)return;
 
             document.getElementById(
-                "rouletteWheelBox"
+                "rouletteStatus"
             ).innerText =
-                "🎡 " +
-                data.winningNumber;
-
-        } else {
+                String(
+                    data.phase ?? "waiting"
+                ).toUpperCase();
 
             document.getElementById(
-                "rouletteWheelBox"
+                "rouletteRoundId"
             ).innerText =
-                "🎡 Spinning...";
+                data.roundId ?? "---";
+
+            document.getElementById(
+                "rouletteTimer"
+            ).innerText =
+                data.timeLeft ?? 40;
+
+            if(
+                data.winningNumber!==null &&
+                data.winningNumber!==undefined
+            ){
+
+                document.getElementById(
+                    "rouletteWheelBox"
+                ).innerText =
+                    data.winningNumber;
+
+            }
+
+            if(
+                Array.isArray(
+                    data.previousRounds
+                )
+            ){
+
+                gameHistories.roulette =
+                    data.previousRounds
+                        .slice(0,10);
+
+                renderHistory("roulette");
+
+            }
 
         }
-
-    }
-);
+    );
 
 }
 
 
-/* ============================================================
+/* =========================================================
    AVIATOR
-============================================================ */
+========================================================= */
 
-function cashOutAviator() {
+let aviatorBetAmount=0;
 
-    if (!socket?.connected) {
+let aviatorHasBet=false;
 
-        alert(
-            "Game server is not connected."
-        );
+let aviatorCashedOut=false;
 
+
+/*
+ IMPORTANT:
+
+ The server should send:
+
+ {
+    roundId,
+    phase:"waiting" | "flying" | "crashed",
+    timeLeft,
+    multiplier,
+    crashPoint,
+    betAmount,
+    previousRounds:[]
+ }
+
+ The browser only displays server state.
+*/
+
+
+function cashOutAviator(){
+
+    if(
+        !aviatorHasBet ||
+        aviatorCashedOut ||
+        !socket?.connected
+    )
         return;
-    }
 
     socket.emit(
         "aviator:cashout",
@@ -2980,189 +3214,501 @@ function cashOutAviator() {
 }
 
 
-if (socket) {
+if(socket){
 
-socket.on(
-    "state:aviator",
-    data => {
+    socket.on(
+        "state:aviator",
+        data=>{
 
-        if (!data) return;
-
-        document.getElementById(
-            "aviatorStatus"
-        ).innerText =
-            String(
-                data.phase ?? "waiting"
-            ).toUpperCase();
-
-
-        const multiplier =
-            Number(
-                data.multiplier ?? 1
-            );
-
-        document.getElementById(
-            "aviatorMultiplier"
-        ).innerText =
-            multiplier.toFixed(2) +
-            "x";
-
-
-        if (
-            data.phase === "crashed"
-        ) {
+            if(!data)return;
 
             document.getElementById(
-                "aviatorSubText"
+                "aviatorStatus"
             ).innerText =
-                "Crashed at " +
+                String(
+                    data.phase ?? "waiting"
+                ).toUpperCase();
+
+            document.getElementById(
+                "aviatorRoundId"
+            ).innerText =
+                data.roundId ?? "---";
+
+            document.getElementById(
+                "aviatorTimer"
+            ).innerText =
+                data.timeLeft ?? 10;
+
+
+            const multiplier =
                 Number(
-                    data.crashPoint ?? multiplier
-                ).toFixed(2) +
+                    data.multiplier ?? 1
+                );
+
+            document.getElementById(
+                "aviatorMultiplier"
+            ).innerText =
+                multiplier.toFixed(2) +
                 "x";
 
-        } else if (
-            data.phase === "flying"
-        ) {
+
+            /*
+             Previous completed Aviator rounds.
+
+             Server is authoritative.
+            */
+
+            if(
+                Array.isArray(
+                    data.previousRounds
+                )
+            ){
+
+                gameHistories.aviator =
+                    data.previousRounds
+                        .slice(0,20);
+
+                renderHistory("aviator");
+
+            }
+
+
+            /*
+             Some backends may send a new
+             crash event separately.
+            */
+
+            if(
+                data.phase === "crashed" &&
+                data.crashPoint !== undefined
+            ){
+
+                document.getElementById(
+                    "aviatorSubText"
+                ).innerText =
+                    "Crashed at " +
+                    Number(
+                        data.crashPoint
+                    ).toFixed(2) +
+                    "x";
+
+            }else if(
+                data.phase === "flying"
+            ){
+
+                document.getElementById(
+                    "aviatorSubText"
+                ).innerText =
+                    "Flight in progress...";
+
+            }else{
+
+                document.getElementById(
+                    "aviatorSubText"
+                ).innerText =
+                    "Next flight starting in " +
+                    (
+                        data.timeLeft ?? 10
+                    ) +
+                    "s";
+
+            }
+
+
+            /*
+             Live money:
+
+             bet × current multiplier
+            */
+
+            const serverBet =
+                Number(
+                    data.betAmount ??
+                    aviatorBetAmount ??
+                    0
+                );
+
+            if(
+                Number.isFinite(serverBet) &&
+                serverBet>0
+            ){
+
+                aviatorBetAmount =
+                    serverBet;
+
+                aviatorHasBet=true;
+
+            }
+
+
+            const liveMoney =
+                aviatorBetAmount *
+                multiplier;
 
             document.getElementById(
-                "aviatorSubText"
+                "aviatorLiveMoney"
             ).innerText =
-                "Flight in progress...";
+                formatMoney(liveMoney) +
+                " ETB";
 
-        } else {
 
-            document.getElementById(
-                "aviatorSubText"
-            ).innerText =
-                "Next flight starting in " +
-                (
-                    data.timeLeft ?? "--"
-                ) +
-                "s";
+            const cashoutButton =
+                document.getElementById(
+                    "aviatorCashoutBtn"
+                );
+
+
+            /*
+             During flight the running money
+             itself becomes the cash-out button.
+            */
+
+            if(
+                data.phase === "flying" &&
+                aviatorHasBet &&
+                !aviatorCashedOut
+            ){
+
+                cashoutButton.disabled=false;
+
+                cashoutButton.style.opacity="1";
+
+            }else{
+
+                cashoutButton.disabled=true;
+
+            }
+
+
+            /*
+             Plane animation.
+            */
+
+            const plane =
+                document.getElementById(
+                    "aviatorPlane"
+                );
+
+            if(
+                data.phase === "flying"
+            ){
+
+                const percent =
+                    Math.min(
+                        82,
+                        Math.max(
+                            10,
+                            (multiplier-1)*9
+                        )
+                    );
+
+                plane.style.left =
+                    percent + "%";
+
+                plane.style.top =
+                    Math.max(
+                        12,
+                        55 -
+                        (multiplier-1)*5
+                    ) + "%";
+
+            }else{
+
+                plane.style.left="18%";
+                plane.style.top="27%";
+
+            }
 
         }
-
-    }
-);
-
-}
+    );
 
 
-/* ============================================================
-   LIVE WALLET
-============================================================ */
+    /*
+     Optional dedicated crash event.
+    */
 
-if (socket) {
+    socket.on(
+        "aviator:crash",
+        data=>{
 
-socket.on(
-    "wallet:balance",
-    data => {
+            if(!data)return;
 
-        if (
-            !data ||
-            (
+            const crash =
+                Number(
+                    data.crashPoint ??
+                    data.multiplier
+                );
+
+            if(
+                Number.isFinite(crash)
+            ){
+
+                addHistory(
+                    "aviator",
+                    crash
+                );
+
+            }
+
+            aviatorHasBet=false;
+            aviatorBetAmount=0;
+            aviatorCashedOut=false;
+
+        }
+    );
+
+
+    socket.on(
+        "aviator:betAccepted",
+        data=>{
+
+            if(
                 data.playerId &&
-                data.playerId !== playerId
+                data.playerId!==playerId
             )
-        ) {
-            return;
-        }
+                return;
 
-        document.getElementById(
-            "walletBalance"
-        ).innerText =
-            formatMoney(
-                data.balance ?? 0
-            );
+            aviatorBetAmount =
+                Number(
+                    data.amount ??
+                    data.betAmount ??
+                    0
+                );
 
-    }
-);
+            aviatorHasBet =
+                aviatorBetAmount>0;
 
-}
-
-
-/* ============================================================
-   GLOBAL LIVE ROUND EVENT
-============================================================ */
-
-/*
- Optional global event.
-
- Backend can send this to keep all game
- screens synchronized.
-
- Example:
-
- {
-    game:"keno",
-    roundId:"KENO-00091",
-    phase:"betting",
-    timeLeft:32
- }
-*/
-
-if (socket) {
-
-socket.on(
-    "game:state",
-    data => {
-
-        if (!data) return;
-
-        console.log(
-            "LIVE GAME STATE",
-            data
-        );
-
-    }
-);
-
-}
-
-
-/* ============================================================
-   SERVER ERROR
-============================================================ */
-
-if (socket) {
-
-socket.on(
-    "server:error",
-    data => {
-
-        if (
-            data?.message
-        ) {
-
-            alert(
-                data.message
-            );
+            aviatorCashedOut=false;
 
         }
+    );
 
-    }
-);
+
+    socket.on(
+        "aviator:cashoutResult",
+        data=>{
+
+            if(
+                data.playerId &&
+                data.playerId!==playerId
+            )
+                return;
+
+            if(data.success){
+
+                aviatorCashedOut=true;
+
+                document.getElementById(
+                    "aviatorSubText"
+                ).innerText =
+                    "Cashed out at " +
+                    Number(
+                        data.multiplier ?? 0
+                    ).toFixed(2) +
+                    "x";
+
+            }
+
+        }
+    );
 
 }
 
 
-/* ============================================================
-   FORMAT MONEY
-============================================================ */
+/* =========================================================
+   WALLET
+========================================================= */
 
-function formatMoney(
-    amount
-) {
+if(socket){
+
+    socket.on(
+        "wallet:balance",
+        data=>{
+
+            if(
+                !data ||
+                (
+                    data.playerId &&
+                    data.playerId!==playerId
+                )
+            )
+                return;
+
+            document.getElementById(
+                "walletBalance"
+            ).innerText =
+                formatMoney(
+                    data.balance ?? 0
+                );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   LANGUAGE
+========================================================= */
+
+const translations={
+
+    en:{
+        welcome:"Welcome to Desta Play",
+        liveConnection:"Live game engine connection",
+        selectGame:"SELECT GAME",
+        help:"HELP",
+        kenoDesc:"80 Numbers Draw",
+        bingoDesc:"Live PVP Bingo",
+        rouletteDesc:"European 37-Grid",
+        aviatorDesc:"Continuous Multiplier Crash Game",
+        back:"← Back to Lobby",
+        round:"Round",
+        time:"Time",
+        confirm:"CONFIRM SELECTIONS",
+        chooseStake:"Choose Bingo Stake",
+        stakeExplain:"Select your fixed stake before entering the live Bingo room.",
+        stake:"STAKE",
+        pot:"POT",
+        players:"PLAYERS",
+        chooseCartela:"Choose Cartela",
+        cartelaExplain:"You can use up to two cartelas.",
+        add:"ADD",
+        lastCalled:"LAST CALLED NUMBER",
+        bingoBets:"Bingo Bets",
+        placeBet:"PLACE BET",
+        changeStake:"CHANGE STAKE",
+        previousRound:"PREVIOUS ROUND",
+        previousRounds:"PREVIOUS ROUNDS",
+        waitingResult:"Waiting for result",
+        red:"Red",
+        zero:"Zero (0)",
+        black:"Black",
+        cashOut:"CASH OUT",
+        wallet:"Wallet",
+        liveBalance:"Live server balance",
+        playerIdentifier:"PLAYER IDENTIFIER",
+        language:"Language",
+        lobby:"Lobby",
+        howToPlay:"HOW TO PLAY",
+        helpKeno:"Select your numbers and confirm your bet. The server draws numbers during the round. Your result depends on the numbers selected and the official game rules.",
+        helpBingo:"Choose a stake, enter a Cartela number, place your bet and follow the live called numbers. Mark called numbers on your Cartela. When your winning pattern is complete, submit Bingo. The server verifies every claim.",
+        helpRoulette:"Select Red, Black or Zero before betting closes. The wheel produces the official result. The server determines whether your bet wins.",
+        helpAviator:"Place your bet before the flight starts. During the flight, the multiplier increases. Your live cash-out amount is your bet multiplied by the current multiplier. Tap the running amount to cash out before the flight crashes. If the flight crashes before you cash out, the bet is lost. The server controls the official multiplier and crash result.",
+        roundTimingTitle:"Round Timing",
+        roundTiming:"Aviator uses a 10-second interval between rounds. Keno, Bingo and Roulette use a 40-second interval between rounds. The server is authoritative for the actual timing."
+    },
+
+    am:{
+        welcome:"ወደ Desta Play እንኳን በደህና መጡ",
+        liveConnection:"ከቀጥታ የጨዋታ ሰርቨር ጋር ግንኙነት",
+        selectGame:"ጨዋታ ይምረጡ",
+        help:"እገዛ",
+        kenoDesc:"80 ቁጥሮች ይወጣሉ",
+        bingoDesc:"የቀጥታ PVP Bingo",
+        rouletteDesc:"የአውሮፓ 37 ቁጥር",
+        aviatorDesc:"የሚጨምር ማባዣ ክራሽ ጨዋታ",
+        back:"← ወደ ዋና ገጽ",
+        round:"ዙር",
+        time:"ጊዜ",
+        confirm:"ምርጫዎችን አረጋግጥ",
+        chooseStake:"የBingo ውርርድ ይምረጡ",
+        stakeExplain:"ወደ የቀጥታ Bingo ክፍል ከመግባትዎ በፊት የውርርድ መጠን ይምረጡ።",
+        stake:"ውርርድ",
+        pot:"ገንዘብ ማሰባሰቢያ",
+        players:"ተጫዋቾች",
+        chooseCartela:"Cartela ይምረጡ",
+        cartelaExplain:"እስከ ሁለት Cartela መጠቀም ይችላሉ።",
+        add:"ጨምር",
+        lastCalled:"የመጨረሻው የወጣ ቁጥር",
+        bingoBets:"የBingo ውርርዶች",
+        placeBet:"ውርርድ አድርግ",
+        changeStake:"ውርርድ ቀይር",
+        previousRound:"ያለፈው ዙር",
+        previousRounds:"ያለፉ ዙሮች",
+        waitingResult:"ውጤቱን በመጠባበቅ ላይ",
+        red:"ቀይ",
+        zero:"ዜሮ (0)",
+        black:"ጥቁር",
+        cashOut:"ገንዘብ ውሰድ",
+        wallet:"ዋሌት",
+        liveBalance:"የሰርቨር ቀጥታ ቀሪ ሂሳብ",
+        playerIdentifier:"የተጫዋች መለያ",
+        language:"ቋንቋ",
+        lobby:"ዋና ገጽ",
+        howToPlay:"እንዴት እንደሚጫወት",
+        helpKeno:"ቁጥሮችዎን ይምረጡ እና ውርርድዎን ያረጋግጡ። በዙሩ ውስጥ ቁጥሮች በሰርቨሩ ይወጣሉ። ውጤቱ በመረጧቸው ቁጥሮችና በጨዋታው ደንቦች ይወሰናል።",
+        helpBingo:"የውርርድ መጠን ይምረጡ፣ Cartela ቁጥር ያስገቡ፣ ውርርድ ያድርጉ እና የሚወጡትን ቁጥሮች ይከታተሉ። የወጡትን ቁጥሮች በCartelaዎ ላይ ምልክት ያድርጉ። የማሸነፊያ ቅርጽዎ ሲሞላ Bingo ይጫኑ። አሸናፊነቱ በሰርቨሩ ይረጋገጣል።",
+        helpRoulette:"ውርርድ ከመዘጋቱ በፊት ቀይ፣ ጥቁር ወይም ዜሮ ይምረጡ። የመጨረሻውን ውጤት ሰርቨሩ ይወስናል።",
+        helpAviator:"በረራው ከመጀመሩ በፊት ውርርድ ያድርጉ። በረራው ሲጀምር ማባዣው ይጨምራል። በማያቋርጥ ሁኔታ የሚታየው የገንዘብ መጠን ውርርድዎ በአሁኑ ማባዣ የተባዛ ነው። በረራው ከመውደቁ በፊት የሚታየውን ገንዘብ ይጫኑ እና ይውሰዱ። በረራው ከመውደቁ በፊት ገንዘብ ካልወሰዱ ውርርዱ ይጠፋል። ማባዣውንና የመውደቂያ ውጤቱን ሰርቨሩ ይቆጣጠራል።",
+        roundTimingTitle:"የዙር ጊዜ",
+        roundTiming:"Aviator በዙሮች መካከል 10 ሰከንድ ይጠቀማል። Keno፣ Bingo እና Roulette በዙሮች መካከል 40 ሰከንድ ይጠቀማሉ። ትክክለኛውን ጊዜ ሰርቨሩ ይቆጣጠራል።"
+    }
+
+};
+
+
+function setLanguage(language){
+
+    const dictionary =
+        translations[language] ||
+        translations.en;
+
+    localStorage.setItem(
+        "dp_language",
+        language
+    );
+
+    document
+        .querySelectorAll("[data-i18n]")
+        .forEach(element=>{
+
+            const key =
+                element.getAttribute(
+                    "data-i18n"
+                );
+
+            if(
+                dictionary[key] !== undefined
+            ){
+
+                element.innerText =
+                    dictionary[key];
+
+            }
+
+        });
+
+}
+
+
+const savedLanguage =
+    localStorage.getItem(
+        "dp_language"
+    ) ||
+    "en";
+
+document.getElementById(
+    "languageSelect"
+).value =
+    savedLanguage;
+
+setLanguage(savedLanguage);
+
+
+/* =========================================================
+   MONEY
+========================================================= */
+
+function formatMoney(amount){
 
     const value =
         Number(amount);
 
-    if (
+    if(
         !Number.isFinite(value)
-    ) {
+    )
         return "0";
-    }
 
     return value.toLocaleString(
         "en-US",
@@ -3174,41 +3720,18 @@ function formatMoney(
 }
 
 
-/* ============================================================
-   INITIALIZE
-============================================================ */
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
 initBingoTiers();
 
 updateBingoButtons();
 
-
-/*
- Automatically request current live states
- after connecting.
-
- This prevents a player who opens the app
- halfway through a round from waiting for
- the next state broadcast.
-*/
-
-if (socket) {
-
-socket.on(
-    "connect",
-    () => {
-
-        socket.emit(
-            "state:request",
-            {
-                playerId
-            }
-        );
-
-    }
-);
-
-}
+renderHistory("aviator");
+renderHistory("keno");
+renderHistory("bingo");
+renderHistory("roulette");
 
 </script>
 
