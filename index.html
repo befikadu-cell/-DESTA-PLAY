@@ -820,6 +820,64 @@ button{
   padding:8px;
 }
 
+.cartelaBoards{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+}
+
+.cartelaCard{
+  min-width:0;
+  border:1px solid #522020;
+  border-radius:8px;
+  background:#101010;
+  padding:5px;
+}
+
+.cartelaCard.active{
+  border-color:#ffd43b;
+  box-shadow:0 0 10px #6d4b00;
+}
+
+.cartelaCardTitle{
+  text-align:center;
+  color:#ffd43c;
+  font-size:9px;
+  font-weight:900;
+  margin-bottom:4px;
+}
+
+.cartelaCardEmpty{
+  min-height:130px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#777;
+  font-size:9px;
+}
+
+.cartelaCell.marked{
+  background:linear-gradient(145deg,#ffcf3b,#bd7900);
+  color:#170900;
+  box-shadow:0 0 8px #ffd43b;
+}
+
+.cartelaCell.called{
+  border:1px solid #18d66b;
+}
+
+.cartelaCell.free{
+  background:#bd7900;
+  color:#111;
+}
+
+@media(max-width:360px){
+  .cartelaBoards{gap:4px}
+  .cartelaCard{padding:3px}
+  .cartelaCell{font-size:8px}
+}
+
 .cartelaGrid{
   display:grid;
   grid-template-columns:repeat(5,1fr);
@@ -1952,7 +2010,7 @@ button{
 
       <div class="betSlots">
 
-        <div class="betSlot">
+        <div class="betSlot" id="rouletteBetSlot1" onclick="state.activeRouletteSlot=1;updateRouletteSlotVisuals()">
 
           <div class="slotTitle">
             SLOT 1
@@ -1960,7 +2018,7 @@ button{
 
           <div class="amountControl">
 
-            <button onclick="changeAmount('r1',-10)">
+            <button onclick="event.stopPropagation();changeAmount('r1',-10)">
               −
             </button>
 
@@ -1990,7 +2048,7 @@ button{
         </div>
 
 
-        <div class="betSlot">
+        <div class="betSlot" id="rouletteBetSlot2" onclick="state.activeRouletteSlot=2;updateRouletteSlotVisuals()">
 
           <div class="slotTitle">
             SLOT 2
@@ -1998,7 +2056,7 @@ button{
 
           <div class="amountControl">
 
-            <button onclick="changeAmount('r2',-10)">
+            <button onclick="event.stopPropagation();changeAmount('r2',-10)">
               −
             </button>
 
@@ -2501,6 +2559,11 @@ const state = {
     2:[]
   },
 
+  bingoMarked:{
+    1:[],
+    2:[]
+  },
+
   bingoDraw:[],
 
   bingoHistory:[],
@@ -2509,6 +2572,8 @@ const state = {
     1:null,
     2:null
   },
+
+  activeRouletteSlot:1,
 
   rouletteWinner:null,
 
@@ -2526,6 +2591,13 @@ const state = {
   aviatorMultiplier:1,
 
   bettingOpen:true,
+
+  gameStatus:{
+    keno:"BETTING",
+    bingo:"BETTING",
+    roulette:"BETTING",
+    aviator:"BETTING"
+  },
 
   countdown:45
 
@@ -2625,73 +2697,81 @@ function createPlayerId(telegramId){
    ACCOUNT
 ========================================================= */
 
-function createAccount(){
+async function createAccount(){
 
-  const password=
-    document.getElementById(
-      "password"
-    ).value;
-
-  const confirm=
-    document.getElementById(
-      "passwordConfirm"
-    ).value;
-
-  const message=
-    document.getElementById(
-      "accountMessage"
-    );
+  const password=document.getElementById("password").value;
+  const confirm=document.getElementById("passwordConfirm").value;
+  const message=document.getElementById("accountMessage");
+  const button=document.querySelector(".accountBtn");
 
   if(password.length<6){
-
-    message.className=
-      "accountMessage error";
-
-    message.textContent=
-      "Password must contain at least 6 characters.";
-
+    message.className="accountMessage error";
+    message.textContent="Password must contain at least 6 characters.";
     return;
-
   }
 
   if(password!==confirm){
-
-    message.className=
-      "accountMessage error";
-
-    message.textContent=
-      "Passwords do not match.";
-
+    message.className="accountMessage error";
+    message.textContent="Passwords do not match.";
     return;
-
   }
 
-  /*
-    Frontend stores only an account-created flag.
-    The real password must be hashed and stored by server.js.
-  */
+  message.className="accountMessage";
+  message.textContent="Creating account...";
+  if(button) button.disabled=true;
 
-  localStorage.setItem(
-    "destaAccountCreated",
-    "true"
-  );
+  try{
+    /*
+      The password is sent only to the backend over HTTPS.
+      The backend must hash it before database storage.
+      This frontend never stores the password in localStorage.
+    */
+    const response=await fetch("/api/account/create",{
+      method:"POST",
+      cache:"no-store",
+      headers:{
+        "Content-Type":"application/json",
+        "Accept":"application/json"
+      },
+      body:JSON.stringify({
+        telegramId:state.telegramId,
+        telegramName:state.telegramName,
+        playerId:state.playerId,
+        password
+      })
+    });
 
-  state.accountCreated=true;
+    const text=await response.text();
+    let data=null;
+    try{ data=JSON.parse(text); }catch(_){
+      throw new Error(
+        response.ok
+          ? "The account endpoint did not return JSON. Check server.js /api/account/create."
+          : `Server returned HTTP ${response.status}.`
+      );
+    }
 
-  message.className=
-    "accountMessage success";
+    if(!response.ok || !data.success){
+      throw new Error(data?.error || "Account creation failed.");
+    }
 
-  message.textContent=
-    "Account created.";
+    localStorage.setItem("destaAccountCreated","true");
+    state.accountCreated=true;
+    if(data.playerId) state.playerId=String(data.playerId);
+    if(data.balance!=null) state.balance=Number(data.balance)||0;
 
-  setTimeout(()=>{
+    message.className="accountMessage success";
+    message.textContent="Account created.";
 
-    showHome();
+    setTimeout(showHome,400);
 
-  },500);
-
+  }catch(error){
+    message.className="accountMessage error";
+    message.textContent=error.message || "Unable to create account.";
+  }finally{
+    if(button) button.disabled=false;
+  }
 }
-
 
 function showHome(){
 
@@ -3538,6 +3618,7 @@ function addCartela(){
 
   state.bingoBoards[slot]=
     generateCartela(value);
+  state.bingoMarked[slot]=[];
 
   input.value="";
 
@@ -3616,81 +3697,104 @@ function generateCartela(seed){
 
 function renderCartela(){
 
-  const wrap=
-    document.getElementById(
-      "cartelaGridWrap"
-    );
+  const wrap=document.getElementById("cartelaGridWrap");
+  if(!wrap) return;
 
-  const slot=
-    state.activeCartela;
+  const cards=[1,2].map(slot=>{
+    const cartela=state.bingoCartelas[slot];
+    const board=state.bingoBoards[slot] || [];
+    const marked=state.bingoMarked[slot] || [];
 
-  const cartela=
-    state.bingoCartelas[slot];
+    if(!cartela){
+      return `
+        <div class="cartelaCard ${state.activeCartela===slot?"active":""}">
+          <div class="cartelaCardTitle">CARTELA ${slot}</div>
+          <div class="cartelaCardEmpty">Enter Cartela number<br>for Slot ${slot}</div>
+        </div>`;
+    }
 
-  if(!cartela){
-
-    wrap.innerHTML=
-      `<div class="cartelaGrid">
-        <div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">
-          Enter Cartela number above.
+    return `
+      <div class="cartelaCard ${state.activeCartela===slot?"active":""}">
+        <button
+          type="button"
+          class="cartelaCardTitle"
+          style="width:100%;border:0;background:transparent"
+          onclick="selectCartela(${slot})">
+          CARTELA ${cartela} • SLOT ${slot}
+        </button>
+        <div class="cartelaGrid">
+          ${board.map((n,i)=>{
+            const isFree=n===0;
+            const isCalled=!isFree && state.bingoDraw.includes(n);
+            const isMarked=isFree || marked.includes(i);
+            return `
+              <button
+                type="button"
+                class="cartelaCell ${isFree?"free":""} ${isCalled?"called":""} ${isMarked?"marked":""}"
+                onclick="markCartelaCell(${slot},${i})">
+                ${isFree?"FREE":n}
+              </button>`;
+          }).join("")}
         </div>
       </div>`;
+  }).join("");
 
-    return;
+  wrap.innerHTML=`<div class="cartelaBoards">${cards}</div>`;
 
-  }
-
-  const board=
-    state.bingoBoards[slot];
-
-  wrap.innerHTML=
-    `<div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:bold;margin-bottom:5px">
-      CARTELA ${cartela} — SLOT ${slot}
-    </div>
-    <div class="cartelaGrid">
-      ${
-        board.map((n,i)=>`
-
-          <button
-            class="cartelaCell ${n===0?"free":""}"
-            onclick="markCartelaCell(${slot},${i})">
-
-            ${n===0?"FREE":n}
-
-          </button>
-
-        `).join("")
-      }
-    </div>`;
-
+  updateBingoButtons();
 }
-
 
 function markCartelaCell(slot,index){
 
-  if(!state.bettingOpen)
-    return;
+  const board=state.bingoBoards[slot] || [];
+  const n=board[index];
+  if(n===undefined || n===0) return;
 
-  const board=
-    state.bingoBoards[slot];
+  /* A player can mark only a number that the server has actually called. */
+  if(!state.bingoDraw.includes(n)) return;
 
-  if(!board[index])
-    return;
+  const marked=state.bingoMarked[slot] || (state.bingoMarked[slot]=[]);
+  const pos=marked.indexOf(index);
 
-  if(
-    !state.bingoDraw.includes(
-      board[index]
-    )
-  ){
-
-    return;
-
-  }
+  if(pos>=0) marked.splice(pos,1);
+  else marked.push(index);
 
   renderCartela();
-
 }
 
+function isMarkedBingoCell(slot,index){
+  const board=state.bingoBoards[slot] || [];
+  if(board[index]===0) return true;
+  return (state.bingoMarked[slot] || []).includes(index);
+}
+
+function checkBingo(board,slot=state.activeCartela){
+  if(!Array.isArray(board) || board.length!==25) return false;
+
+  const marked=i=>isMarkedBingoCell(slot,i);
+
+  for(let r=0;r<5;r++){
+    if([0,1,2,3,4].map(c=>marked(r*5+c)).every(Boolean)) return true;
+  }
+
+  for(let c=0;c<5;c++){
+    if([0,1,2,3,4].map(r=>marked(r*5+c)).every(Boolean)) return true;
+  }
+
+  if([0,1,2,3,4].map(i=>marked(i*5+i)).every(Boolean)) return true;
+  if([0,1,2,3,4].map(i=>marked(i*5+(4-i))).every(Boolean)) return true;
+
+  return false;
+}
+
+function updateBingoButtons(){
+  [1,2].forEach(slot=>{
+    const button=document.getElementById("bingoButton"+slot);
+    if(!button) return;
+    const win=checkBingo(state.bingoBoards[slot],slot);
+    button.disabled=!win;
+  });
+}
 
 function placeBingoBet(slot){
 
@@ -4023,6 +4127,8 @@ function buildRoulette(){
 
   }
 
+  updateRouletteSlotVisuals();
+
 }
 
 
@@ -4031,12 +4137,10 @@ function selectRouletteNumber(n){
   if(!state.bettingOpen)
     return;
 
-  const slot=
-    state.rouletteSelection[1]
-      ?2
-      :1;
-
+  const slot=state.activeRouletteSlot || 1;
   state.rouletteSelection[slot]=n;
+
+  updateRouletteSlotVisuals();
 
   document
     .querySelectorAll(".rouletteNum")
@@ -4049,6 +4153,19 @@ function selectRouletteNumber(n){
 
 }
 
+
+function updateRouletteSlotVisuals(){
+  [1,2].forEach(slot=>{
+    const el=document.getElementById("rouletteBetSlot"+slot);
+    if(el) el.classList.toggle("active",state.activeRouletteSlot===slot);
+  });
+  document.querySelectorAll(".rouletteNum").forEach(b=>{
+    const n=Number(b.textContent);
+    const selected1=state.rouletteSelection[1]===n;
+    const selected2=state.rouletteSelection[2]===n;
+    b.classList.toggle("selected",selected1 || selected2);
+  });
+}
 
 function placeRouletteBet(slot){
 
@@ -4937,12 +5054,16 @@ function applyServerRound(round){
 
   state.roundIds = state.roundIds || {};
   state.roundIds[game] = round.id;
-  state.rounds[game] = Number(round.roundNumber || round.id.split("-")[1] || state.rounds[game] || 1);
-  state.bettingOpen = round.status === "BETTING";
-  state.countdown = Number(round.remainingSeconds || 0);
+  state.rounds[game] = Number(round.roundNumber || round.id?.split?.("-")[1] || state.rounds[game] || 1);
+  state.gameStatus[game] = String(round.status || "BETTING");
+  if(state.game === game){
+    state.bettingOpen = state.gameStatus[game] === "BETTING";
+    state.countdown = Number(round.remainingSeconds || 0);
+  }
 
   updateRound();
   updateCountdownFromServer(round);
+  if(game === "bingo") updateBingoBetButtons();
 
   if(game === "keno"){
     const drawn = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
@@ -4966,6 +5087,7 @@ function applyServerRound(round){
 
     if(isNewRound){
       state.bingoDraw = [];
+      state.bingoMarked = {1:[],2:[]};
       const display = document.getElementById("bingoDraw");
       if(display) display.innerHTML = "";
       const b1 = document.getElementById("bingoButton1");
@@ -5027,6 +5149,13 @@ function renderServerKeno(round){
   });
 }
 
+function updateBingoBetButtons(){
+  const betting=state.gameStatus.bingo === "BETTING";
+  document.querySelectorAll("#bingoGame .placeBtn").forEach(btn=>{
+    btn.style.display=betting ? "block" : "none";
+  });
+}
+
 function renderServerBingo(round){
   const display = document.getElementById("bingoDraw");
   if(display){
@@ -5048,6 +5177,7 @@ function renderServerBingo(round){
   }
 
   if(typeof renderCartela === "function") renderCartela();
+  updateBingoBetButtons();
 }
 
 function renderServerRoulette(winner){
@@ -5061,39 +5191,24 @@ function renderServerRoulette(winner){
   });
 }
 
-async function fetchJSON(url){
-  const response = await fetch(url, {
-    method:"GET",
-    cache:"no-store",
-    headers:{"Accept":"application/json","Cache-Control":"no-cache"}
-  });
-
-  const contentType = (response.headers.get("content-type") || "").toLowerCase();
-  const body = await response.text();
-
-  if(!response.ok){
-    throw new Error(`HTTP ${response.status} from ${url}: ${body.slice(0,160)}`);
-  }
-
-  if(!contentType.includes("application/json")){
-    throw new Error(`Expected JSON from ${url}, but server returned ${contentType || "HTML/text"}.`);
-  }
-
-  try{
-    return JSON.parse(body);
-  }catch(error){
-    throw new Error(`Invalid JSON from ${url}: ${body.slice(0,160)}`);
-  }
-}
-
 async function fetchLiveRound(game){
   try{
-    const data = await fetchJSON(`/api/game/${encodeURIComponent(game)}/round`);
-    if(data && data.success && data.round){
-      applyServerRound(data.round);
+    const response=await fetch(`/api/game/${encodeURIComponent(game)}/round`,{
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
+    });
+
+    const text=await response.text();
+    let data=null;
+    try{ data=JSON.parse(text); }catch(_){
+      console.warn(`Live ${game} endpoint returned non-JSON data. Check /api/game/${game}/round in server.js.`);
+      return;
     }
+
+    if(!response.ok || !data?.success || !data?.round) return;
+    applyServerRound(data.round);
   }catch(error){
-    console.warn(`Live ${game} round connection error:`, error.message || error);
+    console.warn("Live round connection error:",error);
   }
 }
 
@@ -5114,34 +5229,40 @@ async function fetchAllLiveRounds(){
 
 async function loadRoundHistory(game){
   try{
-    const data = await fetchJSON(`/api/game/${encodeURIComponent(game)}/history`);
-    if(!data.success || !Array.isArray(data.rounds)) return;
+    const response=await fetch(`/api/game/${encodeURIComponent(game)}/history`,{
+      cache:"no-store",
+      headers:{"Accept":"application/json"}
+    });
+    const text=await response.text();
+    let data=null;
+    try{ data=JSON.parse(text); }catch(_){ return; }
+    if(!response.ok || !data.success || !Array.isArray(data.rounds)) return;
 
-    const rows = data.rounds.slice(0,10);
+    const rows=data.rounds.slice(0,10);
 
     if(game === "keno"){
-      state.kenoHistory = rows.map(r => ({
-        round:r.round_id,
-        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+      state.kenoHistory=rows.map(r=>({
+        round:r.round_number ?? r.round_id,
+        numbers:Array.isArray(r.drawn_numbers)?r.drawn_numbers:[]
       }));
       renderKenoHistory();
     }
 
     if(game === "bingo"){
-      state.bingoHistory = rows.map(r => ({
-        round:r.round_id,
-        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+      state.bingoHistory=rows.map(r=>({
+        round:r.round_number ?? r.round_id,
+        numbers:Array.isArray(r.drawn_numbers)?r.drawn_numbers:[]
       }));
       renderBingoHistory();
     }
 
     if(game === "roulette"){
-      state.rouletteHistory = rows.map(r => {
-        const value = typeof r.result === "object"
+      state.rouletteHistory=rows.map(r=>{
+        const value=typeof r.result === "object"
           ? Number(r.result.number ?? r.result.result ?? r.result.winner)
           : Number(r.result);
         return {
-          round:r.round_id,
+          round:r.round_number ?? r.round_id,
           result:value,
           color:rouletteColor(value)
         };
@@ -5150,14 +5271,14 @@ async function loadRoundHistory(game){
     }
 
     if(game === "aviator"){
-      state.aviatorHistory = rows.map(r => ({
-        round:r.round_id,
+      state.aviatorHistory=rows.map(r=>({
+        round:r.round_number ?? r.round_id,
         multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
       }));
       renderAviatorHistory();
     }
   }catch(error){
-    console.warn("History connection error:", error);
+    console.warn("History connection error:",error);
   }
 }
 
@@ -5169,11 +5290,6 @@ function startLiveRoundSync(){
     fetchAllLiveRounds();
   }, 1000);
 }
-
-window.addEventListener("online", () => {
-  fetchAllLiveRounds();
-  if(state.game) loadRoundHistory(state.game);
-});
 
 /* The server owns the round. The browser never creates or advances rounds. */
 function startGameRound(){
@@ -5213,6 +5329,8 @@ buildKeno();
 buildBingo();
 buildRoulette();
 buildAviator();
+renderCartela();
+updateRouletteSlotVisuals();
 showTab("my");
 startLiveRoundSync();
 
