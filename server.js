@@ -1,13 +1,14 @@
 /*
 |--------------------------------------------------------------------------
-| DESTA PLAY — PERSISTENT 24/7 BACKEND (FIXED CONTINUOUS LOOPS)
+| DESTA PLAY — 24/7 CONTINUOUS BACKEND ENGINE
 |--------------------------------------------------------------------------
 |
 | Features:
-|   - Multi-Tier PVP Bingo Loops (10, 20, 30, 50, 80, 100, 150, 200, 300, 500 ETB)
-|   - Guaranteed 10% Platform Rake / 90% Winner Payout for Bingo
-|   - Continuous House Loops for Keno, Roulette, and Aviator
-|   - Argon2id Authentication & Supabase Transaction Ledger Integration
+|   - Multi-Tier PVP Bingo Loops (10 ETB to 500 ETB)
+|   - Real-Time Pool Allocation: 90% Winner Payout / 10% Platform Rake
+|   - 70% RTP (30% House Edge) Math Models for House Games
+|   - Continuous 24/7 Auto-Reset Engine (BETTING -> DRAWING -> FINISHED -> BETTING)
+|   - Supabase Wallet Ledger & Argon2id Authentication
 |
 |--------------------------------------------------------------------------
 */
@@ -53,19 +54,22 @@ app.use(express.static(path.join(__dirname, "public")));
 const games = { keno, roulette, aviator };
 const rounds = {};
 
+// Engine Timing Configurations (in milliseconds & seconds)
 const DRAW_INTERVALS = { keno: 1800, roulette: 5000, bingo: 3000 };
 const BETTING_TIMERS = { bingo: 30, keno: 30, roulette: 20, aviator: 10 };
-const NEXT_ROUND_DELAY = 5000;
-const TARGET_RTP = 0.70;
+const NEXT_ROUND_DELAY = 5000; // 5 seconds wait before resetting loop
+
+// Mathematical House Edge Definition
+const TARGET_RTP = 0.70; // 70% Return-To-Player (30% House Edge)
+const HOUSE_RAKE_PERCENT = 0.10; // 10% Platform Rake for PVP Bingo
 
 /*
 |--------------------------------------------------------------------------
-| PVP BINGO TIERS & CONTINUOUS 24/7 LOOP ENGINE
+| 24/7 PVP BINGO TIERS & POOL ENGINE
 |--------------------------------------------------------------------------
 */
 
 const BINGO_TIERS = [10, 20, 30, 50, 80, 100, 150, 200, 300, 500];
-const HOUSE_RAKE_PERCENT = 0.10; // 10% Platform Rake
 const bingoRooms = {};
 
 function generateBingoDraw() {
@@ -104,7 +108,7 @@ function startNewBingoRound(tier) {
         winnerPrize: 0
     };
 
-    console.log(`[BINGO TIER ${tier}] New 24/7 round initialized.`);
+    console.log(`[BINGO TIER ${tier}] New round started. Round ID: ${bingoRooms[tier].id}`);
 
     setTimeout(() => {
         startBingoDrawPhase(tier);
@@ -138,7 +142,7 @@ function revealNextBingoNumber(tier) {
     // Check if any registered player hit Bingo
     let winningPlayer = null;
     for (const player of room.players) {
-        if (bingo.isWinningCard(player.cartela, room.drawnNumbers)) {
+        if (bingo.isWinningCard && bingo.isWinningCard(player.cartela, room.drawnNumbers)) {
             winningPlayer = player;
             break;
         }
@@ -158,6 +162,8 @@ async function resolveBingoWinner(tier, winnerObj = null) {
     if (!room || room.status === "FINISHED") return;
 
     room.status = "FINISHED";
+    
+    // Pool distribution: 90% Winner / 10% House Rake
     const grossPool = room.players.length * room.entryFee;
     const houseRake = grossPool * HOUSE_RAKE_PERCENT;
     const winnerPrize = grossPool - houseRake;
@@ -179,13 +185,13 @@ async function resolveBingoWinner(tier, winnerObj = null) {
                 roundId: room.id,
                 metadata: { tier, grossPool, houseRake, winnerPrize }
             });
-            console.log(`[BINGO TIER ${tier}] Winner: ${winningPlayer.telegramName} | Pool: ${grossPool} ETB | Winner Share: ${winnerPrize} ETB | House Rake: ${houseRake} ETB`);
+            console.log(`[BINGO TIER ${tier}] Winner: ${winningPlayer.telegramName} | Gross: ${grossPool} ETB | Winner (90%): ${winnerPrize} ETB | Rake (10%): ${houseRake} ETB`);
         } catch (error) {
             console.error(`[BINGO TIER ${tier}] Payout error:`, error);
         }
     }
 
-    // Always reset loop continuously
+    // Continuous Loop: Reset room after 5-second pause
     setTimeout(() => {
         startNewBingoRound(tier);
     }, NEXT_ROUND_DELAY);
@@ -193,7 +199,7 @@ async function resolveBingoWinner(tier, winnerObj = null) {
 
 /*
 |--------------------------------------------------------------------------
-| AUTHENTICATION & WALLET HELPER ROUTINES
+| AUTHENTICATION & WALLET LEDGER ROUTINES
 |--------------------------------------------------------------------------
 */
 
@@ -211,7 +217,7 @@ function validPassword(password) {
     return typeof password === "string" && password.length >= 8 && password.length <= 128;
 }
 
-async function dbError(context, error) { console.error(`[DATABASE] ${context}:`, error); }
+async function dbError(context, error) { console.error(`[DATABASE ERROR] ${context}:`, error); }
 
 async function findPlayerByTelegramId(telegramId) {
     const { data, error } = await supabase.from("players").select("*").eq("telegram_id", String(telegramId)).maybeSingle();
@@ -309,7 +315,7 @@ async function changeBalance({ playerId, amount, type, game = null, roundId = nu
 
 /*
 |--------------------------------------------------------------------------
-| REST APIs (ACCOUNTS, WALLET, BINGO ROOMS)
+| REST APIs (ACCOUNT, WALLET, PVP BINGO)
 |--------------------------------------------------------------------------
 */
 
@@ -350,14 +356,15 @@ app.get("/api/bingo/rooms", (req, res) => {
     BINGO_TIERS.forEach(tier => {
         const room = bingoRooms[tier];
         if (room) {
+            const grossPool = room.players.length * room.entryFee;
             roomState[tier] = {
                 tier,
                 entryFee: room.entryFee,
                 status: room.status,
                 remainingSeconds: Math.max(0, Math.ceil((room.bettingEndsAt - Date.now()) / 1000)),
                 totalPlayers: room.players.length,
-                grossPool: room.players.length * room.entryFee,
-                winnerPrize: (room.players.length * room.entryFee) * (1 - HOUSE_RAKE_PERCENT),
+                grossPool: grossPool,
+                winnerPrize: grossPool * (1 - HOUSE_RAKE_PERCENT), // 90% Pool Share
                 currentNumber: room.currentNumber,
                 drawnNumbers: room.drawnNumbers,
                 winner: room.winner ? room.winner.telegramName : null
@@ -385,7 +392,7 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
             metadata: { tier: selectedTier, cartelaNumber }
         });
 
-        const playerCartela = bingo.generateCartela(Number(cartelaNumber) || 1);
+        const playerCartela = bingo.generateCartela ? bingo.generateCartela(Number(cartelaNumber) || 1) : [];
         room.players.push({
             playerId: req.player.player_id,
             telegramName: req.player.telegram_name,
@@ -393,12 +400,13 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
             cartela: playerCartela
         });
 
+        const grossPool = room.players.length * room.entryFee;
         res.json({
             success: true,
             tier: selectedTier,
             playersInRoom: room.players.length,
-            grossPool: room.players.length * room.entryFee,
-            winnerPrize: (room.players.length * room.entryFee) * (1 - HOUSE_RAKE_PERCENT)
+            grossPool: grossPool,
+            winnerPrize: grossPool * (1 - HOUSE_RAKE_PERCENT)
         });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -411,13 +419,14 @@ app.get("/api/bingo/cartela/:number", (req, res) => {
         if (!Number.isInteger(number) || number < 1 || number > 120) {
             return res.status(400).json({ success: false, error: "Cartela number must be between 1 and 120" });
         }
-        res.json({ success: true, cartela: bingo.generateCartela(number) });
+        const cartela = bingo.generateCartela ? bingo.generateCartela(number) : [];
+        res.json({ success: true, cartela });
     } catch (error) { res.status(400).json({ success: false, error: error.message }); }
 });
 
 /*
 |--------------------------------------------------------------------------
-| HOUSE CONTINUOUS LOOPS (KENO, ROULETTE, AVIATOR)
+| HOUSE CONTINUOUS LOOPS & 70% RTP MATH ENGINES (KENO, ROULETTE, AVIATOR)
 |--------------------------------------------------------------------------
 */
 
@@ -431,9 +440,10 @@ function generateKenoDraw() {
     return result;
 }
 
+// Aviator crash calculation mathematically enforcing 70% RTP (30% House Edge)
 function generateCrashPoint() {
     const rand = Math.random();
-    if (rand < (1 - TARGET_RTP)) return 1.00;
+    if (rand < (1 - TARGET_RTP)) return 1.00; // 30% instant crash probability
     return Math.max(1.00, parseFloat((TARGET_RTP / (1 - rand)).toFixed(2)));
 }
 
@@ -520,7 +530,7 @@ function startRouletteSpin() {
     saveRound(round).catch(console.error);
 
     setTimeout(async () => {
-        round.result = roulette.spin();
+        round.result = roulette.spin ? roulette.spin() : Math.floor(Math.random() * 37);
         round.status = "FINISHED";
         await saveRound(round);
         finishHouseRound("roulette");
@@ -560,6 +570,7 @@ function finishHouseRound(gameName) {
     if (round.status !== "CRASHED") round.status = "FINISHED";
     saveRound(round).catch(console.error);
 
+    // Continuous 24/7 Engine Auto-Reset
     setTimeout(() => {
         startHouseRound(gameName);
     }, NEXT_ROUND_DELAY);
@@ -567,7 +578,7 @@ function finishHouseRound(gameName) {
 
 /*
 |--------------------------------------------------------------------------
-| GENERAL STATUS & SYSTEM ROUTES
+| STATUS & SYSTEM ROUTES
 |--------------------------------------------------------------------------
 */
 
@@ -587,7 +598,7 @@ app.get("/health", (req, res) => res.json({ success: true, status: "healthy" }))
 
 /*
 |--------------------------------------------------------------------------
-| LAUNCH CONTINUOUS 24/7 ENGINES
+| LAUNCH ENGINES
 |--------------------------------------------------------------------------
 */
 
@@ -596,9 +607,8 @@ app.listen(PORT, "0.0.0.0", async () => {
     console.log("       DESTA PLAY BACKEND SERVER        ");
     console.log("========================================");
     console.log(`Port: ${PORT}`);
-    console.log("Bingo PVP Rooms: 10 ETB - 500 ETB Active");
-    console.log("Bingo Rake: 10% Platform / 90% Player Winner");
-    console.log("House Loop Engines: Keno, Roulette, Aviator Active");
+    console.log("Bingo PVP Rooms: 10 ETB - 500 ETB Active (90% Pool / 10% Rake)");
+    console.log("House Game Engines: Keno, Roulette, Aviator Active (70% Target RTP)");
     console.log("========================================");
 
     initBingoRooms();
