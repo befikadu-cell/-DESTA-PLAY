@@ -2,70 +2,55 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0,
-               maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 
 <title>DESTA PLAY</title>
 
 <style>
 /* =========================================================
    DESTA PLAY
-   Modern Mobile Gaming UI
-   Frontend / Demo Architecture
-========================================================= */
+   COMPLETE FRONTEND DEMO
+   ========================================================= */
 
 :root{
-    --bg:#070b16;
-    --bg2:#0c1222;
-    --panel:#11192b;
-    --panel2:#172238;
-    --panel3:#1c2941;
-
-    --primary:#7c5cff;
-    --primary2:#5d3df5;
-
-    --gold:#f6c453;
-    --gold2:#ffdf82;
-
-    --text:#f7f8fc;
-    --muted:#8e9ab0;
-
-    --green:#25d47b;
-    --red:#ff4d67;
-    --orange:#ff9f43;
-    --blue:#39a8ff;
-
-    --border:rgba(255,255,255,.08);
-
-    --shadow:0 15px 45px rgba(0,0,0,.35);
+    --bg:#090b12;
+    --bg2:#111522;
+    --panel:#171b29;
+    --panel2:#1d2232;
+    --gold:#f5c542;
+    --gold2:#ffdf70;
+    --yellow:#ffd43b;
+    --red:#9f1028;
+    --red2:#d51f3d;
+    --green:#24d17e;
+    --blue:#4da3ff;
+    --danger:#ff4d67;
+    --text:#fff;
+    --muted:#9ba3b7;
+    --line:rgba(255,255,255,.08);
+    --shadow:0 12px 35px rgba(0,0,0,.35);
 }
 
 *{
     box-sizing:border-box;
     margin:0;
     padding:0;
-    -webkit-tap-highlight-color:transparent;
     font-family:
-        Inter,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         Roboto,
         Arial,
         sans-serif;
-}
-
-html,body{
-    width:100%;
-    min-height:100%;
-    background:
-        radial-gradient(circle at 20% -10%,#20295a 0,#070b16 38%),
-        var(--bg);
-    color:var(--text);
+    -webkit-tap-highlight-color:transparent;
 }
 
 body{
+    background:
+        radial-gradient(circle at top,#34101a 0,#090b12 38%),
+        var(--bg);
+    color:var(--text);
+    min-height:100vh;
     overflow-x:hidden;
 }
 
@@ -83,46 +68,13 @@ button{
 }
 
 /* =========================================================
-   APP
-========================================================= */
-
-.app{
-    width:100%;
-    max-width:620px;
-    min-height:100vh;
-    margin:auto;
-    padding-bottom:88px;
-}
-
-.screen{
-    display:none;
-    padding:16px;
-    animation:screenIn .22s ease;
-}
-
-.screen.active{
-    display:block;
-}
-
-@keyframes screenIn{
-    from{
-        opacity:0;
-        transform:translateY(8px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
-}
-
-/* =========================================================
    TOP BAR
-========================================================= */
+   ========================================================= */
 
 .topbar{
     position:sticky;
     top:0;
-    z-index:100;
+    z-index:1000;
 
     height:64px;
 
@@ -132,52 +84,26 @@ button{
 
     padding:0 16px;
 
-    background:rgba(7,11,22,.88);
-    backdrop-filter:blur(18px);
+    background:rgba(9,11,18,.94);
+    backdrop-filter:blur(15px);
 
-    border-bottom:1px solid var(--border);
+    border-bottom:1px solid var(--line);
 }
 
-.brand{
-    display:flex;
-    align-items:center;
-    gap:9px;
-}
-
-.brand-logo{
-    width:38px;
-    height:38px;
-
-    border-radius:12px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--primary),
-            #a66cff
-        );
-
-    box-shadow:
-        0 7px 25px rgba(124,92,255,.35);
-
+.logo{
     font-size:20px;
-}
-
-.brand-text{
-    font-weight:900;
-    letter-spacing:.4px;
-}
-
-.brand-sub{
-    display:block;
-    color:var(--muted);
-    font-size:9px;
-    margin-top:1px;
+    font-weight:950;
     letter-spacing:1px;
+
+    background:linear-gradient(
+        135deg,
+        #fff,
+        var(--gold),
+        #fff0a3
+    );
+
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
 }
 
 .top-actions{
@@ -187,44 +113,82 @@ button{
 }
 
 .icon-btn{
-    width:38px;
-    height:38px;
+    width:40px;
+    height:40px;
+
     border-radius:12px;
 
-    border:1px solid var(--border);
+    border:1px solid var(--line);
     background:rgba(255,255,255,.05);
-
-    color:white;
+    color:#fff;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    font-size:17px;
+    font-size:18px;
+}
+
+.icon-btn:active{
+    transform:scale(.94);
+}
+
+.balance-mini{
+    padding:9px 12px;
+    border-radius:12px;
+
+    background:linear-gradient(
+        135deg,
+        rgba(159,16,40,.8),
+        rgba(245,197,66,.16)
+    );
+
+    border:1px solid rgba(245,197,66,.25);
+
+    font-size:13px;
+    font-weight:800;
+    color:var(--gold2);
 }
 
 /* =========================================================
-   CARDS
-========================================================= */
+   MAIN
+   ========================================================= */
 
-.card{
-    background:
-        linear-gradient(
-            145deg,
-            rgba(255,255,255,.055),
-            rgba(255,255,255,.018)
-        );
+.main{
+    width:100%;
+    max-width:620px;
+    margin:auto;
 
-    border:1px solid var(--border);
-
-    border-radius:20px;
-
-    padding:16px;
-
-    margin-bottom:14px;
-
-    box-shadow:var(--shadow);
+    padding:
+        16px
+        16px
+        100px;
 }
+
+.screen{
+    display:none;
+    animation:screenIn .18s ease;
+}
+
+.screen.active{
+    display:block;
+}
+
+@keyframes screenIn{
+    from{
+        opacity:0;
+        transform:translateY(5px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+/* =========================================================
+   HERO
+   ========================================================= */
 
 .hero{
     position:relative;
@@ -232,178 +196,90 @@ button{
 
     padding:22px;
 
+    border-radius:22px;
+
     background:
         radial-gradient(
             circle at 90% 10%,
-            rgba(124,92,255,.38),
-            transparent 35%
+            rgba(245,197,66,.22),
+            transparent 30%
         ),
         linear-gradient(
             135deg,
-            #17203c,
-            #10162a
+            #57101d,
+            #1b1724 58%,
+            #111522
         );
+
+    border:1px solid rgba(245,197,66,.18);
+
+    box-shadow:var(--shadow);
+
+    margin-bottom:18px;
 }
 
 .hero:after{
     content:"";
+
     position:absolute;
-    width:160px;
-    height:160px;
-    right:-60px;
-    bottom:-70px;
+
+    width:150px;
+    height:150px;
+
+    right:-70px;
+    bottom:-80px;
 
     border-radius:50%;
 
-    background:rgba(246,196,83,.08);
+    border:25px solid rgba(245,197,66,.08);
+}
+
+.hero-small{
+    color:var(--gold2);
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:1.5px;
+    margin-bottom:7px;
 }
 
 .hero h1{
-    font-size:25px;
-    line-height:1.15;
+    font-size:27px;
+    line-height:1.1;
     margin-bottom:8px;
 }
 
 .hero p{
-    color:var(--muted);
-    font-size:12px;
-    line-height:1.6;
-}
-
-/* =========================================================
-   BUTTONS
-========================================================= */
-
-.btn{
-    width:100%;
-    border:0;
-    border-radius:13px;
-
-    padding:13px 14px;
-
-    color:white;
-    font-weight:800;
+    color:#c1c6d2;
     font-size:13px;
-
-    background:
-        linear-gradient(
-            135deg,
-            var(--primary),
-            var(--primary2)
-        );
-
-    box-shadow:
-        0 8px 22px rgba(93,61,245,.25);
-
-    transition:.15s;
-}
-
-.btn:active{
-    transform:scale(.97);
-}
-
-.btn.gold{
-    color:#15120a;
-    background:
-        linear-gradient(
-            135deg,
-            var(--gold2),
-            var(--gold)
-        );
-}
-
-.btn.green{
-    background:
-        linear-gradient(
-            135deg,
-            #31e58a,
-            #18b96a
-        );
-}
-
-.btn.red{
-    background:
-        linear-gradient(
-            135deg,
-            #ff6177,
-            #e82f4e
-        );
-}
-
-.btn.secondary{
-    background:rgba(255,255,255,.07);
-    box-shadow:none;
+    line-height:1.5;
 }
 
 /* =========================================================
-   HOME
-========================================================= */
+   SECTION
+   ========================================================= */
 
 .section-title{
     display:flex;
     justify-content:space-between;
     align-items:center;
 
-    margin:18px 2px 10px;
+    margin:20px 2px 10px;
 }
 
-.section-title h2{
-    font-size:14px;
+.section-title h3{
+    font-size:15px;
 }
 
 .section-title span{
-    font-size:10px;
     color:var(--muted);
-}
-
-.quick-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
-}
-
-.quick-card{
-    padding:16px;
-    border-radius:17px;
-
-    background:
-        linear-gradient(
-            145deg,
-            #151f35,
-            #101727
-        );
-
-    border:1px solid var(--border);
-
-    transition:.15s;
-}
-
-.quick-card:active{
-    transform:scale(.97);
-}
-
-.quick-icon{
-    font-size:26px;
-    margin-bottom:9px;
-}
-
-.quick-card strong{
-    display:block;
-    font-size:13px;
-}
-
-.quick-card small{
-    display:block;
-    margin-top:4px;
-    color:var(--muted);
-    font-size:10px;
+    font-size:11px;
 }
 
 /* =========================================================
    GAME CARDS
-========================================================= */
+   ========================================================= */
 
-.games-grid{
+.game-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:11px;
@@ -413,20 +289,22 @@ button{
     position:relative;
     overflow:hidden;
 
-    min-height:150px;
+    min-height:145px;
 
-    border-radius:20px;
-
-    padding:16px;
-
-    border:1px solid var(--border);
+    border-radius:18px;
 
     background:
         linear-gradient(
             145deg,
-            #18243c,
-            #101727
+            rgba(255,255,255,.06),
+            rgba(255,255,255,.015)
         );
+
+    border:1px solid var(--line);
+
+    padding:16px;
+
+    box-shadow:0 8px 25px rgba(0,0,0,.2);
 
     transition:.15s;
 }
@@ -437,225 +315,291 @@ button{
 
 .game-card.featured{
     grid-column:span 2;
-    min-height:165px;
+    min-height:125px;
 
     background:
         radial-gradient(
-            circle at 85% 15%,
-            rgba(246,196,83,.22),
-            transparent 30%
+            circle at 90% 20%,
+            rgba(245,197,66,.2),
+            transparent 35%
         ),
         linear-gradient(
             135deg,
-            #30205c,
-            #12182a
+            #641426,
+            #24131c
         );
 }
 
 .game-icon{
-    font-size:35px;
-    margin-bottom:13px;
+    font-size:33px;
+    margin-bottom:9px;
 }
 
-.game-card strong{
-    font-size:15px;
+.game-card h3{
+    font-size:16px;
+    margin-bottom:5px;
 }
 
-.game-card small{
-    display:block;
+.game-card p{
+    font-size:11px;
     color:var(--muted);
-    margin-top:5px;
-    font-size:10px;
 }
 
-.game-badge{
+.game-live{
     position:absolute;
-    right:11px;
     top:11px;
+    right:11px;
 
-    font-size:8px;
+    font-size:9px;
     font-weight:900;
 
-    padding:5px 7px;
+    padding:4px 7px;
+
     border-radius:20px;
 
-    background:rgba(246,196,83,.12);
-    color:var(--gold);
+    background:rgba(36,209,126,.12);
+    color:var(--green);
+    border:1px solid rgba(36,209,126,.25);
 }
 
 /* =========================================================
-   GAME HEADER
-========================================================= */
+   GAME PAGE
+   ========================================================= */
 
 .game-header{
     display:flex;
     align-items:center;
-    justify-content:space-between;
-
-    margin-bottom:12px;
-}
-
-.game-header-left{
-    display:flex;
-    align-items:center;
     gap:10px;
+
+    margin-bottom:13px;
 }
 
 .back{
     width:38px;
     height:38px;
 
-    border:1px solid var(--border);
+    border:1px solid var(--line);
+    border-radius:11px;
+
     background:rgba(255,255,255,.05);
-
     color:white;
-
-    border-radius:12px;
 }
 
-.game-header h2{
-    font-size:16px;
+.game-heading{
+    flex:1;
 }
 
-.status{
-    padding:6px 9px;
-    border-radius:20px;
+.game-heading h2{
+    font-size:20px;
+}
 
-    font-size:8px;
-    font-weight:900;
-    letter-spacing:.6px;
+.game-heading p{
+    font-size:11px;
+    color:var(--muted);
+}
 
-    background:rgba(37,212,123,.1);
-    color:var(--green);
+.help{
+    width:38px;
+    height:38px;
+
+    border-radius:11px;
+
+    border:1px solid rgba(245,197,66,.25);
+
+    background:rgba(245,197,66,.08);
+
+    color:var(--gold);
 }
 
 /* =========================================================
-   ROUND BAR
-========================================================= */
+   PANEL
+   ========================================================= */
 
-.round-bar{
+.panel{
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.055),
+            rgba(255,255,255,.02)
+        );
+
+    border:1px solid var(--line);
+
+    border-radius:18px;
+
+    padding:15px;
+
+    margin-bottom:13px;
+
+    box-shadow:0 7px 25px rgba(0,0,0,.2);
+}
+
+/* =========================================================
+   ROUND HISTORY
+   ========================================================= */
+
+.round-strip{
     display:flex;
     align-items:center;
-    justify-content:space-between;
+    gap:7px;
 
-    gap:8px;
-
-    margin-bottom:12px;
+    overflow:hidden;
 }
 
-.round-info{
-    flex:1;
+.round-item{
+    flex:0 0 auto;
 
-    min-width:0;
+    min-width:72px;
 
-    padding:10px 12px;
+    padding:8px 9px;
 
-    border-radius:13px;
+    border-radius:10px;
 
-    background:rgba(255,255,255,.045);
-    border:1px solid var(--border);
+    background:#111522;
+
+    border:1px solid var(--line);
+
+    text-align:center;
 }
 
-.round-info small{
+.round-item small{
     display:block;
     color:var(--muted);
     font-size:8px;
 }
 
-.round-info strong{
+.round-item strong{
+    display:block;
+    color:var(--gold2);
     font-size:12px;
+    margin-top:2px;
 }
 
-.timer{
-    color:var(--gold);
-}
-
-/* =========================================================
-   HISTORY
-========================================================= */
-
-.history{
-    margin-bottom:14px;
-}
-
-.history-row{
-    display:flex;
-    align-items:center;
-    gap:7px;
-    overflow:hidden;
-}
-
-.history-item{
+.expand-rounds{
     flex:0 0 auto;
 
-    min-width:58px;
-    padding:8px 9px;
-
-    border-radius:11px;
-
-    text-align:center;
-
-    background:rgba(255,255,255,.05);
-    border:1px solid var(--border);
-
-    font-size:10px;
-    font-weight:800;
-}
-
-.history-item.crash{
-    color:var(--red);
-}
-
-.history-item.win{
-    color:var(--green);
-}
-
-.expand-history{
-    flex:0 0 40px;
-
+    width:38px;
     height:38px;
 
-    border-radius:11px;
+    border-radius:10px;
 
-    border:1px solid var(--border);
+    border:1px solid rgba(245,197,66,.3);
 
-    background:rgba(255,255,255,.06);
+    background:rgba(245,197,66,.1);
 
-    color:white;
+    color:var(--gold);
+
+    font-size:18px;
 }
 
 .history-expanded{
-    display:none;
+    margin-top:10px;
 
-    margin-top:8px;
-
-    grid-template-columns:
-        repeat(2,1fr);
-
-    gap:6px;
-
-    max-height:220px;
-    overflow-y:auto;
-}
-
-.history-expanded.open{
     display:grid;
+    grid-template-columns:repeat(2,1fr);
+
+    gap:7px;
 }
 
-.history-expanded .history-item{
+.history-expanded .round-item{
     min-width:0;
 }
 
 /* =========================================================
+   GAME STATUS
+   ========================================================= */
+
+.status-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-bottom:12px;
+}
+
+.status{
+    padding:5px 9px;
+    border-radius:20px;
+
+    font-size:9px;
+    font-weight:900;
+
+    color:var(--green);
+
+    background:rgba(36,209,126,.1);
+    border:1px solid rgba(36,209,126,.2);
+}
+
+.timer{
+    color:var(--muted);
+    font-size:11px;
+}
+
+.timer strong{
+    color:var(--gold2);
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.primary{
+    width:100%;
+
+    border:0;
+
+    padding:13px;
+
+    border-radius:12px;
+
+    color:#241700;
+
+    font-weight:950;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--gold2),
+            var(--gold)
+        );
+
+    box-shadow:0 7px 20px rgba(245,197,66,.15);
+}
+
+.primary:active{
+    transform:scale(.98);
+}
+
+.secondary{
+    width:100%;
+
+    padding:12px;
+
+    border-radius:12px;
+
+    border:1px solid var(--line);
+
+    background:rgba(255,255,255,.05);
+
+    color:white;
+
+    font-weight:800;
+}
+
+.danger{
+    background:rgba(255,77,103,.12);
+    border-color:rgba(255,77,103,.3);
+    color:#ff8294;
+}
+
+/* =========================================================
    KENO
-========================================================= */
+   ========================================================= */
 
 .keno-grid{
     display:grid;
     grid-template-columns:repeat(10,1fr);
     gap:4px;
-
-    margin:13px 0;
 }
 
 .keno-number{
@@ -665,149 +609,147 @@ button{
     align-items:center;
     justify-content:center;
 
-    border-radius:7px;
+    border-radius:6px;
 
-    background:#10192b;
-    border:1px solid var(--border);
+    background:#111522;
 
-    color:#dfe5f1;
+    border:1px solid var(--line);
 
-    font-size:10px;
+    font-size:11px;
     font-weight:800;
+
+    color:#dce0e9;
 }
 
 .keno-number.selected{
-    background:var(--primary);
-    border-color:#a895ff;
-    color:white;
+    background:var(--red2);
+    border-color:var(--gold);
+    color:#fff;
+    box-shadow:0 0 0 1px var(--gold);
 }
 
 .keno-number.drawn{
     background:var(--gold);
-    color:#17120a;
+    color:#201600;
 }
 
 /* =========================================================
    BINGO
-========================================================= */
+   ========================================================= */
 
-.stake-grid{
+.stakes{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:7px;
+    gap:8px;
 }
 
 .stake{
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.04);
-    color:white;
-
-    border-radius:12px;
-
     padding:12px 5px;
 
-    font-size:11px;
-    font-weight:800;
-}
-
-.stake.active{
-    border-color:var(--gold);
-    background:rgba(246,196,83,.1);
-    color:var(--gold);
-}
-
-.cartela-controls{
-    display:flex;
-    gap:7px;
-}
-
-.cartela-input{
-    flex:1;
-
-    min-width:0;
-
-    border:1px solid var(--border);
-    background:#0b1120;
-
-    color:white;
-
-    padding:12px;
-
     border-radius:12px;
 
-    outline:none;
-}
+    background:#111522;
+    border:1px solid var(--line);
 
-.cartela-add{
-    width:70px;
-
-    border:0;
-
-    border-radius:12px;
-
-    background:var(--primary);
     color:white;
+    text-align:center;
 
     font-weight:900;
 }
 
-.cartela-slots{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-
-    margin-top:10px;
+.stake.active{
+    border-color:var(--gold);
+    background:rgba(245,197,66,.1);
+    color:var(--gold2);
 }
 
-.cartela-slot{
-    position:relative;
-
-    min-height:48px;
-
+.cartela-select{
     display:flex;
-    align-items:center;
-    justify-content:center;
+    gap:8px;
+}
 
-    border:1px solid var(--border);
-    background:rgba(255,255,255,.04);
+.cartela-select input{
+    flex:1;
 
-    border-radius:13px;
+    min-width:0;
 
-    color:var(--muted);
+    background:#0d1019;
+
+    border:1px solid var(--line);
+
+    color:white;
+
+    border-radius:10px;
+
+    padding:12px;
+    outline:none;
+}
+
+.cartela-select button{
+    border:0;
+
+    border-radius:10px;
+
+    padding:0 16px;
+
+    background:var(--gold);
+    color:#211700;
+
+    font-weight:950;
+}
+
+.cartela-tabs{
+    display:flex;
+    gap:7px;
+    margin:10px 0;
+}
+
+.cartela-tab{
+    flex:1;
+
+    padding:9px;
+
+    border-radius:9px;
+
+    background:#111522;
+
+    border:1px solid var(--line);
+
+    text-align:center;
 
     font-size:10px;
-    font-weight:800;
+    font-weight:900;
 }
 
-.slot-action{
-    position:absolute;
-    right:5px;
-    top:5px;
-
-    width:25px;
-    height:25px;
-
-    border-radius:8px;
-
-    border:1px solid var(--border);
-
-    background:rgba(255,255,255,.08);
-    color:white;
+.cartela-tab.active{
+    border-color:var(--gold);
+    color:var(--gold);
 }
 
 .bingo-board{
-    margin-top:12px;
+    background:#f7f7f8;
+    border-radius:12px;
+    padding:7px;
+}
 
+.bingo-grid{
     display:grid;
     grid-template-columns:repeat(5,1fr);
+    gap:3px;
+}
 
-    gap:4px;
+.bingo-head{
+    padding:9px 0;
 
-    background:#f8fafc;
+    border-radius:5px;
 
-    padding:7px;
+    text-align:center;
 
-    border-radius:14px;
+    background:var(--red2);
+
+    color:white;
+
+    font-weight:950;
 }
 
 .bingo-cell{
@@ -817,107 +759,73 @@ button{
     align-items:center;
     justify-content:center;
 
-    border-radius:7px;
+    border-radius:5px;
 
     background:white;
-    color:#131a27;
 
-    font-size:11px;
+    border:1px solid #ddd;
+
+    color:#222;
+
+    font-size:12px;
     font-weight:900;
-
-    border:1px solid #dce2ea;
-}
-
-.bingo-cell.header{
-    background:var(--primary);
-    color:white;
 }
 
 .bingo-cell.called{
-    box-shadow:
-        inset 0 0 0 3px var(--gold);
+    box-shadow:inset 0 0 0 2px var(--red2);
 }
 
 .bingo-cell.marked{
-    background:var(--primary);
-    color:white;
+    background:var(--gold);
+    border-color:#b88700;
 }
 
-.called-number{
-    text-align:center;
-
-    padding:15px;
-
-    border-radius:15px;
-
-    background:
-        radial-gradient(
-            circle,
-            #2b3d66,
-            #121a2c
-        );
-
-    margin-top:10px;
-}
-
-.called-number small{
-    color:var(--muted);
-    font-size:8px;
-}
-
-.called-number strong{
-    display:block;
-    font-size:28px;
-    color:var(--gold);
-    margin-top:3px;
+.bingo-cell.free{
+    background:#ddd;
+    font-size:9px;
 }
 
 /* =========================================================
    ROULETTE
-========================================================= */
+   ========================================================= */
 
 .roulette-display{
-    height:170px;
+    text-align:center;
 
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    padding:25px 10px;
 
-    border-radius:20px;
-
-    margin-bottom:12px;
+    border-radius:17px;
 
     background:
         radial-gradient(
             circle,
-            #24345b,
-            #0d1322 70%
+            #501020,
+            #120d14 70%
         );
 
-    border:1px solid var(--border);
+    border:1px solid rgba(245,197,66,.16);
 
-    position:relative;
+    margin-bottom:12px;
 }
 
-.roulette-wheel{
-    width:115px;
-    height:115px;
+.roulette-number{
+    width:76px;
+    height:76px;
+
+    margin:auto;
 
     border-radius:50%;
-
-    border:7px solid var(--gold);
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    font-size:30px;
-    font-weight:900;
+    background:#151923;
 
-    background:#11192b;
+    border:5px solid var(--gold);
 
-    box-shadow:
-        0 0 35px rgba(246,196,83,.15);
+    font-size:25px;
+    font-weight:950;
 }
 
 .roulette-bets{
@@ -926,354 +834,232 @@ button{
     gap:7px;
 }
 
-.roulette-bet{
-    border:1px solid var(--border);
+.rbet{
+    padding:13px 5px;
+
+    border-radius:10px;
+
+    border:1px solid var(--line);
+
     color:white;
-
-    padding:12px 5px;
-
-    border-radius:11px;
 
     font-weight:900;
 }
 
-.red-bet{
-    background:#652337;
+.r-red{
+    background:#74152a;
 }
 
-.black-bet{
-    background:#141c2b;
+.r-black{
+    background:#151923;
 }
 
-.green-bet{
-    background:#17573e;
+.r-green{
+    background:#125438;
 }
 
 /* =========================================================
    AVIATOR
-========================================================= */
+   ========================================================= */
 
-.aviator{
+.aviator-box{
     position:relative;
-
-    min-height:330px;
-
-    border-radius:22px;
 
     overflow:hidden;
 
+    height:230px;
+
+    border-radius:18px;
+
     background:
         radial-gradient(
-            circle at 50% 60%,
-            rgba(124,92,255,.35),
-            transparent 45%
+            circle at 50% 100%,
+            rgba(213,31,61,.3),
+            transparent 48%
         ),
         linear-gradient(
-            180deg,
-            #111d3d,
-            #080d1b
+            160deg,
+            #101d35,
+            #090b12
         );
 
-    border:1px solid rgba(124,92,255,.2);
+    border:1px solid rgba(77,163,255,.15);
 
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
 }
 
-.stars{
-    position:absolute;
-    inset:0;
-    opacity:.35;
+.aviator-box:before{
+    content:"";
 
-    background-image:
-        radial-gradient(circle,#fff 1px,transparent 1px);
-
-    background-size:42px 42px;
-}
-
-.flight-line{
     position:absolute;
 
-    width:190%;
-    height:190px;
-
-    border-top:2px solid rgba(246,196,83,.35);
+    width:330px;
+    height:330px;
 
     border-radius:50%;
 
-    transform:
-        rotate(-16deg)
-        translate(-20px,40px);
-}
+    border:1px solid rgba(77,163,255,.12);
 
-.flight-content{
-    position:relative;
-    z-index:2;
-
-    text-align:center;
+    transform:translateY(120px);
 }
 
 .multiplier{
-    font-size:52px;
+    position:relative;
+    z-index:2;
+
+    font-size:43px;
     font-weight:950;
-    letter-spacing:-2px;
-}
 
-.multiplier.flying{
     color:white;
+
     text-shadow:
-        0 0 30px rgba(124,92,255,.7);
+        0 0 25px rgba(255,255,255,.15);
 }
 
-.multiplier.crashed{
-    color:var(--red);
-}
+.flight-state{
+    position:relative;
+    z-index:2;
 
-.flight-status{
-    color:var(--muted);
-    font-size:10px;
     margin-top:4px;
+
+    font-size:11px;
+    color:var(--muted);
 }
 
-/* LIVE MONEY */
-
-.live-cashout{
-    width:100%;
+.live-money{
+    position:relative;
+    z-index:2;
 
     margin-top:12px;
 
-    border-radius:16px;
+    font-size:27px;
+    font-weight:950;
 
-    border:1px solid rgba(37,212,123,.25);
+    color:var(--gold2);
 
-    background:
-        linear-gradient(
-            135deg,
-            rgba(37,212,123,.13),
-            rgba(255,255,255,.035)
-        );
-
-    color:white;
-
-    padding:12px;
-
-    text-align:center;
+    display:none;
 }
 
-.live-cashout strong{
+.live-money span{
     display:block;
 
-    font-size:24px;
-
-    color:var(--green);
-}
-
-.live-cashout small{
-    display:block;
-
-    margin-top:2px;
+    font-size:9px;
 
     color:var(--muted);
-
-    font-size:8px;
 
     text-transform:uppercase;
 
-    letter-spacing:.8px;
+    letter-spacing:1px;
 }
 
-.cashout-word{
-    font-size:8px;
-    color:var(--gold);
-    font-weight:900;
-    margin-left:3px;
+.cashout-small{
+    font-size:9px;
+    color:#fff;
+    opacity:.7;
 }
 
-/* =========================================================
-   HELP
-========================================================= */
-
-.help{
-    padding:15px;
-
-    border-radius:16px;
-
-    background:rgba(255,255,255,.035);
-    border:1px solid var(--border);
-
-    line-height:1.65;
-
-    font-size:11px;
-
-    color:#dce2ee;
-}
-
-.help h3{
-    font-size:14px;
-    margin-bottom:8px;
-}
-
-.help p{
-    margin-bottom:8px;
-}
-
-.help ul{
-    padding-left:17px;
-}
-
-.help li{
-    margin-bottom:5px;
-}
-
-/* =========================================================
-   WALLET
-========================================================= */
-
-.balance-card{
-    padding:20px;
-
-    border-radius:22px;
-
-    background:
-        radial-gradient(
-            circle at 90% 0,
-            rgba(246,196,83,.15),
-            transparent 35%
-        ),
-        linear-gradient(
-            135deg,
-            #1a2945,
-            #101728
-        );
-
-    border:1px solid var(--border);
-}
-
-.balance-label{
-    color:var(--muted);
-    font-size:10px;
-}
-
-.balance{
-    font-size:34px;
-    font-weight:950;
-    margin:5px 0 14px;
-}
-
-.wallet-actions{
+.aviator-bet{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:8px;
+    margin-top:10px;
 }
 
-.transaction{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:13px 0;
-
-    border-bottom:1px solid var(--border);
-}
-
-.transaction:last-child{
-    border-bottom:0;
-}
-
-.transaction-left{
-    display:flex;
-    align-items:center;
-    gap:9px;
-}
-
-.transaction-icon{
-    width:35px;
-    height:35px;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    border-radius:10px;
-
-    background:rgba(255,255,255,.06);
-}
-
-.transaction small{
-    display:block;
-    color:var(--muted);
-    margin-top:3px;
-    font-size:9px;
-}
-
-.amount-plus{
-    color:var(--green);
-    font-weight:900;
-}
-
-.amount-minus{
-    color:var(--red);
-    font-weight:900;
-}
-
-/* =========================================================
-   FORMS / PAYMENT
-========================================================= */
-
-.form-group{
-    margin-bottom:12px;
-}
-
-.form-label{
-    display:block;
-
-    color:var(--muted);
-
-    font-size:10px;
-
-    margin-bottom:6px;
-}
-
-.form-input{
+.amount-input{
     width:100%;
-
-    border:1px solid var(--border);
-
-    background:#0b1120;
-
-    color:white;
 
     padding:13px;
 
-    border-radius:12px;
+    border-radius:11px;
+
+    border:1px solid var(--line);
+
+    background:#0d1019;
+
+    color:white;
 
     outline:none;
 }
 
-.form-input:focus{
-    border-color:var(--primary);
+/* =========================================================
+   WALLET
+   ========================================================= */
+
+.wallet-card{
+    padding:20px;
+
+    border-radius:20px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #681427,
+            #25151e
+        );
+
+    border:1px solid rgba(245,197,66,.2);
+
+    margin-bottom:14px;
+}
+
+.wallet-label{
+    font-size:10px;
+    color:#d6bfc4;
+}
+
+.wallet-balance{
+    font-size:32px;
+    font-weight:950;
+    color:var(--gold2);
+    margin-top:4px;
+}
+
+.wallet-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+}
+
+.wallet-btn{
+    padding:17px 8px;
+
+    border-radius:14px;
+
+    border:1px solid var(--line);
+
+    background:#171b29;
+
+    color:white;
+
+    font-weight:900;
+}
+
+.wallet-btn span{
+    display:block;
+    font-size:25px;
+    margin-bottom:5px;
 }
 
 .payment-method{
+    padding:14px;
+
+    border-radius:13px;
+
+    background:#111522;
+
+    border:1px solid var(--line);
+
     display:flex;
     align-items:center;
     gap:12px;
-
-    padding:14px;
-
-    border:1px solid var(--border);
-
-    border-radius:15px;
-
-    background:rgba(255,255,255,.035);
-
-    margin-bottom:10px;
 }
 
 .telebirr-logo{
-    width:43px;
-    height:43px;
+    width:46px;
+    height:46px;
 
     border-radius:12px;
 
@@ -1281,35 +1067,22 @@ button{
     align-items:center;
     justify-content:center;
 
-    background:
-        linear-gradient(
-            135deg,
-            #1684ff,
-            #47b7ff
-        );
+    background:#fff;
+
+    color:#1684ff;
 
     font-weight:950;
+
     font-size:10px;
 }
 
-.payment-method strong{
-    font-size:12px;
-}
-
-.payment-method small{
-    display:block;
-    color:var(--muted);
-    font-size:9px;
-    margin-top:2px;
-}
-
 /* =========================================================
-   PROFILE
-========================================================= */
+   PROFILE / AUTH
+   ========================================================= */
 
 .profile-head{
     text-align:center;
-    padding:10px 0 18px;
+    padding:20px 0;
 }
 
 .avatar{
@@ -1318,67 +1091,128 @@ button{
 
     margin:0 auto 10px;
 
+    border-radius:50%;
+
     display:flex;
     align-items:center;
     justify-content:center;
 
-    border-radius:50%;
-
     background:
         linear-gradient(
             135deg,
-            var(--primary),
-            #bd70ff
+            var(--red2),
+            var(--gold)
         );
 
-    font-size:28px;
+    font-size:30px;
 }
 
 .profile-id{
-    color:var(--gold);
-    font-size:12px;
+    color:var(--gold2);
     font-weight:900;
 }
 
-.profile-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    padding:14px 0;
-
-    border-bottom:1px solid var(--border);
-
-    font-size:12px;
+.form-group{
+    margin-bottom:11px;
 }
 
-.profile-row:last-child{
-    border-bottom:0;
-}
+.form-group label{
+    display:block;
 
-.profile-row span{
     color:var(--muted);
+
+    font-size:10px;
+
+    margin-bottom:5px;
+}
+
+.form-group input{
+    width:100%;
+
+    padding:13px;
+
+    border-radius:11px;
+
+    border:1px solid var(--line);
+
+    background:#0d1019;
+
+    color:white;
+
+    outline:none;
+}
+
+/* =========================================================
+   BOTTOM NAV
+   ========================================================= */
+
+.bottom-nav{
+    position:fixed;
+
+    bottom:0;
+    left:0;
+    right:0;
+
+    height:72px;
+
+    z-index:2000;
+
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+
+    background:rgba(10,12,19,.97);
+
+    backdrop-filter:blur(16px);
+
+    border-top:1px solid var(--line);
+}
+
+.nav-btn{
+    border:0;
+
+    background:none;
+
+    color:#747c91;
+
+    font-size:10px;
+
+    font-weight:800;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    gap:4px;
+}
+
+.nav-btn span{
+    font-size:21px;
+}
+
+.nav-btn.active{
+    color:var(--gold);
 }
 
 /* =========================================================
    MODAL
-========================================================= */
+   ========================================================= */
 
 .modal{
     position:fixed;
+
     inset:0;
 
-    z-index:1000;
+    z-index:5000;
 
     display:none;
+
     align-items:flex-end;
 
-    background:rgba(0,0,0,.65);
-
-    backdrop-filter:blur(7px);
+    background:rgba(0,0,0,.72);
 }
 
-.modal.open{
+.modal.show{
     display:flex;
 }
 
@@ -1388,29 +1222,34 @@ button{
 
     margin:auto auto 0;
 
-    background:#111a2c;
+    max-height:88vh;
 
-    border-top:
-        1px solid
-        rgba(255,255,255,.1);
+    overflow:auto;
 
-    border-radius:25px 25px 0 0;
+    background:#151925;
 
-    padding:20px 16px 25px;
+    border:1px solid var(--line);
+
+    border-radius:22px 22px 0 0;
+
+    padding:20px;
 
     animation:modalUp .2s ease;
 }
 
 @keyframes modalUp{
     from{
-        transform:translateY(100%);
+        transform:translateY(30px);
+        opacity:0;
     }
+
     to{
         transform:translateY(0);
+        opacity:1;
     }
 }
 
-.modal-head{
+.modal-title{
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -1418,35 +1257,46 @@ button{
     margin-bottom:15px;
 }
 
-.modal-head h3{
-    font-size:16px;
-}
-
-.close{
+.modal-close{
     width:34px;
     height:34px;
 
     border-radius:10px;
 
-    border:1px solid var(--border);
+    border:1px solid var(--line);
 
-    background:rgba(255,255,255,.05);
+    background:#111522;
 
     color:white;
 }
 
+.help-text{
+    color:#c9ced9;
+    font-size:13px;
+    line-height:1.65;
+}
+
+.help-text h4{
+    color:var(--gold2);
+    margin:13px 0 5px;
+}
+
+.help-text ul{
+    padding-left:20px;
+}
+
 /* =========================================================
    TOAST
-========================================================= */
+   ========================================================= */
 
 .toast{
     position:fixed;
 
     left:50%;
 
-    bottom:92px;
+    bottom:88px;
 
-    z-index:2000;
+    z-index:7000;
 
     transform:
         translate(-50%,20px);
@@ -1456,155 +1306,48 @@ button{
     pointer-events:none;
 
     width:calc(100% - 32px);
-    max-width:480px;
+
+    max-width:500px;
 
     padding:13px 15px;
 
-    border-radius:14px;
+    border-radius:13px;
 
-    background:#182238;
+    background:#202638;
 
-    border:1px solid var(--border);
+    border:1px solid rgba(245,197,66,.2);
 
     box-shadow:var(--shadow);
 
-    font-size:11px;
-
-    transition:.25s;
+    transition:.2s;
 }
 
 .toast.show{
+    transform:
+        translate(-50%,0);
+
     opacity:1;
-    transform:translate(-50%,0);
 }
 
-.toast.success{
-    border-color:rgba(37,212,123,.4);
+.toast strong{
+    color:var(--gold2);
 }
 
-.toast.error{
-    border-color:rgba(255,77,103,.4);
-}
-
-/* =========================================================
-   BOTTOM NAV
-========================================================= */
-
-.bottom-nav{
-    position:fixed;
-
-    bottom:0;
-    left:0;
-    right:0;
-
-    z-index:500;
-
-    height:76px;
-
-    display:flex;
-
-    background:
-        rgba(9,14,27,.94);
-
-    backdrop-filter:blur(20px);
-
-    border-top:1px solid var(--border);
-}
-
-.nav-btn{
-    flex:1;
-
-    border:0;
-
-    background:none;
-
-    color:var(--muted);
-
-    display:flex;
-
-    flex-direction:column;
-
-    align-items:center;
-
-    justify-content:center;
-
-    gap:4px;
-
-    font-size:9px;
-
-    font-weight:700;
-}
-
-.nav-icon{
-    font-size:21px;
-}
-
-.nav-btn.active{
-    color:white;
-}
-
-.nav-btn.active .nav-icon{
-    filter:
-        drop-shadow(
-            0 0 8px
-            rgba(124,92,255,.7)
-        );
-}
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-.auth-logo{
-    text-align:center;
-    padding:35px 0 25px;
-}
-
-.auth-logo .brand-logo{
-    margin:auto;
-}
-
-.auth-logo h1{
-    margin-top:12px;
-    font-size:24px;
-}
-
-.auth-logo p{
-    color:var(--muted);
-    font-size:11px;
-    margin-top:5px;
-}
-
-.auth-switch{
-    text-align:center;
-    color:var(--muted);
-    font-size:10px;
-    margin-top:14px;
-}
-
-.auth-switch button{
-    background:none;
-    border:0;
-    color:var(--gold);
-    font-weight:900;
-}
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media(min-width:600px){
-
-    .bottom-nav{
-        left:50%;
-        right:auto;
-        width:620px;
-        transform:translateX(-50%);
+@media(max-width:360px){
+    .game-grid{
+        gap:7px;
     }
 
-    .modal-box{
-        border-radius:25px;
-        margin:auto;
+    .game-card{
+        padding:12px;
+    }
+
+    .keno-grid{
+        gap:2px;
+    }
+
+    .keno-number{
+        font-size:9px;
     }
 }
 </style>
@@ -1612,42 +1355,29 @@ button{
 
 <body>
 
-<!-- =======================================================
+<!-- =========================================================
      TOP BAR
-======================================================= -->
+========================================================= -->
 
 <header class="topbar">
 
-    <div class="brand">
-
-        <div class="brand-logo">
-            🎮
-        </div>
-
-        <div>
-            <div class="brand-text">
-                DESTA PLAY
-            </div>
-
-            <span class="brand-sub">
-                PLAY • WIN • ENJOY
-            </span>
-        </div>
-
+    <div class="logo">
+        DESTA PLAY
     </div>
 
     <div class="top-actions">
 
-        <button
-            class="icon-btn"
-            id="languageBtn">
-            🌐
-        </button>
+        <div
+            id="miniBalance"
+            class="balance-mini">
+            0.00 ETB
+        </div>
 
         <button
             class="icon-btn"
-            id="topProfileBtn">
-            👤
+            onclick="toggleLanguage()"
+            id="languageButton">
+            EN
         </button>
 
     </div>
@@ -1655,102 +1385,54 @@ button{
 </header>
 
 
-<!-- =======================================================
-     APP
-======================================================= -->
-
-<main class="app">
+<main class="main">
 
 
-<!-- =======================================================
+<!-- =========================================================
      HOME
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-home"
+    id="homeScreen"
     class="screen active">
 
-    <div class="card hero">
+    <div class="hero">
 
-        <h1 data-i18n="welcome">
-            Welcome to Desta Play
+        <div
+            class="hero-small"
+            data-i18n="welcome">
+            WELCOME TO
+        </div>
+
+        <h1>
+            DESTA PLAY
         </h1>
 
-        <p data-i18n="welcomeDesc">
-            Your gaming arena. Choose a game,
-            follow the live round and play responsibly.
+        <p data-i18n="heroText">
+            Play live games, follow every round and manage your player wallet from one place.
         </p>
 
     </div>
 
 
     <div class="section-title">
+        <h3 data-i18n="games">
+            GAMES
+        </h3>
 
-        <h2 data-i18n="quickAccess">
-            Quick Access
-        </h2>
-
+        <span data-i18n="live">
+            LIVE
+        </span>
     </div>
 
 
-    <div class="quick-grid">
+    <div class="game-grid">
 
-        <button
-            class="quick-card"
-            data-action="games">
-
-            <div class="quick-icon">
-                🎮
-            </div>
-
-            <strong data-i18n="games">
-                Games
-            </strong>
-
-            <small data-i18n="gamesDesc">
-                Enter the live games
-            </small>
-
-        </button>
-
-
-        <button
-            class="quick-card"
-            data-action="wallet">
-
-            <div class="quick-icon">
-                💳
-            </div>
-
-            <strong data-i18n="wallet">
-                Wallet
-            </strong>
-
-            <small data-i18n="walletDesc">
-                Balance and transactions
-            </small>
-
-        </button>
-
-    </div>
-
-
-    <div class="section-title">
-
-        <h2 data-i18n="featuredGames">
-            Featured Games
-        </h2>
-
-    </div>
-
-
-    <div class="games-grid">
-
-        <button
+        <div
             class="game-card"
-            data-game="keno">
+            onclick="openGame('keno')">
 
-            <span class="game-badge">
+            <span class="game-live">
                 LIVE
             </span>
 
@@ -1758,22 +1440,20 @@ button{
                 🔢
             </div>
 
-            <strong>
-                Keno
-            </strong>
+            <h3>Keno</h3>
 
-            <small data-i18n="kenoDesc">
-                Pick numbers and follow the draw.
-            </small>
+            <p data-i18n="kenoDesc">
+                80 number draw
+            </p>
 
-        </button>
+        </div>
 
 
-        <button
+        <div
             class="game-card"
-            data-game="bingo">
+            onclick="openGame('bingo')">
 
-            <span class="game-badge">
+            <span class="game-live">
                 LIVE
             </span>
 
@@ -1781,22 +1461,20 @@ button{
                 🎱
             </div>
 
-            <strong>
-                Bingo
-            </strong>
+            <h3>Bingo</h3>
 
-            <small data-i18n="bingoDesc">
-                Interactive live Bingo.
-            </small>
+            <p data-i18n="bingoDesc">
+                Live bingo room
+            </p>
 
-        </button>
+        </div>
 
 
-        <button
+        <div
             class="game-card"
-            data-game="roulette">
+            onclick="openGame('roulette')">
 
-            <span class="game-badge">
+            <span class="game-live">
                 LIVE
             </span>
 
@@ -1804,22 +1482,20 @@ button{
                 🎡
             </div>
 
-            <strong>
-                Roulette
-            </strong>
+            <h3>Roulette</h3>
 
-            <small data-i18n="rouletteDesc">
-                European roulette.
-            </small>
+            <p data-i18n="rouletteDesc">
+                European roulette
+            </p>
 
-        </button>
+        </div>
 
 
-        <button
+        <div
             class="game-card featured"
-            data-game="aviator">
+            onclick="openGame('aviator')">
 
-            <span class="game-badge">
+            <span class="game-live">
                 LIVE
             </span>
 
@@ -1827,204 +1503,175 @@ button{
                 🚀
             </div>
 
-            <strong>
-                Aviator
-            </strong>
+            <h3>Aviator</h3>
 
-            <small data-i18n="aviatorDesc">
-                Watch the multiplier rise and
-                cash out before the flight crashes.
-            </small>
+            <p data-i18n="aviatorDesc">
+                Watch the multiplier and cash out before the flight crashes.
+            </p>
 
-        </button>
+        </div>
 
     </div>
 
 </section>
 
 
-<!-- =======================================================
-     GAMES
-======================================================= -->
+<!-- =========================================================
+     GAMES SCREEN
+========================================================= -->
 
 <section
-    id="screen-games"
+    id="gamesScreen"
     class="screen">
 
     <div class="section-title">
+        <h3 data-i18n="allGames">
+            ALL GAMES
+        </h3>
 
-        <h2 data-i18n="allGames">
-            All Games
-        </h2>
-
-        <span data-i18n="liveRounds">
-            Live rounds
-        </span>
-
+        <span>DESTA PLAY</span>
     </div>
 
+    <div class="game-grid">
 
-    <div class="games-grid">
-
-        <button
+        <div
             class="game-card"
-            data-game="keno">
+            onclick="openGame('keno')">
 
             <div class="game-icon">🔢</div>
 
-            <strong>Keno</strong>
+            <h3>Keno</h3>
 
-            <small data-i18n="kenoDesc">
-                Pick numbers and follow the draw.
-            </small>
+            <p data-i18n="kenoDesc">
+                80 number draw
+            </p>
 
-        </button>
+        </div>
 
-
-        <button
+        <div
             class="game-card"
-            data-game="bingo">
+            onclick="openGame('bingo')">
 
             <div class="game-icon">🎱</div>
 
-            <strong>Bingo</strong>
+            <h3>Bingo</h3>
 
-            <small data-i18n="bingoDesc">
-                Interactive live Bingo.
-            </small>
+            <p data-i18n="bingoDesc">
+                Live bingo room
+            </p>
 
-        </button>
+        </div>
 
-
-        <button
+        <div
             class="game-card"
-            data-game="roulette">
+            onclick="openGame('roulette')">
 
             <div class="game-icon">🎡</div>
 
-            <strong>Roulette</strong>
+            <h3>Roulette</h3>
 
-            <small data-i18n="rouletteDesc">
-                European roulette.
-            </small>
+            <p data-i18n="rouletteDesc">
+                European roulette
+            </p>
 
-        </button>
+        </div>
 
-
-        <button
+        <div
             class="game-card featured"
-            data-game="aviator">
+            onclick="openGame('aviator')">
 
             <div class="game-icon">🚀</div>
 
-            <strong>Aviator</strong>
+            <h3>Aviator</h3>
 
-            <small data-i18n="aviatorDesc">
-                Multiplier crash game.
-            </small>
+            <p data-i18n="aviatorDesc">
+                Live multiplier crash game
+            </p>
 
-        </button>
+        </div>
 
     </div>
 
 </section>
 
 
-<!-- =======================================================
+<!-- =========================================================
      KENO
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-keno"
+    id="kenoScreen"
     class="screen">
 
     <div class="game-header">
 
-        <div class="game-header-left">
+        <button
+            class="back"
+            onclick="goBack()">
+            ←
+        </button>
 
-            <button
-                class="back"
-                data-back>
-                ←
-            </button>
-
+        <div class="game-heading">
             <h2>Keno</h2>
-
+            <p data-i18n="kenoDesc">
+                80 number draw
+            </p>
         </div>
 
         <button
-            class="icon-btn"
-            data-help="keno">
+            class="help"
+            onclick="showHelp('keno')">
             ?
         </button>
 
     </div>
 
 
-    <div class="round-bar">
+    <div class="panel">
 
-        <div class="round-info">
+        <div class="status-row">
 
-            <small data-i18n="round">
-                ROUND
-            </small>
-
-            <strong id="kenoRound">
-                K-0001
-            </strong>
-
-        </div>
-
-        <div class="round-info">
-
-            <small data-i18n="time">
-                TIME
-            </small>
-
-            <strong
-                class="timer"
-                id="kenoTimer">
-                40
-            </strong>
-
-        </div>
-
-    </div>
-
-
-    <div class="history">
-
-        <div class="history-row">
-
-            <div
-                class="history-item"
-                id="kenoLatest">
-                K-0001
+            <div class="status">
+                <span data-i18n="betting">
+                    BETTING
+                </span>
             </div>
 
-            <button
-                class="expand-history"
-                data-expand="keno">
-                ↓
-            </button>
+            <div class="timer">
+                <span data-i18n="round">
+                    Round
+                </span>
+                <strong id="kenoRound">
+                    K-1024
+                </strong>
+                ·
+                <strong id="kenoTimer">
+                    40
+                </strong>s
+            </div>
 
         </div>
 
         <div
+            id="kenoRounds"
+            class="round-strip">
+        </div>
+
+        <div
             id="kenoHistory"
-            class="history-expanded">
+            class="history-expanded hidden">
         </div>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
         <div class="section-title" style="margin-top:0">
 
-            <h2 data-i18n="selectNumbers">
-                Select Numbers
-            </h2>
+            <h3 data-i18n="selectNumbers">
+                SELECT NUMBERS
+            </h3>
 
             <span id="kenoSelected">
                 0 / 10
@@ -2037,11 +1684,13 @@ button{
             class="keno-grid">
         </div>
 
+        <div style="height:10px"></div>
+
         <button
-            class="btn"
-            id="kenoBetBtn"
-            data-i18n="confirmSelection">
-            CONFIRM SELECTION
+            class="primary"
+            onclick="confirmKeno()"
+            data-i18n="confirmBet">
+            CONFIRM BET
         </button>
 
     </div>
@@ -2049,213 +1698,211 @@ button{
 </section>
 
 
-<!-- =======================================================
+<!-- =========================================================
      BINGO
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-bingo"
+    id="bingoScreen"
     class="screen">
 
     <div class="game-header">
 
-        <div class="game-header-left">
+        <button
+            class="back"
+            onclick="goBack()">
+            ←
+        </button>
 
-            <button
-                class="back"
-                data-back>
-                ←
-            </button>
-
+        <div class="game-heading">
             <h2>Bingo</h2>
-
+            <p data-i18n="bingoDesc">
+                Live bingo room
+            </p>
         </div>
 
         <button
-            class="icon-btn"
-            data-help="bingo">
+            class="help"
+            onclick="showHelp('bingo')">
             ?
         </button>
 
     </div>
 
 
-    <div class="round-bar">
+    <div class="panel">
 
-        <div class="round-info">
+        <div class="status-row">
 
-            <small>
-                ROUND
-            </small>
-
-            <strong id="bingoRound">
-                B-0001
-            </strong>
-
-        </div>
-
-        <div class="round-info">
-
-            <small>
-                TIME
-            </small>
-
-            <strong
-                class="timer"
-                id="bingoTimer">
-                40
-            </strong>
-
-        </div>
-
-    </div>
-
-
-    <div class="history">
-
-        <div class="history-row">
-
-            <div
-                class="history-item"
-                id="bingoLatest">
-                B-0001
+            <div class="status">
+                <span data-i18n="waiting">
+                    WAITING
+                </span>
             </div>
 
-            <button
-                class="expand-history"
-                data-expand="bingo">
-                ↓
-            </button>
+            <div class="timer">
+                <span data-i18n="round">
+                    Round
+                </span>
+                <strong id="bingoRound">
+                    B-2024
+                </strong>
+                ·
+                <strong id="bingoTimer">
+                    40
+                </strong>s
+            </div>
 
+        </div>
+
+        <div
+            id="bingoRounds"
+            class="round-strip">
         </div>
 
         <div
             id="bingoHistory"
-            class="history-expanded">
+            class="history-expanded hidden">
         </div>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
-        <h3
-            style="font-size:14px;margin-bottom:10px"
-            data-i18n="chooseStake">
-            Choose Stake
-        </h3>
+        <div class="section-title" style="margin-top:0">
+            <h3 data-i18n="chooseStake">
+                CHOOSE STAKE
+            </h3>
+        </div>
 
-        <div
-            id="stakeGrid"
-            class="stake-grid">
+        <div class="stakes">
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,10)">
+                10 ETB
+            </button>
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,20)">
+                20 ETB
+            </button>
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,50)">
+                50 ETB
+            </button>
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,100)">
+                100 ETB
+            </button>
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,200)">
+                200 ETB
+            </button>
+
+            <button
+                class="stake"
+                onclick="chooseStake(this,500)">
+                500 ETB
+            </button>
+
         </div>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
-        <h3
-            style="font-size:14px;margin-bottom:6px"
-            data-i18n="cartelas">
-            Cartelas
+        <h3 style="font-size:14px;margin-bottom:8px"
+            data-i18n="chooseCartela">
+            CHOOSE CARTELA
         </h3>
 
-        <p
-            style="color:var(--muted);
-                   font-size:10px;
-                   margin-bottom:10px"
-            data-i18n="cartelaInfo">
-            Cartela 1 is permanent.
-            Cartela 2 is optional.
-        </p>
-
-
-        <div class="cartela-controls">
+        <div class="cartela-select">
 
             <input
                 id="cartelaInput"
-                class="cartela-input"
                 type="number"
                 min="1"
                 max="120"
-                placeholder="1 - 120">
+                placeholder="Cartela 1–120">
 
             <button
-                class="cartela-add"
-                id="addCartelaBtn">
+                onclick="loadCartela()">
                 ADD
             </button>
 
         </div>
 
+        <div class="cartela-tabs">
 
-        <div class="cartela-slots">
-
-            <div
-                class="cartela-slot"
-                id="slot1">
-
+            <button
+                id="tab1"
+                class="cartela-tab active"
+                onclick="selectCartela(1)">
                 CARTELA 1
+            </button>
 
-            </div>
-
-
-            <div
-                class="cartela-slot"
-                id="slot2">
-
-                <span id="slot2Text">
-                    CARTELA 2
-                </span>
-
-                <button
-                    class="slot-action"
-                    id="slot2Action">
-                    −
-                </button>
-
-            </div>
+            <button
+                id="tab2"
+                class="cartela-tab"
+                onclick="selectCartela(2)">
+                CARTELA 2
+            </button>
 
         </div>
 
+        <div id="bingoBoard"
+             class="bingo-board">
 
-        <div
-            id="bingoBoard"
-            class="bingo-board">
+            <div class="bingo-grid"
+                 id="bingoGrid">
+            </div>
+
         </div>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
-        <div class="called-number">
+        <div class="section-title"
+             style="margin-top:0">
 
-            <small data-i18n="lastCalled">
+            <h3 data-i18n="lastCalled">
                 LAST CALLED
-            </small>
+            </h3>
 
-            <strong id="bingoCalled">
+            <strong
+                id="lastBingoNumber"
+                style="color:var(--gold2)">
                 —
             </strong>
 
         </div>
 
         <button
-            class="btn gold"
-            id="bingoBetBtn"
-            style="margin-top:10px"
+            class="primary"
+            onclick="placeBingoBet()"
             data-i18n="placeBet">
             PLACE BET
         </button>
 
+        <div style="height:8px"></div>
+
         <button
-            class="btn green"
-            id="bingoClaimBtn"
-            style="margin-top:8px"
+            class="secondary"
+            onclick="claimBingo()"
             data-i18n="claimBingo">
-            BINGO
+            CLAIM BINGO
         </button>
 
     </div>
@@ -2263,102 +1910,93 @@ button{
 </section>
 
 
-<!-- =======================================================
+<!-- =========================================================
      ROULETTE
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-roulette"
+    id="rouletteScreen"
     class="screen">
 
     <div class="game-header">
 
-        <div class="game-header-left">
+        <button
+            class="back"
+            onclick="goBack()">
+            ←
+        </button>
 
-            <button
-                class="back"
-                data-back>
-                ←
-            </button>
-
+        <div class="game-heading">
             <h2>Roulette</h2>
-
+            <p data-i18n="rouletteDesc">
+                European roulette
+            </p>
         </div>
 
         <button
-            class="icon-btn"
-            data-help="roulette">
+            class="help"
+            onclick="showHelp('roulette')">
             ?
         </button>
 
     </div>
 
 
-    <div class="round-bar">
+    <div class="panel">
 
-        <div class="round-info">
+        <div class="status-row">
 
-            <small>
-                ROUND
-            </small>
-
-            <strong id="rouletteRound">
-                R-0001
-            </strong>
-
-        </div>
-
-        <div class="round-info">
-
-            <small>
-                TIME
-            </small>
-
-            <strong
-                class="timer"
-                id="rouletteTimer">
-                40
-            </strong>
-
-        </div>
-
-    </div>
-
-
-    <div class="history">
-
-        <div class="history-row">
-
-            <div
-                class="history-item"
-                id="rouletteLatest">
-                R-0001
+            <div class="status">
+                <span data-i18n="betting">
+                    BETTING
+                </span>
             </div>
 
-            <button
-                class="expand-history"
-                data-expand="roulette">
-                ↓
-            </button>
+            <div class="timer">
+                <span data-i18n="round">
+                    Round
+                </span>
+
+                <strong id="rouletteRound">
+                    R-6001
+                </strong>
+
+                ·
+
+                <strong id="rouletteTimer">
+                    40
+                </strong>s
+            </div>
 
         </div>
 
         <div
+            id="rouletteRounds"
+            class="round-strip">
+        </div>
+
+        <div
             id="rouletteHistory"
-            class="history-expanded">
+            class="history-expanded hidden">
         </div>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
         <div class="roulette-display">
 
             <div
-                class="roulette-wheel"
-                id="rouletteNumber">
+                id="rouletteNumber"
+                class="roulette-number">
                 0
+            </div>
+
+            <div
+                style="margin-top:10px;color:var(--muted);font-size:11px"
+                data-i18n="nextSpin">
+                Next spin starting soon
             </div>
 
         </div>
@@ -2367,20 +2005,22 @@ button{
         <div class="roulette-bets">
 
             <button
-                class="roulette-bet red-bet"
-                data-roulette="red">
+                class="rbet r-red"
+                onclick="rouletteBet('RED')"
+                data-i18n="red">
                 RED
             </button>
 
             <button
-                class="roulette-bet green-bet"
-                data-roulette="green">
+                class="rbet r-green"
+                onclick="rouletteBet('ZERO')">
                 0
             </button>
 
             <button
-                class="roulette-bet black-bet"
-                data-roulette="black">
+                class="rbet r-black"
+                onclick="rouletteBet('BLACK')"
+                data-i18n="black">
                 BLACK
             </button>
 
@@ -2391,226 +2031,241 @@ button{
 </section>
 
 
-<!-- =======================================================
+<!-- =========================================================
      AVIATOR
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-aviator"
+    id="aviatorScreen"
     class="screen">
 
     <div class="game-header">
 
-        <div class="game-header-left">
+        <button
+            class="back"
+            onclick="goBack()">
+            ←
+        </button>
 
-            <button
-                class="back"
-                data-back>
-                ←
-            </button>
-
+        <div class="game-heading">
             <h2>Aviator</h2>
-
+            <p data-i18n="aviatorDesc">
+                Live multiplier crash game
+            </p>
         </div>
 
         <button
-            class="icon-btn"
-            data-help="aviator">
+            class="help"
+            onclick="showHelp('aviator')">
             ?
         </button>
 
     </div>
 
 
-    <div class="history">
+    <!-- AVIATOR HISTORY -->
 
-        <div class="history-row">
+    <div class="panel">
 
-            <div
-                class="history-item crash"
-                id="aviatorLatest">
-                1.00x
-            </div>
-
-            <button
-                class="expand-history"
-                data-expand="aviator">
-                ↓
-            </button>
-
+        <div
+            id="aviatorRounds"
+            class="round-strip">
         </div>
 
         <div
             id="aviatorHistory"
-            class="history-expanded">
+            class="history-expanded hidden">
         </div>
 
     </div>
 
 
-    <div class="aviator">
+    <div class="panel">
 
-        <div class="stars"></div>
-
-        <div class="flight-line"></div>
-
-        <div class="flight-content">
+        <div class="aviator-box">
 
             <div
                 id="aviatorMultiplier"
-                class="multiplier flying">
+                class="multiplier">
                 1.00x
             </div>
 
             <div
-                id="aviatorStatus"
-                class="flight-status">
-                Waiting for flight...
+                id="aviatorState"
+                class="flight-state"
+                data-i18n="waitingForFlight">
+                Waiting for flight
             </div>
+
+            <!--
+              THIS IS THE LIVE RUNNING MONEY.
+
+              It stays horizontal.
+
+              Example:
+              10.00 ETB
+              CASH OUT
+            -->
+
+            <div
+                id="liveMoney"
+                class="live-money">
+
+                <span data-i18n="cashOut">
+                    CASH OUT
+                </span>
+
+                <div id="runningMoney">
+                    0.00 ETB
+                </div>
+
+                <div class="cashout-small"
+                     data-i18n="tapToCashOut">
+                    TAP TO CASH OUT
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="aviator-bet">
+
+            <input
+                id="aviatorAmount"
+                class="amount-input"
+                type="number"
+                min="1"
+                placeholder="Stake ETB">
+
+            <button
+                id="aviatorBetButton"
+                class="primary"
+                onclick="startAviatorBet()"
+                data-i18n="placeBet">
+                PLACE BET
+            </button>
 
         </div>
 
     </div>
 
+</section>
 
-    <div class="card">
+
+<!-- =========================================================
+     WALLET
+========================================================= -->
+
+<section
+    id="walletScreen"
+    class="screen">
+
+    <div class="section-title"
+         style="margin-top:0">
+
+        <h3 data-i18n="wallet">
+            WALLET
+        </h3>
+
+    </div>
+
+
+    <div class="wallet-card">
 
         <div
-            style="
-            display:flex;
-            justify-content:space-between;
-            margin-bottom:10px">
-
-            <span
-                style="font-size:10px;color:var(--muted)"
-                data-i18n="flightBet">
-                Flight Bet
-            </span>
-
-            <strong
-                id="aviatorBetAmount"
-                style="font-size:12px">
-                0 ETB
-            </strong>
-
+            class="wallet-label"
+            data-i18n="availableBalance">
+            AVAILABLE BALANCE
         </div>
 
-
-        <div class="cartela-controls">
-
-            <input
-                id="aviatorBetInput"
-                class="cartela-input"
-                type="number"
-                min="1"
-                placeholder="Bet amount">
-
-            <button
-                class="cartela-add"
-                id="aviatorBetBtn">
-                BET
-            </button>
-
+        <div
+            id="walletBalance"
+            class="wallet-balance">
+            0.00 ETB
         </div>
 
+    </div>
 
-        <!--
-            IMPORTANT:
-            This is intentionally the LIVE MONEY button.
-            The amount changes as:
-            bet × current multiplier.
 
-            Player taps the running amount to cash out.
-        -->
+    <div class="wallet-buttons">
 
         <button
-            id="aviatorCashout"
-            class="live-cashout"
-            disabled>
+            class="wallet-btn"
+            onclick="openWalletAction('deposit')">
 
-            <strong id="aviatorLiveMoney">
-                0.00 ETB
-                <span class="cashout-word">
-                    CASH OUT
-                </span>
-            </strong>
+            <span>💰</span>
 
-            <small data-i18n="tapCashout">
-                Tap the running amount to cash out
-            </small>
+            <span data-i18n="deposit">
+                DEPOSIT
+            </span>
+
+        </button>
+
+
+        <button
+            class="wallet-btn"
+            onclick="openWalletAction('withdraw')">
+
+            <span>💸</span>
+
+            <span data-i18n="withdraw">
+                WITHDRAW
+            </span>
 
         </button>
 
     </div>
 
-</section>
 
+    <div class="panel"
+         style="margin-top:13px">
 
-<!-- =======================================================
-     WALLET
-======================================================= -->
+        <h3 style="font-size:14px;margin-bottom:12px"
+            data-i18n="withdrawable">
+            WITHDRAWABLE BALANCE
+        </h3>
 
-<section
-    id="screen-wallet"
-    class="screen">
+        <div
+            id="withdrawableBalance"
+            style="font-size:24px;font-weight:950;color:var(--green)">
+            0.00 ETB
+        </div>
 
-    <div class="section-title">
-
-        <h2 data-i18n="wallet">
-            Wallet
-        </h2>
+        <p
+            style="margin-top:7px;color:var(--muted);font-size:11px"
+            data-i18n="walletNote">
+            Deposit funds may have play-through requirements before they become withdrawable.
+        </p>
 
     </div>
 
 
-    <div class="balance-card">
+    <div class="panel">
 
-        <div class="balance-label"
-             data-i18n="availableBalance">
-            AVAILABLE BALANCE
-        </div>
+        <h3 style="font-size:14px;margin-bottom:12px"
+            data-i18n="paymentMethod">
+            PAYMENT METHOD
+        </h3>
 
-        <div class="balance">
-            <span id="walletBalance">
-                0.00
-            </span>
-            ETB
-        </div>
+        <div class="payment-method">
 
+            <div class="telebirr-logo">
+                TELEBIRR
+            </div>
 
-        <div class="wallet-actions">
+            <div>
+                <strong>
+                    Telebirr
+                </strong>
 
-            <button
-                class="btn green"
-                id="depositBtn"
-                data-i18n="deposit">
-                DEPOSIT
-            </button>
+                <div
+                    style="font-size:10px;color:var(--muted);margin-top:3px"
+                    data-i18n="depositWithdraw">
+                    Deposit & withdrawal
+                </div>
+            </div>
 
-            <button
-                class="btn gold"
-                id="withdrawBtn"
-                data-i18n="withdraw">
-                WITHDRAW
-            </button>
-
-        </div>
-
-    </div>
-
-
-    <div class="card">
-
-        <div class="section-title"
-             style="margin-top:0">
-
-            <h2 data-i18n="transactions">
-                Transactions
-            </h2>
-
-        </div>
-
-        <div id="transactions">
         </div>
 
     </div>
@@ -2618,15 +2273,15 @@ button{
 </section>
 
 
-<!-- =======================================================
+<!-- =========================================================
      PROFILE
-======================================================= -->
+========================================================= -->
 
 <section
-    id="screen-profile"
+    id="profileScreen"
     class="screen">
 
-    <div class="card">
+    <div class="panel">
 
         <div class="profile-head">
 
@@ -2635,164 +2290,157 @@ button{
             </div>
 
             <h2 id="profileName">
-                Player
+                Guest Player
             </h2>
 
             <div
-                class="profile-id"
-                id="profileId">
+                id="profileId"
+                class="profile-id">
                 DP-000000
             </div>
 
         </div>
 
 
-        <div class="profile-row">
+        <button
+            class="primary"
+            onclick="openAuth('login')"
+            data-i18n="login">
+            LOGIN
+        </button>
 
-            <span data-i18n="telegram">
-                Telegram
-            </span>
+        <div style="height:8px"></div>
 
-            <strong id="telegramInfo">
-                Not connected
-            </strong>
-
-        </div>
-
-
-        <div class="profile-row">
-
-            <span data-i18n="accountStatus">
-                Account Status
-            </span>
-
-            <strong style="color:var(--green)">
-                ACTIVE
-            </strong>
-
-        </div>
-
-
-        <div class="profile-row">
-
-            <span data-i18n="memberSince">
-                Member Since
-            </span>
-
-            <strong id="memberSince">
-                —
-            </strong>
-
-        </div>
+        <button
+            class="secondary"
+            onclick="openAuth('register')"
+            data-i18n="newPlayer">
+            NEW PLAYER
+        </button>
 
     </div>
 
 
-    <div class="card">
+    <div class="panel">
 
-        <button
-            class="btn secondary"
-            id="loginBtn"
-            data-i18n="login">
-            LOGIN / REGISTER
-        </button>
+        <h3 style="font-size:14px;margin-bottom:8px"
+            data-i18n="accountInfo">
+            ACCOUNT INFORMATION
+        </h3>
+
+        <div
+            style="font-size:12px;color:var(--muted);line-height:1.8">
+
+            Telegram:
+            <strong
+                id="telegramInfo"
+                style="color:white">
+                Not registered
+            </strong>
+
+            <br>
+
+            Player ID:
+            <strong
+                id="profileId2"
+                style="color:white">
+                DP-000000
+            </strong>
+
+        </div>
 
     </div>
 
 </section>
 
-
 </main>
 
 
-<!-- =======================================================
-     BOTTOM NAV
-======================================================= -->
+<!-- =========================================================
+     BOTTOM NAVIGATION
+========================================================= -->
 
 <nav class="bottom-nav">
 
     <button
+        id="navHome"
         class="nav-btn active"
-        data-nav="home">
+        onclick="navigate('home')">
 
-        <span class="nav-icon">
-            🏠
-        </span>
+        <span>🏠</span>
 
-        <span data-i18n="home">
+        <div data-i18n="home">
             Home
-        </span>
+        </div>
 
     </button>
 
 
     <button
+        id="navGames"
         class="nav-btn"
-        data-nav="games">
+        onclick="navigate('games')">
 
-        <span class="nav-icon">
-            🎮
-        </span>
+        <span>🎮</span>
 
-        <span data-i18n="games">
+        <div data-i18n="games">
             Games
-        </span>
+        </div>
 
     </button>
 
 
     <button
+        id="navWallet"
         class="nav-btn"
-        data-nav="wallet">
+        onclick="navigate('wallet')">
 
-        <span class="nav-icon">
-            💳
-        </span>
+        <span>💳</span>
 
-        <span data-i18n="wallet">
+        <div data-i18n="wallet">
             Wallet
-        </span>
+        </div>
 
     </button>
 
 
     <button
+        id="navProfile"
         class="nav-btn"
-        data-nav="profile">
+        onclick="navigate('profile')">
 
-        <span class="nav-icon">
-            👤
-        </span>
+        <span>👤</span>
 
-        <span data-i18n="profile">
+        <div data-i18n="profile">
             Profile
-        </span>
+        </div>
 
     </button>
 
 </nav>
 
 
-<!-- =======================================================
+<!-- =========================================================
      MODAL
-======================================================= -->
+========================================================= -->
 
 <div
     id="modal"
-    class="modal">
+    class="modal"
+    onclick="closeModalOutside(event)">
 
     <div class="modal-box">
 
-        <div class="modal-head">
+        <div class="modal-title">
 
             <h3 id="modalTitle">
                 Help
             </h3>
 
             <button
-                class="close"
-                id="modalClose">
-                ×
+                class="modal-close"
+                onclick="closeModal()">
+                ✕
             </button>
 
         </div>
@@ -2805,129 +2453,75 @@ button{
 </div>
 
 
-<!-- =======================================================
+<!-- =========================================================
      TOAST
-======================================================= -->
+========================================================= -->
 
 <div
     id="toast"
     class="toast">
+
+    <strong id="toastTitle">
+        DESTA PLAY
+    </strong>
+
+    <div id="toastMessage"
+         style="font-size:12px;margin-top:3px">
+    </div>
+
 </div>
 
 
 <script>
 
 /* =========================================================
-   DESTA PLAY FRONTEND
-========================================================= */
-
-/*
-    IMPORTANT SECURITY NOTE
-
-    This file is a frontend.
-
-    Never trust:
-      - wallet balance
-      - bet amount
-      - game result
-      - cash-out result
-      - deposit confirmation
-      - withdrawal approval
-
-    Your future backend must be authoritative.
-
-    The functions below currently simulate those actions
-    so the interface can be tested without a backend.
-*/
+   DESTA PLAY FRONTEND ENGINE
+   ========================================================= */
 
 
 /* =========================================================
-   CONFIG
+   STATE
 ========================================================= */
 
-const CONFIG = {
+let currentScreen = "home";
 
-    /*
-       Replace these only with PUBLIC display information.
+let currentGame = null;
 
-       NEVER place:
-       bot tokens
-       API secrets
-       database passwords
-       private keys
-       SMS-forwarder credentials
-       payment API secrets
-       here.
-    */
+let currentLanguage = "en";
 
-    PAYMENT_METHOD:"Telebirr",
+let balance = 0;
 
-    PAYMENT_ACCOUNT_NAME:"YOUR ACCOUNT NAME",
+let withdrawableBalance = 0;
 
-    PAYMENT_ACCOUNT_NUMBER:"09XXXXXXXX",
+let selectedStake = 0;
 
-    BACKEND_URL:""
+let activeCartela = 1;
 
-};
+let selectedKeno = new Set();
 
+let bingoMarked = new Set();
 
-/* =========================================================
-   APPLICATION STATE
-========================================================= */
+let aviatorBet = 0;
 
-const state = {
+let aviatorRunning = false;
 
-    language:
-        localStorage.getItem("dp_language") || "en",
+let aviatorCashoutDone = false;
 
-    playerId:
-        localStorage.getItem("dp_player_id") ||
-        createPlayerId(),
+let aviatorMultiplier = 1;
 
-    balance:
-        Number(
-            localStorage.getItem("dp_balance") || 0
-        ),
-
-    telegram:"",
-    playerName:"Player",
-
-    selectedKeno:new Set(),
-
-    bingoStake:10,
-
-    cartela1:null,
-    cartela2:null,
-
-    cartela2Enabled:true,
-
-    bingoMarked:new Set(),
-
-    aviatorBet:0,
-
-    aviatorPlaying:false,
-
-    aviatorCashed:false,
-
-    aviatorMultiplier:1,
-
-    histories:{
-        keno:[],
-        bingo:[],
-        roulette:[],
-        aviator:[]
-    }
-
-};
+let aviatorInterval = null;
 
 
 /* =========================================================
    PLAYER ID
 ========================================================= */
 
-function createPlayerId(){
+let playerId =
+    localStorage.getItem("desta_player_id");
 
-    const id =
+if(!playerId){
+
+    playerId =
         "DP-" +
         Math.floor(
             100000 +
@@ -2935,433 +2529,350 @@ function createPlayerId(){
         );
 
     localStorage.setItem(
-        "dp_player_id",
-        id
+        "desta_player_id",
+        playerId
     );
-
-    return id;
 }
+
+document.getElementById("profileId").innerText =
+    playerId;
+
+document.getElementById("profileId2").innerText =
+    playerId;
 
 
 /* =========================================================
-   UTILITY
+   LANGUAGE
+   =========================================================
+   IMPORTANT:
+   Game names such as Keno, Bingo, Roulette and Aviator
+   intentionally do NOT have translation keys.
+
+   Therefore they remain unchanged.
 ========================================================= */
 
-function money(value){
+const translations = {
 
-    return Number(value || 0)
-        .toLocaleString(
-            "en-US",
-            {
-                minimumFractionDigits:2,
-                maximumFractionDigits:2
-            }
-        );
+    en:{
+        welcome:"WELCOME TO",
+        heroText:
+            "Play live games, follow every round and manage your player wallet from one place.",
+        games:"GAMES",
+        allGames:"ALL GAMES",
+        live:"LIVE",
 
-}
+        kenoDesc:"80 number draw",
+        bingoDesc:"Live bingo room",
+        rouletteDesc:"European roulette",
+        aviatorDesc:"Watch the multiplier and cash out before the flight crashes.",
 
+        betting:"BETTING",
+        waiting:"WAITING",
+        round:"Round",
 
-function saveState(){
+        selectNumbers:"SELECT NUMBERS",
+        confirmBet:"CONFIRM BET",
 
-    localStorage.setItem(
-        "dp_language",
-        state.language
-    );
+        chooseStake:"CHOOSE STAKE",
+        chooseCartela:"CHOOSE CARTELA",
 
-    localStorage.setItem(
-        "dp_balance",
-        state.balance
-    );
+        lastCalled:"LAST CALLED",
+        placeBet:"PLACE BET",
+        claimBingo:"CLAIM BINGO",
 
-}
+        nextSpin:"Next spin starting soon",
+        red:"RED",
+        black:"BLACK",
 
+        waitingForFlight:"Waiting for flight",
+        cashOut:"CASH OUT",
+        tapToCashOut:"TAP TO CASH OUT",
 
-function toast(
-    message,
-    type="success"
-){
+        wallet:"WALLET",
+        availableBalance:"AVAILABLE BALANCE",
+        deposit:"DEPOSIT",
+        withdraw:"WITHDRAW",
+        withdrawable:"WITHDRAWABLE BALANCE",
 
-    const el =
-        document.getElementById("toast");
+        walletNote:
+            "Deposit funds may have play-through requirements before they become withdrawable.",
 
-    el.innerText =
-        message;
+        paymentMethod:"PAYMENT METHOD",
+        depositWithdraw:"Deposit & withdrawal",
 
-    el.className =
-        "toast show " +
-        type;
+        profile:"Profile",
+        home:"Home",
 
-    clearTimeout(
-        window.toastTimer
-    );
+        login:"LOGIN",
+        newPlayer:"NEW PLAYER",
+        accountInfo:"ACCOUNT INFORMATION"
+    },
 
-    window.toastTimer =
-        setTimeout(
-            ()=>{
-                el.className="toast";
-            },
-            2800
-        );
+    am:{
+        welcome:"እንኳን ወደ",
+        heroText:
+            "ቀጥታ ጨዋታዎችን ይጫወቱ፣ የዙሮችን ሁኔታ ይከታተሉ እና የተጫዋች ዋሌትዎን ያስተዳድሩ።",
 
-}
+        games:"ጨዋታዎች",
+        allGames:"ሁሉም ጨዋታዎች",
+        live:"ቀጥታ",
+
+        kenoDesc:"80 ቁጥሮች ይወጣሉ",
+        bingoDesc:"ቀጥታ ቢንጎ",
+        rouletteDesc:"የአውሮፓ ሩሌት",
+        aviatorDesc:"ብዜቱን ይከታተሉ እና ከመቋረጡ በፊት ገንዘቡን ያውጡ።",
+
+        betting:"ውርርድ",
+        waiting:"በመጠበቅ ላይ",
+        round:"ዙር",
+
+        selectNumbers:"ቁጥሮች ይምረጡ",
+        confirmBet:"ውርርድ ያረጋግጡ",
+
+        chooseStake:"የውርርድ መጠን ይምረጡ",
+        chooseCartela:"ካርቴላ ይምረጡ",
+
+        lastCalled:"የመጨረሻ የተጠራ",
+        placeBet:"ውርርድ ያስገቡ",
+        claimBingo:"ቢንጎ ይጠይቁ",
+
+        nextSpin:"ቀጣዩ ዙር በቅርቡ ይጀምራል",
+        red:"ቀይ",
+        black:"ጥቁር",
+
+        waitingForFlight:"በረራን በመጠበቅ ላይ",
+        cashOut:"ገንዘብ አውጣ",
+        tapToCashOut:"ገንዘብ ለማውጣት ይጫኑ",
+
+        wallet:"ዋሌት",
+        availableBalance:"ያለዎት ቀሪ ሂሳብ",
+        deposit:"ገንዘብ አስገባ",
+        withdraw:"ገንዘብ አውጣ",
+        withdrawable:"ሊወጣ የሚችል ቀሪ ሂሳብ",
+
+        walletNote:
+            "የተቀመጠ ገንዘብ ለመውጣት ከመቻሉ በፊት የጨዋታ መስፈርት ሊኖረው ይችላል።",
+
+        paymentMethod:"የክፍያ ዘዴ",
+        depositWithdraw:"ለማስገባት እና ለማውጣት",
+
+        profile:"መገለጫ",
+        home:"መነሻ",
+
+        login:"ግባ",
+        newPlayer:"አዲስ ተጫዋች",
+        accountInfo:"የመለያ መረጃ"
+    }
+
+};
 
 
 /* =========================================================
-   SCREEN NAVIGATION
+   LANGUAGE
 ========================================================= */
 
-function showScreen(name){
+function toggleLanguage(){
+
+    currentLanguage =
+        currentLanguage === "en"
+            ? "am"
+            : "en";
+
+    document.getElementById(
+        "languageButton"
+    ).innerText =
+        currentLanguage === "en"
+            ? "EN"
+            : "አማ";
+
+    applyLanguage();
+
+}
+
+
+function applyLanguage(){
 
     document
-        .querySelectorAll(".screen")
-        .forEach(
-            screen =>
-                screen.classList.remove("active")
-        );
+        .querySelectorAll("[data-i18n]")
+        .forEach(element => {
+
+            const key =
+                element.dataset.i18n;
+
+            if(
+                translations[currentLanguage][key]
+            ){
+
+                element.innerText =
+                    translations[
+                        currentLanguage
+                    ][key];
+
+            }
+
+        });
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function navigate(screen){
+
+    hideAllScreens();
+
+    const id =
+        screen + "Screen";
 
     const target =
-        document.getElementById(
-            "screen-" + name
-        );
+        document.getElementById(id);
 
     if(target){
         target.classList.add("active");
     }
 
+    currentScreen = screen;
 
     document
         .querySelectorAll(".nav-btn")
-        .forEach(btn=>{
-            btn.classList.toggle(
-                "active",
-                btn.dataset.nav === name
-            );
-        });
+        .forEach(btn =>
+            btn.classList.remove("active")
+        );
 
-    window.scrollTo({
-        top:0,
-        behavior:"smooth"
-    });
+    const map = {
+        home:"navHome",
+        games:"navGames",
+        wallet:"navWallet",
+        profile:"navProfile"
+    };
+
+    if(map[screen]){
+        document
+            .getElementById(map[screen])
+            .classList.add("active");
+    }
+
+}
+
+
+function hideAllScreens(){
+
+    document
+        .querySelectorAll(".screen")
+        .forEach(screen =>
+            screen.classList.remove("active")
+        );
 
 }
 
 
 function openGame(game){
 
-    showScreen(game);
+    hideAllScreens();
 
-    if(game==="keno"){
-        renderKeno();
+    const target =
+        document.getElementById(
+            game + "Screen"
+        );
+
+    if(target){
+        target.classList.add("active");
     }
 
-    if(game==="bingo"){
-        renderBingo();
+    currentGame = game;
+
+    currentScreen = game;
+
+    if(game === "keno"){
+        initKeno();
+    }
+
+    if(game === "bingo"){
+        initBingo();
+    }
+
+    if(game === "roulette"){
+        initRoulette();
+    }
+
+    if(game === "aviator"){
+        initAviator();
     }
 
 }
 
 
-/* =========================================================
-   NAVIGATION EVENTS
-========================================================= */
+function goBack(){
 
-document
-    .querySelectorAll("[data-nav]")
-    .forEach(btn=>{
+    if(currentGame){
 
-        btn.addEventListener(
-            "click",
-            ()=>{
-                showScreen(
-                    btn.dataset.nav
-                );
-            }
-        );
+        currentGame = null;
 
-    });
+        navigate("games");
 
+    }else{
 
-document
-    .querySelectorAll("[data-action]")
-    .forEach(btn=>{
+        navigate("home");
 
-        btn.addEventListener(
-            "click",
-            ()=>{
-                showScreen(
-                    btn.dataset.action
-                );
-            }
-        );
-
-    });
-
-
-document
-    .querySelectorAll("[data-game]")
-    .forEach(btn=>{
-
-        btn.addEventListener(
-            "click",
-            ()=>{
-                openGame(
-                    btn.dataset.game
-                );
-            }
-        );
-
-    });
-
-
-document
-    .querySelectorAll("[data-back]")
-    .forEach(btn=>{
-
-        btn.addEventListener(
-            "click",
-            ()=>{
-                showScreen("games");
-            }
-        );
-
-    });
-
-
-document
-    .getElementById("topProfileBtn")
-    .addEventListener(
-        "click",
-        ()=>{
-            showScreen("profile");
-        }
-    );
-
-
-/* =========================================================
-   HISTORY SYSTEM
-========================================================= */
-
-const historyData = {
-
-    keno:[
-        "K-0001",
-        "K-0000",
-        "K-0099",
-        "K-0098",
-        "K-0097",
-        "K-0096",
-        "K-0095",
-        "K-0094",
-        "K-0093",
-        "K-0092"
-    ],
-
-    bingo:[
-        "B-0001",
-        "B-0000",
-        "B-0099",
-        "B-0098",
-        "B-0097",
-        "B-0096",
-        "B-0095",
-        "B-0094",
-        "B-0093",
-        "B-0092"
-    ],
-
-    roulette:[
-        "R-0001",
-        "R-0000",
-        "R-0099",
-        "R-0098",
-        "R-0097",
-        "R-0096",
-        "R-0095",
-        "R-0094",
-        "R-0093",
-        "R-0092"
-    ],
-
-    aviator:[
-        "2.14x",
-        "1.22x",
-        "4.73x",
-        "1.08x",
-        "8.21x",
-        "2.91x",
-        "1.45x",
-        "11.20x",
-        "1.04x",
-        "3.62x",
-        "2.01x",
-        "1.18x",
-        "5.30x",
-        "1.72x",
-        "9.10x",
-        "1.13x",
-        "2.83x",
-        "4.22x",
-        "1.09x",
-        "6.15x"
-    ]
-
-};
-
-
-function renderHistory(game){
-
-    const latest =
-        document.getElementById(
-            game+"Latest"
-        );
-
-    const expanded =
-        document.getElementById(
-            game+"History"
-        );
-
-    if(!latest || !expanded){
-        return;
     }
 
-    const data =
-        historyData[game] || [];
-
-    latest.innerText =
-        data[0] || "—";
-
-    expanded.innerHTML="";
-
-
-    data
-        .slice(
-            1,
-            game==="aviator"
-                ? 20
-                : 10
-        )
-        .forEach(item=>{
-
-            const div =
-                document.createElement("div");
-
-            div.className =
-                "history-item";
-
-            div.innerText =
-                item;
-
-            if(
-                game==="aviator"
-            ){
-
-                const value =
-                    parseFloat(item);
-
-                if(value < 2){
-                    div.classList.add("crash");
-                }else{
-                    div.classList.add("win");
-                }
-
-            }
-
-            expanded.appendChild(div);
-
-        });
-
 }
-
-
-["keno","bingo","roulette","aviator"]
-    .forEach(renderHistory);
-
-
-/* Expand buttons */
-
-document
-    .querySelectorAll("[data-expand]")
-    .forEach(btn=>{
-
-        btn.addEventListener(
-            "click",
-            ()=>{
-
-                const game =
-                    btn.dataset.expand;
-
-                const box =
-                    document.getElementById(
-                        game+"History"
-                    );
-
-                box.classList.toggle(
-                    "open"
-                );
-
-                btn.innerText =
-                    box.classList.contains("open")
-                        ? "↑"
-                        : "↓";
-
-            }
-        );
-
-    });
 
 
 /* =========================================================
    KENO
 ========================================================= */
 
-const kenoGrid =
-    document.getElementById(
-        "kenoGrid"
-    );
+function initKeno(){
 
+    const grid =
+        document.getElementById("kenoGrid");
 
-for(let i=1;i<=80;i++){
+    grid.innerHTML = "";
 
-    const cell =
-        document.createElement("button");
+    selectedKeno.clear();
 
-    cell.className =
-        "keno-number";
+    for(let i=1;i<=80;i++){
 
-    cell.innerText =
-        i;
+        const button =
+            document.createElement("button");
 
-    cell.addEventListener(
-        "click",
-        ()=>{
+        button.className =
+            "keno-number";
+
+        button.innerText = i;
+
+        button.onclick = function(){
 
             if(
-                state.selectedKeno.has(i)
+                selectedKeno.has(i)
             ){
 
-                state.selectedKeno.delete(i);
+                selectedKeno.delete(i);
 
-                cell.classList.remove(
+                button.classList.remove(
                     "selected"
                 );
 
             }else{
 
                 if(
-                    state.selectedKeno.size >= 10
+                    selectedKeno.size >= 10
                 ){
 
-                    toast(
-                        "Maximum 10 numbers.",
-                        "error"
+                    showToast(
+                        "Keno",
+                        "Maximum 10 numbers."
                     );
 
                     return;
                 }
 
-                state.selectedKeno.add(i);
+                selectedKeno.add(i);
 
-                cell.classList.add(
+                button.classList.add(
                     "selected"
                 );
 
@@ -3370,198 +2881,174 @@ for(let i=1;i<=80;i++){
             document.getElementById(
                 "kenoSelected"
             ).innerText =
-                state.selectedKeno.size +
+                selectedKeno.size +
                 " / 10";
 
-        }
-    );
+        };
 
-    kenoGrid.appendChild(cell);
+        grid.appendChild(button);
+
+    }
+
+    buildHistory(
+        "kenoRounds",
+        "kenoHistory",
+        "K"
+    );
 
 }
 
 
-function renderKeno(){
+function confirmKeno(){
 
-    document.getElementById(
-        "kenoSelected"
-    ).innerText =
-        state.selectedKeno.size +
-        " / 10";
+    if(
+        selectedKeno.size === 0
+    ){
+
+        showToast(
+            "Keno",
+            "Select at least one number."
+        );
+
+        return;
+    }
+
+    showToast(
+        "Keno",
+        "Bet prepared. Server validation will be required."
+    );
 
 }
-
-
-document
-    .getElementById("kenoBetBtn")
-    .addEventListener(
-        "click",
-        ()=>{
-
-            if(
-                state.selectedKeno.size===0
-            ){
-
-                toast(
-                    "Select at least one number.",
-                    "error"
-                );
-
-                return;
-            }
-
-            toast(
-                "Keno selection submitted. Server validation is required."
-            );
-
-        }
-    );
 
 
 /* =========================================================
-   40 SECOND ROUND ENGINE
-========================================================= */
+   HISTORY
+   ========================================================= */
 
-const rounds = {
-
-    keno:{
-        id:1,
-        timer:40
-    },
-
-    bingo:{
-        id:1,
-        timer:40
-    },
-
-    roulette:{
-        id:1,
-        timer:40
-    }
-
-};
-
-
-function updateRound(
-    game
+function buildHistory(
+    stripId,
+    expandedId,
+    prefix
 ){
 
-    const r =
-        rounds[game];
+    const strip =
+        document.getElementById(stripId);
 
-    r.timer--;
+    const expanded =
+        document.getElementById(expandedId);
 
-    if(r.timer<=0){
+    strip.innerHTML = "";
 
-        r.timer=40;
+    expanded.innerHTML = "";
 
-        r.id++;
+    /*
+     One latest round + expand arrow.
+    */
 
-        historyData[game].unshift(
-            game==="keno"
-                ? "K-"+String(r.id).padStart(4,"0")
-                : game==="bingo"
-                ? "B-"+String(r.id).padStart(4,"0")
-                : "R-"+String(r.id).padStart(4,"0")
+    const latest =
+        createRoundItem(
+            prefix,
+            1
         );
 
-        if(
-            historyData[game].length>20
-        ){
-            historyData[game].pop();
-        }
+    strip.appendChild(latest);
 
-        renderHistory(game);
 
-        if(game==="keno"){
-            drawKeno();
-        }
+    const expand =
+        document.createElement("button");
 
-        if(game==="bingo"){
-            drawBingoNumber();
-        }
+    expand.className =
+        "expand-rounds";
 
-        if(game==="roulette"){
-            spinRoulette();
-        }
+    expand.innerText = "⌄";
+
+    expand.onclick = function(){
+
+        expanded.classList.toggle(
+            "hidden"
+        );
+
+        expand.innerText =
+            expanded.classList.contains("hidden")
+                ? "⌄"
+                : "⌃";
+
+    };
+
+    strip.appendChild(expand);
+
+
+    /*
+     Ten previous rounds.
+    */
+
+    for(let i=2;i<=11;i++){
+
+        expanded.appendChild(
+            createRoundItem(
+                prefix,
+                i
+            )
+        );
 
     }
-
-
-    document.getElementById(
-        game+"Timer"
-    ).innerText =
-        r.timer;
-
-    document.getElementById(
-        game+"Round"
-    ).innerText =
-        (
-            game==="keno"
-                ? "K-"
-                : game==="bingo"
-                ? "B-"
-                : "R-"
-        ) +
-        String(r.id).padStart(4,"0");
 
 }
 
 
-setInterval(
-    ()=>{
-        updateRound("keno");
-        updateRound("bingo");
-        updateRound("roulette");
-    },
-    1000
-);
+function createRoundItem(
+    prefix,
+    offset
+){
 
+    const div =
+        document.createElement("div");
 
-/* =========================================================
-   KENO DRAW
-========================================================= */
+    div.className =
+        "round-item";
 
-function drawKeno(){
+    let value = "";
 
-    const cells =
-        document.querySelectorAll(
-            ".keno-number"
-        );
+    if(prefix === "A"){
 
-    cells.forEach(
-        cell =>
-            cell.classList.remove("drawn")
-    );
+        value =
+            (
+                1.20 +
+                Math.random()*5
+            ).toFixed(2) +
+            "x";
 
-    const numbers=[];
+    }else if(prefix === "R"){
 
-    while(numbers.length<10){
-
-        const n =
+        value =
             Math.floor(
-                Math.random()*80
-            )+1;
+                Math.random()*37
+            );
 
-        if(!numbers.includes(n)){
-            numbers.push(n);
-        }
+    }else if(prefix === "K"){
+
+        value =
+            "Round " +
+            (
+                1024-offset
+            );
+
+    }else{
+
+        value =
+            "Round " +
+            (
+                2024-offset
+            );
 
     }
 
-    cells.forEach(cell=>{
+    div.innerHTML = `
+        <small>#${offset}</small>
+        <strong>${value}</strong>
+    `;
 
-        if(
-            numbers.includes(
-                Number(cell.innerText)
-            )
-        ){
-
-            cell.classList.add("drawn");
-
-        }
-
-    });
+    return div;
 
 }
 
@@ -3570,183 +3057,264 @@ function drawKeno(){
    BINGO
 ========================================================= */
 
-const stakes=[
-    10,
-    20,
-    30,
-    50,
-    100,
-    200,
-    500,
-    1000
-];
+function initBingo(){
 
-const stakeGrid =
-    document.getElementById(
-        "stakeGrid"
+    buildHistory(
+        "bingoRounds",
+        "bingoHistory",
+        "B"
     );
 
+    renderBingo();
 
-stakes.forEach(amount=>{
+}
 
-    const btn =
-        document.createElement("button");
 
-    btn.className =
-        "stake";
+function chooseStake(
+    element,
+    amount
+){
 
-    btn.innerText =
-        amount+" ETB";
+    document
+        .querySelectorAll(".stake")
+        .forEach(btn =>
+            btn.classList.remove("active")
+        );
+
+    element.classList.add("active");
+
+    selectedStake = amount;
+
+    showToast(
+        "Bingo",
+        "Stake selected: " +
+        amount +
+        " ETB"
+    );
+
+}
+
+
+function selectCartela(slot){
+
+    activeCartela = slot;
+
+    document
+        .querySelectorAll(".cartela-tab")
+        .forEach(tab =>
+            tab.classList.remove("active")
+        );
+
+    document
+        .getElementById(
+            "tab" + slot
+        )
+        .classList.add("active");
+
+    renderBingo();
+
+}
+
+
+function loadCartela(){
+
+    const input =
+        document.getElementById(
+            "cartelaInput"
+        );
+
+    const number =
+        Number(input.value);
 
     if(
-        amount===state.bingoStake
+        !Number.isInteger(number) ||
+        number < 1 ||
+        number > 120
     ){
-        btn.classList.add("active");
+
+        showToast(
+            "Bingo",
+            "Cartela must be between 1 and 120."
+        );
+
+        return;
     }
 
-    btn.addEventListener(
-        "click",
-        ()=>{
-
-            state.bingoStake =
-                amount;
-
-            document
-                .querySelectorAll(".stake")
-                .forEach(
-                    x=>x.classList.remove("active")
-                );
-
-            btn.classList.add("active");
-
-            toast(
-                "Bingo stake selected: "+
-                amount+
-                " ETB"
-            );
-
-        }
+    localStorage.setItem(
+        "cartela_" + activeCartela,
+        number
     );
 
-    stakeGrid.appendChild(btn);
+    renderBingo();
 
-});
-
-
-function generateCartela(id){
-
-    const nums=[];
-
-    while(nums.length<24){
-
-        const n =
-            Math.floor(
-                Math.random()*75
-            )+1;
-
-        if(!nums.includes(n)){
-            nums.push(n);
-        }
-
-    }
-
-    return {
-        id,
-        numbers:nums
-    };
+    showToast(
+        "Bingo",
+        "Cartela " + number + " loaded."
+    );
 
 }
 
 
 function renderBingo(){
 
-    const board =
+    const grid =
         document.getElementById(
-            "bingoBoard"
+            "bingoGrid"
         );
 
-    board.innerHTML="";
+    grid.innerHTML = "";
+
+    [
+        "B",
+        "I",
+        "N",
+        "G",
+        "O"
+    ].forEach(letter => {
+
+        const head =
+            document.createElement("div");
+
+        head.className =
+            "bingo-head";
+
+        head.innerText =
+            letter;
+
+        grid.appendChild(head);
+
+    });
 
 
-    ["B","I","N","G","O"]
-        .forEach(letter=>{
-
-            const c =
-                document.createElement("div");
-
-            c.className =
-                "bingo-cell header";
-
-            c.innerText =
-                letter;
-
-            board.appendChild(c);
-
-        });
+    const ranges = [
+        [1,15],
+        [16,30],
+        [31,45],
+        [46,60],
+        [61,75]
+    ];
 
 
-    const numbers =
-        state.cartela1
-            ? state.cartela1.numbers
-            : generateCartela(
-                1
-            ).numbers;
+    /*
+      Standard demonstration cartela.
 
+      The production backend must supply the
+      authoritative cartela combination.
+    */
 
     for(let row=0;row<5;row++){
 
         for(let col=0;col<5;col++){
 
-            const index =
-                row*5+col;
-
-            const c =
+            const cell =
                 document.createElement("button");
 
-            c.className =
+            cell.className =
                 "bingo-cell";
 
-
             if(
-                row===2 &&
-                col===2
+                col === 2 &&
+                row === 2
             ){
 
-                c.innerText="FREE";
+                cell.classList.add("free");
 
-                c.classList.add("marked");
+                cell.innerText =
+                    "FREE";
 
-            }else{
+                grid.appendChild(cell);
 
-                const number =
-                    numbers[index];
+                continue;
+            }
 
-                c.innerText =
-                    number;
+            const range =
+                ranges[col];
 
-                c.dataset.number =
-                    number;
+            const value =
+                range[0] +
+                (
+                    row*2
+                ) +
+                (
+                    activeCartela*3
+                ) %
+                (
+                    range[1]-range[0]+1
+                );
 
-                c.addEventListener(
-                    "click",
-                    ()=>{
+            const number =
+                Math.min(
+                    range[1],
+                    Math.max(
+                        range[0],
+                        value
+                    )
+                );
 
-                        if(
-                            c.classList.contains("called")
-                        ){
+            cell.innerText =
+                number;
 
-                            c.classList.toggle(
-                                "marked"
-                            );
+            if(
+                bingoMarked.has(number)
+            ){
 
-                        }
-
-                    }
+                cell.classList.add(
+                    "marked"
                 );
 
             }
 
-            board.appendChild(c);
+            cell.onclick = function(){
+
+                /*
+                 Demo allows marking called numbers.
+                 Production backend validates every mark.
+                */
+
+                const called =
+                    Number(
+                        document
+                            .getElementById(
+                                "lastBingoNumber"
+                            )
+                            .innerText
+                    );
+
+                if(
+                    called !== number
+                ){
+
+                    showToast(
+                        "Bingo",
+                        "Only the called number can be marked."
+                    );
+
+                    return;
+                }
+
+                if(
+                    bingoMarked.has(number)
+                ){
+
+                    bingoMarked.delete(number);
+
+                    cell.classList.remove(
+                        "marked"
+                    );
+
+                }else{
+
+                    bingoMarked.add(number);
+
+                    cell.classList.add(
+                        "marked"
+                    );
+
+                }
+
+            };
+
+            grid.appendChild(cell);
 
         }
 
@@ -3755,229 +3323,42 @@ function renderBingo(){
 }
 
 
-/* Cartela add */
+function placeBingoBet(){
 
-document
-    .getElementById("addCartelaBtn")
-    .addEventListener(
-        "click",
-        ()=>{
+    if(!selectedStake){
 
-            const input =
-                document.getElementById(
-                    "cartelaInput"
-                );
+        showToast(
+            "Bingo",
+            "Choose a stake first."
+        );
 
-            const id =
-                Number(input.value);
+        return;
+    }
 
-            if(
-                !Number.isInteger(id) ||
-                id<1 ||
-                id>120
-            ){
-
-                toast(
-                    "Cartela must be between 1 and 120.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            if(
-                !state.cartela1
-            ){
-
-                state.cartela1 =
-                    generateCartela(id);
-
-                toast(
-                    "Cartela 1 added."
-                );
-
-            }else if(
-                state.cartela2Enabled &&
-                !state.cartela2
-            ){
-
-                state.cartela2 =
-                    generateCartela(id);
-
-                toast(
-                    "Cartela 2 added."
-                );
-
-            }else{
-
-                toast(
-                    "Both cartela slots are occupied.",
-                    "error"
-                );
-
-            }
-
-            input.value="";
-
-            renderBingo();
-
-        }
+    showToast(
+        "Bingo",
+        "Bet submitted for server validation."
     );
-
-
-/* Optional slot */
-
-document
-    .getElementById("slot2Action")
-    .addEventListener(
-        "click",
-        ()=>{
-
-            state.cartela2Enabled =
-                !state.cartela2Enabled;
-
-            const slot =
-                document.getElementById(
-                    "slot2"
-                );
-
-            const text =
-                document.getElementById(
-                    "slot2Text"
-                );
-
-            const action =
-                document.getElementById(
-                    "slot2Action"
-                );
-
-
-            if(
-                !state.cartela2Enabled
-            ){
-
-                state.cartela2=null;
-
-                text.innerText =
-                    "CARTELA 1";
-
-                action.innerText="+";
-
-                /*
-                    Permanent slot visually occupies
-                    the optional slot's place.
-                */
-
-                slot.style.opacity=".65";
-
-            }else{
-
-                text.innerText =
-                    "CARTELA 2";
-
-                action.innerText="−";
-
-                slot.style.opacity="1";
-
-            }
-
-            renderBingo();
-
-        }
-    );
-
-
-/* Bingo bet */
-
-document
-    .getElementById("bingoBetBtn")
-    .addEventListener(
-        "click",
-        ()=>{
-
-            if(
-                !state.cartela1
-            ){
-
-                toast(
-                    "Add Cartela 1 first.",
-                    "error"
-                );
-
-                return;
-            }
-
-            toast(
-                "Bingo bet submitted. Server must validate balance and round."
-            );
-
-        }
-    );
-
-
-document
-    .getElementById("bingoClaimBtn")
-    .addEventListener(
-        "click",
-        ()=>{
-
-            toast(
-                "Bingo claim sent for server verification."
-            );
-
-        }
-    );
-
-
-/* =========================================================
-   BINGO NUMBER DRAW
-========================================================= */
-
-function drawBingoNumber(){
-
-    const number =
-        Math.floor(
-            Math.random()*75
-        )+1;
-
-    document.getElementById(
-        "bingoCalled"
-    ).innerText =
-        bingoLetter(number)+
-        " "+
-        number;
-
-
-    document
-        .querySelectorAll(
-            ".bingo-cell"
-        )
-        .forEach(cell=>{
-
-            if(
-                Number(cell.dataset.number)
-                === number
-            ){
-
-                cell.classList.add(
-                    "called"
-                );
-
-            }
-
-        });
 
 }
 
 
-function bingoLetter(number){
+function claimBingo(){
 
-    if(number<=15) return "B";
-    if(number<=30) return "I";
-    if(number<=45) return "N";
-    if(number<=60) return "G";
-    return "O";
+    if(!selectedStake){
+
+        showToast(
+            "Bingo",
+            "Choose a stake first."
+        );
+
+        return;
+    }
+
+    showToast(
+        "Bingo",
+        "Bingo claim sent for server verification."
+    );
 
 }
 
@@ -3986,36 +3367,23 @@ function bingoLetter(number){
    ROULETTE
 ========================================================= */
 
-document
-    .querySelectorAll("[data-roulette]")
-    .forEach(btn=>{
+function initRoulette(){
 
-        btn.addEventListener(
-            "click",
-            ()=>{
+    buildHistory(
+        "rouletteRounds",
+        "rouletteHistory",
+        "R"
+    );
 
-                toast(
-                    "Roulette bet selected: "+
-                    btn.dataset.roulette
-                );
-
-            }
-        );
-
-    });
+}
 
 
-function spinRoulette(){
+function rouletteBet(type){
 
-    const number =
-        Math.floor(
-            Math.random()*37
-        );
-
-    document.getElementById(
-        "rouletteNumber"
-    ).innerText =
-        number;
+    showToast(
+        "Roulette",
+        "Selected: " + type
+    );
 
 }
 
@@ -4024,386 +3392,428 @@ function spinRoulette(){
    AVIATOR
 ========================================================= */
 
-let aviatorInterval=null;
+function initAviator(){
+
+    stopAviator();
+
+    buildHistory(
+        "aviatorRounds",
+        "aviatorHistory",
+        "A"
+    );
+
+    document.getElementById(
+        "aviatorMultiplier"
+    ).innerText =
+        "1.00x";
+
+    document.getElementById(
+        "aviatorState"
+    ).innerText =
+        translations[
+            currentLanguage
+        ].waitingForFlight;
+
+    document.getElementById(
+        "liveMoney"
+    ).style.display =
+        "none";
+
+}
 
 
-function startAviator(){
+function startAviatorBet(){
 
-    state.aviatorPlaying=true;
-    state.aviatorCashed=false;
-    state.aviatorMultiplier=1;
+    if(aviatorRunning){
 
-    const multiplier =
-        document.getElementById(
-            "aviatorMultiplier"
+        showToast(
+            "Aviator",
+            "Flight is already running."
         );
 
-    const status =
-        document.getElementById(
-            "aviatorStatus"
+        return;
+    }
+
+    const amount =
+        Number(
+            document.getElementById(
+                "aviatorAmount"
+            ).value
         );
 
-    multiplier.className =
-        "multiplier flying";
+    if(
+        !Number.isFinite(amount) ||
+        amount <= 0
+    ){
 
-    status.innerText =
+        showToast(
+            "Aviator",
+            "Enter a valid stake."
+        );
+
+        return;
+    }
+
+    aviatorBet = amount;
+
+    aviatorMultiplier = 1;
+
+    aviatorCashoutDone = false;
+
+    aviatorRunning = true;
+
+
+    document.getElementById(
+        "aviatorBetButton"
+    ).disabled = true;
+
+
+    document.getElementById(
+        "liveMoney"
+    ).style.display =
+        "block";
+
+
+    document.getElementById(
+        "runningMoney"
+    ).innerText =
+        amount.toFixed(2) +
+        " ETB";
+
+
+    document.getElementById(
+        "aviatorState"
+    ).innerText =
         "FLIGHT IN PROGRESS";
 
 
-    clearInterval(
-        aviatorInterval
-    );
+    /*
+      DEMO FLIGHT.
 
+      Production backend MUST be authoritative
+      for multiplier, crash point and cash-out.
+    */
 
     aviatorInterval =
-        setInterval(
-            ()=>{
+        setInterval(() => {
 
-                state.aviatorMultiplier +=
-                    .015 +
-                    Math.random()*.025;
+            aviatorMultiplier +=
+                0.01 +
+                aviatorMultiplier*.003;
 
+            const running =
+                aviatorBet *
+                aviatorMultiplier;
 
-                const m =
-                    state.aviatorMultiplier;
+            document.getElementById(
+                "aviatorMultiplier"
+            ).innerText =
+                aviatorMultiplier.toFixed(2) +
+                "x";
 
-
-                multiplier.innerText =
-                    m.toFixed(2)+"x";
-
-
-                if(
-                    state.aviatorBet>0 &&
-                    !state.aviatorCashed
-                ){
-
-                    const live =
-                        state.aviatorBet*m;
-
-                    document.getElementById(
-                        "aviatorLiveMoney"
-                    ).innerHTML =
-                        money(live)+
-                        ' ETB <span class="cashout-word">CASH OUT</span>';
-
-                }
+            document.getElementById(
+                "runningMoney"
+            ).innerText =
+                running.toFixed(2) +
+                " ETB";
 
 
-                /*
-                    Demo crash condition.
+            /*
+             Demo crash point.
 
-                    The real backend MUST decide the
-                    crash point.
-                */
+             Backend will replace this.
+            */
 
-                if(
-                    Math.random()<.003
-                ){
+            if(
+                aviatorMultiplier >= 4.00
+            ){
 
-                    crashAviator();
+                crashAviator();
 
-                }
+            }
 
-            },
-            100
+        },100);
+
+}
+
+
+/*
+  IMPORTANT AVIATOR BEHAVIOUR:
+
+  The running money itself is the cash-out button.
+
+  Player taps the live amount.
+
+  Example:
+  13.40 ETB
+  CASH OUT
+*/
+
+document.getElementById(
+    "liveMoney"
+).onclick = function(){
+
+    cashOutAviator();
+
+};
+
+
+function cashOutAviator(){
+
+    if(!aviatorRunning){
+
+        showToast(
+            "Aviator",
+            "There is no active flight."
         );
+
+        return;
+    }
+
+    if(aviatorCashoutDone){
+
+        return;
+    }
+
+    aviatorCashoutDone = true;
+
+    const amount =
+        aviatorBet *
+        aviatorMultiplier;
+
+    stopAviator();
+
+    balance += amount;
+
+    updateBalance();
+
+    document.getElementById(
+        "aviatorState"
+    ).innerText =
+        "CASHED OUT";
+
+    showToast(
+        "CASH OUT",
+        "Cashed out " +
+        amount.toFixed(2) +
+        " ETB"
+    );
 
 }
 
 
 function crashAviator(){
 
-    clearInterval(
-        aviatorInterval
-    );
-
-    state.aviatorPlaying=false;
-
-    const multiplier =
-        document.getElementById(
-            "aviatorMultiplier"
-        );
-
-    multiplier.className =
-        "multiplier crashed";
-
-    document.getElementById(
-        "aviatorStatus"
-    ).innerText =
-        "CRASHED";
-
+    if(!aviatorRunning){
+        return;
+    }
 
     const crash =
-        state.aviatorMultiplier;
+        aviatorMultiplier;
 
-    historyData.aviator.unshift(
-        crash.toFixed(2)+"x"
-    );
-
-    if(
-        historyData.aviator.length>20
-    ){
-        historyData.aviator.pop();
-    }
-
-    renderHistory("aviator");
-
-
-    if(
-        state.aviatorBet>0 &&
-        !state.aviatorCashed
-    ){
-
-        toast(
-            "Flight crashed. Cash-out was not completed.",
-            "error"
-        );
-
-    }
-
+    stopAviator();
 
     document.getElementById(
-        "aviatorCashout"
-    ).disabled=true;
+        "aviatorState"
+    ).innerText =
+        "CRASHED AT " +
+        crash.toFixed(2) +
+        "x";
+
+    document.getElementById(
+        "liveMoney"
+    ).style.display =
+        "none";
+
+    showToast(
+        "Aviator",
+        "Flight crashed at " +
+        crash.toFixed(2) +
+        "x"
+    );
 
 }
 
 
-document
-    .getElementById("aviatorBetBtn")
-    .addEventListener(
-        "click",
-        ()=>{
+function stopAviator(){
 
-            const amount =
-                Number(
-                    document.getElementById(
-                        "aviatorBetInput"
-                    ).value
-                );
+    if(aviatorInterval){
 
-            if(
-                !amount ||
-                amount<=0
-            ){
+        clearInterval(
+            aviatorInterval
+        );
 
-                toast(
-                    "Enter a valid bet amount.",
-                    "error"
-                );
+        aviatorInterval = null;
 
-                return;
-            }
+    }
 
+    aviatorRunning = false;
 
-            if(
-                state.aviatorPlaying
-            ){
+    const button =
+        document.getElementById(
+            "aviatorBetButton"
+        );
 
-                toast(
-                    "The flight has already started.",
-                    "error"
-                );
+    if(button){
+        button.disabled = false;
+    }
 
-                return;
-            }
-
-
-            if(
-                amount>state.balance &&
-                state.balance>0
-            ){
-
-                toast(
-                    "Insufficient balance.",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            state.aviatorBet =
-                amount;
-
-
-            document.getElementById(
-                "aviatorBetAmount"
-            ).innerText =
-                money(amount)+" ETB";
-
-
-            /*
-               DEMO ONLY.
-
-               Real backend should reserve/deduct
-               the balance here after validating
-               the wager.
-            */
-
-            toast(
-                "Bet accepted for demo."
-            );
-
-
-            document.getElementById(
-                "aviatorCashout"
-            ).disabled=false;
-
-
-            startAviator();
-
-        }
-    );
-
-
-/*
-    LIVE MONEY BUTTON
-
-    Player presses the running amount,
-    not a separate large CASH OUT button.
-*/
-
-document
-    .getElementById("aviatorCashout")
-    .addEventListener(
-        "click",
-        ()=>{
-
-            if(
-                !state.aviatorPlaying ||
-                state.aviatorCashed ||
-                state.aviatorBet<=0
-            ){
-                return;
-            }
-
-
-            state.aviatorCashed=true;
-
-            const amount =
-                state.aviatorBet *
-                state.aviatorMultiplier;
-
-
-            clearInterval(
-                aviatorInterval
-            );
-
-            state.aviatorPlaying=false;
-
-
-            /*
-                DEMO balance update.
-
-                Backend must perform the real
-                atomic wallet transaction.
-            */
-
-            state.balance += amount;
-
-            saveState();
-
-            updateWallet();
-
-
-            document.getElementById(
-                "aviatorCashout"
-            ).disabled=true;
-
-
-            toast(
-                "CASHED OUT • "+
-                money(amount)+
-                " ETB"
-            );
-
-        }
-    );
+}
 
 
 /* =========================================================
    WALLET
 ========================================================= */
 
-function updateWallet(){
+function openWalletAction(
+    action
+){
 
-    document.getElementById(
-        "walletBalance"
-    ).innerText =
-        money(state.balance);
+    if(action === "deposit"){
+
+        showDeposit();
+
+    }else{
+
+        showWithdraw();
+
+    }
 
 }
 
 
-updateWallet();
+/*
+  DEPOSIT FRONTEND FLOW
 
+  1. Player chooses amount.
+  2. Telebirr account information appears.
+  3. Player pays externally.
+  4. Player enters receipt link.
+  5. Backend will later validate the receipt.
+*/
 
-/* =========================================================
-   DEPOSIT
-========================================================= */
-
-document
-    .getElementById("depositBtn")
-    .addEventListener(
-        "click",
-        openDeposit
-    );
-
-
-function openDeposit(){
+function showDeposit(){
 
     openModal(
-        "Deposit",
+        "DEPOSIT",
         `
-        <div class="help">
 
-            <h3>Deposit with Telebirr</h3>
+        <div class="help-text">
+
+            <h4>1. Enter amount</h4>
 
             <p>
                 Enter the amount you want to deposit.
-                After you continue, the payment account
-                information will be displayed.
             </p>
 
+            <div class="form-group" style="margin-top:12px">
+
+                <label>
+                    AMOUNT (ETB)
+                </label>
+
+                <input
+                    id="depositAmount"
+                    type="number"
+                    min="1"
+                    placeholder="Example: 100">
+
+            </div>
+
+
+            <h4>2. Telebirr payment</h4>
+
+            <div class="payment-method">
+
+                <div class="telebirr-logo">
+                    TELEBIRR
+                </div>
+
+                <div>
+
+                    <strong>
+                        Telebirr
+                    </strong>
+
+                    <div
+                        style="font-size:11px;color:var(--muted);margin-top:4px">
+
+                        ACCOUNT NAME:
+                        <strong
+                            id="depositAccountName">
+                            YOUR ACCOUNT NAME
+                        </strong>
+
+                        <br>
+
+                        NUMBER:
+                        <strong
+                            id="depositAccountNumber">
+                            YOUR TELEBIRR NUMBER
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <h4>3. Send payment</h4>
+
+            <p>
+                Complete the Telebirr payment outside the game.
+                After payment, return here and submit the receipt link.
+            </p>
+
+
+            <div class="form-group" style="margin-top:12px">
+
+                <label>
+                    RECEIPT LINK
+                </label>
+
+                <input
+                    id="receiptLink"
+                    type="url"
+                    placeholder="Paste receipt link">
+
+            </div>
+
+
+            <button
+                class="primary"
+                onclick="submitDeposit()">
+
+                SUBMIT DEPOSIT
+
+            </button>
+
         </div>
 
-        <div class="form-group"
-             style="margin-top:12px">
-
-            <label class="form-label">
-                Amount (ETB)
-            </label>
-
-            <input
-                id="depositAmount"
-                class="form-input"
-                type="number"
-                min="1"
-                placeholder="Enter amount">
-
-        </div>
-
-        <button
-            class="btn green"
-            id="continueDeposit">
-            CONTINUE
-        </button>
         `
     );
-
-
-    document
-        .getElementById("continueDeposit")
-        .addEventListener(
-            "click",
-            continueDeposit
-        );
 
 }
 
 
-function continueDeposit(){
+/*
+  REPLACE THESE PLACEHOLDERS LATER.
+
+  Do NOT put secret API keys here.
+
+  Public payment account information can be displayed,
+  but payment validation belongs on the backend.
+*/
+
+const PAYMENT_ACCOUNT_NAME =
+    "YOUR FULL NAME";
+
+const PAYMENT_ACCOUNT_NUMBER =
+    "YOUR TELEBIRR NUMBER";
+
+
+function submitDeposit(){
 
     const amount =
         Number(
@@ -4412,320 +3822,162 @@ function continueDeposit(){
             ).value
         );
 
+    const link =
+        document.getElementById(
+            "receiptLink"
+        ).value.trim();
 
     if(
-        !amount ||
-        amount<=0
+        !Number.isFinite(amount) ||
+        amount <= 0
     ){
 
-        toast(
-            "Enter a valid amount.",
-            "error"
+        showToast(
+            "Deposit",
+            "Enter a valid amount."
         );
 
         return;
     }
 
-
-    openModal(
-        "Telebirr Payment",
-        `
-        <div class="payment-method">
-
-            <div class="telebirr-logo">
-                TELE
-            </div>
-
-            <div>
-
-                <strong>
-                    Telebirr
-                </strong>
-
-                <small>
-                    Payment account
-                </small>
-
-            </div>
-
-        </div>
-
-
-        <div class="card"
-             style="margin-top:10px;
-                    margin-bottom:10px">
-
-            <div class="profile-row">
-
-                <span>
-                    Account Name
-                </span>
-
-                <strong>
-                    ${escapeHtml(
-                        CONFIG.PAYMENT_ACCOUNT_NAME
-                    )}
-                </strong>
-
-            </div>
-
-            <div class="profile-row">
-
-                <span>
-                    Account Number
-                </span>
-
-                <strong>
-                    ${escapeHtml(
-                        CONFIG.PAYMENT_ACCOUNT_NUMBER
-                    )}
-                </strong>
-
-            </div>
-
-            <div class="profile-row">
-
-                <span>
-                    Amount
-                </span>
-
-                <strong style="color:var(--gold)">
-                    ${money(amount)} ETB
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <div class="help">
-
-            <p>
-                Pay the exact amount using Telebirr.
-                After completing payment, continue and
-                provide the receipt link requested by
-                the system.
-            </p>
-
-        </div>
-
-
-        <button
-            class="btn green"
-            id="paidDeposit"
-            style="margin-top:12px">
-            I PAID — CONTINUE
-        </button>
-        `
-    );
-
-
-    document
-        .getElementById("paidDeposit")
-        .addEventListener(
-            "click",
-            ()=>{
-
-                openDepositReceipt(
-                    amount
-                );
-
-            }
-        );
-
-}
-
-
-function openDepositReceipt(amount){
-
-    openModal(
-        "Deposit Receipt",
-        `
-        <div class="help">
-
-            <h3>Receipt Link</h3>
-
-            <p>
-                Paste the receipt or transaction link
-                supplied by your payment process.
-            </p>
-
-        </div>
-
-        <div class="form-group"
-             style="margin-top:12px">
-
-            <label class="form-label">
-                Receipt Link
-            </label>
-
-            <input
-                id="receiptLink"
-                class="form-input"
-                type="url"
-                placeholder="Paste receipt link">
-
-        </div>
-
-        <button
-            class="btn"
-            id="submitDeposit">
-            SUBMIT DEPOSIT
-        </button>
-        `
-    );
-
-
-    document
-        .getElementById("submitDeposit")
-        .addEventListener(
-            "click",
-            ()=>{
-
-                const link =
-                    document.getElementById(
-                        "receiptLink"
-                    ).value.trim();
-
-
-                if(!link){
-
-                    toast(
-                        "Receipt link is required.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                /*
-                    REAL BACKEND FLOW:
-
-                    1. Create deposit record.
-                    2. Store amount + player ID.
-                    3. Store receipt link.
-                    4. Mark status PROCESSING.
-                    5. Backend/SMS forwarder verifies.
-                    6. Server credits balance.
-                */
-
-                closeModal();
-
-                toast(
-                    "Deposit submitted. Status: PROCESSING."
-                );
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   WITHDRAW
-========================================================= */
-
-document
-    .getElementById("withdrawBtn")
-    .addEventListener(
-        "click",
-        openWithdraw
-    );
-
-
-function openWithdraw(){
-
-    if(state.balance<=0){
-
-        toast(
-            "Insufficient withdrawable balance.",
-            "error"
+    if(!link){
+
+        showToast(
+            "Deposit",
+            "Enter the receipt link."
         );
 
         return;
     }
 
+    closeModal();
 
-    openModal(
-        "Withdraw",
-        `
-        <div class="payment-method">
-
-            <div class="telebirr-logo">
-                TELE
-            </div>
-
-            <div>
-
-                <strong>
-                    Telebirr
-                </strong>
-
-                <small>
-                    Withdrawal method
-                </small>
-
-            </div>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label class="form-label">
-                Withdrawal Amount
-            </label>
-
-            <input
-                id="withdrawAmount"
-                class="form-input"
-                type="number"
-                min="1"
-                max="${state.balance}"
-                placeholder="Maximum ${money(state.balance)} ETB">
-
-        </div>
-
-
-        <div class="help">
-
-            <p>
-                Available balance:
-                <strong>
-                    ${money(state.balance)} ETB
-                </strong>
-            </p>
-
-            <p>
-                Your withdrawal account information
-                will be requested before the final
-                confirmation.
-            </p>
-
-        </div>
-
-
-        <button
-            class="btn gold"
-            id="continueWithdraw">
-            CONTINUE
-        </button>
-        `
+    showToast(
+        "Deposit",
+        "Deposit submitted. Waiting for server verification."
     );
-
-
-    document
-        .getElementById("continueWithdraw")
-        .addEventListener(
-            "click",
-            continueWithdraw
-        );
 
 }
 
 
-function continueWithdraw(){
+/*
+  WITHDRAW FLOW
+
+  1. Choose amount.
+  2. Telebirr.
+  3. Enter payment number.
+  4. Save/edit account.
+  5. Password confirmation.
+  6. Submit.
+*/
+
+function showWithdraw(){
+
+    openModal(
+        "WITHDRAW",
+        `
+
+        <div class="help-text">
+
+            <h4>Withdrawal method</h4>
+
+            <div class="payment-method">
+
+                <div class="telebirr-logo">
+                    TELEBIRR
+                </div>
+
+                <div>
+
+                    <strong>
+                        Telebirr
+                    </strong>
+
+                    <div
+                        style="font-size:10px;color:var(--muted)">
+                        Withdrawal account
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group"
+                 style="margin-top:12px">
+
+                <label>
+                    AMOUNT (ETB)
+                </label>
+
+                <input
+                    id="withdrawAmount"
+                    type="number"
+                    min="1"
+                    placeholder="Amount">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    TELEBIRR PAYMENT NUMBER
+                </label>
+
+                <input
+                    id="withdrawNumber"
+                    type="tel"
+                    placeholder="09XXXXXXXX">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    ACCOUNT NAME
+                </label>
+
+                <input
+                    id="withdrawName"
+                    type="text"
+                    placeholder="Payment account name">
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    PASSWORD CONFIRMATION
+                </label>
+
+                <input
+                    id="withdrawPassword"
+                    type="password"
+                    placeholder="Your account password">
+
+            </div>
+
+
+            <button
+                class="primary"
+                onclick="submitWithdraw()">
+
+                SEND WITHDRAWAL REQUEST
+
+            </button>
+
+        </div>
+
+        `
+    );
+
+}
+
+
+function submitWithdraw(){
 
     const amount =
         Number(
@@ -4734,1062 +3986,863 @@ function continueWithdraw(){
             ).value
         );
 
+    const number =
+        document.getElementById(
+            "withdrawNumber"
+        ).value.trim();
+
+    const name =
+        document.getElementById(
+            "withdrawName"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "withdrawPassword"
+        ).value;
 
     if(
-        !amount ||
-        amount<=0
+        !Number.isFinite(amount) ||
+        amount <= 0
     ){
 
-        toast(
-            "Enter a withdrawal amount.",
-            "error"
+        showToast(
+            "Withdrawal",
+            "Enter a valid withdrawal amount."
         );
 
         return;
     }
 
 
-    if(amount>state.balance){
+    /*
+      This check is only frontend feedback.
 
-        toast(
-            "Insufficient balance. Requested amount is greater than your available balance.",
-            "error"
+      The backend MUST perform the real balance
+      and withdrawable-balance validation.
+    */
+
+    if(
+        amount > withdrawableBalance
+    ){
+
+        showToast(
+            "Withdrawal",
+            "Requested amount is greater than your withdrawable balance."
         );
 
         return;
     }
 
 
-    openModal(
-        "Withdrawal Account",
-        `
-        <div class="help">
+    if(!number){
 
-            <p>
-                Select Telebirr and enter the payment
-                number that should receive the withdrawal.
-                This information can be saved and edited
-                later.
-            </p>
+        showToast(
+            "Withdrawal",
+            "Enter your Telebirr payment number."
+        );
 
-        </div>
+        return;
+    }
 
 
-        <div class="payment-method"
-             style="margin-top:12px">
+    if(!name){
 
-            <div class="telebirr-logo">
-                TELE
-            </div>
+        showToast(
+            "Withdrawal",
+            "Enter the payment account name."
+        );
 
-            <div>
-
-                <strong>
-                    Telebirr
-                </strong>
-
-                <small>
-                    Selected withdrawal method
-                </small>
-
-            </div>
-
-        </div>
+        return;
+    }
 
 
-        <div class="form-group">
+    if(
+        password.length < 6
+    ){
 
-            <label class="form-label">
-                Telebirr Payment Number
-            </label>
+        showToast(
+            "Withdrawal",
+            "Password must contain at least 6 characters."
+        );
 
-            <input
-                id="withdrawNumber"
-                class="form-input"
-                type="tel"
-                placeholder="09XXXXXXXX">
-
-        </div>
+        return;
+    }
 
 
-        <div class="form-group">
+    closeModal();
 
-            <label class="form-label">
-                Account Name
-            </label>
-
-            <input
-                id="withdrawName"
-                class="form-input"
-                type="text"
-                placeholder="Account holder name">
-
-        </div>
-
-
-        <button
-            class="btn gold"
-            id="submitWithdraw">
-            REQUEST WITHDRAWAL
-        </button>
-        `
+    showToast(
+        "Withdrawal",
+        "Request submitted for server processing."
     );
-
-
-    document
-        .getElementById("submitWithdraw")
-        .addEventListener(
-            "click",
-            ()=>{
-
-                const number =
-                    document.getElementById(
-                        "withdrawNumber"
-                    ).value.trim();
-
-                const name =
-                    document.getElementById(
-                        "withdrawName"
-                    ).value.trim();
-
-
-                if(!number || !name){
-
-                    toast(
-                        "Payment number and account name are required.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                /*
-                    REAL BACKEND:
-
-                    The server stores:
-
-                    player ID
-                    Telegram account
-                    withdrawal amount
-                    withdrawal method
-                    payment number
-                    payment name
-                    requested amount
-                    request time
-                    current balance
-                    status
-
-                    Then sends a notification to the
-                    administrator Telegram bot.
-
-                    The administrator can receive
-                    inline buttons such as:
-
-                    PAID
-                    REJECTED
-                    CANCELLED
-
-                    The browser must NOT directly decide
-                    that a withdrawal is paid.
-                */
-
-
-                closeModal();
-
-                toast(
-                    "Withdrawal request submitted. Status: PROCESSING."
-                );
-
-            }
-        );
 
 }
 
 
 /* =========================================================
-   TRANSACTION DISPLAY
+   AUTH
 ========================================================= */
 
-function renderTransactions(){
+function openAuth(
+    mode
+){
 
-    const el =
+    if(mode === "register"){
+
+        openModal(
+            "NEW PLAYER",
+            `
+
+            <div class="help-text">
+
+                <p>
+                    Create your player account using your Telegram information.
+                </p>
+
+                <div class="form-group"
+                     style="margin-top:13px">
+
+                    <label>
+                        TELEGRAM USERNAME
+                    </label>
+
+                    <input
+                        id="registerTelegram"
+                        type="text"
+                        placeholder="@username">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        TELEGRAM ID
+                    </label>
+
+                    <input
+                        id="registerTelegramId"
+                        type="text"
+                        placeholder="Telegram ID">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        PASSWORD
+                    </label>
+
+                    <input
+                        id="registerPassword"
+                        type="password"
+                        placeholder="Minimum 6 characters">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        CONFIRM PASSWORD
+                    </label>
+
+                    <input
+                        id="registerPassword2"
+                        type="password"
+                        placeholder="Repeat password">
+
+                </div>
+
+
+                <button
+                    class="primary"
+                    onclick="registerPlayer()">
+
+                    CREATE ACCOUNT
+
+                </button>
+
+            </div>
+
+            `
+        );
+
+    }else{
+
+        openModal(
+            "LOGIN",
+            `
+
+            <div class="help-text">
+
+                <div class="form-group">
+
+                    <label>
+                        PLAYER ID / TELEGRAM
+                    </label>
+
+                    <input
+                        id="loginTelegram"
+                        type="text"
+                        placeholder="Player ID or Telegram">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label>
+                        PASSWORD
+                    </label>
+
+                    <input
+                        id="loginPassword"
+                        type="password"
+                        placeholder="Password">
+
+                </div>
+
+
+                <button
+                    class="primary"
+                    onclick="loginPlayer()">
+
+                    LOGIN
+
+                </button>
+
+            </div>
+
+            `
+        );
+
+    }
+
+}
+
+
+function registerPlayer(){
+
+    const telegram =
         document.getElementById(
-            "transactions"
+            "registerTelegram"
+        ).value.trim();
+
+    const telegramId =
+        document.getElementById(
+            "registerTelegramId"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "registerPassword"
+        ).value;
+
+    const password2 =
+        document.getElementById(
+            "registerPassword2"
+        ).value;
+
+
+    if(!telegram){
+
+        showToast(
+            "Registration",
+            "Enter your Telegram username."
         );
 
-    el.innerHTML=`
-        <div class="transaction">
-
-            <div class="transaction-left">
-
-                <div class="transaction-icon">
-                    💳
-                </div>
-
-                <div>
-                    <strong>Wallet</strong>
-                    <small>No transactions yet</small>
-                </div>
-
-            </div>
-
-            <span style="color:var(--muted)">
-                —
-            </span>
-
-        </div>
-    `;
-
-}
-
-renderTransactions();
-
-
-/* =========================================================
-   PROFILE
-========================================================= */
-
-document.getElementById(
-    "profileId"
-).innerText =
-    state.playerId;
-
-
-document.getElementById(
-    "memberSince"
-).innerText =
-    new Date().toLocaleDateString();
-
-
-/* =========================================================
-   LOGIN / REGISTER
-========================================================= */
-
-document
-    .getElementById("loginBtn")
-    .addEventListener(
-        "click",
-        openLogin
-    );
-
-
-function openLogin(){
-
-    openModal(
-        "Player Login",
-        `
-        <div class="form-group">
-
-            <label class="form-label">
-                Telegram Account
-            </label>
-
-            <input
-                id="loginTelegram"
-                class="form-input"
-                type="text"
-                placeholder="@username or Telegram information">
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label class="form-label">
-                Password
-            </label>
-
-            <input
-                id="loginPassword"
-                class="form-input"
-                type="password"
-                minlength="6"
-                placeholder="Minimum 6 characters">
-
-        </div>
-
-
-        <button
-            class="btn"
-            id="doLogin">
-            LOGIN
-        </button>
-
-
-        <div class="auth-switch">
-
-            New player?
-
-            <button id="registerSwitch">
-                CREATE ACCOUNT
-            </button>
-
-        </div>
-        `
-    );
-
-
-    document
-        .getElementById("doLogin")
-        .addEventListener(
-            "click",
-            ()=>{
-
-                const telegram =
-                    document.getElementById(
-                        "loginTelegram"
-                    ).value.trim();
-
-                const password =
-                    document.getElementById(
-                        "loginPassword"
-                    ).value;
-
-
-                if(
-                    !telegram ||
-                    password.length<6
-                ){
-
-                    toast(
-                        "Enter Telegram information and a password of at least 6 characters.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                state.telegram =
-                    telegram;
-
-                document.getElementById(
-                    "telegramInfo"
-                ).innerText =
-                    telegram;
-
-                closeModal();
-
-                toast(
-                    "Login submitted. Backend authentication should verify the account."
-                );
-
-            }
-        );
-
-
-    document
-        .getElementById("registerSwitch")
-        .addEventListener(
-            "click",
-            openRegister
-        );
-
-}
-
-
-function openRegister(){
-
-    openModal(
-        "Create Player Account",
-        `
-        <div class="help">
-
-            <p>
-                New players must provide their Telegram
-                account information and create a password.
-            </p>
-
-            <p>
-                Password must contain at least 6 characters.
-            </p>
-
-        </div>
-
-
-        <div class="form-group"
-             style="margin-top:12px">
-
-            <label class="form-label">
-                Telegram Account
-            </label>
-
-            <input
-                id="registerTelegram"
-                class="form-input"
-                type="text"
-                placeholder="@username">
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label class="form-label">
-                Password
-            </label>
-
-            <input
-                id="registerPassword"
-                class="form-input"
-                type="password"
-                minlength="6"
-                placeholder="Minimum 6 characters">
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label class="form-label">
-                Confirm Password
-            </label>
-
-            <input
-                id="registerConfirm"
-                class="form-input"
-                type="password"
-                minlength="6"
-                placeholder="Repeat password">
-
-        </div>
-
-
-        <button
-            class="btn"
-            id="createAccount">
-            CREATE ACCOUNT
-        </button>
-        `
-    );
-
-
-    document
-        .getElementById("createAccount")
-        .addEventListener(
-            "click",
-            ()=>{
-
-                const telegram =
-                    document.getElementById(
-                        "registerTelegram"
-                    ).value.trim();
-
-                const password =
-                    document.getElementById(
-                        "registerPassword"
-                    ).value;
-
-                const confirm =
-                    document.getElementById(
-                        "registerConfirm"
-                    ).value;
-
-
-                if(!telegram){
-
-                    toast(
-                        "Telegram account information is required.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                if(password.length<6){
-
-                    toast(
-                        "Password must contain at least 6 characters.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                if(password!==confirm){
-
-                    toast(
-                        "Passwords do not match.",
-                        "error"
-                    );
-
-                    return;
-                }
-
-
-                state.telegram =
-                    telegram;
-
-                document.getElementById(
-                    "telegramInfo"
-                ).innerText =
-                    telegram;
-
-
-                closeModal();
-
-                toast(
-                    "Registration submitted. Backend must securely create the account."
-                );
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   LANGUAGE
-========================================================= */
-
-const translations = {
-
-    en:{
-
-        welcome:
-            "Welcome to Desta Play",
-
-        welcomeDesc:
-            "Your gaming arena. Choose a game, follow the live round and play responsibly.",
-
-        quickAccess:
-            "Quick Access",
-
-        games:
-            "Games",
-
-        gamesDesc:
-            "Enter the live games",
-
-        wallet:
-            "Wallet",
-
-        walletDesc:
-            "Balance and transactions",
-
-        profile:
-            "Profile",
-
-        featuredGames:
-            "Featured Games",
-
-        allGames:
-            "All Games",
-
-        liveRounds:
-            "Live rounds",
-
-        kenoDesc:
-            "Pick numbers and follow the draw.",
-
-        bingoDesc:
-            "Interactive live Bingo.",
-
-        rouletteDesc:
-            "European roulette.",
-
-        aviatorDesc:
-            "Watch the multiplier rise and cash out before the flight crashes.",
-
-        round:
-            "ROUND",
-
-        time:
-            "TIME",
-
-        selectNumbers:
-            "Select Numbers",
-
-        confirmSelection:
-            "CONFIRM SELECTION",
-
-        chooseStake:
-            "Choose Stake",
-
-        cartelas:
-            "Cartelas",
-
-        cartelaInfo:
-            "Cartela 1 is permanent. Cartela 2 is optional.",
-
-        lastCalled:
-            "LAST CALLED",
-
-        placeBet:
-            "PLACE BET",
-
-        claimBingo:
-            "BINGO",
-
-        flightBet:
-            "Flight Bet",
-
-        tapCashout:
-            "Tap the running amount to cash out",
-
-        availableBalance:
-            "AVAILABLE BALANCE",
-
-        deposit:
-            "DEPOSIT",
-
-        withdraw:
-            "WITHDRAW",
-
-        transactions:
-            "Transactions",
-
-        telegram:
-            "Telegram",
-
-        accountStatus:
-            "Account Status",
-
-        memberSince:
-            "Member Since",
-
-        login:
-            "LOGIN / REGISTER"
-
-    },
-
-
-    am:{
-
-        welcome:
-            "እንኳን ወደ Desta Play በደህና መጡ",
-
-        welcomeDesc:
-            "የጨዋታ መድረክዎ። ጨዋታ ይምረጡ፣ የዙሩን ሁኔታ ይከታተሉ እና በኃላፊነት ይጫወቱ።",
-
-        quickAccess:
-            "ፈጣን መዳረሻ",
-
-        games:
-            "ጨዋታዎች",
-
-        gamesDesc:
-            "የቀጥታ ጨዋታዎችን ይግቡ",
-
-        wallet:
-            "ዋሌት",
-
-        walletDesc:
-            "ቀሪ ሂሳብ እና ግብይቶች",
-
-        profile:
-            "ፕሮፋይል",
-
-        featuredGames:
-            "ተወዳጅ ጨዋታዎች",
-
-        allGames:
-            "ሁሉም ጨዋታዎች",
-
-        liveRounds:
-            "የቀጥታ ዙሮች",
-
-        kenoDesc:
-            "ቁጥሮችን ይምረጡ እና ስዕሉን ይከታተሉ።",
-
-        bingoDesc:
-            "በቀጥታ የሚጫወት Bingo።",
-
-        rouletteDesc:
-            "የአውሮፓ Roulette።",
-
-        aviatorDesc:
-            "Multiplier እየጨመረ ሲሄድ ይከታተሉ እና ከመውደቁ በፊት ያውጡ።",
-
-        round:
-            "ዙር",
-
-        time:
-            "ጊዜ",
-
-        selectNumbers:
-            "ቁጥሮችን ይምረጡ",
-
-        confirmSelection:
-            "ምርጫውን አረጋግጥ",
-
-        chooseStake:
-            "የውርርድ መጠን ይምረጡ",
-
-        cartelas:
-            "Cartelaዎች",
-
-        cartelaInfo:
-            "Cartela 1 ቋሚ ነው። Cartela 2 አማራጭ ነው።",
-
-        lastCalled:
-            "የመጨረሻ የተጠራ",
-
-        placeBet:
-            "ውርርድ አስገባ",
-
-        claimBingo:
-            "BINGO",
-
-        flightBet:
-            "የበረራ ውርርድ",
-
-        tapCashout:
-            "ለማውጣት እየተለዋወጠ ያለውን መጠን ይጫኑ",
-
-        availableBalance:
-            "የሚገኝ ቀሪ ሂሳብ",
-
-        deposit:
-            "ገንዘብ አስገባ",
-
-        withdraw:
-            "ገንዘብ አውጣ",
-
-        transactions:
-            "ግብይቶች",
-
-        telegram:
-            "Telegram",
-
-        accountStatus:
-            "የመለያ ሁኔታ",
-
-        memberSince:
-            "አባል የሆነበት ቀን",
-
-        login:
-            "ግባ / መለያ ፍጠር"
-
+        return;
     }
 
-};
+    if(!telegramId){
+
+        showToast(
+            "Registration",
+            "Enter your Telegram ID."
+        );
+
+        return;
+    }
+
+    if(password.length < 6){
+
+        showToast(
+            "Registration",
+            "Password must contain at least 6 characters."
+        );
+
+        return;
+    }
+
+    if(password !== password2){
+
+        showToast(
+            "Registration",
+            "Passwords do not match."
+        );
+
+        return;
+    }
 
 
-function applyLanguage(){
+    /*
+      DEMO ONLY.
 
-    const lang =
-        translations[state.language];
+      The production backend must hash and store
+      the password securely.
 
-    document
-        .querySelectorAll("[data-i18n]")
-        .forEach(el=>{
-
-            const key =
-                el.dataset.i18n;
-
-            if(
-                lang[key]
-            ){
-
-                el.innerText =
-                    lang[key];
-
-            }
-
-        });
-
+      NEVER store plaintext passwords in the
+      production database.
+    */
 
     localStorage.setItem(
-        "dp_language",
-        state.language
+        "demo_telegram",
+        telegram
+    );
+
+    localStorage.setItem(
+        "demo_telegram_id",
+        telegramId
+    );
+
+
+    document.getElementById(
+        "profileName"
+    ).innerText =
+        telegram;
+
+
+    document.getElementById(
+        "telegramInfo"
+    ).innerText =
+        telegram;
+
+
+    closeModal();
+
+    showToast(
+        "Account",
+        "Account created. Backend registration will be connected next."
     );
 
 }
 
 
+function loginPlayer(){
+
+    const login =
+        document.getElementById(
+            "loginTelegram"
+        ).value.trim();
+
+    const password =
+        document.getElementById(
+            "loginPassword"
+        ).value;
+
+    if(!login){
+
+        showToast(
+            "Login",
+            "Enter your Player ID or Telegram."
+        );
+
+        return;
+    }
+
+    if(password.length < 6){
+
+        showToast(
+            "Login",
+            "Password must contain at least 6 characters."
+        );
+
+        return;
+    }
+
+    closeModal();
+
+    showToast(
+        "Login",
+        "Login request ready for backend authentication."
+    );
+
+}
+
+
+/* =========================================================
+   HELP SYSTEM
+   EACH GAME HAS ITS OWN RULES
+========================================================= */
+
+function showHelp(
+    game
+){
+
+    let title = "";
+
+    let content = "";
+
+    if(game === "keno"){
+
+        title = "Keno — How to Play";
+
+        content = `
+
+        <div class="help-text">
+
+            <h4>How Keno works</h4>
+
+            <ul>
+                <li>Select your numbers from 1 to 80.</li>
+                <li>You can select up to 10 numbers.</li>
+                <li>Confirm your bet before betting closes.</li>
+                <li>The server draws the winning numbers.</li>
+                <li>Your result is calculated from the official server draw.</li>
+            </ul>
+
+            <h4>Round timing</h4>
+
+            <p>
+                Each round has a 40-second round-to-round cycle in the frontend design.
+                The backend will provide the authoritative timer.
+            </p>
+
+        </div>
+
+        `;
+
+    }
+
+
+    if(game === "bingo"){
+
+        title = "Bingo — How to Play";
+
+        content = `
+
+        <div class="help-text">
+
+            <h4>How Bingo works</h4>
+
+            <ul>
+                <li>Choose the Bingo stake you want to play.</li>
+                <li>Select a cartela number.</li>
+                <li>Place your bet before betting closes.</li>
+                <li>The server calls Bingo numbers.</li>
+                <li>Mark the numbers that have been called.</li>
+                <li>When your winning pattern is complete, use CLAIM BINGO.</li>
+                <li>The server verifies the complete cartela before approving a win.</li>
+            </ul>
+
+            <h4>Important</h4>
+
+            <p>
+                The browser does not decide whether a Bingo claim wins.
+                The backend must perform the official verification.
+            </p>
+
+        </div>
+
+        `;
+
+    }
+
+
+    if(game === "roulette"){
+
+        title = "Roulette — How to Play";
+
+        content = `
+
+        <div class="help-text">
+
+            <h4>How Roulette works</h4>
+
+            <ul>
+                <li>Select a supported betting option.</li>
+                <li>RED covers red numbers.</li>
+                <li>BLACK covers black numbers.</li>
+                <li>ZERO represents number 0.</li>
+                <li>Betting closes before the wheel result is generated.</li>
+                <li>The server determines the official result.</li>
+            </ul>
+
+            <h4>European Roulette</h4>
+
+            <p>
+                European roulette uses numbers 0 through 36.
+            </p>
+
+        </div>
+
+        `;
+
+    }
+
+
+    if(game === "aviator"){
+
+        title = "Aviator — How to Play";
+
+        content = `
+
+        <div class="help-text">
+
+            <h4>How Aviator works</h4>
+
+            <ul>
+                <li>Enter your stake before the flight starts.</li>
+                <li>When the flight begins, the multiplier increases.</li>
+                <li>Your running money is shown live.</li>
+                <li>Tap the running money to cash out.</li>
+                <li>The longer you wait, the larger the multiplier can become.</li>
+                <li>If the flight crashes before cash-out, the active bet is lost.</li>
+            </ul>
+
+            <h4>Cash-out</h4>
+
+            <p>
+                The live money itself is the cash-out control.
+                The small CASH OUT text appears inside the live amount.
+            </p>
+
+            <h4>Server authority</h4>
+
+            <p>
+                In production, the backend must control the multiplier,
+                crash point, bet state and cash-out result.
+            </p>
+
+        </div>
+
+        `;
+
+    }
+
+
+    openModal(
+        title,
+        content
+    );
+
+}
+
+
+/* =========================================================
+   WALLET HELP / GENERAL PAYMENT HELP
+========================================================= */
+
+function showWalletHelp(){
+
+    openModal(
+        "Wallet Help",
+        `
+
+        <div class="help-text">
+
+            <h4>Deposit</h4>
+
+            <p>
+                Open Wallet → Deposit. Enter the amount and select Telebirr.
+                The payment account information will be displayed.
+                Complete the payment externally and submit the receipt link.
+            </p>
+
+            <h4>Withdrawal</h4>
+
+            <p>
+                Open Wallet → Withdraw. Enter the amount and your Telebirr
+                payment number and account name. Confirm the request with
+                your account password.
+            </p>
+
+            <h4>Security</h4>
+
+            <p>
+                The final production system must validate deposits,
+                withdrawals, balances and account ownership on the server.
+            </p>
+
+        </div>
+
+        `
+    );
+
+}
+
+
+/* =========================================================
+   WALLET NAV LONG-PRESS/HELP
+========================================================= */
+
 document
-    .getElementById("languageBtn")
+    .getElementById("navWallet")
     .addEventListener(
-        "click",
-        ()=>{
+        "contextmenu",
+        function(event){
 
-            state.language =
-                state.language==="en"
-                    ? "am"
-                    : "en";
+            event.preventDefault();
 
-            applyLanguage();
-
-            toast(
-                state.language==="am"
-                    ? "ቋንቋ ወደ አማርኛ ተቀይሯል።"
-                    : "Language changed to English."
-            );
+            showWalletHelp();
 
         }
     );
-
-
-applyLanguage();
-
-
-/* =========================================================
-   GAME HELP
-========================================================= */
-
-const gameHelp={
-
-    keno:{
-
-        title:"Keno — How to Play",
-
-        html:`
-            <div class="help">
-
-                <h3>How Keno Works</h3>
-
-                <p>
-                    Select numbers from the Keno board.
-                    Your selection is sent to the game
-                    server for validation.
-                </p>
-
-                <ul>
-                    <li>Select the numbers you want.</li>
-                    <li>You can select up to 10 numbers.</li>
-                    <li>Wait for the live draw.</li>
-                    <li>The server determines the official result.</li>
-                    <li>Round information and previous rounds are displayed above.</li>
-                </ul>
-
-                <p>
-                    The round timer is controlled by the
-                    game server in the production version.
-                </p>
-
-            </div>
-        `
-
-    },
-
-
-    bingo:{
-
-        title:"Bingo — How to Play",
-
-        html:`
-            <div class="help">
-
-                <h3>How Bingo Works</h3>
-
-                <ul>
-                    <li>Select your Bingo stake.</li>
-                    <li>Choose your cartela.</li>
-                    <li>Cartela 1 is the permanent slot.</li>
-                    <li>Cartela 2 is optional.</li>
-                    <li>Numbers are called during the live round.</li>
-                    <li>Mark called numbers on your cartela.</li>
-                    <li>When you complete the required pattern, press BINGO.</li>
-                    <li>The server verifies the claim.</li>
-                </ul>
-
-                <p>
-                    A browser cannot decide whether a
-                    Bingo claim is genuine. The production
-                    server must perform the complete check.
-                </p>
-
-            </div>
-        `
-
-    },
-
-
-    roulette:{
-
-        title:"Roulette — How to Play",
-
-        html:`
-            <div class="help">
-
-                <h3>How Roulette Works</h3>
-
-                <p>
-                    European Roulette uses numbers
-                    from 0 through 36.
-                </p>
-
-                <ul>
-                    <li>Choose a supported betting option.</li>
-                    <li>Wait for the round to close.</li>
-                    <li>The server determines the winning number.</li>
-                    <li>The result is displayed after the spin.</li>
-                    <li>Previous results can be expanded from the history bar.</li>
-                </ul>
-
-            </div>
-        `
-
-    },
-
-
-    aviator:{
-
-        title:"Aviator — How to Play",
-
-        html:`
-            <div class="help">
-
-                <h3>How Aviator Works</h3>
-
-                <p>
-                    A flight starts and its multiplier
-                    increases while the aircraft remains
-                    in flight.
-                </p>
-
-                <ul>
-                    <li>Enter your bet before the flight starts.</li>
-                    <li>When the flight begins, your running cash-out amount is displayed.</li>
-                    <li>The running amount is your bet multiplied by the current multiplier.</li>
-                    <li>Tap the running amount to request cash-out.</li>
-                    <li>If the flight crashes first, the opportunity to cash out ends.</li>
-                    <li>The server must determine the official crash point and cash-out result.</li>
-                </ul>
-
-                <p>
-                    Example: a 10 ETB bet at 2.00x
-                    displays 20 ETB before any applicable
-                    rules or fees.
-                </p>
-
-            </div>
-        `
-
-    }
-
-};
-
-
-document
-    .querySelectorAll("[data-help]")
-    .forEach(btn=>{
-
-        btn.addEventListener(
-            "click",
-            ()=>{
-
-                const game =
-                    btn.dataset.help;
-
-                openModal(
-                    gameHelp[game].title,
-                    gameHelp[game].html
-                );
-
-            }
-        );
-
-    });
 
 
 /* =========================================================
    MODAL
 ========================================================= */
 
-const modal =
-    document.getElementById("modal");
-
-const modalTitle =
-    document.getElementById("modalTitle");
-
-const modalContent =
-    document.getElementById("modalContent");
-
-
 function openModal(
     title,
     content
 ){
 
-    modalTitle.innerText =
+    document.getElementById(
+        "modalTitle"
+    ).innerText =
         title;
 
-    modalContent.innerHTML =
+    document.getElementById(
+        "modalContent"
+    ).innerHTML =
         content;
 
-    modal.classList.add(
-        "open"
-    );
+    document.getElementById(
+        "modal"
+    ).classList.add("show");
+
+
+    /*
+      Populate payment account information
+      after deposit modal is created.
+    */
+
+    const name =
+        document.getElementById(
+            "depositAccountName"
+        );
+
+    const number =
+        document.getElementById(
+            "depositAccountNumber"
+        );
+
+    if(name){
+        name.innerText =
+            PAYMENT_ACCOUNT_NAME;
+    }
+
+    if(number){
+        number.innerText =
+            PAYMENT_ACCOUNT_NUMBER;
+    }
 
 }
 
 
 function closeModal(){
 
-    modal.classList.remove(
-        "open"
-    );
+    document.getElementById(
+        "modal"
+    ).classList.remove("show");
 
-    modalContent.innerHTML="";
 }
 
 
-document
-    .getElementById("modalClose")
-    .addEventListener(
-        "click",
-        closeModal
-    );
+function closeModalOutside(
+    event
+){
 
+    if(
+        event.target.id === "modal"
+    ){
 
-modal.addEventListener(
-    "click",
-    event=>{
-
-        if(
-            event.target===modal
-        ){
-
-            closeModal();
-
-        }
+        closeModal();
 
     }
-);
+
+}
 
 
 /* =========================================================
-   ESCAPE HTML
+   TOAST
 ========================================================= */
 
-function escapeHtml(value){
+let toastTimer = null;
 
-    return String(value)
-        .replace(
-            /[&<>"']/g,
-            char=>({
-                "&":"&amp;",
-                "<":"&lt;",
-                ">":"&gt;",
-                '"':"&quot;",
-                "'":"&#039;"
-            }[char])
+function showToast(
+    title,
+    message
+){
+
+    document.getElementById(
+        "toastTitle"
+    ).innerText =
+        title;
+
+    document.getElementById(
+        "toastMessage"
+    ).innerText =
+        message;
+
+    const toast =
+        document.getElementById(
+            "toast"
+        );
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer =
+        setTimeout(
+            () =>
+                toast.classList.remove("show"),
+            2800
         );
 
 }
 
 
 /* =========================================================
+   BALANCE
+========================================================= */
+
+function updateBalance(){
+
+    document.getElementById(
+        "walletBalance"
+    ).innerText =
+        balance.toFixed(2) +
+        " ETB";
+
+    document.getElementById(
+        "miniBalance"
+    ).innerText =
+        balance.toFixed(2) +
+        " ETB";
+
+    document.getElementById(
+        "withdrawableBalance"
+    ).innerText =
+        withdrawableBalance.toFixed(2) +
+        " ETB";
+
+}
+
+
+/* =========================================================
+   DEMO ROUND TIMERS
+   OTHER GAMES = 40 SECONDS
+========================================================= */
+
+let timers = {
+    keno:40,
+    bingo:40,
+    roulette:40
+};
+
+
+setInterval(
+    function(){
+
+        Object.keys(timers)
+            .forEach(game => {
+
+                timers[game]--;
+
+                if(
+                    timers[game] <= 0
+                ){
+
+                    timers[game] = 40;
+
+                }
+
+            });
+
+
+        const k =
+            document.getElementById(
+                "kenoTimer"
+            );
+
+        const b =
+            document.getElementById(
+                "bingoTimer"
+            );
+
+        const r =
+            document.getElementById(
+                "rouletteTimer"
+            );
+
+
+        if(k){
+            k.innerText =
+                timers.keno;
+        }
+
+        if(b){
+            b.innerText =
+                timers.bingo;
+        }
+
+        if(r){
+            r.innerText =
+                timers.roulette;
+        }
+
+    },
+    1000
+);
+
+
+/* =========================================================
+   DEMO BINGO NUMBER CALL
+========================================================= */
+
+setInterval(
+    function(){
+
+        if(
+            currentGame !== "bingo"
+        ){
+            return;
+        }
+
+        const number =
+            Math.floor(
+                1 +
+                Math.random()*75
+            );
+
+        document.getElementById(
+            "lastBingoNumber"
+        ).innerText =
+            number;
+
+        renderBingo();
+
+    },
+    5000
+);
+
+
+/* =========================================================
    INITIALIZATION
 ========================================================= */
 
-renderBingo();
+updateBalance();
 
-renderHistory("keno");
-renderHistory("bingo");
-renderHistory("roulette");
-renderHistory("aviator");
+applyLanguage();
 
-updateWallet();
-
-console.log(
-    "DESTA PLAY frontend initialized."
-);
+initKeno();
 
 </script>
 
