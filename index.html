@@ -1,654 +1,676 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DESTA PLAY — 24/7 Live Casino</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root {
-      --bg-color: #0d0e12;
-      --card-bg: #16181f;
-      --accent-color: #f39c12;
-      --accent-green: #18d66b;
-      --accent-red: #ff3b2f;
-      --text-main: #ffffff;
-      --text-muted: #8e94a0;
-      --border-color: #262933;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DESTA PLAY - Virtual Gaming Platform</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      user-select: none;
-    }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
 
-    /* HEADER & WALLET */
-    header {
-      background-color: var(--card-bg);
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+        header {
+            background: var(--card-bg);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+        .logo {
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    .avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent-color), #d35400);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
+        .user-pill {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-    .balance-box {
-      background-color: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-color);
-      padding: 6px 12px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+        .container {
+            flex: 1;
+            padding: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            padding-bottom: 80px;
+        }
 
-    .balance-amount {
-      color: var(--accent-green);
-      font-weight: bold;
-    }
+        .screen {
+            display: none;
+            animation: fadeIn 0.2s ease-in-out;
+        }
 
-    .btn-action {
-      background: var(--accent-color);
-      color: #000;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+        .screen.active {
+            display: block;
+        }
 
-    /* GAME NAVIGATION */
-    nav.game-tabs {
-      display: flex;
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
-      overflow-x: auto;
-    }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    .tab-btn {
-      flex: 1;
-      padding: 12px;
-      text-align: center;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-weight: bold;
-      cursor: pointer;
-      white-space: nowrap;
-      border-bottom: 3px solid transparent;
-    }
+        /* Lobby Grid */
+        .lobby-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
 
-    .tab-btn.active {
-      color: var(--accent-color);
-      border-bottom-color: var(--accent-color);
-    }
+        .game-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: transform 0.1s ease, border-color 0.1s ease;
+        }
 
-    /* MAIN CONTENT ARENA */
-    main {
-      flex: 1;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+        .game-card:active {
+            transform: scale(0.97);
+        }
 
-    .game-container {
-      background: var(--card-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      padding: 16px;
-      display: none;
-    }
+        .game-card.featured {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #1e293b, #312e81);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
 
-    .game-container.active {
-      display: block;
-    }
+        .game-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
 
-    .status-bar {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
+        .game-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
 
-    /* BINGO SERVER-DRIVEN UI */
-    .bingo-cartela-selector {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin: 12px 0;
-      max-height: 180px;
-      overflow-y: auto;
-    }
+        .game-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
 
-    .cartela-badge {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border-color);
-      padding: 8px;
-      text-align: center;
-      border-radius: 6px;
-      cursor: pointer;
-    }
+        /* Navigation Bar */
+        nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 100;
+        }
 
-    .cartela-badge.selected {
-      border-color: var(--accent-color);
-      background: rgba(243, 156, 18, 0.2);
-    }
+        .nav-item {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            flex: 1;
+        }
 
-    .cartela-badge.occupied {
-      opacity: 0.4;
-      cursor: not-allowed;
-      border-color: var(--accent-red);
-    }
+        .nav-item.active {
+            color: var(--accent);
+        }
 
-    .bingo-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-      margin-top: 12px;
-    }
+        .nav-item span {
+            font-size: 1.2rem;
+        }
 
-    .bingo-cell {
-      aspect-ratio: 1;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      border-radius: 6px;
-    }
+        /* Common Game Elements */
+        .back-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-bottom: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-    .bingo-cell.drawn {
-      background: var(--accent-color);
-      color: #000;
-    }
+        .panel {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-    .drawn-balls-strip {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding: 8px 0;
-      min-height: 44px;
-    }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
 
-    .ball {
-      min-width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--accent-color);
-      color: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 12px;
-    }
+        .btn:active {
+            background: var(--accent-hover);
+        }
 
-    /* CONTROLS & INPUTS */
-    .controls {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
 
-    .input-amount {
-      flex: 1;
-      background: rgba(0,0,0,0.3);
-      border: 1px solid var(--border-color);
-      color: #fff;
-      padding: 10px;
-      border-radius: 6px;
-    }
+        /* Keno UI */
+        .keno-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+            margin: 12px 0;
+        }
 
-    .btn-submit {
-      background: var(--accent-green);
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      font-weight: bold;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-    }
+        .keno-cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
 
-    .btn-submit:disabled {
-      background: var(--border-color);
-      color: var(--text-muted);
-      cursor: not-allowed;
-    }
+        .keno-cell.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
 
-    /* LIVE LIVE FEED */
-    .feed-section {
-      background: var(--card-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-      padding: 12px;
-    }
+        .keno-cell.drawn {
+            background: var(--warning);
+            color: #000;
+            border-color: var(--warning);
+        }
 
-    .feed-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      font-size: 13px;
-    }
+        /* Bingo Tiers UI */
+        .tier-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
 
-    .feed-row:last-child {
-      border-bottom: none;
-    }
+        .tier-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 10px;
+            color: var(--text-main);
+            text-align: left;
+            cursor: pointer;
+        }
 
-    .win-val {
-      color: var(--accent-green);
-      font-weight: bold;
-    }
+        .tier-btn .amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--success);
+        }
 
-    .hidden { display: none !important; }
-  </style>
+        .bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            margin: 12px 0;
+        }
+
+        .bingo-cell {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .bingo-cell.marked {
+            background: var(--success);
+            color: #000;
+        }
+
+        /* Roulette UI */
+        .roulette-wheel-box {
+            text-align: center;
+            padding: 24px 0;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .roulette-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .r-btn {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--card-bg);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+        .r-btn.red { background: rgba(239, 68, 68, 0.2); border-color: var(--danger); }
+        .r-btn.black { background: rgba(15, 23, 42, 0.8); border-color: #334155; }
+        .r-btn.green { background: rgba(34, 197, 94, 0.2); border-color: var(--success); }
+
+        /* Aviator UI */
+        .aviator-screen {
+            height: 180px;
+            background: radial-gradient(circle, #312e81 0%, #0f172a 100%);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-bottom: 12px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .multiplier-display {
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header>
-    <div class="user-info">
-      <div class="avatar" id="userAvatar">U</div>
-      <div>
-        <div id="userName" style="font-weight: bold; font-size: 14px;">Guest</div>
-        <div id="userId" style="font-size: 11px; color: var(--text-muted);">ID: ----</div>
-      </div>
-    </div>
-    <div class="balance-box">
-      <span class="balance-amount" id="balanceDisplay">0.00 ETB</span>
-      <button class="btn-action" onclick="openDeposit()">+</button>
-    </div>
-  </header>
+    <header>
+        <div class="logo">DESTA PLAY</div>
+        <div class="user-pill" id="userHeaderPill">
+            <span>👤</span> <span id="headerPlayerId">DP-------</span>
+        </div>
+    </header>
 
-  <!-- GAME SELECTION TABS -->
-  <nav class="game-tabs">
-    <button class="tab-btn active" onclick="switchGame('bingo')">24/7 BINGO</button>
-    <button class="tab-btn" onclick="switchGame('keno')">KENO</button>
-    <button class="tab-btn" onclick="switchGame('aviator')">AVIATOR</button>
-    <button class="tab-btn" onclick="switchGame('roulette')">ROULETTE</button>
-  </nav>
-
-  <main>
-    <!-- 24/7 BINGO GAME CONTAINER -->
-    <div id="bingoGame" class="game-container active">
-      <div class="status-bar">
-        <span>Round: <strong id="bingoRound">#0000</strong></span>
-        <span>Status: <strong id="bingoStatus" style="color:var(--accent-color)">WAITING FOR BETS</strong></span>
-        <span>Timer: <strong id="bingoTimer">00:00</strong></span>
-      </div>
-
-      <div id="bingoBettingPhase">
-        <p style="font-size: 13px; color: var(--text-muted);">Select an Available Cartela (1 - 120):</p>
-        <div class="bingo-cartela-selector" id="cartelaList">
-          <!-- Populated by JavaScript -->
+    <div class="container">
+        <!-- LOBBY SCREEN -->
+        <div id="screen-lobby" class="screen active">
+            <div class="panel" style="background: linear-gradient(135deg, #312e81, #1e293b);">
+                <h3 style="margin-bottom: 4px;">Welcome to Desta Play</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">24/7 Live Continuous Engine Active.</p>
+            </div>
+            
+            <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">SELECT GAME</h4>
+            
+            <div class="lobby-grid">
+                <div class="game-card" onclick="switchGame('keno')">
+                    <div class="game-icon">🔢</div>
+                    <div class="game-title">Keno</div>
+                    <div class="game-desc">80 Numbers Draw</div>
+                </div>
+                <div class="game-card" onclick="switchGame('bingo')">
+                    <div class="game-icon">🎱</div>
+                    <div class="game-title">Bingo</div>
+                    <div class="game-desc">Multi-Tier PVP</div>
+                </div>
+                <div class="game-card" onclick="switchGame('roulette')">
+                    <div class="game-icon">🎡</div>
+                    <div class="game-title">Roulette</div>
+                    <div class="game-desc">European 37-Grid</div>
+                </div>
+                <div class="game-card featured" onclick="switchGame('aviator')">
+                    <div class="game-icon">🚀</div>
+                    <div class="game-title">Aviator Flight</div>
+                    <div class="game-desc">Continuous Multiplier Crash Game</div>
+                </div>
+            </div>
         </div>
 
-        <div class="controls">
-          <input type="number" id="bingoBetAmount" class="input-amount" placeholder="Stake (ETB)" value="50">
-          <button class="btn-submit" id="btnPlaceBingoBet" onclick="placeBingoBet()">BUY CARTELA</button>
+        <!-- KENO SCREEN -->
+        <div id="screen-keno" class="screen">
+            <button class="back-btn" onclick="switchScreen('screen-lobby')">← Back to Lobby</button>
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="font-size:1rem;">Keno Arena</h3>
+                    <span id="kenoStatus" class="status-pill" style="background:rgba(99,102,241,0.2); color:var(--accent);">Betting</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Round ID: <span id="kenoRoundId">DP-------</span> | Timer: <span id="kenoTimer">15</span>s</div>
+                <div class="keno-grid" id="kenoGrid"></div>
+                <button class="btn" onclick="placeKenoBet()">Confirm Selections</button>
+            </div>
         </div>
-      </div>
 
-      <div id="bingoDrawPhase" class="hidden">
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">Live Drawn Balls:</p>
-        <div class="drawn-balls-strip" id="drawnBallsContainer"></div>
+        <!-- BINGO SCREEN -->
+        <div id="screen-bingo" class="screen">
+            <button class="back-btn" onclick="switchScreen('screen-lobby')">← Back to Lobby</button>
+            <div id="bingoLobbyView" class="panel">
+                <h3 style="margin-bottom:8px;">Select Stake Tier</h3>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">PVP Model: 90% payout, 10% platform rake.</p>
+                <div class="tier-grid" id="bingoTierGrid">
+                    <!-- Populated via script -->
+                </div>
+            </div>
+            <div id="bingoGameView" class="screen">
+                <div class="panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h3 id="bingoRoomTitle">Bingo Tier</h3>
+                        <span id="bingoStatus" class="status-pill" style="background:rgba(34,197,94,0.2); color:var(--success);">Active</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Pot: <span id="bingoPot">0</span> ETB | Players: <span id="bingoPlayersCount">0</span></div>
+                    <div class="bingo-board" id="bingoBoard"></div>
+                    <button class="btn secondary" onclick="backToBingoLobby()">Change Tier</button>
+                </div>
+            </div>
+        </div>
 
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 10px;">Your Active Board (<span id="activeCartelaNum">None</span>):</p>
-        <div class="bingo-grid" id="userBingoGrid"></div>
-      </div>
+        <!-- ROULETTE SCREEN -->
+        <div id="screen-roulette" class="screen">
+            <button class="back-btn" onclick="switchScreen('screen-lobby')">← Back to Lobby</button>
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="font-size:1rem;">European Roulette</h3>
+                    <span id="rouletteStatus" class="status-pill" style="background:rgba(99,102,241,0.2); color:var(--accent);">Betting</span>
+                </div>
+                <div class="roulette-wheel-box" id="rouletteWheelBox">🎡 --</div>
+                <div class="roulette-grid">
+                    <button class="r-btn red" onclick="placeRouletteBet('red')">Red</button>
+                    <button class="r-btn green" onclick="placeRouletteBet('green')">Zero (0)</button>
+                    <button class="r-btn black" onclick="placeRouletteBet('black')">Black</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- AVIATOR SCREEN -->
+        <div id="screen-aviator" class="screen">
+            <button class="back-btn" onclick="switchScreen('screen-lobby')">← Back to Lobby</button>
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <h3 style="font-size:1rem;">Aviator Flight</h3>
+                    <span id="aviatorStatus" class="status-pill" style="background:rgba(245,158,11,0.2); color:var(--warning);">Waiting</span>
+                </div>
+                <div class="aviator-screen">
+                    <div class="multiplier-display" id="aviatorMultiplier">1.00x</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;" id="aviatorSubText">Next flight starting soon</div>
+                </div>
+                <div class="flex-row">
+                    <button class="btn" id="aviatorCashoutBtn" onclick="cashOutAviator()">CASH OUT</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- WALLET SCREEN -->
+        <div id="screen-wallet" class="screen">
+            <div class="panel">
+                <h3>Player Account</h3>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">Telegram WebApp Synchronized</p>
+                <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:10px;">
+                    <div style="font-size:0.75rem; color:var(--text-muted);">PLAYER IDENTIFIER</div>
+                    <div id="walletPlayerId" style="font-size:1.1rem; font-weight:700; margin-top:2px;">DP-------</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- KENO GAME CONTAINER -->
-    <div id="kenoGame" class="game-container">
-      <div class="status-bar">
-        <span>Round: <strong id="kenoRound">#0000</strong></span>
-        <span>Timer: <strong id="kenoTimer">00:00</strong></span>
-      </div>
-      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Keno Synchronizing with Server...</p>
-    </div>
+    <nav>
+        <button class="nav-item active" onclick="switchNav('screen-lobby', this)">
+            <span>🏠</span>
+            Lobby
+        </button>
+        <button class="nav-item" onclick="switchNav('screen-wallet', this)">
+            <span>💳</span>
+            Wallet
+        </button>
+    </nav>
 
-    <!-- AVIATOR GAME CONTAINER -->
-    <div id="aviatorGame" class="game-container">
-      <div class="status-bar">
-        <span>Multiplier: <strong id="aviatorMult" style="color:var(--accent-green); font-size: 20px;">1.00x</strong></span>
-      </div>
-      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Aviator Synchronizing with Server...</p>
-    </div>
-
-    <!-- ROULETTE GAME CONTAINER -->
-    <div id="rouletteGame" class="game-container">
-      <div class="status-bar">
-        <span>Spin Status: <strong id="rouletteStatus">Waiting</strong></span>
-      </div>
-      <p style="color: var(--text-muted); text-align: center; padding: 20px;">Roulette Synchronizing with Server...</p>
-    </div>
-
-    <!-- LIVE GLOBAL FEED -->
-    <div class="feed-section">
-      <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px;">LIVE COMMUNITY FEED</div>
-      <div id="feedContent">
-        <div class="feed-row"><span>Connecting to 24/7 server...</span></div>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    /* =========================================================
-       SYSTEM CONFIG & STATE MANAGEMENT
-    ========================================================= */
-    const CONFIG = {
-      API_BASE: window.location.origin,
-      WS_URL: window.location.origin.replace(/^http/, 'ws')
-    };
-
-    const state = {
-      user: { telegramId: null, username: 'Guest', balance: 0 },
-      currentGame: 'bingo',
-      socket: null,
-      bingo: {
-        selectedCartela: null,
-        userCartelaData: null,
-        myActiveBet: null,
-        occupiedCartelas: [],
-        drawnBalls: []
-      }
-    };
-
-    /* =========================================================
-       INITIALIZATION & TELEGRAM AUTH
-    ========================================================= */
-    window.addEventListener("DOMContentLoaded", () => {
-      initTelegram();
-      connectWebSocket();
-      fetchUserData();
-      renderCartelas();
-    });
-
-    function initTelegram() {
-      if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+    <script>
+        // Telegram Initialization & Player ID Setup
+        const tg = window.Telegram?.WebApp;
+        if (tg) tg.expand();
         
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-          const u = tg.initDataUnsafe.user;
-          state.user.telegramId = String(u.id);
-          state.user.username = u.username || u.first_name || "Player";
-          
-          document.getElementById("userName").textContent = state.user.username;
-          document.getElementById("userId").textContent = `ID: ${u.id}`;
-          document.getElementById("userAvatar").textContent = state.user.username.charAt(0).toUpperCase();
+        let playerId = localStorage.getItem('dp_player_id');
+        if (!playerId) {
+            playerId = 'DP-' + Math.floor(100000 + Math.random() * 900000);
+            localStorage.setItem('dp_player_id', playerId);
         }
-      }
-    }
+        document.getElementById('headerPlayerId').innerText = playerId;
+        document.getElementById('walletPlayerId').innerText = playerId;
 
-    async function fetchUserData() {
-      if (!state.user.telegramId) return;
-      try {
-        const res = await fetch(`${CONFIG.API_BASE}/api/user/${state.user.telegramId}`);
-        const data = await res.json();
-        if (data.success) {
-          state.user.balance = data.balance;
-          updateBalanceDisplay();
+        // Socket.io Connection
+        const socket = io('http://localhost:3000');
+
+        // Navigation Functions
+        function switchScreen(screenId) {
+            document.querySelectorAll('.container > .screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
         }
-      } catch (e) {
-        console.error("User sync error:", e);
-      }
-    }
 
-    function updateBalanceDisplay() {
-      document.getElementById("balanceDisplay").textContent = `${state.user.balance.toFixed(2)} ETB`;
-    }
-
-    /* =========================================================
-       WEBSOCKET REAL-TIME SYNC (24/7 ENGINE CONNECTOR)
-    ========================================================= */
-    function connectWebSocket() {
-      state.socket = new WebSocket(CONFIG.WS_URL);
-
-      state.socket.onopen = () => {
-        console.log("Connected to 24/7 Game Engine Server");
-        if (state.user.telegramId) {
-          state.socket.send(JSON.stringify({ type: "AUTH", telegramId: state.user.telegramId }));
+        function switchGame(gameName) {
+            switchScreen('screen-' + gameName);
+            if (gameName === 'bingo') initBingoTiers();
         }
-      };
 
-      state.socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        handleServerEvent(msg);
-      };
-
-      state.socket.onclose = () => {
-        console.warn("WebSocket connection lost. Reconnecting in 3 seconds...");
-        setTimeout(connectWebSocket, 3000);
-      };
-    }
-
-    function handleServerEvent(msg) {
-      switch (msg.type) {
-        case "INIT_STATE":
-        case "BINGO_TICK":
-          handleBingoStateUpdate(msg.data || msg);
-          break;
-        case "BINGO_BALL_DRAWN":
-          handleBingoBallDrawn(msg.ball);
-          break;
-        case "BINGO_GAME_OVER":
-          handleBingoGameOver(msg.winner);
-          break;
-        case "BALANCE_UPDATE":
-          state.user.balance = msg.balance;
-          updateBalanceDisplay();
-          break;
-        case "FEED_UPDATE":
-          renderFeed(msg.events);
-          break;
-      }
-    }
-
-    /* =========================================================
-       24/7 CONTINUOUS BINGO GAME LOGIC
-    ========================================================= */
-    function renderCartelas() {
-      const container = document.getElementById("cartelaList");
-      container.innerHTML = "";
-      for (let i = 1; i <= 120; i++) {
-        const badge = document.createElement("div");
-        badge.className = "cartela-badge";
-        badge.id = `cartela-${i}`;
-        badge.textContent = `#${i}`;
-        badge.onclick = () => selectCartela(i);
-        container.appendChild(badge);
-      }
-    }
-
-    function selectCartela(num) {
-      if (state.bingo.occupiedCartelas.includes(num)) return;
-      
-      document.querySelectorAll(".cartela-badge").forEach(el => el.classList.remove("selected"));
-      state.bingo.selectedCartela = num;
-      
-      const el = document.getElementById(`cartela-${num}`);
-      if (el) el.classList.add("selected");
-    }
-
-    function handleBingoStateUpdate(data) {
-      if (!data) return;
-      document.getElementById("bingoRound").textContent = `#${String(data.roundId).padStart(4, '0')}`;
-      document.getElementById("bingoTimer").textContent = `${data.timeLeft}s`;
-
-      // Update cartela occupancies from server broadcast
-      if (data.occupiedCartelas) {
-        state.bingo.occupiedCartelas = data.occupiedCartelas;
-        for (let i = 1; i <= 120; i++) {
-          const badge = document.getElementById(`cartela-${i}`);
-          if (badge) {
-            if (data.occupiedCartelas.includes(i)) {
-              badge.classList.add("occupied");
-            } else {
-              badge.classList.remove("occupied");
-            }
-          }
+        function switchNav(screenId, el) {
+            document.querySelectorAll('nav .nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            switchScreen(screenId);
         }
-      }
 
-      if (data.phase === "BETTING") {
-        document.getElementById("bingoStatus").textContent = "WAITING FOR BETS";
-        document.getElementById("bingoStatus").style.color = "var(--accent-color)";
-        document.getElementById("bingoBettingPhase").classList.remove("hidden");
-        document.getElementById("bingoDrawPhase").classList.add("hidden");
-        document.getElementById("btnPlaceBingoBet").disabled = false;
-        state.bingo.drawnBalls = [];
-      } else if (data.phase === "DRAWING") {
-        document.getElementById("bingoStatus").textContent = "DRAW IN PROGRESS";
-        document.getElementById("bingoStatus").style.color = "var(--accent-green)";
-        document.getElementById("bingoBettingPhase").classList.add("hidden");
-        document.getElementById("bingoDrawPhase").classList.remove("hidden");
-        document.getElementById("btnPlaceBingoBet").disabled = true;
-      }
-    }
+        // Keno Setup & Interaction
+        const kenoGrid = document.getElementById('kenoGrid');
+        const selectedKenoNumbers = new Set();
+        for (let i = 1; i <= 80; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'keno-cell';
+            cell.innerText = i;
+            cell.onclick = () => {
+                if (selectedKenoNumbers.has(i)) {
+                    selectedKenoNumbers.delete(i);
+                    cell.classList.remove('selected');
+                } else {
+                    if (selectedKenoNumbers.size < 10) {
+                        selectedKenoNumbers.add(i);
+                        cell.classList.add('selected');
+                    }
+                }
+            };
+            kenoGrid.appendChild(cell);
+        }
 
-    async function placeBingoBet() {
-      if (!state.bingo.selectedCartela) {
-        alert("Please select a Cartela number standardly (1-120).");
-        return;
-      }
+        function placeKenoBet() {
+            if (selectedKenoNumbers.size === 0) return alert('Select at least one number');
+            alert('Keno bet placed with ' + selectedKenoNumbers.size + ' numbers!');
+        }
 
-      const amount = parseFloat(document.getElementById("bingoBetAmount").value);
-      if (isNaN(amount) || amount <= 0 || amount > state.user.balance) {
-        alert("Invalid stake amount or insufficient balance.");
-        return;
-      }
-
-      try {
-        const response = await fetch(`${CONFIG.API_BASE}/api/bingo/bet`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegramId: state.user.telegramId,
-            cartelaId: state.bingo.selectedCartela,
-            amount: amount
-          })
+        socket.on('state:keno', (data) => {
+            document.getElementById('kenoRoundId').innerText = data.roundId;
+            document.getElementById('kenoTimer').innerText = data.timeLeft;
+            document.getElementById('kenoStatus').innerText = data.phase.toUpperCase();
+            
+            // Highlight drawn numbers
+            document.querySelectorAll('.keno-cell').forEach(cell => {
+                const num = parseInt(cell.innerText);
+                if (data.numbersDrawn.includes(num)) {
+                    cell.classList.add('drawn');
+                } else {
+                    cell.classList.remove('drawn');
+                }
+            });
         });
 
-        const res = await response.json();
-        if (res.success) {
-          state.user.balance -= amount;
-          updateBalanceDisplay();
-          state.bingo.myActiveBet = state.bingo.selectedCartela;
-          state.bingo.userCartelaData = res.cartelaGrid;
-          
-          document.getElementById("activeCartelaNum").textContent = `#${state.bingo.selectedCartela}`;
-          renderUserBingoGrid(res.cartelaGrid);
-          alert(`Cartela #${state.bingo.selectedCartela} successfully registered!`);
-        } else {
-          alert(res.message || "Failed to place bet.");
+        // Bingo Tiers & Board Setup
+        const bingoTiersList = [10, 20, 30, 50, 80, 100, 150, 200, 300, 500];
+        let currentBingoTier = null;
+
+        function initBingoTiers() {
+            const grid = document.getElementById('bingoTierGrid');
+            grid.innerHTML = '';
+            bingoTiersList.forEach(tier => {
+                const btn = document.createElement('button');
+                btn.className = 'tier-btn';
+                btn.innerHTML = `<div>Tier ${tier} ETB</div><div class="amount">${tier * 10} ETB Pot Est.</div>`;
+                btn.onclick = () => joinBingoTier(tier);
+                grid.appendChild(btn);
+            });
         }
-      } catch (err) {
-        console.error("Bet request failed:", err);
-        alert("Error connecting to server backend.");
-      }
-    }
 
-    function renderUserBingoGrid(grid) {
-      const container = document.getElementById("userBingoGrid");
-      container.innerHTML = "";
-      grid.flat().forEach(val => {
-        const cell = document.createElement("div");
-        cell.className = "bingo-cell";
-        cell.id = `bcell-${val}`;
-        cell.textContent = val === 0 ? "FREE" : val;
-        if (val === 0) cell.classList.add("drawn");
-        container.appendChild(cell);
-      });
-    }
+        function joinBingoTier(tier) {
+            currentBingoTier = tier;
+            fetch('http://localhost:3000/api/game/bingo/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tier, playerId })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    document.getElementById('bingoRoomTitle').innerText = `Bingo Tier (${tier} ETB)`;
+                    document.getElementById('bingoLobbyView').style.display = 'none';
+                    document.getElementById('bingoGameView').style.display = 'block';
+                    buildBingoBoard();
+                } else {
+                    alert(res.error);
+                }
+            });
+        }
 
-    function handleBingoBallDrawn(ball) {
-      state.bingo.drawnBalls.push(ball);
-      
-      const container = document.getElementById("drawnBallsContainer");
-      const ballNode = document.createElement("div");
-      ballNode.className = "ball";
-      ballNode.textContent = ball;
-      container.prepend(ballNode);
+        function backToBingoLobby() {
+            currentBingoTier = null;
+            document.getElementById('bingoGameView').style.display = 'none';
+            document.getElementById('bingoLobbyView').style.display = 'block';
+        }
 
-      const cell = document.getElementById(`bcell-${ball}`);
-      if (cell) cell.classList.add("drawn");
-    }
+        function buildBingoBoard() {
+            const board = document.getElementById('bingoBoard');
+            board.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'bingo-cell';
+                cell.innerText = Math.floor(Math.random() * 120) + 1;
+                cell.onclick = () => cell.classList.toggle('marked');
+                board.appendChild(cell);
+            }
+        }
 
-    function handleBingoGameOver(winner) {
-      if (winner && winner.telegramId === state.user.telegramId) {
-        alert(`🎉 BINGO! You won ${winner.payout} ETB!`);
-      } else if (winner) {
-        alert(`Round Over. Winner: Player ${winner.username} (+${winner.payout} ETB)`);
-      } else {
-        alert("Round Over. No winners this round.");
-      }
-      fetchUserData();
-    }
+        // Live Bingo Tier Listener mapping
+        bingoTiersList.forEach(tier => {
+            socket.on(`state:bingo:${tier}`, (room) => {
+                if (currentBingoTier === tier) {
+                    document.getElementById('bingoPot').innerText = room.pot;
+                    document.getElementById('bingoPlayersCount').innerText = room.players.length;
+                    document.getElementById('bingoStatus').innerText = room.phase.toUpperCase();
+                }
+            });
+        });
 
-    /* =========================================================
-       INTERFACE HELPERS & FEED
-    ========================================================= */
-    function switchGame(gameName) {
-      state.currentGame = gameName;
-      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-      document.querySelectorAll(".game-container").forEach(c => c.classList.remove("active"));
+        // Roulette Logic
+        function placeRouletteBet(type) {
+            alert('Roulette bet placed on: ' + type.toUpperCase());
+        }
 
-      event.target.classList.add("active");
-      document.getElementById(`${gameName}Game`).classList.add("active");
-    }
+        socket.on('state:roulette', (data) => {
+            document.getElementById('rouletteStatus').innerText = data.phase.toUpperCase();
+            if (data.winningNumber !== null) {
+                document.getElementById('rouletteWheelBox').innerText = '🎡 ' + data.winningNumber;
+            } else {
+                document.getElementById('rouletteWheelBox').innerText = '🎡 Spinning...';
+            }
+        });
 
-    function renderFeed(events) {
-      if (!events || !events.length) return;
-      const container = document.getElementById("feedContent");
-      container.innerHTML = events.map(e => `
-        <div class="feed-row">
-          <span>${e.player} (${e.game})</span>
-          <span class="win-val">+${e.amount.toFixed(2)} ETB</span>
-        </div>
-      `).join("");
-    }
+        // Aviator Logic
+        function cashOutAviator() {
+            alert('Cashed out successfully!');
+        }
 
-    function openDeposit() {
-      alert("Redirecting to Deposit Integration...");
-    }
-  </script>
+        socket.on('state:aviator', (data) => {
+            document.getElementById('aviatorStatus').innerText = data.phase.toUpperCase();
+            document.getElementById('aviatorMultiplier').innerText = data.multiplier.toFixed(2) + 'x';
+            if (data.phase === 'crashed') {
+                document.getElementById('aviatorSubText').innerText = 'Crashed at ' + data.crashPoint + 'x';
+            } else if (data.phase === 'flying') {
+                document.getElementById('aviatorSubText').innerText = 'Flight in progress...';
+            } else {
+                document.getElementById('aviatorSubText').innerText = 'Next flight starting in ' + data.timeLeft + 's';
+            }
+        });
+    </script>
 </body>
 </html>
