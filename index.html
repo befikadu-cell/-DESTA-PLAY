@@ -2625,28 +2625,73 @@ function createPlayerId(telegramId){
    ACCOUNT
 ========================================================= */
 
-async function createAccount(){
-  const password=document.getElementById("password").value;
-  const confirm=document.getElementById("passwordConfirm").value;
-  const message=document.getElementById("accountMessage");
-  if(password.length<8){ message.className="accountMessage error"; message.textContent="Password must contain at least 8 characters."; return; }
-  if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
-  if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
-  message.className="accountMessage"; message.textContent="Creating account...";
-  try{
-    const response=await fetch("/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,password})});
-    const data=await response.json();
-    if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
-    state.authToken=data.token || "";
-    localStorage.setItem("destaAuthToken",state.authToken);
-    localStorage.setItem("destaAccountCreated","true");
-    state.accountCreated=true;
-    state.balance=Number(data.player?.balance || 0);
-    message.className="accountMessage success"; message.textContent="Account created.";
-    updatePlayerDisplays();
-    setTimeout(showHome,300);
-  }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
+function createAccount(){
+
+  const password=
+    document.getElementById(
+      "password"
+    ).value;
+
+  const confirm=
+    document.getElementById(
+      "passwordConfirm"
+    ).value;
+
+  const message=
+    document.getElementById(
+      "accountMessage"
+    );
+
+  if(password.length<6){
+
+    message.className=
+      "accountMessage error";
+
+    message.textContent=
+      "Password must contain at least 6 characters.";
+
+    return;
+
+  }
+
+  if(password!==confirm){
+
+    message.className=
+      "accountMessage error";
+
+    message.textContent=
+      "Passwords do not match.";
+
+    return;
+
+  }
+
+  /*
+    Frontend stores only an account-created flag.
+    The real password must be hashed and stored by server.js.
+  */
+
+  localStorage.setItem(
+    "destaAccountCreated",
+    "true"
+  );
+
+  state.accountCreated=true;
+
+  message.className=
+    "accountMessage success";
+
+  message.textContent=
+    "Account created.";
+
+  setTimeout(()=>{
+
+    showHome();
+
+  },500);
+
 }
+
 
 function showHome(){
 
@@ -4892,10 +4937,9 @@ function applyServerRound(round){
 
   state.roundIds = state.roundIds || {};
   state.roundIds[game] = round.id;
-  state.serverRoundIds[game] = String(round.id || "");
-  state.rounds[game] = String(round.id || state.rounds[game] || "");
-  state.bettingOpenByGame[game] = round.status === "BETTING";
-  if(state.game === game){ state.bettingOpen = state.bettingOpenByGame[game]; state.countdown = Number(round.remainingSeconds || 0); }
+  state.rounds[game] = Number(round.roundNumber || round.id.split("-")[1] || state.rounds[game] || 1);
+  state.bettingOpen = round.status === "BETTING";
+  state.countdown = Number(round.remainingSeconds || 0);
 
   updateRound();
   updateCountdownFromServer(round);
@@ -5017,21 +5061,39 @@ function renderServerRoulette(winner){
   });
 }
 
+async function fetchJSON(url){
+  const response = await fetch(url, {
+    method:"GET",
+    cache:"no-store",
+    headers:{"Accept":"application/json","Cache-Control":"no-cache"}
+  });
+
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+  const body = await response.text();
+
+  if(!response.ok){
+    throw new Error(`HTTP ${response.status} from ${url}: ${body.slice(0,160)}`);
+  }
+
+  if(!contentType.includes("application/json")){
+    throw new Error(`Expected JSON from ${url}, but server returned ${contentType || "HTML/text"}.`);
+  }
+
+  try{
+    return JSON.parse(body);
+  }catch(error){
+    throw new Error(`Invalid JSON from ${url}: ${body.slice(0,160)}`);
+  }
+}
+
 async function fetchLiveRound(game){
   try{
-    const response = await fetch(`/api/game/${encodeURIComponent(game)}/round`, {
-      cache:"no-store",
-      headers:{"Accept":"application/json"}
-    });
-
-    if(!response.ok) return;
-
-    const data = await response.json();
+    const data = await fetchJSON(`/api/game/${encodeURIComponent(game)}/round`);
     if(data && data.success && data.round){
       applyServerRound(data.round);
     }
   }catch(error){
-    console.warn("Live round connection error:", error);
+    console.warn(`Live ${game} round connection error:`, error.message || error);
   }
 }
 
@@ -5046,19 +5108,13 @@ async function fetchAllLiveRounds(){
       fetchLiveRound("aviator")
     ]);
   }finally{
-    state.bettingOpen = !!state.bettingOpenByGame[state.game];
     liveRoundBusy = false;
   }
 }
 
 async function loadRoundHistory(game){
   try{
-    const response = await fetch(`/api/game/${encodeURIComponent(game)}/history`, {
-      cache:"no-store",
-      headers:{"Accept":"application/json"}
-    });
-    if(!response.ok) return;
-    const data = await response.json();
+    const data = await fetchJSON(`/api/game/${encodeURIComponent(game)}/history`);
     if(!data.success || !Array.isArray(data.rounds)) return;
 
     const rows = data.rounds.slice(0,10);
@@ -5114,6 +5170,11 @@ function startLiveRoundSync(){
   }, 1000);
 }
 
+window.addEventListener("online", () => {
+  fetchAllLiveRounds();
+  if(state.game) loadRoundHistory(state.game);
+});
+
 /* The server owns the round. The browser never creates or advances rounds. */
 function startGameRound(){
   startLiveRoundSync();
@@ -5133,29 +5194,27 @@ function startNextRound(){
    INITIALIZE
    ========================================================= */
 
-async function loadServerAccount(){
-  if(!state.authToken) return false;
-  try{
-    const response=await fetch("/api/account/me",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
-    if(!response.ok) throw new Error("Session expired");
-    const data=await response.json();
-    if(!data.success || !data.player) throw new Error("Invalid account response");
-    state.accountCreated=true; state.balance=Number(data.player.balance || 0);
-    state.playerId=data.player.playerId || state.playerId; state.telegramId=String(data.player.telegramId || state.telegramId); state.telegramName=data.player.telegramName || state.telegramName;
-    localStorage.setItem("destaAccountCreated","true"); updatePlayerDisplays(); return true;
-  }catch(error){
-    console.warn("Account session unavailable:",error); state.authToken=""; localStorage.removeItem("destaAuthToken"); localStorage.removeItem("destaAccountCreated"); return false;
-  }
-}
-
 loadTelegramUser();
 
-(async function initializeDesta(){
-  const authenticated=await loadServerAccount();
-  if(authenticated) showHome();
-  else document.getElementById("accountScreen").classList.remove("hidden");
-  buildKeno(); buildBingo(); buildRoulette(); buildAviator(); showTab("my"); startLiveRoundSync();
-})();
+const existingAccount =
+  localStorage.getItem("destaAccountCreated");
+
+if(existingAccount === "true"){
+  state.accountCreated = true;
+  showHome();
+}else{
+  document
+    .getElementById("accountScreen")
+    .classList.remove("hidden");
+}
+
+/* Initial UI setup */
+buildKeno();
+buildBingo();
+buildRoulette();
+buildAviator();
+showTab("my");
+startLiveRoundSync();
 
 </script>
 
