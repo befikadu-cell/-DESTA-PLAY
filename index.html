@@ -2657,6 +2657,25 @@ function createPlayerId(telegramId){
    ACCOUNT
 ========================================================= */
 
+async function safeJsonResponse(response){
+  const text=await response.text();
+
+  if(!text){
+    return {};
+  }
+
+  try{
+    return JSON.parse(text);
+  }catch(error){
+    console.warn(
+      "Expected JSON but server returned non-JSON:",
+      response.url,
+      text.slice(0,200)
+    );
+    return {};
+  }
+}
+
 async function createAccount(){
   const password=document.getElementById("password").value;
   const confirm=document.getElementById("passwordConfirm").value;
@@ -2667,7 +2686,7 @@ async function createAccount(){
   message.className="accountMessage"; message.textContent="Creating account...";
   try{
     const response=await fetch("/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,password})});
-    const data=await response.json();
+    const data=await safeJsonResponse(response);
     if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
     state.authToken=data.token || "";
     localStorage.setItem("destaAuthToken",state.authToken);
@@ -4915,7 +4934,7 @@ async function postWalletRequest(url,payload,statusId,buttonId){
     if(state.authToken)headers.Authorization="Bearer "+state.authToken;
     const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),cache:"no-store"});
     let data={};
-    try{data=await response.json()}catch(e){}
+    try{data=await safeJsonResponse(response)}catch(e){}
     if(!response.ok || !data.success){
       throw new Error(data.message || data.error || "Request could not be verified.");
     }
@@ -4969,7 +4988,7 @@ async function loadWalletData(){
     const headers={"Accept":"application/json","Authorization":"Bearer "+state.authToken};
     const response=await fetch("/api/wallet",{cache:"no-store",headers});
     if(!response.ok)return;
-    const data=await response.json();
+    const data=await safeJsonResponse(response);
     if(!data.success)return;
     const wallet=data.wallet||data;
     const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
@@ -5176,7 +5195,7 @@ async function fetchLiveRound(game){
 
     if(!response.ok) return;
 
-    const data = await response.json();
+    const data = await safeJsonResponse(response);
     if(data && data.success && data.round){
       applyServerRound(data.round);
     }
@@ -5208,7 +5227,7 @@ async function loadRoundHistory(game){
       headers:{"Accept":"application/json"}
     });
     if(!response.ok) return;
-    const data = await response.json();
+    const data = await safeJsonResponse(response);
     if(!data.success || !Array.isArray(data.rounds)) return;
 
     const rows = data.rounds.slice(0,10);
@@ -5288,7 +5307,7 @@ async function loadServerAccount(){
   try{
     const response=await fetch("/api/account/me",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
     if(!response.ok) throw new Error("Session expired");
-    const data=await response.json();
+    const data=await safeJsonResponse(response);
     if(!data.success || !data.player) throw new Error("Invalid account response");
     state.accountCreated=true; state.balance=Number(data.player.balance || 0);
     state.playerId=data.player.playerId || state.playerId; state.telegramId=String(data.player.telegramId || state.telegramId); state.telegramName=data.player.telegramName || state.telegramName;
