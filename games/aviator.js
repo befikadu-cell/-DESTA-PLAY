@@ -39,6 +39,8 @@ import crypto from "node:crypto";
 
 export const BETTING_SECONDS = 10;
 
+export const MIN_BET_AMOUNT = 5;
+
 export const MIN_MULTIPLIER = 1.00;
 export const MAX_MULTIPLIER = 100.00;
 
@@ -364,17 +366,17 @@ export function createBet(
 
 
     /*
-     * Validate amount.
+     * Validate amount & minimum bet limit.
      */
     const numericAmount =
         Number(amount);
 
     if (
         !Number.isFinite(numericAmount) ||
-        numericAmount <= 0
+        numericAmount < MIN_BET_AMOUNT
     ) {
         throw new Error(
-            "Invalid bet amount."
+            `Minimum bet amount is ${MIN_BET_AMOUNT} ETB.`
         );
     }
 
