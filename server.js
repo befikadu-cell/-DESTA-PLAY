@@ -424,9 +424,7 @@ async function createPlayer({
             created_at: nowIso(),
             updated_at: nowIso()
         })
-        .select(
-            "id,player_id,telegram_id,telegram_name,balance,created_at"
-        )
+        .select("*")
         .single();
 
     if (error) {
@@ -1003,12 +1001,10 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
         if (alreadyJoined) {
             return res.status(400).json({
                 success: false,
-                error:
-                    "Player already joined this round"
+                error: "Player already joined this round"
             });
         }
-
-        const playerCartela =
+                const playerCartela =
             bingo.generateCartela
                 ? bingo.generateCartela(
                     selectedCartela
@@ -1997,6 +1993,12 @@ async function restoreHouseRound(gameName) {
 
             return;
         }
+                    startHouseRound(
+                gameName
+            );
+
+            return;
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -2400,8 +2402,7 @@ app.listen(
         console.log(
             "       DESTA PLAY BACKEND SERVER        "
         );
-
-        console.log(
+                console.log(
             "========================================"
         );
 
