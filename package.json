@@ -10,6 +10,8 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "argon2": "^0.41.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
