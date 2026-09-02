@@ -1,7 +1,7 @@
 "use strict";
 
-const crypto = require("crypto");
-const { uniqueNumbers } = require("../utils/random");
+import crypto from "node:crypto";
+import { uniqueNumbers } from "../utils/random.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -43,13 +43,15 @@ const { uniqueNumbers } = require("../utils/random");
 |--------------------------------------------------------------------------
 */
 
-const GAME_NAME = "keno";
+export const GAME_NAME = "keno";
 
-const KENO_MIN = 1;
-const KENO_MAX = 80;
+export const KENO_MIN = 1;
+export const KENO_MAX = 80;
 
-const MAX_PLAYER_SELECTIONS = 10;
-const MAX_DRAWN_NUMBERS = 20;
+export const MIN_BET_AMOUNT = 10;
+
+export const MAX_PLAYER_SELECTIONS = 10;
+export const MAX_DRAWN_NUMBERS = 20;
 
 
 /*
@@ -62,7 +64,7 @@ const MAX_DRAWN_NUMBERS = 20;
 |
 */
 
-const KENO_PAYTABLE = {
+export const KENO_PAYTABLE = {
     1: { 1: 2.25 },
     2: { 2: 7.50 },
     3: { 2: 1.20, 3: 35.00 },
@@ -85,7 +87,7 @@ const KENO_PAYTABLE = {
 |
 */
 
-const BETTING_SECONDS = 40;
+export const BETTING_SECONDS = 40;
 
 
 /*
@@ -104,9 +106,9 @@ const BETTING_SECONDS = 40;
 |
 */
 
-const MIN_SLOTS = 1;
-const DEFAULT_SLOTS = 2;
-const MAX_SLOTS = 2;
+export const MIN_SLOTS = 1;
+export const DEFAULT_SLOTS = 2;
+export const MAX_SLOTS = 2;
 
 
 /*
@@ -118,9 +120,9 @@ const MAX_SLOTS = 2;
 |
 */
 
-const DRAW_INTERVAL_SECONDS = 3;
+export const DRAW_INTERVAL_SECONDS = 3;
 
-const DRAW_INTERVAL_MS =
+export const DRAW_INTERVAL_MS =
     DRAW_INTERVAL_SECONDS * 1000;
 
 
@@ -141,9 +143,9 @@ const DRAW_INTERVAL_MS =
 |
 */
 
-const VOICE_RATE = 0.70;
+export const VOICE_RATE = 0.70;
 
-const ROUND_START_VOICE =
+export const ROUND_START_VOICE =
     "Round starting";
 
 
@@ -153,10 +155,10 @@ const ROUND_START_VOICE =
 |--------------------------------------------------------------------------
 */
 
-const WAITING_MESSAGE =
+export const WAITING_MESSAGE =
     "WAITING FOR NEXT ROUND";
 
-const WAITING_MESSAGE_AM =
+export const WAITING_MESSAGE_AM =
     "ቀጣዩን ዙር በመጠበቅ ላይ";
 
 
@@ -169,7 +171,7 @@ const WAITING_MESSAGE_AM =
 |
 */
 
-function validateSelection(selection) {
+export function validateSelection(selection) {
 
     if (!Array.isArray(selection)) {
 
@@ -238,7 +240,7 @@ function validateSelection(selection) {
 |
 */
 
-function createDraw() {
+export function createDraw() {
 
     return uniqueNumbers(
         KENO_MIN,
@@ -254,7 +256,7 @@ function createDraw() {
 |--------------------------------------------------------------------------
 */
 
-function calculateMatches(
+export function calculateMatches(
     selection,
     drawnNumbers
 ) {
@@ -286,7 +288,7 @@ function calculateMatches(
 |--------------------------------------------------------------------------
 */
 
-function calculateSlotPayout(
+export function calculateSlotPayout(
     slot,
     drawnNumbers
 ) {
@@ -320,6 +322,11 @@ function calculateSlotPayout(
     }
 
     const betAmount = Number(slot.betAmount) || 0;
+
+    if (!Number.isFinite(betAmount) || betAmount < MIN_BET_AMOUNT) {
+        throw new Error(`Minimum Keno bet amount is ${MIN_BET_AMOUNT} ETB.`);
+    }
+
     const payout = Math.round(betAmount * multiplier * 100) / 100;
 
     return {
@@ -357,7 +364,7 @@ function calculateSlotPayout(
 |--------------------------------------------------------------------------
 */
 
-function settleRoundFinancials(round) {
+export function settleRoundFinancials(round) {
 
     if (!round || round.status !== "FINISHED") {
         throw new Error("Round must be finished before settling financials.");
@@ -421,7 +428,7 @@ function settleRoundFinancials(round) {
 |--------------------------------------------------------------------------
 */
 
-function createRound() {
+export function createRound() {
 
     const now =
         Date.now();
@@ -582,7 +589,7 @@ function createRound() {
 |--------------------------------------------------------------------------
 */
 
-function startDrawing(round) {
+export function startDrawing(round) {
 
     if (!round) {
 
@@ -662,7 +669,7 @@ function startDrawing(round) {
 |--------------------------------------------------------------------------
 */
 
-function canPlaceBet(round) {
+export function canPlaceBet(round) {
 
     if (!round) {
 
@@ -698,7 +705,7 @@ function canPlaceBet(round) {
 |--------------------------------------------------------------------------
 */
 
-function validateBet(
+export function validateBet(
     round,
     selection
 ) {
@@ -771,7 +778,7 @@ function validateBet(
 |--------------------------------------------------------------------------
 */
 
-function getBettingRemainingSeconds(
+export function getBettingRemainingSeconds(
     round
 ) {
 
@@ -805,7 +812,7 @@ function getBettingRemainingSeconds(
 |--------------------------------------------------------------------------
 */
 
-function drawNextNumber(round) {
+export function drawNextNumber(round) {
 
     if (!round) {
 
@@ -999,7 +1006,7 @@ function drawNextNumber(round) {
 |--------------------------------------------------------------------------
 */
 
-function wasNumberDrawn(
+export function wasNumberDrawn(
     round,
     number
 ) {
@@ -1030,7 +1037,7 @@ function wasNumberDrawn(
 |--------------------------------------------------------------------------
 */
 
-function createSlot(
+export function createSlot(
     slotNumber
 ) {
 
@@ -1111,7 +1118,7 @@ function createSlot(
 |--------------------------------------------------------------------------
 */
 
-function createDefaultSlots() {
+export function createDefaultSlots() {
 
     return [
 
@@ -1146,7 +1153,7 @@ function createDefaultSlots() {
 |--------------------------------------------------------------------------
 */
 
-function setSlotCount(
+export function setSlotCount(
     requestedCount
 ) {
 
@@ -1202,7 +1209,7 @@ function setSlotCount(
 |--------------------------------------------------------------------------
 */
 
-function calculateSlotResult(
+export function calculateSlotResult(
     slot,
     drawnNumbers
 ) {
@@ -1216,7 +1223,7 @@ function calculateSlotResult(
 |--------------------------------------------------------------------------
 */
 
-function createPlayerResult(
+export function createPlayerResult(
     slots,
     drawnNumbers
 ) {
@@ -1286,7 +1293,7 @@ function createPlayerResult(
 |--------------------------------------------------------------------------
 */
 
-function finishRound(round) {
+export function finishRound(round) {
 
     /*
      * Compatibility with existing server.
@@ -1407,7 +1414,7 @@ function finishRound(round) {
 |--------------------------------------------------------------------------
 */
 
-function getRoundStatus(
+export function getRoundStatus(
     round
 ) {
 
@@ -1543,7 +1550,7 @@ function getRoundStatus(
 |--------------------------------------------------------------------------
 */
 
-function publicRound(
+export function publicRound(
     round
 ) {
 
@@ -1709,101 +1716,3 @@ function publicRound(
             round.finishedAt
     };
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| EXPORTS
-|--------------------------------------------------------------------------
-*/
-
-module.exports = {
-
-    GAME_NAME,
-
-
-    KENO_PAYTABLE,
-
-    KENO_MIN,
-
-    KENO_MAX,
-
-
-    MAX_PLAYER_SELECTIONS,
-
-    MAX_DRAWN_NUMBERS,
-
-
-    BETTING_SECONDS,
-
-
-    MIN_SLOTS,
-
-    DEFAULT_SLOTS,
-
-    MAX_SLOTS,
-
-
-    DRAW_INTERVAL_SECONDS,
-
-    DRAW_INTERVAL_MS,
-
-
-    VOICE_RATE,
-
-    ROUND_START_VOICE,
-
-
-    WAITING_MESSAGE,
-
-    WAITING_MESSAGE_AM,
-
-
-    validateSelection,
-
-    createDraw,
-
-    calculateMatches,
-
-    calculateSlotPayout,
-
-    settleRoundFinancials,
-
-
-    createRound,
-
-    startDrawing,
-
-
-    canPlaceBet,
-
-    validateBet,
-
-
-    getBettingRemainingSeconds,
-
-
-    drawNextNumber,
-
-    wasNumberDrawn,
-
-
-    createSlot,
-
-    createDefaultSlots,
-
-    setSlotCount,
-
-
-    calculateSlotResult,
-
-    createPlayerResult,
-
-
-    finishRound,
-
-    getRoundStatus,
-
-    publicRound
-
-};
