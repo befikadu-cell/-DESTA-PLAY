@@ -1,6 +1,8 @@
-const crypto = require("node:crypto");
+"use strict";
 
-function randomInt(min, max) {
+import crypto from "node:crypto";
+
+export function randomInt(min, max) {
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
         throw new Error("min and max must be integers");
     }
@@ -12,7 +14,7 @@ function randomInt(min, max) {
     return crypto.randomInt(min, max + 1);
 }
 
-function shuffle(array) {
+export function shuffle(array) {
     const result = [...array];
 
     for (let i = result.length - 1; i > 0; i--) {
@@ -24,7 +26,7 @@ function shuffle(array) {
     return result;
 }
 
-function uniqueNumbers(min, max, count) {
+export function uniqueNumbers(min, max, count) {
     if (count < 0 || count > (max - min + 1)) {
         throw new Error("Invalid number count");
     }
@@ -41,9 +43,3 @@ function uniqueNumbers(min, max, count) {
 
     return numbers;
 }
-
-module.exports = {
-    randomInt,
-    shuffle,
-    uniqueNumbers
-};
