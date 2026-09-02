@@ -1858,7 +1858,7 @@ function generateKenoDraw() {
 |--------------------------------------------------------------------------
 */
 
-function generateCrashPoint() {
+function generateCrashPoint(round = null) {
     const generator =
         aviator.generateSecureBalancedCrashPoint ||
         aviator.default
@@ -1868,10 +1868,23 @@ function generateCrashPoint() {
         typeof generator ===
         "function"
     ) {
+        const safeRound =
+            round || {
+                bets: []
+            };
+
+        if (
+            !Array.isArray(
+                safeRound.bets
+            )
+        ) {
+            safeRound.bets = [];
+        }
+
         const value =
             Number(
                 generator(
-                    null,
+                    safeRound,
                     10000
                 )
             );
@@ -2207,13 +2220,21 @@ function startHouseRound(
     |--------------------------------------------------------------
     | AVIATOR
     |--------------------------------------------------------------
+    |
+    | ONLY FIX:
+    | The Aviator engine expects round.bets to exist.
+    |--------------------------------------------------------------
     */
 
     if (
         gameName === "aviator"
     ) {
+        round.bets = [];
+
         round.secretCrashPoint =
-            generateCrashPoint();
+            generateCrashPoint(
+                round
+            );
     }
 
     rounds[gameName] =
@@ -2855,6 +2876,8 @@ async function restoreHouseRound(
             gameName ===
             "aviator"
         ) {
+            round.bets = [];
+
             round.secretCrashPoint =
                 Number(
                     state.secretCrashPoint
@@ -2869,7 +2892,9 @@ async function restoreHouseRound(
                 )
             ) {
                 round.secretCrashPoint =
-                    generateCrashPoint();
+                    generateCrashPoint(
+                        round
+                    );
             }
         }
 
