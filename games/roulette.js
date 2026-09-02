@@ -1,6 +1,6 @@
 "use strict";
 
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +17,7 @@ const crypto = require("node:crypto");
 |
 | Financial Configuration:
 | Target RTP: 80% | House Edge: 20%
+| Minimum Bet: 10 ETB
 |
 |--------------------------------------------------------------------------
 */
@@ -26,18 +27,23 @@ const crypto = require("node:crypto");
    GAME SETTINGS
 ========================= */
 
-const GAME_NAME = "roulette";
+export const GAME_NAME = "roulette";
 
 /*
  * Players have 40 seconds to place bets.
  */
-const BETTING_SECONDS = 40;
+export const BETTING_SECONDS = 40;
+
+/*
+ * Minimum Bet Amount (ETB)
+ */
+export const MIN_BET_AMOUNT = 10;
 
 /*
  * Financial Targets
  */
-const TARGET_RTP_PERCENTAGE = 80;
-const HOUSE_EDGE_PERCENTAGE = 20;
+export const TARGET_RTP_PERCENTAGE = 80;
+export const HOUSE_EDGE_PERCENTAGE = 20;
 
 
 /* =========================
@@ -70,16 +76,16 @@ const HOUSE_EDGE_PERCENTAGE = 20;
  *   both slots become visible
  */
 
-const MIN_SLOTS = 1;
-const DEFAULT_SLOTS = 2;
-const MAX_SLOTS = 2;
+export const MIN_SLOTS = 1;
+export const DEFAULT_SLOTS = 2;
+export const MAX_SLOTS = 2;
 
 
 /* =========================
    WHEEL
 ========================= */
 
-const WHEEL = Object.freeze(
+export const WHEEL = Object.freeze(
     Array.from(
         { length: 37 },
         (_, i) => i
@@ -91,14 +97,14 @@ const WHEEL = Object.freeze(
    COLORS
 ========================= */
 
-const RED_NUMBERS = new Set([
+export const RED_NUMBERS = new Set([
     1, 3, 5, 7, 9,
     12, 14, 16, 18,
     19, 21, 23, 25, 27,
     30, 32, 34, 36
 ]);
 
-const BLACK_NUMBERS = new Set([
+export const BLACK_NUMBERS = new Set([
     2, 4, 6, 8, 10,
     11, 13, 15, 17,
     20, 22, 24, 26,
@@ -110,7 +116,7 @@ const BLACK_NUMBERS = new Set([
    PAYOUTS (Scaled for 80% RTP structure)
 ========================= */
 
-const PAYOUTS = Object.freeze({
+export const PAYOUTS = Object.freeze({
 
     straight: 28.8,
 
@@ -134,7 +140,7 @@ const PAYOUTS = Object.freeze({
    BET TYPES
 ========================= */
 
-const ALLOWED_BET_TYPES = Object.freeze([
+export const ALLOWED_BET_TYPES = Object.freeze([
     "straight",
     "red",
     "black",
@@ -164,7 +170,7 @@ const ALLOWED_BET_TYPES = Object.freeze([
  * by the frontend.
  */
 
-function randomNumber() {
+export function randomNumber() {
 
     return crypto.randomInt(
         0,
@@ -177,7 +183,7 @@ function randomNumber() {
    RESULT INFORMATION
 ========================= */
 
-function getColor(number) {
+export function getColor(number) {
 
     const value = Number(number);
 
@@ -199,7 +205,7 @@ function getColor(number) {
 }
 
 
-function getParity(number) {
+export function getParity(number) {
 
     const value = Number(number);
 
@@ -213,7 +219,7 @@ function getParity(number) {
 }
 
 
-function isLow(number) {
+export function isLow(number) {
 
     const value = Number(number);
 
@@ -224,7 +230,7 @@ function isLow(number) {
 }
 
 
-function isHigh(number) {
+export function isHigh(number) {
 
     const value = Number(number);
 
@@ -235,7 +241,7 @@ function isHigh(number) {
 }
 
 
-function isDozen(
+export function isDozen(
     number,
     dozen
 ) {
@@ -274,7 +280,7 @@ function isDozen(
 }
 
 
-function isColumn(
+export function isColumn(
     number,
     column
 ) {
@@ -305,7 +311,7 @@ function isColumn(
    VALIDATE BET
 ========================= */
 
-function validateBet(bet) {
+export function validateBet(bet) {
 
     if (
         !bet ||
@@ -325,11 +331,11 @@ function validateBet(bet) {
 
     if (
         !Number.isFinite(amount) ||
-        amount <= 0
+        amount < MIN_BET_AMOUNT
     ) {
 
         throw new Error(
-            "Invalid bet amount"
+            `Minimum bet amount is ${MIN_BET_AMOUNT} ETB`
         );
     }
 
@@ -479,7 +485,7 @@ function validateBet(bet) {
    CHECK WIN
 ========================= */
 
-function isWinningBet(
+export function isWinningBet(
     bet,
     result
 ) {
@@ -599,7 +605,7 @@ function isWinningBet(
    PAYOUT
 ========================= */
 
-function getPayoutMultiplier(
+export function getPayoutMultiplier(
     bet
 ) {
 
@@ -641,7 +647,7 @@ function getPayoutMultiplier(
    SETTLE BET
 ========================= */
 
-function settleBet(
+export function settleBet(
     bet,
     result
 ) {
@@ -716,7 +722,7 @@ function settleBet(
    SPIN
 ========================= */
 
-function spin() {
+export function spin() {
 
     /*
      * SERVER ONLY.
@@ -747,7 +753,7 @@ function spin() {
    CREATE SLOT
 ========================= */
 
-function createSlot(
+export function createSlot(
     slotNumber
 ) {
 
@@ -803,7 +809,7 @@ function createSlot(
    DEFAULT TWO SLOTS
 ========================= */
 
-function createDefaultSlots() {
+export function createDefaultSlots() {
 
     return [
 
@@ -819,7 +825,7 @@ function createDefaultSlots() {
    CHANGE SLOT COUNT
 ========================= */
 
-function setSlotCount(
+export function setSlotCount(
     requestedCount
 ) {
 
@@ -871,7 +877,7 @@ function setSlotCount(
    CREATE ROUND
 ========================= */
 
-function createRound() {
+export function createRound() {
 
     const now =
         Date.now();
@@ -958,7 +964,7 @@ function createRound() {
    CAN PLACE BET
 ========================= */
 
-function canPlaceBet(
+export function canPlaceBet(
     round
 ) {
 
@@ -987,7 +993,7 @@ function canPlaceBet(
    BETTING REMAINING
 ========================= */
 
-function getBettingRemainingSeconds(
+export function getBettingRemainingSeconds(
     round
 ) {
 
@@ -1012,7 +1018,7 @@ function getBettingRemainingSeconds(
    VALIDATE SLOT BET
 ========================= */
 
-function validateSlotBet(
+export function validateSlotBet(
     round,
     slotNumber,
     bet
@@ -1105,7 +1111,7 @@ function validateSlotBet(
    PLACE BET
 ========================= */
 
-function placeBet(
+export function placeBet(
     round,
     playerId,
     slotNumber,
@@ -1227,7 +1233,7 @@ function placeBet(
    SETTLE PLAYER
 ========================= */
 
-function settlePlayer(
+export function settlePlayer(
     round,
     playerId
 ) {
@@ -1336,7 +1342,7 @@ function settlePlayer(
    FINISH ROUND
 ========================= */
 
-function finishRound(
+export function finishRound(
     round
 ) {
 
@@ -1479,7 +1485,7 @@ function finishRound(
    ROUND STATUS
 ========================= */
 
-function getRoundStatus(
+export function getRoundStatus(
     round
 ) {
 
@@ -1559,7 +1565,7 @@ function getRoundStatus(
  * parity = null
  */
 
-function publicRound(
+export function publicRound(
     round
 ) {
 
@@ -1658,79 +1664,3 @@ function publicRound(
             round.finishedAt
     };
 }
-
-
-/* =========================
-   EXPORTS
-========================= */
-
-module.exports = {
-
-    GAME_NAME,
-
-    BETTING_SECONDS,
-
-    MIN_SLOTS,
-
-    DEFAULT_SLOTS,
-
-    MAX_SLOTS,
-
-    WHEEL,
-
-    RED_NUMBERS,
-
-    BLACK_NUMBERS,
-
-    PAYOUTS,
-
-    ALLOWED_BET_TYPES,
-
-    randomNumber,
-
-    getColor,
-
-    getParity,
-
-    isLow,
-
-    isHigh,
-
-    isDozen,
-
-    isColumn,
-
-    validateBet,
-
-    isWinningBet,
-
-    getPayoutMultiplier,
-
-    settleBet,
-
-    spin,
-
-    createSlot,
-
-    createDefaultSlots,
-
-    setSlotCount,
-
-    createRound,
-
-    canPlaceBet,
-
-    getBettingRemainingSeconds,
-
-    validateSlotBet,
-
-    placeBet,
-
-    settlePlayer,
-
-    finishRound,
-
-    getRoundStatus,
-
-    publicRound
-};
