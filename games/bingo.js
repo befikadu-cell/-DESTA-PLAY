@@ -1,7 +1,7 @@
 "use strict";
 
-const crypto = require("node:crypto");
-const { shuffle } = require("../utils/random");
+import crypto from "node:crypto";
+import { shuffle } from "../utils/random.js";
 
 /*
 |--------------------------------------------------------------------------
@@ -19,7 +19,7 @@ const { shuffle } = require("../utils/random");
 |--------------------------------------------------------------------------
 */
 
-const GAME_NAME = "bingo";
+export const GAME_NAME = "bingo";
 
 const BINGO_SIZE = 5;
 const BINGO_NUMBERS = 75;
@@ -31,11 +31,11 @@ const TOTAL_CARTELAS = 120;
 |--------------------------------------------------------------------------
 */
 
-const FIXED_BET_AMOUNTS = [
+export const FIXED_BET_AMOUNTS = [
     20, 30, 50, 80, 100, 150, 200, 250, 300, 400, 500, 1000
 ];
 
-function validateBetAmount(amount) {
+export function validateBetAmount(amount) {
     const value = Number(amount);
     if (!FIXED_BET_AMOUNTS.includes(value)) {
         throw new Error(`Invalid bet amount. Choose from: ${FIXED_BET_AMOUNTS.join(", ")}`);
@@ -143,6 +143,11 @@ function validateCartelaNumber(cartelaNumber) {
     return number;
 }
 
+export function getCartela(cartelaNumber) {
+    const number = validateCartelaNumber(cartelaNumber);
+    return CARTELAS[number];
+}
+
 function generateCartela(cartelaNumber) {
     const number = validateCartelaNumber(cartelaNumber);
     const random = seededRandom(cartelaSeed(number));
@@ -215,11 +220,6 @@ function generateAllCartelas() {
 
 const CARTELAS = generateAllCartelas();
 
-function getCartela(cartelaNumber) {
-    const number = validateCartelaNumber(cartelaNumber);
-    return CARTELAS[number];
-}
-
 
 /*
 |--------------------------------------------------------------------------
@@ -231,7 +231,7 @@ const MIN_SLOTS = 1;
 const DEFAULT_SLOTS = 2;
 const MAX_SLOTS = 2;
 
-function createSlot(slotNumber) {
+export function createSlot(slotNumber) {
     const slot = Number(slotNumber);
     if (!Number.isInteger(slot) || slot < MIN_SLOTS || slot > MAX_SLOTS) {
         throw new Error(`Slot must be between ${MIN_SLOTS} and ${MAX_SLOTS}`);
@@ -249,11 +249,11 @@ function createSlot(slotNumber) {
     };
 }
 
-function createDefaultSlots() {
+export function createDefaultSlots() {
     return [createSlot(1), createSlot(2)];
 }
 
-function createSingleSlot() {
+export function createSingleSlot() {
     return [createSlot(1)];
 }
 
@@ -281,7 +281,7 @@ function getAmharicLetter(letter) {
     return letters[letter] || letter;
 }
 
-function createCall(number) {
+export function createCall(number) {
     const value = Number(number);
     const letter = getCallLetter(value);
 
@@ -302,7 +302,7 @@ function createCall(number) {
 |--------------------------------------------------------------------------
 */
 
-function checkWinningPatterns(card, drawnNumbersSet) {
+export function checkWinningPatterns(card, drawnNumbersSet) {
     const matrix = [
         [card[0][0], card[0][1], card[0][2], card[0][3], card[0][4]],
         [card[1][0], card[1][1], card[1][2], card[1][3], card[1][4]],
@@ -370,7 +370,7 @@ function generateDrawOrder() {
     return shuffle(numbers);
 }
 
-function createRound() {
+export function createRound() {
     const now = Date.now();
 
     return {
@@ -404,7 +404,7 @@ function createRound() {
 |--------------------------------------------------------------------------
 */
 
-function settleBingoPoolRound(round) {
+export function settleBingoPoolRound(round) {
     if (!round || round.status !== "FINISHED") {
         throw new Error("Round must be finished before pool settlement.");
     }
@@ -486,25 +486,3 @@ function settleBingoPoolRound(round) {
     round.playerSettlements = playerSettlements;
     return round;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| EXPORTS
-|--------------------------------------------------------------------------
-*/
-
-module.exports = {
-    GAME_NAME,
-    FIXED_BET_AMOUNTS,
-    TOTAL_CARTELAS,
-    validateBetAmount,
-    getCartela,
-    createSlot,
-    createDefaultSlots,
-    createSingleSlot,
-    createCall,
-    createRound,
-    checkWinningPatterns,
-    settleBingoPoolRound
-};
