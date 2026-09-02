@@ -23,10 +23,10 @@ import crypto from "crypto";
 import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 
-import keno from "./games/keno.js";
-import bingo from "./games/bingo.js";
-import roulette from "./games/roulette.js";
-import aviator from "./games/aviator.js";
+import * as keno from "./games/keno.js";
+import * as bingo from "./games/bingo.js";
+import * as roulette from "./games/roulette.js";
+import * as aviator from "./games/aviator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -208,7 +208,8 @@ function revealNextBingoNumber(tier) {
 
     let winningPlayer = null;
     for (const player of room.players) {
-        if (bingo.isWinningCard && bingo.isWinningCard(player.cartela, room.drawnNumbers)) {
+        const isWinningFn = bingo.isWinningCard || bingo.default?.isWinningCard;
+        if (typeof isWinningFn === "function" && isWinningFn(player.cartela, room.drawnNumbers)) {
             winningPlayer = player;
             break;
         }
@@ -526,7 +527,8 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
             return res.status(400).json({ success: false, error: "Player already joined this round" });
         }
 
-        const playerCartela = bingo.generateCartela ? bingo.generateCartela(selectedCartela) : [];
+        const generateCartelaFn = bingo.generateCartela || bingo.default?.generateCartela;
+        const playerCartela = typeof generateCartelaFn === "function" ? generateCartelaFn(selectedCartela) : [];
         if (!playerCartela || playerCartela.length === 0) {
             return res.status(400).json({ success: false, error: "Could not generate cartela" });
         }
@@ -570,7 +572,8 @@ app.get("/api/bingo/cartela/:number", (req, res) => {
         if (!Number.isInteger(number) || number < 1 || number > 120) {
             return res.status(400).json({ success: false, error: "Cartela number must be between 1 and 120" });
         }
-        const cartela = bingo.generateCartela ? bingo.generateCartela(number) : [];
+        const generateCartelaFn = bingo.generateCartela || bingo.default?.generateCartela;
+        const cartela = typeof generateCartelaFn === "function" ? generateCartelaFn(number) : [];
         res.json({ success: true, cartela });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
@@ -584,8 +587,9 @@ app.get("/api/bingo/cartela/:number", (req, res) => {
 */
 
 function generateKenoDraw() {
-    if (typeof keno.generateDraw === "function") {
-        const generated = keno.generateDraw();
+    const kenoGen = keno.generateDraw || keno.default?.generateDraw;
+    if (typeof kenoGen === "function") {
+        const generated = kenoGen();
         if (Array.isArray(generated) && generated.length > 0) return generated;
     }
     const numbers = Array.from({ length: 80 }, (_, i) => i + 1);
@@ -598,8 +602,9 @@ function generateKenoDraw() {
 }
 
 function generateCrashPoint() {
-    if (typeof aviator.generateCrashPoint === "function") {
-        const value = Number(aviator.generateCrashPoint());
+    const aviatorGen = aviator.generateCrashPoint || aviator.default?.generateCrashPoint;
+    if (typeof aviatorGen === "function") {
+        const value = Number(aviatorGen());
         if (Number.isFinite(value) && value >= 1) return Number(value.toFixed(2));
     }
     const rand = Math.random();
@@ -764,7 +769,8 @@ function startRouletteSpin(roundId) {
         const current = rounds.roulette;
         if (!current || current.id !== roundId || current.status !== "SPINNING") return;
 
-        current.result = roulette.spin ? roulette.spin() : Math.floor(Math.random() * 37);
+        const spinFn = roulette.spin || roulette.default?.spin;
+        current.result = typeof spinFn === "function" ? spinFn() : Math.floor(Math.random() * 37);
         current.status = "FINISHED";
         console.log(`[ROULETTE] RESULT -> ${current.result}`);
 
