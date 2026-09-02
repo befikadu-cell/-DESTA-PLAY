@@ -1,4 +1,4 @@
-const crypto = require("node:crypto");
+import crypto from "node:crypto";
 
 /*
  * ============================================================
@@ -37,14 +37,14 @@ const crypto = require("node:crypto");
  * ============================================================
  */
 
-const BETTING_SECONDS = 10;
+export const BETTING_SECONDS = 10;
 
-const MIN_MULTIPLIER = 1.00;
-const MAX_MULTIPLIER = 100.00;
+export const MIN_MULTIPLIER = 1.00;
+export const MAX_MULTIPLIER = 100.00;
 
-const MIN_SLOTS = 1;
-const DEFAULT_SLOTS = 2;
-const MAX_SLOTS = 2;
+export const MIN_SLOTS = 1;
+export const DEFAULT_SLOTS = 2;
+export const MAX_SLOTS = 2;
 
 
 /* ============================================================
@@ -62,7 +62,7 @@ const MAX_SLOTS = 2;
  * ============================================================
  */
 
-const ROUND_STATES = Object.freeze({
+export const ROUND_STATES = Object.freeze({
     BETTING: "BETTING",
     FLYING: "FLYING",
     CRASHED: "CRASHED"
@@ -74,7 +74,7 @@ const ROUND_STATES = Object.freeze({
  * ============================================================
  */
 
-const BET_STATES = Object.freeze({
+export const BET_STATES = Object.freeze({
     ACTIVE: "ACTIVE",
     CASHED_OUT: "CASHED_OUT",
     LOST: "LOST"
@@ -90,7 +90,7 @@ const BET_STATES = Object.freeze({
  * ============================================================
  */
 
-function generateSecureBalancedCrashPoint(round, platformBankroll = 10000) {
+export function generateSecureBalancedCrashPoint(round, platformBankroll = 10000) {
     const totalExposure = round.bets.reduce((sum, bet) => sum + bet.amount, 0);
 
     // 25% House Edge enforcement: 25% chance of instant 1.00x crash
@@ -119,7 +119,7 @@ function generateSecureBalancedCrashPoint(round, platformBankroll = 10000) {
 }
 
 // Backward compatibility alias referenced in exports
-function generateCrashPoint() {
+export function generateCrashPoint() {
     const minCents = Math.round(MIN_MULTIPLIER * 100);
     const maxCents = Math.round(MAX_MULTIPLIER * 100);
     const cents = crypto.randomInt(minCents, maxCents + 1);
@@ -132,7 +132,7 @@ function generateCrashPoint() {
  * ============================================================
  */
 
-function createRound() {
+export function createRound() {
 
     const now = Date.now();
 
@@ -179,7 +179,7 @@ function createRound() {
  * ============================================================
  */
 
-function isValidSlot(slot) {
+export function isValidSlot(slot) {
 
     return (
         Number.isInteger(slot) &&
@@ -203,7 +203,7 @@ function isValidSlot(slot) {
  * ============================================================
  */
 
-function setActiveSlots(round, count) {
+export function setActiveSlots(round, count) {
 
     if (!round) {
         throw new Error("Round not found");
@@ -244,7 +244,7 @@ function setActiveSlots(round, count) {
  * ============================================================
  */
 
-function enableSecondSlot(round) {
+export function enableSecondSlot(round) {
 
     return setActiveSlots(round, 2);
 }
@@ -257,7 +257,7 @@ function enableSecondSlot(round) {
  * ============================================================
  */
 
-function disableSecondSlot(round) {
+export function disableSecondSlot(round) {
 
     return setActiveSlots(round, 1);
 }
@@ -268,7 +268,7 @@ function disableSecondSlot(round) {
  * ============================================================
  */
 
-function canPlaceBet(round) {
+export function canPlaceBet(round) {
 
     if (!round) {
         return false;
@@ -286,7 +286,7 @@ function canPlaceBet(round) {
  * ============================================================
  */
 
-function canCashOut(round) {
+export function canCashOut(round) {
 
     if (!round) {
         return false;
@@ -313,7 +313,7 @@ function canCashOut(round) {
  * ============================================================
  */
 
-function createBet(
+export function createBet(
     round,
     playerId,
     slot,
@@ -433,7 +433,7 @@ function createBet(
  * ============================================================
  */
 
-function startFlight(round, platformBankroll = 10000) {
+export function startFlight(round, platformBankroll = 10000) {
 
     if (!round) {
         throw new Error(
@@ -486,7 +486,7 @@ function startFlight(round, platformBankroll = 10000) {
  * ============================================================
  */
 
-function updateMultiplier(
+export function updateMultiplier(
     round,
     multiplier
 ) {
@@ -560,7 +560,7 @@ function updateMultiplier(
  * ============================================================
  */
 
-function cashOut(
+export function cashOut(
     round,
     playerId,
     betId
@@ -665,7 +665,7 @@ function cashOut(
  * ============================================================
  */
 
-function crashRound(round) {
+export function crashRound(round) {
 
     if (!round) {
         throw new Error(
@@ -723,7 +723,7 @@ function crashRound(round) {
  * ============================================================
  */
 
-function getBettingTimeRemaining(round) {
+export function getBettingTimeRemaining(round) {
 
     if (!round) {
         return 0;
@@ -758,7 +758,7 @@ function getBettingTimeRemaining(round) {
  * ============================================================
  */
 
-function publicRound(round) {
+export function publicRound(round) {
 
     if (!round) {
         return null;
@@ -826,7 +826,7 @@ function publicRound(round) {
  * ============================================================
  */
 
-function publicBet(bet) {
+export function publicBet(bet) {
 
     if (!bet) {
         return null;
@@ -856,90 +856,3 @@ function publicBet(bet) {
             bet.cashedOutAt || null
     };
 }
-
-
-/* ============================================================
- * EXPORTS
- * ============================================================
- */
-
-module.exports = {
-
-    /*
-     * Configuration
-     */
-    BETTING_SECONDS,
-
-    MIN_MULTIPLIER,
-
-    MAX_MULTIPLIER,
-
-    MIN_SLOTS,
-
-    DEFAULT_SLOTS,
-
-    MAX_SLOTS,
-
-    ROUND_STATES,
-
-    BET_STATES,
-
-
-    /*
-     * Round
-     */
-    createRound,
-
-    generateCrashPoint,
-    generateSecureBalancedCrashPoint,
-
-
-    /*
-     * Slots
-     */
-    setActiveSlots,
-
-    enableSecondSlot,
-
-    disableSecondSlot,
-
-
-    /*
-     * Betting
-     */
-    canPlaceBet,
-
-    createBet,
-
-
-    /*
-     * Flight
-     */
-    startFlight,
-
-    updateMultiplier,
-
-    canCashOut,
-
-
-    /*
-     * Cash out
-     */
-    cashOut,
-
-
-    /*
-     * Crash
-     */
-    crashRound,
-
-
-    /*
-     * Timers/public data
-     */
-    getBettingTimeRemaining,
-
-    publicRound,
-
-    publicBet
-};
