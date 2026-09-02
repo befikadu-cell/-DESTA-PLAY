@@ -424,7 +424,9 @@ async function createPlayer({
             created_at: nowIso(),
             updated_at: nowIso()
         })
-        .select("*")
+        .select(
+            "id,player_id,telegram_id,telegram_name,balance,created_at"
+        )
         .single();
 
     if (error) {
@@ -495,490 +497,6 @@ function getSessionPlayer(req) {
         header.slice(7).trim()
     ) || null;
 }
-
-async function requirePlayer(req, res, next) {
-    try {
-        const session =
-            getSessionPlayer(req);
-
-        if (!session) {
-            return res.status(401).json({
-                success: false,
-                error: "Authentication required"
-            });
-        }
-
-        const player =
-            await findPlayerById(
-                session.playerId
-            );
-
-        if (!player) {
-            return res.status(401).json({
-                success: false,
-                error: "Player account not found"
-            });
-        }
-
-        req.player = player;
-        next();
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: "Authentication error"
-        });
-    }
-}
-
-async function recordTransaction({
-    playerId,
-    type,
-    amount,
-    balanceBefore,
-    balanceAfter,
-    game = null,
-    roundId = null,
-    status = "completed",
-    reference = null,
-    metadata = {}
-}) {
-    const {
-        data,
-        error
-    } = await supabase
-        .from("wallet_transactions")
-        .insert({
-            transaction_id: makeId("TX-"),
-            player_id: playerId,
-            type,
-            amount: Number(amount),
-            balance_before: Number(balanceBefore),
-            balance_after: Number(balanceAfter),
-            game,
-            round_id: roundId,
-            status,
-            reference,
-            metadata,
-            created_at: nowIso()
-        })
-        .select()
-        .single();
-
-    if (error) {
-        await dbError("recordTransaction", error);
-        throw new Error("Could not save transaction");
-    }
-
-    return data;
-}
-
-async function changeBalance({
-    playerId,
-    amount,
-    type,
-    game = null,
-    roundId = null,
-    status = "completed",
-    reference = null,
-    metadata = {}
-}) {
-    const numericAmount = Number(amount);
-
-    if (!Number.isFinite(numericAmount)) {
-        throw new Error("Invalid amount");
-    }
-
-    const player =
-        await findPlayerById(playerId);
-
-    if (!player) {
-        throw new Error("Player not found");
-    }
-
-    const before =
-        Number(player.balance || 0);
-
-    const after =
-        before + numericAmount;
-
-    if (after < 0) {
-        throw new Error("Insufficient balance");
-    }
-
-    const {
-        data,
-        error
-    } = await supabase
-        .from("players")
-        .update({
-            balance: after,
-            updated_at: nowIso()
-        })
-        .eq("player_id", playerId)
-        .eq("balance", before)
-        .select("player_id,balance")
-        .maybeSingle();
-
-    if (error) {
-        await dbError("changeBalance", error);
-        throw new Error("Could not update balance");
-    }
-
-    if (!data) {
-        throw new Error(
-            "Balance changed by another transaction. Please try again."
-        );
-    }
-
-    await recordTransaction({
-        playerId,
-        type,
-        amount: numericAmount,
-        balanceBefore: before,
-        balanceAfter: after,
-        game,
-        roundId,
-        status,
-        reference,
-        metadata
-    });
-
-    return data;
-}
-
-/*
-|--------------------------------------------------------------------------
-| REST APIs (ACCOUNT, WALLET, PVP BINGO)
-|--------------------------------------------------------------------------
-*/
-
-app.post("/api/account/register", async (req, res) => {
-    try {
-        const {
-            telegramId,
-            telegramName,
-            password
-        } = req.body;
-
-        const player =
-            await createPlayer({
-                telegramId,
-                telegramName,
-                password
-            });
-
-        const token =
-            createSession(player);
-
-        res.json({
-            success: true,
-            token,
-            player
-        });
-    } catch (error) {
-        console.error(
-            "[REGISTER ERROR]",
-            error
-        );
-
-        res.status(400).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.post("/api/account/login", async (req, res) => {
-    try {
-        const {
-            telegramId,
-            password
-        } = req.body;
-
-        const player =
-            await authenticatePlayer(
-                telegramId,
-                password
-            );
-
-        const token =
-            createSession(player);
-
-        res.json({
-            success: true,
-            token,
-            player
-        });
-    } catch (error) {
-        res.status(401).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-app.get(
-    "/api/account/me",
-    requirePlayer,
-    async (req, res) => {
-        res.json({
-            success: true,
-            player: {
-                playerId:
-                    req.player.player_id,
-
-                telegramId:
-                    req.player.telegram_id,
-
-                telegramName:
-                    req.player.telegram_name,
-
-                balance:
-                    Number(
-                        req.player.balance || 0
-                    )
-            }
-        });
-    }
-);
-
-app.get(
-    "/api/wallet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const {
-                data,
-                error
-            } = await supabase
-                .from("wallet_transactions")
-                .select(
-                    "amount,type,status,created_at"
-                )
-                .eq(
-                    "player_id",
-                    req.player.player_id
-                )
-                .order(
-                    "created_at",
-                    {
-                        ascending: false
-                    }
-                )
-                .limit(100);
-
-            if (error) {
-                await dbError(
-                    "wallet",
-                    error
-                );
-
-                throw new Error(
-                    "Could not load wallet"
-                );
-            }
-
-            const freshPlayer =
-                await findPlayerById(
-                    req.player.player_id
-                );
-
-            res.json({
-                success: true,
-                balance:
-                    Number(
-                        freshPlayer?.balance || 0
-                    ),
-                transactions:
-                    data || []
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                error: "Could not load wallet"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ROUND DATABASE STATE
-|--------------------------------------------------------------------------
-*/
-
-async function saveBingoRound(tier) {
-    const room = bingoRooms[tier];
-
-    if (!room) return;
-
-    const {
-        error
-    } = await supabase
-        .from("game_rounds")
-        .upsert({
-            round_id: room.id,
-            game: "bingo",
-            status: room.status,
-            betting_seconds: BETTING_TIMERS.bingo,
-            betting_started_at:
-                new Date(
-                    room.bettingStartedAt
-                ).toISOString(),
-            betting_ends_at:
-                new Date(
-                    room.bettingEndsAt
-                ).toISOString(),
-            drawn_numbers:
-                room.drawnNumbers,
-            current_number:
-                room.currentNumber,
-            result:
-                room.winner
-                    ? room.winner.telegramName
-                    : null,
-            multiplier: null,
-            crash_point: null,
-            engine_state: {
-                tier: room.tierId,
-                entryFee: room.entryFee,
-                secretDraw: room.secretDraw,
-                drawIndex: room.drawIndex,
-                currentNumber: room.currentNumber,
-                players: room.players,
-                winner: room.winner,
-                totalPool: room.totalPool,
-                houseRake: room.houseRake,
-                winnerPrize: room.winnerPrize
-            },
-            updated_at: nowIso()
-        }, {
-            onConflict: "round_id"
-        });
-
-    if (error) {
-        await dbError(
-            `saveBingoRound ${tier}`,
-            error
-        );
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ROOMS API
-|--------------------------------------------------------------------------
-*/
-
-app.get("/api/bingo/rooms", (req, res) => {
-    const roomState = {};
-
-    BINGO_TIERS.forEach(tier => {
-        const room =
-            bingoRooms[tier];
-
-        if (room) {
-            const now =
-                Date.now();
-
-            const remaining =
-                Math.max(
-                    0,
-                    room.bettingEndsAt -
-                    now
-                );
-
-            const grossPool =
-                room.players.length *
-                room.entryFee;
-
-            roomState[tier] = {
-                tier,
-                roomId: room.id,
-                entryFee: room.entryFee,
-                status: room.status,
-
-                serverTime:
-                    now,
-
-                bettingStartedAt:
-                    room.bettingStartedAt,
-
-                bettingEndsAt:
-                    room.bettingEndsAt,
-
-                remainingMilliseconds:
-                    remaining,
-
-                remainingSeconds:
-                    Math.ceil(
-                        remaining / 1000
-                    ),
-
-                totalPlayers:
-                    room.players.length,
-
-                grossPool,
-
-                winnerPrize:
-                    grossPool *
-                    (1 - HOUSE_RAKE_PERCENT),
-
-                currentNumber:
-                    room.currentNumber,
-
-                drawnNumbers:
-                    room.drawnNumbers,
-
-                drawIndex:
-                    room.drawIndex,
-
-                winner:
-                    room.winner
-                        ? room.winner.telegramName
-                        : null
-            };
-        }
-    });
-
-    res.json({
-        success: true,
-        serverTime: Date.now(),
-        rooms: roomState
-    });
-});
-
-app.post("/api/bingo/join", requirePlayer, async (req, res) => {
-    try {
-        const {
-            tier,
-            cartelaNumber
-        } = req.body;
-
-        const selectedTier =
-            Number(tier);
-
-        const room =
-            bingoRooms[selectedTier];
-
-        if (!room) {
-            return res.status(404).json({
-                success: false,
-                error: "Invalid bingo room tier"
-            });
-        }
-
-        if (room.status !== "BETTING") {
-            return res.status(400).json({
-                success: false,
-                error:
-                    "Betting closed for active round"
-            });
-        }
-
-        const selectedCartela =
-            Number(cartelaNumber);
-
         if (
             !Number.isInteger(selectedCartela) ||
             selectedCartela < 1 ||
@@ -1001,10 +519,12 @@ app.post("/api/bingo/join", requirePlayer, async (req, res) => {
         if (alreadyJoined) {
             return res.status(400).json({
                 success: false,
-                error: "Player already joined this round"
+                error:
+                    "Player already joined this round"
             });
         }
-                const playerCartela =
+
+        const playerCartela =
             bingo.generateCartela
                 ? bingo.generateCartela(
                     selectedCartela
@@ -1725,6 +1245,248 @@ function startRouletteSpin(
         DRAW_INTERVALS.roulette
     );
 }
+        if (
+            current.id !==
+            round.id
+        ) {
+            return;
+        }
+
+        if (
+            current.status !==
+            "BETTING"
+        ) {
+            return;
+        }
+
+        if (gameName === "keno") {
+            startKenoDraw(
+                gameName,
+                round.id
+            );
+        }
+
+        if (gameName === "roulette") {
+            startRouletteSpin(
+                round.id
+            );
+        }
+
+        if (gameName === "aviator") {
+            startAviatorFlight(
+                round.id
+            );
+        }
+    }, bettingSeconds * 1000);
+}
+
+/*
+|--------------------------------------------------------------------------
+| KENO
+|--------------------------------------------------------------------------
+*/
+
+function startKenoDraw(
+    gameName,
+    roundId
+) {
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.id !==
+        roundId
+    ) {
+        return;
+    }
+
+    if (
+        round.status !==
+        "BETTING"
+    ) {
+        return;
+    }
+
+    round.status =
+        "DRAWING";
+
+    round.drawIndex =
+        0;
+
+    round.drawnNumbers =
+        [];
+
+    round.currentNumber =
+        null;
+
+    saveRound(
+        round
+    ).catch(console.error);
+
+    console.log(
+        `[KENO] DRAWING STARTED | ${round.id}`
+    );
+
+    revealNextKenoNumber(
+        gameName,
+        round.id
+    );
+}
+
+function revealNextKenoNumber(
+    gameName,
+    roundId
+) {
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.id !==
+        roundId
+    ) {
+        return;
+    }
+
+    if (
+        round.status !==
+        "DRAWING"
+    ) {
+        return;
+    }
+
+    if (
+        round.drawIndex >=
+        round.secretDraw.length
+    ) {
+        finishHouseRound(
+            gameName,
+            round.id
+        );
+
+        return;
+    }
+
+    const number =
+        round.secretDraw[
+            round.drawIndex
+        ];
+
+    round.currentNumber =
+        number;
+
+    round.drawnNumbers.push(
+        number
+    );
+
+    round.drawIndex++;
+
+    console.log(
+        `[KENO] DRAW ${round.drawIndex}/20 -> ${number}`
+    );
+
+    saveRound(
+        round
+    ).catch(console.error);
+
+    setTimeout(() => {
+        revealNextKenoNumber(
+            gameName,
+            roundId
+        );
+    }, DRAW_INTERVALS.keno);
+}
+
+/*
+|--------------------------------------------------------------------------
+| ROULETTE
+|--------------------------------------------------------------------------
+*/
+
+function startRouletteSpin(
+    roundId
+) {
+    const round =
+        rounds.roulette;
+
+    if (!round) return;
+
+    if (
+        round.id !==
+        roundId
+    ) {
+        return;
+    }
+
+    if (
+        round.status !==
+        "BETTING"
+    ) {
+        return;
+    }
+
+    round.status =
+        "SPINNING";
+
+    saveRound(
+        round
+    ).catch(console.error);
+
+    console.log(
+        `[ROULETTE] SPINNING | ${round.id}`
+    );
+
+    setTimeout(
+        async () => {
+            const current =
+                rounds.roulette;
+
+            if (!current) return;
+
+            if (
+                current.id !==
+                roundId
+            ) {
+                return;
+            }
+
+            if (
+                current.status !==
+                "SPINNING"
+            ) {
+                return;
+            }
+
+            current.result =
+                roulette.spin
+                    ? roulette.spin()
+                    : Math.floor(
+                        Math.random() *
+                        37
+                    );
+
+            current.status =
+                "FINISHED";
+
+            console.log(
+                `[ROULETTE] RESULT -> ${current.result}`
+            );
+
+            await saveRound(
+                current
+            ).catch(console.error);
+
+            finishHouseRound(
+                "roulette",
+                roundId
+            );
+        },
+        DRAW_INTERVALS.roulette
+    );
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -1760,13 +1522,16 @@ function startAviatorFlight(
     round.flyingStartedAt =
         Date.now();
 
-    console.log(
-        `[AVIATOR] FLIGHT STARTED | ${round.id}`
-    );
+    round.multiplier =
+        1.00;
 
     saveRound(
         round
     ).catch(console.error);
+
+    console.log(
+        `[AVIATOR] FLIGHT STARTED | ${round.id} | CRASH ${round.secretCrashPoint}x`
+    );
 
     updateAviator(
         round.id
@@ -1796,19 +1561,25 @@ function updateAviator(
     }
 
     const elapsed =
-        (
-            Date.now() -
-            round.flyingStartedAt
-        ) / 1000;
+        Date.now() -
+        round.flyingStartedAt;
 
-    const calculated =
-        Math.pow(
-            1.12,
-            elapsed
+    const seconds =
+        elapsed / 1000;
+
+    round.multiplier =
+        Number(
+            Math.max(
+                1,
+                Math.pow(
+                    1.18,
+                    seconds
+                )
+            ).toFixed(2)
         );
 
     if (
-        calculated >=
+        round.multiplier >=
         round.secretCrashPoint
     ) {
         round.multiplier =
@@ -1828,18 +1599,19 @@ function updateAviator(
             round
         ).catch(console.error);
 
-        finishHouseRound(
-            "aviator",
-            round.id
-        );
+        setTimeout(() => {
+            finishHouseRound(
+                "aviator",
+                round.id
+            );
+        }, DRAW_INTERVALS.aviator);
 
         return;
     }
 
-    round.multiplier =
-        Number(
-            calculated.toFixed(2)
-        );
+    saveRound(
+        round
+    ).catch(console.error);
 
     setTimeout(() => {
         updateAviator(
@@ -1848,6 +1620,444 @@ function updateAviator(
     }, 100);
 }
 
+/*
+|--------------------------------------------------------------------------
+| FINISH HOUSE ROUND
+|--------------------------------------------------------------------------
+*/
+
+function finishHouseRound(
+    gameName,
+    roundId
+) {
+    const round =
+        rounds[gameName];
+
+    if (!round) return;
+
+    if (
+        round.id !==
+        roundId
+    ) {
+        return;
+    }
+
+    if (
+        round.status ===
+        "FINISHED"
+    ) {
+        return;
+    }
+
+    if (
+        gameName !==
+        "aviator"
+    ) {
+        round.status =
+            "FINISHED";
+    }
+
+    saveRound(
+        round
+    ).catch(console.error);
+
+    console.log(
+        `[${gameName.toUpperCase()}] ROUND FINISHED -> ${round.id}`
+    );
+
+    setTimeout(() => {
+        const current =
+            rounds[gameName];
+
+        if (!current) return;
+
+        if (
+            current.id !==
+            roundId
+        ) {
+            return;
+        }
+
+        startHouseRound(
+            gameName
+        );
+    }, ROUND_RESET_DELAY);
+}
+
+/*
+|--------------------------------------------------------------------------
+| HOUSE GAME PUBLIC APIs
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+    "/api/games/:game/round",
+    (req, res) => {
+        const game =
+            String(
+                req.params.game
+            ).toLowerCase();
+
+        if (
+            !Object.prototype.hasOwnProperty.call(
+                rounds,
+                game
+            )
+        ) {
+            return res.status(404).json({
+                success: false,
+                error:
+                    "Unknown game"
+            });
+        }
+
+        const round =
+            getPublicRound(game);
+
+        if (!round) {
+            return res.status(404).json({
+                success: false,
+                error:
+                    "Round not available"
+            });
+        }
+
+        res.json({
+            success: true,
+            round
+        });
+    }
+);
+
+app.get(
+    "/api/games/rounds",
+    (req, res) => {
+        const publicRounds = {};
+
+        Object.keys(
+            rounds
+        ).forEach(game => {
+            publicRounds[game] =
+                getPublicRound(game);
+        });
+
+        res.json({
+            success: true,
+            serverTime:
+                Date.now(),
+            rounds:
+                publicRounds
+        });
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| KENO BET
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/games/keno/bet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const {
+                amount,
+                numbers
+            } = req.body;
+
+            const numericAmount =
+                Number(amount);
+
+            if (
+                !Number.isFinite(
+                    numericAmount
+                ) ||
+                numericAmount <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Invalid bet amount"
+                });
+            }
+
+            if (
+                !Array.isArray(numbers) ||
+                numbers.length === 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Select at least one number"
+                });
+            }
+
+            const round =
+                rounds.keno;
+
+            if (
+                !round ||
+                round.status !==
+                "BETTING"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Betting is closed"
+                });
+            }
+
+            const uniqueNumbers =
+                [
+                    ...new Set(
+                        numbers.map(
+                            Number
+                        )
+                    )
+                ];
+
+            if (
+                uniqueNumbers.some(
+                    number =>
+                        !Number.isInteger(
+                            number
+                        ) ||
+                        number < 1 ||
+                        number > 80
+                )
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Numbers must be between 1 and 80"
+                });
+            }
+
+            await changeBalance({
+                playerId:
+                    req.player.player_id,
+
+                amount:
+                    -numericAmount,
+
+                type:
+                    "keno_bet",
+
+                game:
+                    "keno",
+
+                roundId:
+                    round.id,
+
+                metadata: {
+                    numbers:
+                        uniqueNumbers
+                }
+            });
+
+            res.json({
+                success: true,
+                roundId:
+                    round.id,
+
+                amount:
+                    numericAmount,
+
+                numbers:
+                    uniqueNumbers,
+
+                serverTime:
+                    Date.now()
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                error:
+                    error.message
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| ROULETTE BET
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/games/roulette/bet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const {
+                amount,
+                betType,
+                value
+            } = req.body;
+
+            const numericAmount =
+                Number(amount);
+
+            if (
+                !Number.isFinite(
+                    numericAmount
+                ) ||
+                numericAmount <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Invalid bet amount"
+                });
+            }
+
+            const round =
+                rounds.roulette;
+
+            if (
+                !round ||
+                round.status !==
+                "BETTING"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Betting is closed"
+                });
+            }
+
+            await changeBalance({
+                playerId:
+                    req.player.player_id,
+
+                amount:
+                    -numericAmount,
+
+                type:
+                    "roulette_bet",
+
+                game:
+                    "roulette",
+
+                roundId:
+                    round.id,
+
+                metadata: {
+                    betType,
+                    value
+                }
+            });
+
+            res.json({
+                success: true,
+                roundId:
+                    round.id,
+
+                amount:
+                    numericAmount,
+
+                betType,
+                value,
+
+                serverTime:
+                    Date.now()
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                error:
+                    error.message
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| AVIATOR BET
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/games/aviator/bet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const {
+                amount
+            } = req.body;
+
+            const numericAmount =
+                Number(amount);
+
+            if (
+                !Number.isFinite(
+                    numericAmount
+                ) ||
+                numericAmount <= 0
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Invalid bet amount"
+                });
+            }
+
+            const round =
+                rounds.aviator;
+
+            if (
+                !round ||
+                round.status !==
+                "BETTING"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Betting is closed"
+                });
+            }
+
+            await changeBalance({
+                playerId:
+                    req.player.player_id,
+
+                amount:
+                    -numericAmount,
+
+                type:
+                    "aviator_bet",
+
+                game:
+                    "aviator",
+
+                roundId:
+                    round.id
+            });
+
+            res.json({
+                success: true,
+                roundId:
+                    round.id,
+
+                amount:
+                    numericAmount,
+
+                serverTime:
+                    Date.now()
+            });
+        } catch (error) {
+            res.status(400).json({
+                success: false,
+                error:
+                    error.message
+            });
+        }
+    }
+);
 /*
 |--------------------------------------------------------------------------
 | FINISH HOUSE ROUND
@@ -1976,8 +2186,7 @@ async function restoreHouseRound(gameName) {
         | If the old round was already finished, start a new round.
         |--------------------------------------------------------------------------
         */
-
-        if (
+            if (
             data.status ===
                 "FINISHED" ||
             data.status ===
@@ -1988,12 +2197,6 @@ async function restoreHouseRound(gameName) {
             );
 
             startHouseRound(
-                gameName
-            );
-
-            return;
-        }
-                    startHouseRound(
                 gameName
             );
 
@@ -2402,7 +2605,8 @@ app.listen(
         console.log(
             "       DESTA PLAY BACKEND SERVER        "
         );
-                console.log(
+
+        console.log(
             "========================================"
         );
 
