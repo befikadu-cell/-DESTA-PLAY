@@ -146,6 +146,14 @@ button{
   font-weight:900;
 }
 
+.accountBtn.mediumBtn{
+  width:auto;
+  display:block;
+  margin:12px auto 0;
+  padding:8px 16px;
+  font-size:12px;
+}
+
 .accountMessage{
   min-height:20px;
   text-align:center;
@@ -1412,13 +1420,13 @@ button{
         placeholder="Enter password">
 
       <button
-        class="accountBtn"
+        class="accountBtn mediumBtn"
         onclick="loginAccount()">
         LOGIN
       </button>
 
       <button
-        class="accountBtn"
+        class="accountBtn mediumBtn"
         type="button"
         onclick="showForgotPassword()">
         FORGOT PASSWORD
@@ -1426,6 +1434,17 @@ button{
     </div>
 
     <div id="accountCreateFields">
+      <label class="accountLabel">
+        CELL PHONE NUMBER
+      </label>
+
+      <input
+        id="phone"
+        class="accountInput"
+        type="tel"
+        autocomplete="tel"
+        placeholder="Enter cell phone number">
+
       <label class="accountLabel">
         DESTA PLAY PASSWORD
       </label>
@@ -2604,6 +2623,8 @@ const state = {
 
   telegramName:"Player",
 
+  phone:"",
+
   rounds:{
     keno:1,
     bingo:1,
@@ -2723,6 +2744,12 @@ function loadTelegramUser(){
     .textContent=
       state.playerId;
 
+  if(localStorage.getItem("destaAccountCreated") === "true"){
+    showLogin();
+  }else{
+    showCreateAccount();
+  }
+
 }
 
 
@@ -2819,7 +2846,7 @@ function showForgotPassword(){
   document.getElementById("accountCreateFields").classList.add("hidden");
   document.getElementById("accountResetFields").classList.remove("hidden");
   document.getElementById("resetNewPasswordFields").classList.add("hidden");
-  const savedPhone=localStorage.getItem("destaResetPhone") || "";
+  const savedPhone=localStorage.getItem("destaResetPhone") || state.phone || "";
   const savedRequestId=localStorage.getItem("destaResetRequestId") || "";
   document.getElementById("resetPhone").value=savedPhone;
   document.getElementById("resetRequestId").value=savedRequestId;
@@ -2910,6 +2937,7 @@ async function loginAccount(){
     state.balance=Number(data.player?.balance || 0);
     state.playerId=data.player?.playerId || state.playerId;
     state.telegramName=data.player?.telegramName || state.telegramName;
+    if(data.player?.phone) state.phone=data.player.phone;
     message.className="accountMessage success"; message.textContent="Login successful.";
     updatePlayerDisplays();
     setTimeout(showHome,300);
@@ -2917,18 +2945,21 @@ async function loginAccount(){
 }
 
 async function createAccount(){
+  const phone=document.getElementById("phone").value.trim();
   const password=document.getElementById("password").value;
   const confirm=document.getElementById("passwordConfirm").value;
   const message=document.getElementById("accountMessage");
+  if(!phone){ message.className="accountMessage error"; message.textContent="Enter your cell phone number."; return; }
   if(password.length<8){ message.className="accountMessage error"; message.textContent="Password must contain at least 8 characters."; return; }
   if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
   if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
   message.className="accountMessage"; message.textContent="Creating account...";
   try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,password})});
+    const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,phone,password})});
     const data=await safeJsonResponse(response);
     if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
     state.authToken=data.token || "";
+    state.phone=phone;
     localStorage.setItem("destaAuthToken",state.authToken);
     localStorage.setItem("destaAccountCreated","true");
     state.accountCreated=true;
@@ -5281,338 +5312,25 @@ function updateCountdownFromServer(round){
   const betting = round.status === "BETTING";
 
   el.textContent = betting
-    ? "BETTING " + seconds + "s"
-    : (round.status === "DRAWING" ? "DRAWING" :
-       round.status === "FLYING" ? "FLYING" :
-       round.status === "SPINNING" ? "SPINNING" :
-       round.status === "CRASHED" ? "CRASHED" :
-       "BETTING CLOSED");
+    ? `BETTING ${seconds}s`
+    : `ROUND LIVE`;
 
-  el.classList.toggle("closed", !betting);
-}
-
-function applyServerRound(round){
-  if(!round || !round.game) return;
-
-  const game = round.game;
-  const previousId = lastServerRoundId[game];
-  const isNewRound = previousId && previousId !== round.id;
-  lastServerRoundId[game] = round.id;
-
-  state.roundIds = state.roundIds || {};
-  state.roundIds[game] = round.id;
-  state.serverRoundIds[game] = String(round.id || "");
-  state.rounds[game] = String(round.id || state.rounds[game] || "");
-  state.bettingOpenByGame[game] = round.status === "BETTING";
-  if(state.game === game){ state.bettingOpen = state.bettingOpenByGame[game]; state.countdown = Number(round.remainingSeconds || 0); }
-
-  updateRound();
-  updateCountdownFromServer(round);
-
-  if(game === "keno"){
-    const drawn = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
-    const changed = JSON.stringify(state.kenoDraw) !== JSON.stringify(drawn);
-    state.kenoDraw = [...drawn];
-
-    if(isNewRound){
-      state.kenoSelections = {1:[],2:[]};
-      state.kenoBets = {1:null,2:null};
-      const balls = document.getElementById("kenoDrawBalls");
-      if(balls) balls.innerHTML = "";
-    }
-
-    if(changed || isNewRound) renderServerKeno(round);
+  if(betting){
+    el.classList.remove("closed");
+  }else{
+    el.classList.add("closed");
   }
-
-  if(game === "bingo"){
-    const called = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
-    const changed = JSON.stringify(state.bingoDraw) !== JSON.stringify(called);
-    state.bingoDraw = [...called];
-
-    if(isNewRound){
-      state.bingoDraw = [];
-      const display = document.getElementById("bingoDraw");
-      if(display) display.innerHTML = "";
-      const b1 = document.getElementById("bingoButton1");
-      const b2 = document.getElementById("bingoButton2");
-      if(b1) b1.disabled = true;
-      if(b2) b2.disabled = true;
-    }
-
-    if(changed || isNewRound) renderServerBingo(round);
-  }
-
-  if(game === "roulette"){
-    if(round.result && round.status === "FINISHED"){
-      const winner = typeof round.result === "object"
-        ? Number(round.result.number ?? round.result.result ?? round.result.winner)
-        : Number(round.result);
-      if(Number.isFinite(winner)) renderServerRoulette(winner);
-    }
-  }
-
-  if(game === "aviator"){
-    const multiplier = Number(round.multiplier || 1);
-    const el = document.getElementById("aviatorMultiplier");
-    if(el) el.textContent = multiplier.toFixed(2) + "x";
-
-    if(round.status === "CRASHED" && round.crashPoint != null){
-      if(el) el.textContent = Number(round.crashPoint).toFixed(2) + "x CRASH";
-    }
-  }
-}
-
-function renderServerKeno(round){
-  const balls = document.getElementById("kenoDrawBalls");
-  if(balls){
-    balls.innerHTML = (round.drawnNumbers || []).map(n =>
-      `<div class="ball">${String(n).padStart(2,"0")}</div>`
-    ).join("");
-  }
-
-  const status = document.getElementById("kenoDrawStatus");
-  if(status){
-    status.textContent = round.status === "DRAWING"
-      ? `DRAWING ${(round.drawnNumbers || []).length} / ${round.totalDraws || 20}`
-      : round.status === "FINISHED"
-        ? "DRAW COMPLETE"
-        : round.status === "BETTING"
-          ? "Waiting for draw..."
-          : round.status;
-  }
-
-  document.querySelectorAll(".kenoNumber").forEach(button => {
-    const n = Number(button.textContent);
-    button.classList.toggle("drawn", (round.drawnNumbers || []).includes(n));
-    button.classList.toggle("hit",
-      (round.drawnNumbers || []).includes(n) &&
-      ((state.kenoSelections[1] || []).includes(n) ||
-       (state.kenoSelections[2] || []).includes(n))
-    );
-  });
-}
-
-function renderServerBingo(round){
-  const display = document.getElementById("bingoDraw");
-  if(display){
-    display.innerHTML = (round.drawnNumbers || []).map(n =>
-      `<div class="bingoCalled">${n}</div>`
-    ).join("");
-  }
-
-  const status = document.getElementById("bingoStatus");
-  if(status){
-    const nums = round.drawnNumbers || [];
-    status.textContent = round.status === "DRAWING"
-      ? `CALLED ${nums.length} / ${round.totalDraws || 20}${nums.length ? " — " + nums[nums.length-1] : ""}`
-      : round.status === "FINISHED"
-        ? "DRAW COMPLETE"
-        : round.status === "BETTING"
-          ? "Waiting for next draw..."
-          : round.status;
-  }
-
-  if(typeof renderCartela === "function") renderCartela();
-}
-
-function renderServerRoulette(winner){
-  state.rouletteWinner = winner;
-
-  const result = document.getElementById("rouletteResult");
-  if(result) result.textContent = "RESULT: " + winner + " — " + rouletteColor(winner).toUpperCase();
-
-  document.querySelectorAll(".rouletteNum").forEach(b => {
-    b.classList.toggle("winner", Number(b.textContent) === winner);
-  });
-}
-
-async function fetchLiveRound(game){
-  try{
-    const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`, {
-      cache:"no-store",
-      headers:{"Accept":"application/json"}
-    });
-
-    if(!response.ok) return;
-
-    const data = await safeJsonResponse(response);
-    if(data && data.success && data.round){
-      applyServerRound(data.round);
-    }
-  }catch(error){
-    console.warn("Live round connection error:", error);
-  }
-}
-
-async function fetchAllLiveRounds(){
-  if(liveRoundBusy) return;
-  liveRoundBusy = true;
-  try{
-    await Promise.all([
-      fetchLiveRound("keno"),
-      fetchLiveRound("bingo"),
-      fetchLiveRound("roulette"),
-      fetchLiveRound("aviator")
-    ]);
-  }finally{
-    state.bettingOpen = !!state.bettingOpenByGame[state.game];
-    liveRoundBusy = false;
-  }
-}
-
-async function loadRoundHistory(game){
-  try{
-    const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/history`, {
-      cache:"no-store",
-      headers:{"Accept":"application/json"}
-    });
-    if(!response.ok) return;
-    const data = await safeJsonResponse(response);
-    if(!data.success || !Array.isArray(data.rounds)) return;
-
-    const rows = data.rounds.slice(0,10);
-
-    if(game === "keno"){
-      state.kenoHistory = rows.map(r => ({
-        round:r.round_id,
-        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
-      }));
-      renderKenoHistory();
-    }
-
-    if(game === "bingo"){
-      state.bingoHistory = rows.map(r => ({
-        round:r.round_id,
-        numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
-      }));
-      renderBingoHistory();
-    }
-
-    if(game === "roulette"){
-      state.rouletteHistory = rows.map(r => {
-        const value = typeof r.result === "object"
-          ? Number(r.result.number ?? r.result.result ?? r.result.winner)
-          : Number(r.result);
-        return {
-          round:r.round_id,
-          result:value,
-          color:rouletteColor(value)
-        };
-      });
-      renderRouletteHistory();
-    }
-
-    if(game === "aviator"){
-      state.aviatorHistory = rows.map(r => ({
-        round:r.round_id,
-        multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
-      }));
-      renderAviatorHistory();
-    }
-  }catch(error){
-    console.warn("History connection error:", error);
-  }
-}
-
-function startLiveRoundSync(){
-  clearInterval(liveRoundTimer);
-  fetchAllLiveRounds();
-  ["keno","bingo","roulette","aviator"].forEach(loadRoundHistory);
-  liveRoundTimer = setInterval(() => {
-    fetchAllLiveRounds();
-  }, 1000);
-}
-
-/* The server owns the round. The browser never creates or advances rounds. */
-function startGameRound(){
-  startLiveRoundSync();
-}
-
-function startGameDraw(){
-  /* Server-authoritative: no local draw is generated here. */
-  fetchAllLiveRounds();
-}
-
-function startNextRound(){
-  fetchAllLiveRounds();
-  loadRoundHistory(state.game);
 }
 
 /* =========================================================
-   INITIALIZE
-   ========================================================= */
+   INITIALIZATION
+========================================================= */
 
-async function loadServerAccount(){
-  if(!state.authToken) return false;
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/me",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
-    if(!response.ok) throw new Error("Session expired");
-    const data=await safeJsonResponse(response);
-    if(!data.success || !data.player) throw new Error("Invalid account response");
-    state.accountCreated=true; state.balance=Number(data.player.balance || 0);
-    state.playerId=data.player.playerId || state.playerId; state.telegramId=String(data.player.telegramId || state.telegramId); state.telegramName=data.player.telegramName || state.telegramName;
-    localStorage.setItem("destaAccountCreated","true"); updatePlayerDisplays(); loadWalletData(); return true;
-  }catch(error){
-    console.warn("Account session unavailable:",error); state.authToken=""; localStorage.removeItem("destaAuthToken"); localStorage.removeItem("destaAccountCreated"); return false;
-  }
-}
-
-loadTelegramUser();
-
-(async function initializeDesta(){
-  const authenticated=await loadServerAccount();
-  if(authenticated) showHome();
-  else document.getElementById("accountScreen").classList.remove("hidden");
-  buildKeno(); buildBingo(); buildRoulette(); buildAviator(); showTab("my"); startLiveRoundSync();
-  setInterval(loadWalletData, 5000);
-})();
+window.addEventListener("DOMContentLoaded",()=>{
+  loadTelegramUser();
+});
 
 </script>
 
 </body>
 </html>
-<!-- ======================================================
-     DEPOSIT MODAL
-====================================================== -->
-<div id="depositModal" class="walletModal hidden">
-  <div class="walletModalPanel">
-    <div class="walletModalHead"><h2>DEPOSIT</h2><button class="walletModalClose" onclick="closeWalletModal('depositModal')">×</button></div>
-    <div class="walletHint">Your Account ID is linked to your logged-in session. After sending payment, enter the exact payment details below. The backend will compare them with the SMS-forwarder record. A failed or suspicious match is not credited automatically and can be reported to the administrator.</div>
-    <label class="walletFormLabel">ACCOUNT ID</label>
-    <input id="depositAccountId" class="walletFormInput" readonly>
-    <label class="walletFormLabel">AMOUNT SENT (ETB)</label>
-    <input id="depositAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
-    <label class="walletFormLabel">PAYMENT RECIPIENT</label>
-    <input id="depositRecipient" class="walletFormInput" type="text" autocomplete="off" placeholder="Recipient phone/account">
-    <label class="walletFormLabel">TRANSACTION / REFERENCE ID</label>
-    <input id="depositReference" class="walletFormInput" type="text" autocomplete="off" placeholder="Payment transaction ID">
-    <label class="walletFormLabel">SENDER PHONE (OPTIONAL)</label>
-    <input id="depositSender" class="walletFormInput" type="text" autocomplete="tel" placeholder="Your payment phone number">
-    <label class="walletFormLabel">PAYMENT METHOD</label>
-    <select id="depositMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
-    <button id="depositSubmitBtn" class="walletSubmit" onclick="submitDeposit()">SUBMIT DEPOSIT</button>
-    <div id="depositStatus" class="walletStatus"></div>
-  </div>
-</div>
-
-<!-- ======================================================
-     WITHDRAW MODAL
-====================================================== -->
-<div id="withdrawModal" class="walletModal hidden">
-  <div class="walletModalPanel">
-    <div class="walletModalHead"><h2>WITHDRAW</h2><button class="walletModalClose" onclick="closeWalletModal('withdrawModal')">×</button></div>
-    <div class="walletHint">Withdrawal eligibility and the final amount are controlled by the server. Never trust a balance calculated only by the browser.</div>
-    <label class="walletFormLabel">ACCOUNT ID</label>
-    <input id="withdrawAccountId" class="walletFormInput" readonly>
-    <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
-    <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
-    <label class="walletFormLabel">WITHDRAWAL METHOD</label>
-    <select id="withdrawMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
-    <label class="walletFormLabel">ACCOUNT / PHONE NUMBER</label>
-    <input id="withdrawAccount" class="walletFormInput" type="text" autocomplete="tel" placeholder="Payment account or phone">
-    <button id="withdrawSubmitBtn" class="walletSubmit" onclick="submitWithdraw()">SUBMIT WITHDRAWAL</button>
-    <div id="withdrawStatus" class="walletStatus"></div>
-  </div>
-</div>
-
-
