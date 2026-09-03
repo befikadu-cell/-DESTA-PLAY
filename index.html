@@ -1,5336 +1,667 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>DESTA PLAY</title>
-
-<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
-
-<style>
-:root{
-  --red:#b40000;
-  --red2:#ef1b1b;
-  --gold:#ffcc33;
-  --gold2:#ff9f00;
-  --dark:#090909;
-  --dark2:#151515;
-  --panel:#1d1d1d;
-  --panel2:#252525;
-  --text:#fff;
-  --muted:#aaa;
-  --green:#18d66b;
-  --blue:#3498ff;
-}
-
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
-
-html,body{
-  margin:0;
-  min-height:100%;
-  background:
-    radial-gradient(circle at top,#3b0000 0,#100000 35%,#050505 75%);
-  color:#fff;
-  font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-  min-height:100vh;
-  padding-bottom:72px;
-}
-
-button,input{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-.hidden{
-  display:none!important;
-}
-
-/* =========================================================
-   ACCOUNT / REGISTRATION
-========================================================= */
-
-#accountScreen{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
-
-.accountPanel{
-  width:100%;
-  max-width:420px;
-  padding:22px;
-  border-radius:18px;
-  background:linear-gradient(145deg,#291010,#0d0d0d);
-  border:1px solid #6b2424;
-  box-shadow:0 15px 50px #000;
-}
-
-.accountLogo{
-  text-align:center;
-  color:var(--gold);
-  font-size:28px;
-  font-weight:900;
-  letter-spacing:1px;
-  margin-bottom:5px;
-}
-
-.accountWelcome{
-  text-align:center;
-  color:#ddd;
-  font-size:13px;
-  margin-bottom:20px;
-}
-
-.accountInfo{
-  padding:12px;
-  border:1px solid #482020;
-  border-radius:10px;
-  background:#111;
-  margin-bottom:15px;
-}
-
-.accountInfoRow{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  padding:5px 0;
-  font-size:12px;
-}
-
-.accountInfoRow span:last-child{
-  color:var(--gold);
-  font-weight:bold;
-}
-
-.accountLabel{
-  display:block;
-  margin:10px 0 5px;
-  color:#ffd43c;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.accountInput{
-  width:100%;
-  padding:11px;
-  border-radius:8px;
-  border:1px solid #633333;
-  background:#080808;
-  color:#fff;
-  outline:none;
-}
-
-.accountInput:focus{
-  border-color:var(--gold);
-}
-
-.accountBtn{
-  width:100%;
-  margin-top:14px;
-  padding:11px;
-  border:0;
-  border-radius:9px;
-  background:linear-gradient(180deg,#ff3b2f,#a60000);
-  color:#fff;
-  font-weight:900;
-}
-
-.accountBtn.mediumBtn{
-  width:auto;
-  display:block;
-  margin:12px auto 0;
-  padding:8px 16px;
-  font-size:12px;
-}
-
-.accountMessage{
-  min-height:20px;
-  text-align:center;
-  font-size:11px;
-  margin-top:10px;
-}
-
-.accountMessage.error{
-  color:#ff5555;
-}
-
-.accountMessage.success{
-  color:var(--green);
-}
-
-/* =========================================================
-   HOME
-========================================================= */
-
-#home{
-  min-height:100vh;
-  padding-bottom:80px;
-}
-
-.homeHeader{
-  padding:18px 15px 10px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-}
-
-.logo{
-  font-size:25px;
-  font-weight:900;
-  color:var(--gold);
-  letter-spacing:1px;
-}
-
-.languageBox{
-  display:flex;
-  gap:6px;
-  padding:0 15px 15px;
-}
-
-.languageBox button{
-  border:1px solid #6d1717;
-  background:#210909;
-  color:#ddd;
-  border-radius:8px;
-  padding:7px 12px;
-}
-
-.languageBox button.active{
-  background:linear-gradient(180deg,var(--gold),#d58a00);
-  color:#170900;
-  font-weight:bold;
-}
-
-.playerSummary{
-  margin:0 10px 5px;
-  padding:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  border:1px solid #5d2020;
-  border-radius:10px;
-  background:#110909;
-}
-
-.playerSummary small{
-  color:#aaa;
-}
-
-.playerSummary strong{
-  color:var(--gold);
-}
-
-.gameGrid{
-  padding:10px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
-.gameCard{
-  position:relative;
-  min-height:155px;
-  overflow:hidden;
-  border:1px solid #632020;
-  border-radius:16px;
-  background:linear-gradient(145deg,#291010,#0d0d0d);
-  box-shadow:0 8px 25px #000;
-}
-
-.gameCard h3{
-  position:absolute;
-  z-index:5;
-  top:8px;
-  left:10px;
-  margin:0;
-  color:var(--gold);
-  font-size:16px;
-}
-
-.gameCard small{
-  position:absolute;
-  z-index:5;
-  bottom:8px;
-  left:10px;
-  color:#ddd;
-}
-
-.gameOpen{
-  position:absolute;
-  z-index:8;
-  right:8px;
-  bottom:7px;
-  border:0;
-  border-radius:8px;
-  padding:6px 9px;
-  background:var(--red2);
-  color:white;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.aviatorHome{
-  position:absolute;
-  inset:0;
-  overflow:hidden;
-}
-
-.homePlane{
-  position:absolute;
-  font-size:35px;
-  animation:planeHome 3s linear infinite;
-}
-
-@keyframes planeHome{
-  0%{left:-40px;bottom:25px;transform:rotate(-8deg)}
-  50%{left:48%;bottom:75px;transform:rotate(-5deg)}
-  100%{left:110%;bottom:115px;transform:rotate(-2deg)}
-}
-
-.bingoHomeBalls{
-  position:absolute;
-  inset:40px 8px 30px;
-}
-
-.bingoHomeBalls span{
-  position:absolute;
-  width:28px;
-  height:28px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:linear-gradient(145deg,#ffe16a,#d88b00);
-  color:#500;
-  font-weight:bold;
-}
-
-.bingoHomeBalls span:nth-child(1){left:10%;top:15%}
-.bingoHomeBalls span:nth-child(2){left:42%;top:40%}
-.bingoHomeBalls span:nth-child(3){left:72%;top:20%}
-.bingoHomeBalls span:nth-child(4){left:28%;top:70%}
-
-.kenoHome{
-  position:absolute;
-  inset:42px 8px 25px;
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:5px;
-  align-content:center;
-}
-
-.kenoHome span{
-  width:25px;
-  height:25px;
-  border-radius:50%;
-  background:#c70000;
-  border:2px solid #ffcf40;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:9px;
-}
-
-.rouletteHome{
-  position:absolute;
-  width:85px;
-  height:85px;
-  border-radius:50%;
-  border:8px solid #d49a00;
-  left:50%;
-  top:53%;
-  transform:translate(-50%,-50%);
-  background:repeating-conic-gradient(
-    #b00000 0deg 20deg,
-    #111 20deg 40deg
-  );
-}
-
-.rouletteHome:after{
-  content:"0";
-  position:absolute;
-  inset:28px;
-  background:#d49a00;
-  border-radius:50%;
-  color:#111;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-}
-
-/* =========================================================
-   GAME
-========================================================= */
-
-#gameScreen{
-  display:none;
-  min-height:100vh;
-  padding-bottom:80px;
-}
-
-.gameHeader{
-  position:sticky;
-  top:0;
-  z-index:100;
-  height:52px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:7px 10px;
-  background:linear-gradient(180deg,#260000,#100000);
-  border-bottom:1px solid #652000;
-}
-
-.roundInfo{
-  color:#ffd04a;
-  font-size:13px;
-  font-weight:900;
-}
-
-.headerRight{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-
-.balance{
-  background:#241b00;
-  border:1px solid #d79d00;
-  color:#ffd84c;
-  padding:6px 8px;
-  border-radius:8px;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.helpBtn{
-  width:31px;
-  height:31px;
-  border-radius:50%;
-  border:1px solid #ffd24a;
-  background:#390900;
-  color:#ffd24a;
-  font-weight:900;
-}
-
-.gameTitle{
-  text-align:center;
-  padding:8px 0;
-  color:#fff;
-  font-size:20px;
-  font-weight:900;
-}
-
-.gameArea{
-  margin:0 8px;
-  border:1px solid #632020;
-  border-radius:14px;
-  background:#0d0d0d;
-  overflow:hidden;
-}
-
-.countdown{
-  text-align:center;
-  padding:8px;
-  color:#ffd13d;
-  font-size:13px;
-  font-weight:900;
-}
-
-.countdown.closed{
-  color:#ff5555;
-}
-
-/* =========================================================
-   TABS / SLOTS
-========================================================= */
-
-.mainTabs{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  margin:8px;
-  gap:4px;
-}
-
-.mainTabs button,
-.subTabs button{
-  border:1px solid #6e2020;
-  background:#220b0b;
-  color:#ddd;
-  padding:9px 4px;
-  border-radius:8px;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.mainTabs button.active,
-.subTabs button.active{
-  background:linear-gradient(180deg,#ffcf3b,#bd7900);
-  color:#190900;
-}
-
-.subTabs{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:4px;
-  margin:0 8px 8px;
-}
-
-.betSlots{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:7px;
-  padding:8px;
-}
-
-.betSlot{
-  background:linear-gradient(145deg,#251010,#111);
-  border:1px solid #702222;
-  border-radius:12px;
-  padding:8px;
-  transition:.2s;
-}
-
-.betSlot.active{
-  border-color:#ffd43b;
-  box-shadow:0 0 12px #8d6100;
-}
-
-.slotTitle{
-  text-align:center;
-  color:var(--gold);
-  font-weight:bold;
-  font-size:11px;
-  margin-bottom:7px;
-}
-
-.amountControl{
-  display:grid;
-  grid-template-columns:32px 1fr 32px;
-  gap:3px;
-}
-
-.amountControl button{
-  border:1px solid #a26d00;
-  background:#381c00;
-  color:#ffd13a;
-  border-radius:7px;
-  font-weight:bold;
-}
-
-.amountControl input{
-  min-width:0;
-  width:100%;
-  text-align:center;
-  background:#090909;
-  color:white;
-  border:1px solid #593333;
-  border-radius:7px;
-  padding:6px;
-}
-
-.placeBtn{
-  width:100%;
-  margin-top:7px;
-  border:0;
-  border-radius:8px;
-  padding:9px 4px;
-  background:linear-gradient(180deg,#ff3b2f,#a60000);
-  color:white;
-  font-size:10px;
-  font-weight:900;
-}
-
-.placeBtn:disabled{
-  opacity:.45;
-}
-
-.livePayout{
-  margin-top:6px;
-  text-align:center;
-  color:var(--green);
-  font-size:10px;
-  font-weight:bold;
-  min-height:14px;
-}
-
-/* =========================================================
-   FEEDS
-========================================================= */
-
-.feed{
-  margin:0 8px 8px;
-  background:#101010;
-  border:1px solid #362020;
-  border-radius:10px;
-  padding:8px;
-}
-
-.feedRow{
-  display:flex;
-  justify-content:space-between;
-  padding:6px 3px;
-  border-bottom:1px solid #222;
-  font-size:10px;
-}
-
-.feedRow:last-child{
-  border-bottom:0;
-}
-
-.win{
-  color:var(--green);
-}
-
-.muted{
-  color:#888;
-}
-
-/* =========================================================
-   KENO
-========================================================= */
-
-.kenoSelectedRows{
-  padding:5px 8px;
-}
-
-.selectedRow{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  min-height:30px;
-  padding:5px;
-  margin-bottom:4px;
-  border:1px solid #432020;
-  border-radius:7px;
-  background:#130909;
-}
-
-.selectedRow strong{
-  color:var(--gold);
-  font-size:10px;
-  width:45px;
-}
-
-.selectedNumber{
-  padding:3px 6px;
-  border-radius:5px;
-  background:#8d0000;
-  color:#fff;
-  font-size:9px;
-  font-weight:bold;
-}
-
-.kenoBoard{
-  padding:8px;
-  display:grid;
-  grid-template-columns:repeat(10,1fr);
-  gap:4px;
-}
-
-.kenoNumber{
-  aspect-ratio:1;
-  border-radius:50%;
-  border:1px solid #6f2a2a;
-  background:#191919;
-  color:#ddd;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:10px;
-  font-weight:bold;
-}
-
-.kenoNumber.selected{
-  background:linear-gradient(145deg,#ffd43b,#bd7600);
-  color:#150900;
-  border-color:#ffe67d;
-}
-
-.kenoNumber.drawn{
-  background:#d00000;
-  color:white;
-  border-color:#ffcf3b;
-}
-
-.kenoNumber.hit{
-  box-shadow:0 0 14px #ffd52e;
-}
-
-.drawStatus{
-  text-align:center;
-  padding:8px;
-  color:#ffd44c;
-  font-size:12px;
-  font-weight:bold;
-}
-
-.drawBalls{
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px;
-  padding:8px;
-  min-height:45px;
-  justify-content:center;
-}
-
-.ball{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  background:linear-gradient(145deg,#ff4b3e,#970000);
-  border:2px solid #ffd43b;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:white;
-  font-weight:900;
-  font-size:11px;
-}
-
-.historyBox{
-  margin:8px;
-  border:1px solid #472222;
-  border-radius:10px;
-  overflow:hidden;
-}
-
-.historyHeader{
-  padding:9px;
-  color:var(--gold);
-  background:#190808;
-  font-weight:bold;
-  font-size:11px;
-}
-
-.historyRound{
-  padding:8px;
-  border-top:1px solid #292020;
-  font-size:9px;
-  line-height:1.8;
-  cursor:pointer;
-}
-
-.historyRound:hover{
-  background:#211010;
-}
-
-.historyRound strong{
-  color:#ffd44c;
-}
-
-.historyNums{
-  color:#ddd;
-}
-
-/* =========================================================
-   BINGO
-========================================================= */
-
-.bingoAnimation{
-  height:180px;
-  position:relative;
-  overflow:hidden;
-  background:radial-gradient(circle,#451000,#080808 65%);
-}
-
-.bingoMachine{
-  position:absolute;
-  width:105px;
-  height:105px;
-  border:8px solid #e0a400;
-  border-radius:50%;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  animation:bingoMachine 2s linear infinite;
-}
-
-@keyframes bingoMachine{
-  to{transform:translate(-50%,-50%) rotate(360deg)}
-}
-
-.bingoBall{
-  position:absolute;
-  width:32px;
-  height:32px;
-  border-radius:50%;
-  background:linear-gradient(145deg,#fff,#aaa);
-  color:#111;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:10px;
-  font-weight:bold;
-}
-
-.cartelaEntry{
-  display:grid;
-  grid-template-columns:1fr 65px;
-  gap:5px;
-  padding:8px;
-}
-
-.cartelaEntry input{
-  width:100%;
-  padding:8px;
-  border-radius:7px;
-  border:1px solid #633333;
-  background:#080808;
-  color:#fff;
-  text-align:center;
-}
-
-.cartelaEntry button{
-  border:0;
-  border-radius:7px;
-  background:linear-gradient(180deg,#ffcf3b,#bd7900);
-  color:#190900;
-  font-weight:900;
-}
-
-.cartelaTabs{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:5px;
-  padding:8px 8px 0;
-}
-
-.cartelaTab{
-  text-align:center;
-  padding:8px;
-  border:1px solid #682020;
-  background:#200909;
-  color:#ffd13c;
-  border-radius:8px 8px 0 0;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.cartelaTab.active{
-  background:linear-gradient(180deg,#ffcf3b,#bd7900);
-  color:#190900;
-}
-
-.cartelaGridWrap{
-  padding:8px;
-}
-
-.cartelaGrid{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  gap:3px;
-  padding:6px;
-  background:#161616;
-  border:1px solid #522020;
-  border-radius:8px;
-}
-
-.cartelaCell{
-  aspect-ratio:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:4px;
-  background:#242424;
-  color:#ddd;
-  font-size:9px;
-  font-weight:bold;
-}
-
-.cartelaCell.marked{
-  background:#d00000;
-  color:#fff;
-  box-shadow:0 0 8px #ffcc33;
-}
-
-.cartelaCell.free{
-  background:#bd7900;
-  color:#111;
-}
-
-.cartelaStatus{
-  text-align:center;
-  color:#ffd43c;
-  font-size:10px;
-  min-height:18px;
-}
-
-.bingoDraw{
-  display:flex;
-  justify-content:center;
-  gap:7px;
-  padding:7px;
-  flex-wrap:wrap;
-}
-
-.bingoCalled{
-  width:38px;
-  height:38px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background:linear-gradient(145deg,#ff4b3e,#970000);
-  border:2px solid #ffd43b;
-  font-size:11px;
-  font-weight:bold;
-}
-
-.bingoButtons{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:7px;
-  padding:8px;
-}
-
-.bingoBtn{
-  border:0;
-  border-radius:8px;
-  padding:10px;
-  background:linear-gradient(180deg,#ff3b2f,#a60000);
-  color:#fff;
-  font-weight:900;
-}
-
-/* =========================================================
-   ROULETTE
-========================================================= */
-
-.rouletteArea{
-  padding:10px;
-  text-align:center;
-}
-
-.rouletteWheel{
-  width:190px;
-  height:190px;
-  margin:5px auto 12px;
-  border-radius:50%;
-  border:9px solid #d69a00;
-  background:repeating-conic-gradient(
-    #b00000 0deg 10deg,
-    #090909 10deg 20deg
-  );
-  position:relative;
-  transition:transform 4s cubic-bezier(.1,.7,.2,1);
-}
-
-.rouletteCenter{
-  position:absolute;
-  width:48px;
-  height:48px;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  border-radius:50%;
-  background:#d49a00;
-  color:#111;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  z-index:3;
-}
-
-.rouletteEdgeNumbers{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-}
-
-.edgeNumber{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:24px;
-  height:24px;
-  margin:-12px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:8px;
-  font-weight:900;
-  color:#fff;
-  text-shadow:0 1px 2px #000;
-  transform:
-    rotate(var(--angle))
-    translateY(-75px)
-    rotate(calc(var(--angle) * -1));
-}
-
-.rouletteResult{
-  min-height:25px;
-  color:#ffd13d;
-  font-weight:bold;
-}
-
-.rouletteGrid{
-  display:grid;
-  grid-template-columns:repeat(6,1fr);
-  gap:3px;
-  padding:8px;
-}
-
-.rouletteNum{
-  padding:8px 2px;
-  border:1px solid #333;
-  border-radius:5px;
-  font-size:10px;
-  font-weight:bold;
-  color:#fff;
-}
-
-.rouletteNum.selected{
-  border-color:#ffd43b;
-  box-shadow:0 0 10px #ffd43b;
-  transform:scale(1.05);
-}
-
-.rouletteNum.winner{
-  box-shadow:0 0 12px #ffd43b;
-  border-color:#ffd43b;
-  transform:scale(1.08);
-}
-
-.red{background:#a80000}
-.black{background:#090909}
-.green{background:#008a4b}
-
-/* =========================================================
-   AVIATOR
-========================================================= */
-
-.aviatorHistory{
-  display:flex;
-  gap:5px;
-  overflow-x:auto;
-  padding:7px;
-  scrollbar-width:none;
-}
-
-.mult{
-  flex:0 0 auto;
-  padding:5px 8px;
-  border-radius:6px;
-  background:#211010;
-  border:1px solid #552323;
-  color:#ffcf3a;
-  font-size:10px;
-  font-weight:bold;
-}
-
-.aviatorFlight{
-  height:220px;
-  position:relative;
-  overflow:hidden;
-  background:linear-gradient(160deg,#230000,#050505 65%);
-}
-
-.gridLines{
-  position:absolute;
-  inset:0;
-  opacity:.15;
-  background-image:
-    linear-gradient(#fff 1px,transparent 1px),
-    linear-gradient(90deg,#fff 1px,transparent 1px);
-  background-size:40px 40px;
-}
-
-.flightMultiplier{
-  position:absolute;
-  left:50%;
-  top:32%;
-  transform:translate(-50%,-50%);
-  color:#ffd43a;
-  font-size:34px;
-  font-weight:900;
-}
-
-.plane{
-  position:absolute;
-  left:20%;
-  bottom:30px;
-  font-size:40px;
-}
-
-.flightCurve{
-  position:absolute;
-  left:-20%;
-  bottom:-80px;
-  width:140%;
-  height:200px;
-  border-top:3px solid #e20000;
-  border-radius:50%;
-  transform:rotate(-12deg);
-}
-
-.aviatorBetState{
-  text-align:center;
-  min-height:20px;
-  color:var(--green);
-  font-size:11px;
-  font-weight:bold;
-  padding:5px;
-}
-
-/* =========================================================
-   WALLET
-========================================================= */
-
-#walletScreen,
-#profileScreen{
-  display:none;
-  min-height:100vh;
-  padding:15px 10px 90px;
-}
-
-.pageTitle{
-  text-align:center;
-  color:var(--gold);
-  font-size:22px;
-  font-weight:900;
-  margin:10px 0 18px;
-}
-
-.walletBalance{
-  text-align:center;
-  padding:18px;
-  border:1px solid #6b2424;
-  border-radius:14px;
-  background:linear-gradient(145deg,#291010,#0d0d0d);
-}
-
-.walletBalance small{
-  color:#aaa;
-}
-
-.walletBalance strong{
-  display:block;
-  margin-top:5px;
-  color:#ffd43c;
-  font-size:27px;
-}
-
-.walletButtons{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  margin-top:10px;
-}
-
-.walletBtn{
-  border:0;
-  border-radius:9px;
-  padding:12px;
-  font-weight:900;
-  color:#fff;
-  background:linear-gradient(180deg,#ff3b2f,#a60000);
-}
-
-.walletCard{
-  margin-top:10px;
-  padding:12px;
-  border:1px solid #472020;
-  border-radius:10px;
-  background:#101010;
-}
-
-.walletCard h3{
-  margin:0 0 8px;
-  color:#ffd43c;
-  font-size:13px;
-}
-
-.walletCard p{
-  color:#bbb;
-  font-size:11px;
-}
-
-/* =========================================================
-   PROFILE
-========================================================= */
-
-.profileCard{
-  padding:15px;
-  border:1px solid #632020;
-  border-radius:14px;
-  background:linear-gradient(145deg,#291010,#0d0d0d);
-}
-
-.profileRow{
-  display:flex;
-  justify-content:space-between;
-  padding:10px 3px;
-  border-bottom:1px solid #292020;
-  font-size:12px;
-}
-
-.profileRow:last-child{
-  border-bottom:0;
-}
-
-.profileRow span:last-child{
-  color:var(--gold);
-  font-weight:bold;
-}
-
-/* =========================================================
-   BOTTOM NAVIGATION
-========================================================= */
-
-.bottomNav{
-  position:fixed;
-  z-index:500;
-  left:0;
-  right:0;
-  bottom:0;
-  height:68px;
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  background:linear-gradient(180deg,#1b0505,#080000);
-  border-top:1px solid #6b2424;
-  box-shadow:0 -8px 25px #000;
-}
-
-.bottomNav button{
-  border:0;
-  background:transparent;
-  color:#aaa;
-  font-size:10px;
-  font-weight:bold;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:3px;
-}
-
-.bottomNav button span{
-  font-size:20px;
-}
-
-.bottomNav button.active{
-  color:#ffd43c;
-}
-
-/* =========================================================
-   HELP
-========================================================= */
-
-.helpOverlay{
-  position:fixed;
-  inset:0;
-  z-index:999;
-  background:rgba(0,0,0,.78);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:15px;
-}
-
-.helpPanel{
-  width:100%;
-  max-width:420px;
-  max-height:85vh;
-  overflow:auto;
-  background:linear-gradient(145deg,#2a0808,#100000);
-  border:1px solid #d89c00;
-  border-radius:16px;
-  padding:15px;
-  box-shadow:0 15px 50px #000;
-}
-
-.helpPanel h2{
-  margin-top:0;
-  color:#ffd43c;
-}
-
-.helpPanel h3{
-  color:#ffbf26;
-  font-size:14px;
-}
-
-.helpPanel p{
-  color:#ddd;
-  font-size:12px;
-  line-height:1.55;
-}
-
-.closeHelp{
-  width:100%;
-  border:0;
-  border-radius:8px;
-  padding:10px;
-  background:#bd0000;
-  color:#fff;
-  font-weight:bold;
-}
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media(max-width:360px){
-
-  .gameGrid{
-    gap:7px;
-    padding:7px;
-  }
-
-  .gameCard{
-    min-height:135px;
-  }
-
-  .kenoBoard{
-    gap:2px;
-  }
-
-  .kenoNumber{
-    font-size:8px;
-  }
-
-  .betSlots{
-    gap:4px;
-    padding:5px;
-  }
-
-  .amountControl{
-    grid-template-columns:27px 1fr 27px;
-  }
-
-}
-
-/* =========================================================
-   DEPOSIT / WITHDRAW MODALS
-========================================================= */
-.walletModal{
-  position:fixed;
-  inset:0;
-  z-index:1200;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:15px;
-  background:rgba(0,0,0,.82);
-}
-.walletModal.hidden{display:none!important}
-.walletModalPanel{
-  width:100%;
-  max-width:430px;
-  max-height:90vh;
-  overflow:auto;
-  padding:16px;
-  border:1px solid #d79d00;
-  border-radius:16px;
-  background:linear-gradient(145deg,#2b0909,#0d0d0d);
-  box-shadow:0 18px 60px #000;
-}
-.walletModalHead{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
-}
-.walletModalHead h2{margin:0;color:#ffd43c;font-size:18px}
-.walletModalClose{
-  width:32px;height:32px;border:1px solid #6b2424;border-radius:50%;
-  background:#220707;color:#fff;font-size:20px;
-}
-.walletFormLabel{display:block;margin:9px 0 5px;color:#ffd43c;font-size:11px;font-weight:bold}
-.walletFormInput,.walletFormSelect{
-  width:100%;padding:10px;border-radius:8px;border:1px solid #633333;
-  background:#080808;color:#fff;outline:none;
-}
-.walletFormInput:focus,.walletFormSelect:focus{border-color:#ffd43c}
-.walletHint{
-  margin:8px 0;padding:9px;border-radius:8px;background:#160909;
-  border:1px solid #402020;color:#bbb;font-size:10px;line-height:1.5;
-}
-.walletSubmit{
-  width:100%;margin-top:12px;padding:11px;border:0;border-radius:9px;
-  background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-weight:900;
-}
-.walletSubmit:disabled{opacity:.5}
-.walletStatus{min-height:18px;margin-top:8px;text-align:center;font-size:11px}
-.walletStatus.ok{color:#18d66b}.walletStatus.err{color:#ff5555}.walletStatus.wait{color:#ffd43c}
-.walletStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
-.walletStat{padding:9px;border:1px solid #472020;border-radius:9px;background:#101010;text-align:center}
-.walletStat small{display:block;color:#999;font-size:9px}.walletStat strong{color:#ffd43c;font-size:12px}
-.transactionRow{padding:9px 3px;border-bottom:1px solid #292020;font-size:10px;line-height:1.5}
-.transactionRow:last-child{border-bottom:0}
-.transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DESTA PLAY</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* HEADER & WALLET */
+    .topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      color: #38bdf8;
+    }
+
+    .balanceContainer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid #334155;
+    }
+
+    .balanceVal {
+      font-weight: 700;
+      color: #4ade80;
+    }
+
+    .btnAction {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    /* NAVIGATION */
+    .navTabs {
+      display: flex;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+
+    .tabBtn {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tabBtn.active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+    }
+
+    /* MAIN CONTAINER */
+    .mainContent {
+      flex: 1;
+      padding: 16px;
+      max-width: 500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .gameView {
+      display: none;
+    }
+
+    .gameView.active {
+      display: block;
+    }
+
+    /* KENO GRID */
+    .kenoGrid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .kenoNum {
+      aspect-ratio: 1;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .kenoNum.selected {
+      background: #38bdf8;
+      color: #0f172a;
+      border-color: #38bdf8;
+    }
+
+    .kenoNum.hit {
+      background: #4ade80;
+      color: #0f172a;
+    }
+
+    .kenoNum.miss {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    /* CONTROLS & FORM ELEMENTS */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btnSecondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+
+    /* MODALS */
+    .walletModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+
+    .walletModal.hidden {
+      display: none;
+    }
+
+    .walletModalPanel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .walletModalHead {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .walletModalClose {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .walletHint {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .walletFormLabel {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .walletFormInput, .walletFormSelect {
+      width: 100%;
+      padding: 10px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f8fafc;
+      margin-bottom: 12px;
+    }
+
+    .walletSubmit {
+      width: 100%;
+      padding: 12px;
+      background: #4ade80;
+      color: #0f172a;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .walletStatus {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    .walletStatus.err { color: #ef4444; }
+    .walletStatus.ok { color: #4ade80; }
+    .walletStatus.wait { color: #f59e0b; }
+
+    .transactionRow {
+      border-bottom: 1px solid #334155;
+      padding: 8px 0;
+      font-size: 0.8rem;
+    }
+
+    .transactionStatus {
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .statusCompleted { background: #064e3b; color: #34d399; }
+    .statusPending { background: #78350f; color: #fbbf24; }
+    .statusFailed { background: #7f1d1d; color: #f87171; }
+  </style>
 </head>
-
 <body>
 
-<!-- ======================================================
-     ACCOUNT
-====================================================== -->
-
-<section id="accountScreen">
-
-  <div class="accountPanel">
-
-    <div class="accountLogo">DESTA PLAY</div>
-
-    <div class="accountWelcome" id="accountWelcome">
-      Welcome. Create your DESTA PLAY account.
+  <div class="topBar">
+    <div class="brand">DESTA PLAY</div>
+    <div class="balanceContainer">
+      <span class="balanceVal"><span id="userBalance">0.00</span> ETB</span>
+      <button class="btnAction" onclick="openDeposit()">+</button>
     </div>
-
-    <div class="accountInfo">
-
-      <div class="accountInfoRow">
-        <span>Telegram name</span>
-        <span id="telegramName">Loading...</span>
-      </div>
-
-      <div class="accountInfoRow">
-        <span>Player ID</span>
-        <span id="playerId">Generating...</span>
-      </div>
-
-    </div>
-
-    <div id="accountLoginFields" class="hidden">
-      <label class="accountLabel">
-        DESTA PLAY PASSWORD
-      </label>
-
-      <input
-        id="loginPassword"
-        class="accountInput"
-        type="password"
-        autocomplete="current-password"
-        placeholder="Enter password">
-
-      <button
-        class="accountBtn mediumBtn"
-        onclick="loginAccount()">
-        LOGIN
-      </button>
-
-      <button
-        class="accountBtn mediumBtn"
-        type="button"
-        onclick="showForgotPassword()">
-        FORGOT PASSWORD
-      </button>
-    </div>
-
-    <div id="accountCreateFields">
-      <label class="accountLabel">
-        CELL PHONE NUMBER
-      </label>
-
-      <input
-        id="phone"
-        class="accountInput"
-        type="tel"
-        autocomplete="tel"
-        placeholder="Enter cell phone number">
-
-      <label class="accountLabel">
-        DESTA PLAY PASSWORD
-      </label>
-
-      <input
-        id="password"
-        class="accountInput"
-        type="password"
-        autocomplete="new-password"
-        placeholder="Create password">
-
-      <label class="accountLabel">
-        CONFIRM PASSWORD
-      </label>
-
-      <input
-        id="passwordConfirm"
-        class="accountInput"
-        type="password"
-        autocomplete="new-password"
-        placeholder="Confirm password">
-
-      <button
-        class="accountBtn"
-        onclick="createAccount()">
-        CREATE ACCOUNT
-      </button>
-
-      <button
-        class="accountBtn"
-        type="button"
-        onclick="showLogin()">
-        ALREADY HAVE AN ACCOUNT? LOGIN
-      </button>
-    </div>
-
-    <div id="accountResetFields" class="hidden">
-      <label class="accountLabel">
-        PHONE NUMBER
-      </label>
-
-      <input
-        id="resetPhone"
-        class="accountInput"
-        type="tel"
-        autocomplete="tel"
-        placeholder="Enter your phone number">
-
-      <button
-        class="accountBtn"
-        type="button"
-        onclick="requestPasswordReset()">
-        REQUEST PASSWORD RESET
-      </button>
-
-      <label class="accountLabel">
-        RESET REQUEST ID
-      </label>
-
-      <input
-        id="resetRequestId"
-        class="accountInput"
-        type="text"
-        autocomplete="off"
-        placeholder="Enter reset request ID">
-
-      <button
-        class="accountBtn"
-        type="button"
-        onclick="checkPasswordReset()">
-        CHECK APPROVAL
-      </button>
-
-      <div id="resetNewPasswordFields" class="hidden">
-        <label class="accountLabel">
-          NEW PASSWORD
-        </label>
-
-        <input
-          id="resetNewPassword"
-          class="accountInput"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Create new password">
-
-        <label class="accountLabel">
-          CONFIRM NEW PASSWORD
-        </label>
-
-        <input
-          id="resetNewPasswordConfirm"
-          class="accountInput"
-          type="password"
-          autocomplete="new-password"
-          placeholder="Confirm new password">
-
-        <button
-          class="accountBtn"
-          type="button"
-          onclick="completePasswordReset()">
-          SET NEW PASSWORD
-        </button>
-      </div>
-
-      <button
-        class="accountBtn"
-        type="button"
-        onclick="showLogin()">
-        BACK TO LOGIN
-      </button>
-    </div>
-
-    <div
-      id="accountMessage"
-      class="accountMessage">
-    </div>
-
   </div>
 
-</section>
-
-
-<!-- ======================================================
-     HOME
-====================================================== -->
-
-<section id="home" class="hidden">
-
-  <div class="homeHeader">
-
-    <div class="logo">
-      DESTA PLAY
-    </div>
-
+  <div class="navTabs">
+    <button class="tabBtn active" onclick="switchTab('keno')">Keno</button>
+    <button class="tabBtn" onclick="openWithdraw()">Withdraw</button>
+    <button class="tabBtn" onclick="openHelp()">Help</button>
   </div>
 
-  <div class="languageBox">
-
-    <button
-      id="langEN"
-      class="active"
-      onclick="setLanguage('en')">
-      English
-    </button>
-
-    <button
-      id="langAM"
-      onclick="setLanguage('am')">
-      አማርኛ
-    </button>
-
+  <div class="mainContent">
+    <div id="kenoView" class="gameView active">
+      <div id="kenoGrid" class="kenoGrid"></div>
+      <div class="controls">
+        <button class="btn btnSecondary" onclick="clearKenoSelection()">Clear</button>
+        <button class="btn btnSecondary" onclick="quickPickKeno()">Quick Pick</button>
+        <button id="playKenoBtn" class="btn" onclick="playKeno()">PLAY</button>
+      </div>
+    </div>
   </div>
 
-  <div class="playerSummary">
-
-    <div>
-      <small>Player</small><br>
-      <strong id="homePlayerName">Player</strong>
+  <div id="helpOverlay" class="walletModal hidden">
+    <div class="walletModalPanel">
+      <div class="walletModalHead">
+        <h2>HOW TO PLAY</h2>
+        <button class="walletModalClose" onclick="closeHelp()">✕</button>
+      </div>
+      <div id="helpContent" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5;"></div>
     </div>
-
-    <div>
-      <small>ID</small><br>
-      <strong id="homePlayerId">DP-000000</strong>
-    </div>
-
   </div>
-
-  <div class="gameGrid">
-
-    <div class="gameCard">
-
-      <h3>AVIATOR</h3>
-
-      <div class="aviatorHome">
-        <div class="homePlane">✈️</div>
-      </div>
-
-      <small>Fly • Cash Out</small>
-
-      <button
-        class="gameOpen"
-        onclick="openGame('aviator')">
-        PLAY
-      </button>
-
-    </div>
-
-
-    <div class="gameCard">
-
-      <h3>BINGO</h3>
-
-      <div class="bingoHomeBalls">
-        <span>7</span>
-        <span>30</span>
-        <span>52</span>
-        <span>71</span>
-      </div>
-
-      <small>Cartela • Draw</small>
-
-      <button
-        class="gameOpen"
-        onclick="openGame('bingo')">
-        PLAY
-      </button>
-
-    </div>
-
-
-    <div class="gameCard">
-
-      <h3>KENO</h3>
-
-      <div class="kenoHome">
-        <span>7</span>
-        <span>22</span>
-        <span>31</span>
-        <span>48</span>
-        <span>73</span>
-      </div>
-
-      <small>1–80 • 20 Draw</small>
-
-      <button
-        class="gameOpen"
-        onclick="openGame('keno')">
-        PLAY
-      </button>
-
-    </div>
-
-
-    <div class="gameCard">
-
-      <h3>ROULETTE</h3>
-
-      <div class="rouletteHome"></div>
-
-      <small>Spin • Number • Color</small>
-
-      <button
-        class="gameOpen"
-        onclick="openGame('roulette')">
-        PLAY
-      </button>
-
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ======================================================
-     GAME SCREEN
-====================================================== -->
-
-<section id="gameScreen">
-
-  <header class="gameHeader">
-
-    <div class="roundInfo">
-      ROUND <span id="roundNumber">0001</span>
-    </div>
-
-    <div class="headerRight">
-
-      <div class="balance">
-        💰 <span id="balance">0.00</span> ETB
-      </div>
-
-      <button
-        class="helpBtn"
-        onclick="openHelp()">
-        ?
-      </button>
-
-    </div>
-
-  </header>
-
-
-  <div
-    class="gameTitle"
-    id="gameTitle">
-    KENO
-  </div>
-
-
-  <main class="gameArea">
-
-
-    <!-- ==================================================
-         KENO
-    ================================================== -->
-
-    <div id="kenoGame" class="hidden">
-
-      <div
-        class="countdown"
-        id="kenoCountdown">
-        BETTING 45s
-      </div>
-
-      <div class="kenoSelectedRows">
-
-        <div class="selectedRow">
-
-          <strong>SLOT 1</strong>
-
-          <div
-            id="kenoSlot1Numbers">
-            <span class="muted">No numbers</span>
-          </div>
-
-        </div>
-
-        <div class="selectedRow">
-
-          <strong>SLOT 2</strong>
-
-          <div
-            id="kenoSlot2Numbers">
-            <span class="muted">No numbers</span>
-          </div>
-
-        </div>
-
-      </div>
-
-      <div
-        class="kenoBoard"
-        id="kenoBoard">
-      </div>
-
-      <div
-        class="drawStatus"
-        id="kenoDrawStatus">
-        Waiting for draw...
-      </div>
-
-      <div
-        class="drawBalls"
-        id="kenoDrawBalls">
-      </div>
-
-      <div class="betSlots">
-
-        <div
-          class="betSlot"
-          id="kenoBetSlot1"
-          onclick="activateKenoSlot(1)">
-
-          <div class="slotTitle">
-            SLOT 1
-          </div>
-
-          <div class="amountControl">
-
-            <button
-              onclick="event.stopPropagation();changeAmount('k1',-10)">
-              −
-            </button>
-
-            <input
-              id="k1"
-              type="number"
-              value="10"
-              min="1"
-              inputmode="decimal">
-
-            <button
-              onclick="event.stopPropagation();changeAmount('k1',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="kenoPayout1">
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="event.stopPropagation();placeKenoBet(1)">
-            PLACE BET
-          </button>
-
-        </div>
-
-
-        <div
-          class="betSlot"
-          id="kenoBetSlot2"
-          onclick="activateKenoSlot(2)">
-
-          <div class="slotTitle">
-            SLOT 2
-          </div>
-
-          <div class="amountControl">
-
-            <button
-              onclick="event.stopPropagation();changeAmount('k2',-10)">
-              −
-            </button>
-
-            <input
-              id="k2"
-              type="number"
-              value="10"
-              min="1"
-              inputmode="decimal">
-
-            <button
-              onclick="event.stopPropagation();changeAmount('k2',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="kenoPayout2">
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="event.stopPropagation();placeKenoBet(2)">
-            PLACE BET
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="feed">
-
-        <div class="feedRow">
-          <span>Active slot</span>
-          <span id="activeKenoSlot">SLOT 1</span>
-        </div>
-
-        <div class="feedRow">
-          <span>Slot 1 selected</span>
-          <span id="kenoSelected1">0 / 10</span>
-        </div>
-
-        <div class="feedRow">
-          <span>Slot 2 selected</span>
-          <span id="kenoSelected2">0 / 10</span>
-        </div>
-
-        <div class="feedRow">
-          <span>Players in round</span>
-          <span id="kenoPlayers">0</span>
-        </div>
-
-      </div>
-
-      <div class="historyBox">
-
-        <div class="historyHeader">
-          LAST 10 KENO ROUNDS
-        </div>
-
-        <div id="kenoHistory">
-        </div>
-
-      </div>
-
-    </div>
-
-
-    <!-- ==================================================
-         BINGO
-    ================================================== -->
-
-    <div id="bingoGame" class="hidden">
-
-      <div class="countdown" id="bingoCountdown">
-        BETTING 45s
-      </div>
-
-      <div class="bingoAnimation">
-
-        <div class="bingoMachine"></div>
-
-        <div
-          class="bingoBall"
-          style="left:15%;top:30%">
-          7
-        </div>
-
-        <div
-          class="bingoBall"
-          style="right:15%;top:25%">
-          30
-        </div>
-
-        <div
-          class="bingoBall"
-          style="left:40%;bottom:15%">
-          52
-        </div>
-
-      </div>
-
-      <div
-        class="drawStatus"
-        id="bingoStatus">
-        Waiting for next draw...
-      </div>
-
-      <div class="cartelaEntry">
-
-        <input
-          id="cartelaEntry"
-          type="number"
-          min="1"
-          max="120"
-          placeholder="Enter Cartela number">
-
-        <button onclick="addCartela()">
-          OK
-        </button>
-
-      </div>
-
-      <div class="cartelaTabs">
-
-        <div
-          class="cartelaTab active"
-          id="cartelaTab1"
-          onclick="selectCartela(1)">
-          CARTELA 1
-        </div>
-
-        <div
-          class="cartelaTab"
-          id="cartelaTab2"
-          onclick="selectCartela(2)">
-          CARTELA 2
-        </div>
-
-      </div>
-
-      <div
-        class="cartelaGridWrap"
-        id="cartelaGridWrap">
-      </div>
-
-      <div
-        class="cartelaStatus"
-        id="cartelaStatus">
-        Enter a Cartela number.
-      </div>
-
-      <div
-        class="bingoDraw"
-        id="bingoDraw">
-      </div>
-
-      <div class="betSlots">
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            CARTELA 1 BET
-          </div>
-
-          <div
-            id="bingoAmount1"
-            style="text-align:center;color:#ffd43c;font-weight:bold">
-            10 ETB
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="placeBingoBet(1)">
-            PLACE BET
-          </button>
-
-          <div
-            class="livePayout"
-            id="bingoPayout1">
-          </div>
-
-        </div>
-
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            CARTELA 2 BET
-          </div>
-
-          <div
-            id="bingoAmount2"
-            style="text-align:center;color:#ffd43c;font-weight:bold">
-            10 ETB
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="placeBingoBet(2)">
-            PLACE BET
-          </button>
-
-          <div
-            class="livePayout"
-            id="bingoPayout2">
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="amountGrid" id="bingoAmounts"></div>
-
-      <div class="bingoButtons">
-
-        <button
-          class="bingoBtn"
-          id="bingoButton1"
-          onclick="claimBingo(1)"
-          disabled>
-          BINGO — CARTELA 1
-        </button>
-
-        <button
-          class="bingoBtn"
-          id="bingoButton2"
-          onclick="claimBingo(2)"
-          disabled>
-          BINGO — CARTELA 2
-        </button>
-
-      </div>
-
-      <div class="historyBox">
-
-        <div class="historyHeader">
-          LAST 10 BINGO ROUNDS
-        </div>
-
-        <div id="bingoHistory"></div>
-
-      </div>
-
-    </div>
-
-
-    <!-- ==================================================
-         ROULETTE
-    ================================================== -->
-
-    <div id="rouletteGame" class="hidden">
-
-      <div
-        class="countdown"
-        id="rouletteStatus">
-        BETTING 45s
-      </div>
-
-      <div class="rouletteArea">
-
-        <div
-          class="rouletteWheel"
-          id="rouletteWheel">
-
-          <div
-            class="rouletteEdgeNumbers"
-            id="rouletteEdgeNumbers">
-          </div>
-
-          <div class="rouletteCenter">
-            0
-          </div>
-
-        </div>
-
-        <div
-          class="rouletteResult"
-          id="rouletteResult">
-          Waiting for spin...
-        </div>
-
-      </div>
-
-      <div
-        class="rouletteGrid"
-        id="rouletteGrid">
-      </div>
-
-      <div class="betSlots">
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 1
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('r1',-10)">
-              −
-            </button>
-
-            <input
-              id="r1"
-              type="number"
-              value="10"
-              min="1">
-
-            <button onclick="changeAmount('r1',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="roulettePayout1">
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="placeRouletteBet(1)">
-            PLACE BET
-          </button>
-
-        </div>
-
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 2
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('r2',-10)">
-              −
-            </button>
-
-            <input
-              id="r2"
-              type="number"
-              value="10"
-              min="1">
-
-            <button onclick="changeAmount('r2',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="roulettePayout2">
-          </div>
-
-          <button
-            class="placeBtn"
-            onclick="placeRouletteBet(2)">
-            PLACE BET
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="historyBox">
-
-        <div class="historyHeader">
-          LAST 10 ROULETTE ROUNDS
-        </div>
-
-        <div id="rouletteHistory"></div>
-
-      </div>
-
-    </div>
-
-
-    <!-- ==================================================
-         AVIATOR
-    ================================================== -->
-
-    <div id="aviatorGame" class="hidden">
-
-      <div
-        class="aviatorHistory"
-        id="aviatorHistory">
-      </div>
-
-      <div
-        class="countdown"
-        id="aviatorCountdown">
-        BETTING 10s
-      </div>
-
-      <div class="aviatorFlight">
-
-        <div class="gridLines"></div>
-
-        <div class="flightCurve"></div>
-
-        <div
-          class="flightMultiplier"
-          id="aviatorMultiplier">
-          1.00x
-        </div>
-
-        <div
-          class="plane"
-          id="plane">
-          ✈️
-        </div>
-
-      </div>
-
-      <div
-        class="aviatorBetState"
-        id="aviatorBetState">
-      </div>
-
-      <div class="betSlots">
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 1
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('a1',-10)">
-              −
-            </button>
-
-            <input
-              id="a1"
-              type="number"
-              value="10"
-              min="1">
-
-            <button onclick="changeAmount('a1',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="aviatorPayout1">
-          </div>
-
-          <button
-            class="placeBtn"
-            id="aviatorBtn1"
-            onclick="placeAviatorBet(1)">
-            PLACE BET
-          </button>
-
-        </div>
-
-
-        <div class="betSlot">
-
-          <div class="slotTitle">
-            SLOT 2
-          </div>
-
-          <div class="amountControl">
-
-            <button onclick="changeAmount('a2',-10)">
-              −
-            </button>
-
-            <input
-              id="a2"
-              type="number"
-              value="10"
-              min="1">
-
-            <button onclick="changeAmount('a2',10)">
-              +
-            </button>
-
-          </div>
-
-          <div
-            class="livePayout"
-            id="aviatorPayout2">
-          </div>
-
-          <button
-            class="placeBtn"
-            id="aviatorBtn2"
-            onclick="placeAviatorBet(2)">
-            PLACE BET
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="historyBox">
-
-        <div class="historyHeader">
-          LAST 10 AVIATOR ROUNDS
-        </div>
-
-        <div id="aviatorRoundHistory"></div>
-
-      </div>
-
-    </div>
-
-  </main>
-
-
-  <div class="mainTabs">
-
-    <button
-      id="tabMy"
-      class="active"
-      onclick="showTab('my')">
-      MY BETS
-    </button>
-
-    <button
-      id="tabLive"
-      onclick="showTab('live')">
-      LIVE BETS
-    </button>
-
-    <button
-      id="tabTop"
-      onclick="showTab('top')">
-      TOP
-    </button>
-
-  </div>
-
-  <div
-    id="topSubTabs"
-    class="subTabs hidden">
-
-    <button
-      class="active"
-      onclick="showTop('daily',this)">
-      DAILY
-    </button>
-
-    <button
-      onclick="showTop('weekly',this)">
-      WEEKLY
-    </button>
-
-    <button
-      onclick="showTop('monthly',this)">
-      MONTHLY
-    </button>
-
-  </div>
-
-  <div
-    id="feedPanel"
-    class="feed">
-
-    <div id="feedContent"></div>
-
-  </div>
-
-</section>
-
-
-<!-- ======================================================
-     WALLET
-====================================================== -->
-
-<section id="walletScreen">
-
-  <div class="pageTitle">WALLET</div>
-
-  <div class="walletBalance">
-    <small>AVAILABLE BALANCE</small>
-    <strong><span id="walletBalance">0.00</span> ETB</strong>
-  </div>
-
-  <div class="walletStats">
-    <div class="walletStat"><small>WITHDRAWABLE</small><strong><span id="withdrawableBalance">0.00</span> ETB</strong></div>
-    <div class="walletStat"><small>LOCKED DEPOSIT</small><strong><span id="lockedBalance">0.00</span> ETB</strong></div>
-  </div>
-
-  <div class="walletButtons">
-    <button class="walletBtn" onclick="openDeposit()">DEPOSIT</button>
-    <button class="walletBtn" onclick="openWithdraw()">WITHDRAW</button>
-  </div>
-
-  <div class="walletCard">
-    <h3>DEPOSIT VERIFICATION</h3>
-    <p>After you send payment, submit the amount, payment recipient and transaction/reference ID. The server and SMS forwarder will cross-check the payment before any balance is credited.</p>
-  </div>
-
-  <div class="walletCard">
-    <h3>WITHDRAWAL</h3>
-    <p>Withdrawals are checked by the server. Your withdrawable balance is determined by the backend and cannot be changed from this page.</p>
-  </div>
-
-  <div class="walletCard">
-    <h3>TRANSACTIONS</h3>
-    <div id="transactions">No transactions yet.</div>
-  </div>
-
-</section>
-
-
-<!-- ======================================================
-     PROFILE
-====================================================== -->
-
-<section id="profileScreen">
-
-  <div class="pageTitle">
-    PROFILE
-  </div>
-
-  <div class="profileCard">
-
-    <div class="profileRow">
-      <span>Telegram name</span>
-      <span id="profileName">—</span>
-    </div>
-
-    <div class="profileRow">
-      <span>Player ID</span>
-      <span id="profileId">—</span>
-    </div>
-
-    <div class="profileRow">
-      <span>Balance</span>
-      <span>
-        <span id="profileBalance">0.00</span> ETB
-      </span>
-    </div>
-
-    <div class="profileRow">
-      <span>Account</span>
-      <span>ACTIVE</span>
-    </div>
-
-  </div>
-
-</section>
-
-
-<!-- ======================================================
-     BOTTOM MENU
-====================================================== -->
-
-<nav class="bottomNav">
-
-  <button
-    id="navHome"
-    class="active"
-    onclick="showPage('home')">
-
-    <span>🏠</span>
-    HOME
-
-  </button>
-
-  <button
-    id="navGame"
-    onclick="showPage('game')">
-
-    <span>🎮</span>
-    GAME
-
-  </button>
-
-  <button
-    id="navWallet"
-    onclick="showPage('wallet')">
-
-    <span>👛</span>
-    WALLET
-
-  </button>
-
-  <button
-    id="navProfile"
-    onclick="showPage('profile')">
-
-    <span>👤</span>
-    PROFILE
-
-  </button>
-
-</nav>
-
-
-<!-- ======================================================
-     HELP
-====================================================== -->
-
-<div
-  id="helpOverlay"
-  class="helpOverlay hidden">
-
-  <div class="helpPanel">
-
-    <h2 id="helpTitle">
-      How to Play
-    </h2>
-
-    <div id="helpContent"></div>
-
-    <button
-      class="closeHelp"
-      onclick="closeHelp()">
-      CLOSE
-    </button>
-
-  </div>
-
-</div>
-
 
 <script>
-
 /* =========================================================
-   TELEGRAM
-========================================================= */
-
-const tg =
-  window.Telegram &&
-  window.Telegram.WebApp
-    ? window.Telegram.WebApp
-    : null;
-
-if(tg){
-
-  tg.ready();
-  tg.expand();
-
-}
-
-
-/* =========================================================
-   STATE
+   GLOBAL STATE & HELPER FUNCTIONS
 ========================================================= */
 
 const state = {
-
-  language:"en",
-
-  page:"home",
-
-  game:"keno",
-
-  balance:0,
-
-  accountCreated:false,
-
-  playerId:"",
-
-  telegramId:"",
-
-  telegramName:"Player",
-
-  phone:"",
-
-  rounds:{
-    keno:1,
-    bingo:1,
-    roulette:1,
-    aviator:1
-  },
-
-  activeKenoSlot:1,
-
-  kenoSelections:{
-    1:[],
-    2:[]
-  },
-
-  kenoBets:{
-    1:null,
-    2:null
-  },
-
-  kenoDraw:[],
-
-  kenoHistory:[],
-
-  bingoAmounts:{
-    1:10,
-    2:10
-  },
-
-  bingoCartelas:{
-    1:null,
-    2:null
-  },
-
-  activeCartela:1,
-
-  bingoBoards:{
-    1:[],
-    2:[]
-  },
-
-  bingoDraw:[],
-
-  bingoHistory:[],
-
-  rouletteSelection:{
-    1:null,
-    2:null
-  },
-
-  rouletteWinner:null,
-
-  rouletteHistory:[],
-
-  aviatorBets:{
-    1:null,
-    2:null
-  },
-
-  aviatorHistory:[],
-
-  aviatorCrash:1,
-
-  aviatorMultiplier:1,
-
-  bettingOpen:true,
-
-  countdown:45
-
+  game: "keno",
+  balance: 0.00,
+  authToken: localStorage.getItem("destaAuthToken") || "",
+  selectedKeno: [],
+  user: null
 };
 
-
-/* =========================================================
-   TELEGRAM USER
-========================================================= */
-
-function loadTelegramUser(){
-
-  if(tg && tg.initDataUnsafe){
-
-    const user=
-      tg.initDataUnsafe.user;
-
-    if(user){
-
-      state.telegramId=
-        String(user.id || "");
-
-      state.telegramName=
-        [
-          user.first_name || "",
-          user.last_name || ""
-        ]
-        .join(" ")
-        .trim() ||
-        user.username ||
-        "Player";
-
-    }
-
+const help = {
+  keno: {
+    html: "<p>Select 1 to 10 numbers from the grid. Click PLAY to start the draw. Winnings are calculated automatically based on your hits!</p>"
   }
-
-  if(!state.telegramName)
-    state.telegramName="Player";
-
-  state.playerId=
-    createPlayerId(
-      state.telegramId
-    );
-
-  document
-    .getElementById("telegramName")
-    .textContent=
-      state.telegramName;
-
-  document
-    .getElementById("playerId")
-    .textContent=
-      state.playerId;
-
-  if(localStorage.getItem("destaAccountCreated") === "true"){
-    showLogin();
-  }else{
-    showCreateAccount();
-  }
-
-}
-
-
-function createPlayerId(telegramId){
-
-  if(telegramId){
-
-    const digits=
-      telegramId
-        .replace(/\D/g,"")
-        .slice(-6);
-
-    return "DP-"+digits.padStart(6,"0");
-
-  }
-
-  let stored=
-    localStorage.getItem(
-      "destaPlayerId"
-    );
-
-  if(!stored){
-
-    stored=
-      "DP-"+Math.floor(
-        100000+
-        Math.random()*900000
-      );
-
-    localStorage.setItem(
-      "destaPlayerId",
-      stored
-    );
-
-  }
-
-  return stored;
-
-}
-
-
-/* =========================================================
-   ACCOUNT
-========================================================= */
-
-async function safeJsonResponse(response){
-  const text=await response.text();
-
-  if(!text){
-    return {};
-  }
-
-  try{
-    return JSON.parse(text);
-  }catch(error){
-    console.warn(
-      "Expected JSON but server returned non-JSON:",
-      response.url,
-      text.slice(0,200)
-    );
-    return {};
-  }
-}
-
-function clearAccountMessage(){
-  const message=document.getElementById("accountMessage");
-  if(message){
-    message.className="accountMessage";
-    message.textContent="";
-  }
-}
-
-function showLogin(){
-  document.getElementById("accountWelcome").textContent="Welcome back. Log in to your DESTA PLAY account.";
-  document.getElementById("accountCreateFields").classList.add("hidden");
-  document.getElementById("accountResetFields").classList.add("hidden");
-  document.getElementById("accountLoginFields").classList.remove("hidden");
-  clearAccountMessage();
-  const password=document.getElementById("loginPassword");
-  if(password) password.focus();
-}
-
-function showCreateAccount(){
-  document.getElementById("accountWelcome").textContent="Welcome. Create your DESTA PLAY account.";
-  document.getElementById("accountLoginFields").classList.add("hidden");
-  document.getElementById("accountResetFields").classList.add("hidden");
-  document.getElementById("accountCreateFields").classList.remove("hidden");
-  clearAccountMessage();
-}
-
-function showForgotPassword(){
-  document.getElementById("accountWelcome").textContent="Forgot your DESTA PLAY password?";
-  document.getElementById("accountLoginFields").classList.add("hidden");
-  document.getElementById("accountCreateFields").classList.add("hidden");
-  document.getElementById("accountResetFields").classList.remove("hidden");
-  document.getElementById("resetNewPasswordFields").classList.add("hidden");
-  const savedPhone=localStorage.getItem("destaResetPhone") || state.phone || "";
-  const savedRequestId=localStorage.getItem("destaResetRequestId") || "";
-  document.getElementById("resetPhone").value=savedPhone;
-  document.getElementById("resetRequestId").value=savedRequestId;
-  clearAccountMessage();
-}
-
-function resetMessage(text, type=""){
-  const message=document.getElementById("accountMessage");
-  message.className="accountMessage" + (type ? " " + type : "");
-  message.textContent=text;
-}
-
-async function requestPasswordReset(){
-  const phone=document.getElementById("resetPhone").value.trim();
-  if(!phone){ resetMessage("Enter your phone number.","error"); return; }
-  resetMessage("Sending password reset request...");
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-request",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone})});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error || "Could not request password reset.");
-    document.getElementById("resetRequestId").value=data.requestId || "";
-    localStorage.setItem("destaResetPhone",phone);
-    localStorage.setItem("destaResetRequestId",data.requestId || "");
-    resetMessage("Reset request submitted. Ask the administrator to approve it, then tap CHECK APPROVAL.","success");
-  }catch(error){ console.error("Password reset request error:",error); resetMessage(error.message || "Could not request password reset.","error"); }
-}
-
-async function checkPasswordReset(){
-  const phone=document.getElementById("resetPhone").value.trim();
-  const requestId=document.getElementById("resetRequestId").value.trim();
-  if(!phone || !requestId){ resetMessage("Enter your phone number and reset request ID.","error"); return; }
-  resetMessage("Checking reset approval...");
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-status?phone="+encodeURIComponent(phone)+"&requestId="+encodeURIComponent(requestId),{headers:{"Accept":"application/json"}});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error || "Could not check reset status.");
-    if(data.status === "APPROVED") {
-      document.getElementById("resetNewPasswordFields").classList.remove("hidden");
-      resetMessage("Reset approved. Enter your new password below.","success");
-    } else if(data.status === "COMPLETED") {
-      resetMessage("This reset request has already been completed. Please log in with the new password.","success");
-    } else if(data.status === "REJECTED") {
-      resetMessage("The administrator rejected this reset request. Submit a new request.","error");
-    } else {
-      resetMessage("Reset request is still pending approval.");
-    }
-  }catch(error){ console.error("Password reset status error:",error); resetMessage(error.message || "Could not check reset status.","error"); }
-}
-
-async function completePasswordReset(){
-  const phone=document.getElementById("resetPhone").value.trim();
-  const requestId=document.getElementById("resetRequestId").value.trim();
-  const password=document.getElementById("resetNewPassword").value;
-  const confirm=document.getElementById("resetNewPasswordConfirm").value;
-  if(password.length<8){ resetMessage("Password must contain at least 8 characters.","error"); return; }
-  if(password!==confirm){ resetMessage("Passwords do not match.","error"); return; }
-  if(!phone || !requestId){ resetMessage("Enter your phone number and reset request ID.","error"); return; }
-  resetMessage("Setting new password...");
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-complete",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone,requestId,password})});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error || "Could not reset password.");
-    localStorage.removeItem("destaResetPhone");
-    localStorage.removeItem("destaResetRequestId");
-    document.getElementById("resetNewPasswordFields").classList.add("hidden");
-    document.getElementById("resetRequestId").value="";
-    document.getElementById("resetNewPassword").value="";
-    document.getElementById("resetNewPasswordConfirm").value="";
-    resetMessage("Password changed successfully. You can now log in with your new password.","success");
-    setTimeout(showLogin,900);
-  }catch(error){ console.error("Password reset completion error:",error); resetMessage(error.message || "Could not reset password.","error"); }
-}
-
-async function loginAccount(){
-  const password=document.getElementById("loginPassword").value;
-  const message=document.getElementById("accountMessage");
-  if(!password){ message.className="accountMessage error"; message.textContent="Enter your password."; return; }
-  if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
-  message.className="accountMessage"; message.textContent="Logging in...";
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,password})});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error || "Login failed.");
-    state.authToken=data.token || "";
-    localStorage.setItem("destaAuthToken",state.authToken);
-    localStorage.setItem("destaAccountCreated","true");
-    state.accountCreated=true;
-    state.balance=Number(data.player?.balance || 0);
-    state.playerId=data.player?.playerId || state.playerId;
-    state.telegramName=data.player?.telegramName || state.telegramName;
-    if(data.player?.phone) state.phone=data.player.phone;
-    message.className="accountMessage success"; message.textContent="Login successful.";
-    updatePlayerDisplays();
-    setTimeout(showHome,300);
-  }catch(error){ console.error("Account login error:",error); message.className="accountMessage error"; message.textContent=error.message || "Login failed."; }
-}
-
-async function createAccount(){
-  const phone=document.getElementById("phone").value.trim();
-  const password=document.getElementById("password").value;
-  const confirm=document.getElementById("passwordConfirm").value;
-  const message=document.getElementById("accountMessage");
-  if(!phone){ message.className="accountMessage error"; message.textContent="Enter your cell phone number."; return; }
-  if(password.length<8){ message.className="accountMessage error"; message.textContent="Password must contain at least 8 characters."; return; }
-  if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
-  if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
-  message.className="accountMessage"; message.textContent="Creating account...";
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,phone,password})});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
-    state.authToken=data.token || "";
-    state.phone=phone;
-    localStorage.setItem("destaAuthToken",state.authToken);
-    localStorage.setItem("destaAccountCreated","true");
-    state.accountCreated=true;
-    state.balance=Number(data.player?.balance || 0);
-    message.className="accountMessage success"; message.textContent="Account created.";
-    updatePlayerDisplays();
-    setTimeout(showHome,300);
-  }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
-}
-
-function showHome(){
-
-  document
-    .getElementById("accountScreen")
-    .classList.add("hidden");
-
-  document
-    .getElementById("home")
-    .classList.remove("hidden");
-
-  updatePlayerDisplays();
-
-  showPage("home");
-
-}
-
-
-/* =========================================================
-   PLAYER DISPLAY
-========================================================= */
-
-function updatePlayerDisplays(){
-
-  document
-    .getElementById("homePlayerName")
-    .textContent=
-      state.telegramName;
-
-  document
-    .getElementById("homePlayerId")
-    .textContent=
-      state.playerId;
-
-  document
-    .getElementById("profileName")
-    .textContent=
-      state.telegramName;
-
-  document
-    .getElementById("profileId")
-    .textContent=
-      state.playerId;
-
-  updateBalance();
-
-}
-
-
-/* =========================================================
-   LANGUAGE
-========================================================= */
-
-function setLanguage(lang){
-
-  state.language=lang;
-
-  document
-    .getElementById("langEN")
-    .classList.toggle(
-      "active",
-      lang==="en"
-    );
-
-  document
-    .getElementById("langAM")
-    .classList.toggle(
-      "active",
-      lang==="am"
-    );
-
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function showPage(page){
-
-  if(
-    !state.accountCreated &&
-    !localStorage.getItem("destaAccountCreated")
-  ){
-
-    return;
-
-  }
-
-  state.page=page;
-
-  document
-    .getElementById("home")
-    .classList.add("hidden");
-
-  document
-    .getElementById("gameScreen")
-    .style.display="none";
-
-  document
-    .getElementById("walletScreen")
-    .style.display="none";
-
-  document
-    .getElementById("profileScreen")
-    .style.display="none";
-
-  document
-    .querySelectorAll(".bottomNav button")
-    .forEach(b=>
-      b.classList.remove("active")
-    );
-
-  if(page==="home"){
-
-    document
-      .getElementById("home")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("navHome")
-      .classList.add("active");
-
-  }
-
-  if(page==="game"){
-
-    document
-      .getElementById("gameScreen")
-      .style.display="block";
-
-    document
-      .getElementById("navGame")
-      .classList.add("active");
-
-  }
-
-  if(page==="wallet"){
-
-    document
-      .getElementById("walletScreen")
-      .style.display="block";
-
-    document
-      .getElementById("navWallet")
-      .classList.add("active");
-
-    updateBalance();
-
-  }
-
-  if(page==="profile"){
-
-    document
-      .getElementById("profileScreen")
-      .style.display="block";
-
-    document
-      .getElementById("navProfile")
-      .classList.add("active");
-
-    updatePlayerDisplays();
-
-  }
-
-}
-
-
-/* =========================================================
-   OPEN GAME
-========================================================= */
-
-function openGame(game){
-
-  state.game=game;
-
-  showPage("game");
-
-  document
-    .getElementById("gameTitle")
-    .textContent=
-      game.toUpperCase();
-
-  updateRound();
-
-  hideAllGames();
-
-  document
-    .getElementById(game+"Game")
-    .classList.remove("hidden");
-
-  buildGame();
-
-}
-
-
-/* =========================================================
-   HIDE GAMES
-========================================================= */
-
-function hideAllGames(){
-
-  [
-    "keno",
-    "bingo",
-    "roulette",
-    "aviator"
-  ].forEach(g=>{
-
-    document
-      .getElementById(g+"Game")
-      .classList.add("hidden");
-
-  });
-
-}
-
-
-/* =========================================================
-   BUILD GAME
-========================================================= */
-
-function buildGame(){
-
-  if(state.game==="keno")
-    buildKeno();
-
-  if(state.game==="bingo")
-    buildBingo();
-
-  if(state.game==="roulette")
-    buildRoulette();
-
-  if(state.game==="aviator")
-    buildAviator();
-
-}
-
-
-/* =========================================================
-   ROUND
-========================================================= */
-
-function updateRound(){
-
-  document
-    .getElementById("roundNumber")
-    .textContent=
-      String(
-        state.rounds[state.game]
-      ).padStart(4,"0");
-
-}
-
-
-/* =========================================================
-   BALANCE
-========================================================= */
-
-function updateBalance(){
-
-  const value=
-    state.balance.toFixed(2);
-
-  document
-    .getElementById("balance")
-    .textContent=value;
-
-  document
-    .getElementById("walletBalance")
-    .textContent=value;
-
-  document
-    .getElementById("profileBalance")
-    .textContent=value;
-
-}
-
-
-/* =========================================================
-   KENO
-========================================================= */
-
-function buildKeno(){
-
-  const board=
-    document.getElementById(
-      "kenoBoard"
-    );
-
-  board.innerHTML="";
-
-  for(let n=1;n<=80;n++){
-
-    const b=
-      document.createElement("button");
-
-    b.className="kenoNumber";
-
-    b.textContent=
-      String(n).padStart(2,"0");
-
-    if(
-      state.kenoSelections[
-        state.activeKenoSlot
-      ].includes(n)
-    ){
-
-      b.classList.add("selected");
-
-    }
-
-    b.onclick=
-      ()=>selectKeno(n,b);
-
-    board.appendChild(b);
-
-  }
-
-  updateKenoSelectionDisplay();
-
-  updateKenoSlotVisuals();
-
-}
-
-
-function activateKenoSlot(slot){
-
-  if(!state.bettingOpen)
-    return;
-
-  state.activeKenoSlot=slot;
-
-  document
-    .getElementById("activeKenoSlot")
-    .textContent=
-      "SLOT "+slot;
-
-  buildKeno();
-
-}
-
-
-function updateKenoSlotVisuals(){
-
-  document
-    .getElementById("kenoBetSlot1")
-    .classList.toggle(
-      "active",
-      state.activeKenoSlot===1
-    );
-
-  document
-    .getElementById("kenoBetSlot2")
-    .classList.toggle(
-      "active",
-      state.activeKenoSlot===2
-    );
-
-}
-
-
-function selectKeno(n,button){
-
-  if(!state.bettingOpen)
-    return;
-
-  const slot=
-    state.activeKenoSlot;
-
-  const selected=
-    state.kenoSelections[slot];
-
-  const index=
-    selected.indexOf(n);
-
-  if(index>=0){
-
-    selected.splice(index,1);
-
-  }else{
-
-    if(selected.length>=10){
-
-      alert(
-        "Maximum 10 numbers per slot."
-      );
-
-      return;
-
-    }
-
-    selected.push(n);
-
-  }
-
-  buildKeno();
-
-}
-
-
-function updateKenoSelectionDisplay(){
-
-  [1,2].forEach(slot=>{
-
-    const target=
-      document.getElementById(
-        "kenoSlot"+slot+"Numbers"
-      );
-
-    const selected=
-      state.kenoSelections[slot];
-
-    target.innerHTML=
-      selected.length
-      ?selected
-        .map(n=>
-          `<span class="selectedNumber">${n}</span>`
-        )
-        .join("")
-      :`<span class="muted">No numbers</span>`;
-
-    document
-      .getElementById(
-        "kenoSelected"+slot
-      )
-      .textContent=
-        selected.length+
-        " / 10";
-
-  });
-
-}
-
-
-function placeKenoBet(slot){
-
-  if(!state.bettingOpen){
-
-    alert("Betting is closed.");
-
-    return;
-
-  }
-
-  const numbers=
-    state.kenoSelections[slot];
-
-  if(numbers.length<1){
-
-    alert(
-      "Select 1 to 10 numbers for Slot "+slot+"."
-    );
-
-    return;
-
-  }
-
-  const amount=
-    Number(
-      document.getElementById(
-        "k"+slot
-      ).value
-    );
-
-  if(amount<=0 || amount>state.balance){
-
-    alert("Invalid balance or amount.");
-
-    return;
-
-  }
-
-  if(
-    state.kenoBets[slot]
-  ){
-
-    alert("This slot is already placed.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  state.kenoBets[slot]={
-    amount,
-    numbers:[...numbers],
-    placed:true
-  };
-
-  updateBalance();
-
-}
-
-
-/* =========================================================
-   KENO DRAW
-========================================================= */
-
-function generateKenoDraw(){
-
-  const pool=
-    Array.from(
-      {length:80},
-      (_,i)=>i+1
-    );
-
-  const result=[];
-
-  while(result.length<20){
-
-    const index=
-      Math.floor(
-        Math.random()*pool.length
-      );
-
-    result.push(
-      pool.splice(index,1)[0]
-    );
-
-  }
-
-  return result;
-
-}
-
-
-function runKenoDraw(){
-
-  state.bettingOpen=false;
-
-  state.kenoDraw=
-    generateKenoDraw();
-
-  const balls=
-    document.getElementById(
-      "kenoDrawBalls"
-    );
-
-  balls.innerHTML="";
-
-  let i=0;
-
-  const timer=
-    setInterval(()=>{
-
-      if(i>=state.kenoDraw.length){
-
-        clearInterval(timer);
-
-        finishKeno();
-
-        return;
-
-      }
-
-      const n=
-        state.kenoDraw[i];
-
-      const ball=
-        document.createElement("div");
-
-      ball.className="ball";
-
-      ball.textContent=
-        String(n).padStart(2,"0");
-
-      balls.appendChild(ball);
-
-      document
-        .getElementById("kenoDrawStatus")
-        .textContent=
-          "DRAWING "+
-          (i+1)+
-          " / 20";
-
-      document
-        .querySelectorAll(".kenoNumber")
-        .forEach((button,index)=>{
-
-          if(index===n-1){
-
-            button.classList.add("drawn");
-
-            if(
-              state.kenoSelections[1]
-                .includes(n) ||
-              state.kenoSelections[2]
-                .includes(n)
-            ){
-
-              button.classList.add("hit");
-
-            }
-
-          }
-
-        });
-
-      i++;
-
-    },700);
-
-}
-
-
-function finishKeno(){
-
-  document
-    .getElementById("kenoDrawStatus")
-    .textContent=
-      "DRAW COMPLETE";
-
-  const round=
-    state.rounds.keno;
-
-  state.kenoHistory.unshift({
-    round,
-    numbers:[...state.kenoDraw]
-  });
-
-  state.kenoHistory=
-    state.kenoHistory.slice(0,10);
-
-  renderKenoHistory();
-
-  settleKeno();
-
-}
-
-
-function settleKeno(){
-
-  [1,2].forEach(slot=>{
-
-    const bet=
-      state.kenoBets[slot];
-
-    if(!bet)
-      return;
-
-    const hits=
-      bet.numbers.filter(
-        n=>state.kenoDraw.includes(n)
-      ).length;
-
-    /*
-      Frontend display only.
-      Final payout calculation belongs on server.js.
-    */
-
-    document
-      .getElementById(
-        "kenoPayout"+slot
-      )
-      .textContent=
-        hits+
-        " matches";
-
-  });
-
-}
-
-
-function renderKenoHistory(){
-
-  const box=
-    document.getElementById(
-      "kenoHistory"
-    );
-
-  box.innerHTML=
-    state.kenoHistory
-      .map((item,index)=>`
-
-        <div
-          class="historyRound"
-          onclick="viewKenoHistory(${index})">
-
-          <strong>
-            ROUND ${String(item.round).padStart(4,"0")}
-          </strong>
-
-          <br>
-
-          <span class="historyNums">
-            ${item.numbers.join(" • ")}
-          </span>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-
-function viewKenoHistory(index){
-
-  const item=
-    state.kenoHistory[index];
-
-  if(!item)
-    return;
-
-  document
-    .getElementById("kenoDrawStatus")
-    .textContent=
-      "ROUND "+
-      String(item.round).padStart(4,"0")+
-      " — "+
-      item.numbers.join(" • ");
-
-}
-
-
-/* =========================================================
-   BINGO
-========================================================= */
-
-function buildBingo(){
-
-  buildBingoAmounts();
-
-  renderCartela();
-
-}
-
-
-function buildBingoAmounts(){
-
-  const amounts=[
-    10,20,25,50,100,
-    150,200,250,300,400,500
-  ];
-
-  const box=
-    document.getElementById(
-      "bingoAmounts"
-    );
-
-  box.innerHTML="";
-
-  amounts.forEach(amount=>{
-
-    const b=
-      document.createElement("button");
-
-    b.className="amountPreset";
-
-    b.textContent=
-      amount+" ETB";
-
-    b.onclick=()=>{
-
-      state.bingoAmounts[1]=amount;
-      state.bingoAmounts[2]=amount;
-
-      document
-        .getElementById("bingoAmount1")
-        .textContent=
-          amount+" ETB";
-
-      document
-        .getElementById("bingoAmount2")
-        .textContent=
-          amount+" ETB";
-
-      document
-        .querySelectorAll(".amountPreset")
-        .forEach(x=>
-          x.classList.remove("active")
-        );
-
-      b.classList.add("active");
-
-    };
-
-    box.appendChild(b);
-
-  });
-
-}
-
-
-function addCartela(){
-
-  const input=
-    document.getElementById(
-      "cartelaEntry"
-    );
-
-  const value=
-    Number(input.value);
-
-  if(
-    !Number.isInteger(value) ||
-    value<1 ||
-    value>120
-  ){
-
-    document
-      .getElementById("cartelaStatus")
-      .textContent=
-        "Enter a Cartela number from 1 to 120.";
-
-    return;
-
-  }
-
-  if(
-    state.bingoCartelas[1]===value ||
-    state.bingoCartelas[2]===value
-  ){
-
-    document
-      .getElementById("cartelaStatus")
-      .textContent=
-        "That Cartela is already selected.";
-
-    return;
-
-  }
-
-  let slot;
-
-  if(!state.bingoCartelas[1])
-    slot=1;
-  else if(!state.bingoCartelas[2])
-    slot=2;
-  else{
-
-    document
-      .getElementById("cartelaStatus")
-      .textContent=
-        "Both Cartela slots are already filled.";
-
-    return;
-
-  }
-
-  state.bingoCartelas[slot]=value;
-
-  state.bingoBoards[slot]=
-    generateCartela(value);
-
-  input.value="";
-
-  selectCartela(slot);
-
-  document
-    .getElementById("cartelaStatus")
-    .textContent=
-      "Cartela "+
-      value+
-      " added to Slot "+
-      slot+".";
-
-  renderCartela();
-
-}
-
-
-function selectCartela(slot){
-
-  state.activeCartela=slot;
-
-  document
-    .getElementById("cartelaTab1")
-    .classList.toggle(
-      "active",
-      slot===1
-    );
-
-  document
-    .getElementById("cartelaTab2")
-    .classList.toggle(
-      "active",
-      slot===2
-    );
-
-  renderCartela();
-
-}
-
-
-function generateCartela(seed){
-
-  let value=
-    Number(seed);
-
-  const numbers=
-    [];
-
-  while(numbers.length<25){
-
-    value=
-      (value*9301+49297)%233280;
-
-    const n=
-      Math.floor(
-        value/233280*75
-      )+1;
-
-    if(
-      !numbers.includes(n)
-    ){
-
-      numbers.push(n);
-
-    }
-
-  }
-
-  numbers[12]=0;
-
-  return numbers;
-
-}
-
-
-function renderCartela(){
-
-  const wrap=
-    document.getElementById(
-      "cartelaGridWrap"
-    );
-
-  const slot=
-    state.activeCartela;
-
-  const cartela=
-    state.bingoCartelas[slot];
-
-  if(!cartela){
-
-    wrap.innerHTML=
-      `<div class="cartelaGrid">
-        <div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">
-          Enter Cartela number above.
-        </div>
-      </div>`;
-
-    return;
-
-  }
-
-  const board=
-    state.bingoBoards[slot];
-
-  wrap.innerHTML=
-    `<div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:bold;margin-bottom:5px">
-      CARTELA ${cartela} — SLOT ${slot}
-    </div>
-    <div class="cartelaGrid">
-      ${
-        board.map((n,i)=>`
-
-          <button
-            class="cartelaCell ${n===0?"free":""}"
-            onclick="markCartelaCell(${slot},${i})">
-
-            ${n===0?"FREE":n}
-
-          </button>
-
-        `).join("")
-      }
-    </div>`;
-
-}
-
-
-function markCartelaCell(slot,index){
-
-  if(!state.bettingOpen)
-    return;
-
-  const board=
-    state.bingoBoards[slot];
-
-  if(!board[index])
-    return;
-
-  if(
-    !state.bingoDraw.includes(
-      board[index]
-    )
-  ){
-
-    return;
-
-  }
-
-  renderCartela();
-
-}
-
-
-function placeBingoBet(slot){
-
-  if(!state.bettingOpen){
-
-    alert("Betting is closed.");
-
-    return;
-
-  }
-
-  if(
-    !state.bingoCartelas[slot]
-  ){
-
-    alert(
-      "Add a Cartela to Slot "+slot+"."
-    );
-
-    return;
-
-  }
-
-  const amount=
-    state.bingoAmounts[slot];
-
-  if(amount>state.balance){
-
-    alert("Insufficient balance.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  updateBalance();
-
-}
-
-
-function runBingoDraw(){
-
-  state.bettingOpen=false;
-
-  state.bingoDraw=[];
-
-  const display=
-    document.getElementById(
-      "bingoDraw"
-    );
-
-  display.innerHTML="";
-
-  let count=0;
-
-  const timer=
-    setInterval(()=>{
-
-      if(count>=20){
-
-        clearInterval(timer);
-
-        finishBingo();
-
-        return;
-
-      }
-
-      let n=
-        Math.floor(
-          Math.random()*75
-        )+1;
-
-      while(
-        state.bingoDraw.includes(n)
-      ){
-
-        n=
-          Math.floor(
-            Math.random()*75
-          )+1;
-
-      }
-
-      state.bingoDraw.push(n);
-
-      const ball=
-        document.createElement("div");
-
-      ball.className=
-        "bingoCalled";
-
-      ball.textContent=n;
-
-      display.appendChild(ball);
-
-      document
-        .getElementById("bingoStatus")
-        .textContent=
-          "CALLED "+
-          (count+1)+
-          " / 20 — "+
-          n;
-
-      count++;
-
-    },800);
-
-}
-
-
-function finishBingo(){
-
-  state.bingoHistory.unshift({
-
-    round:state.rounds.bingo,
-
-    numbers:[...state.bingoDraw]
-
-  });
-
-  state.bingoHistory=
-    state.bingoHistory.slice(0,10);
-
-  renderBingoHistory();
-
-  [1,2].forEach(slot=>{
-
-    const board=
-      state.bingoBoards[slot];
-
-    if(!board.length)
-      return;
-
-    const win=
-      checkBingo(board);
-
-    document
-      .getElementById(
-        "bingoButton"+slot
-      )
-      .disabled=!win;
-
-  });
-
-}
-
-
-function checkBingo(board){
-
-  const marked=
-    i=>
-      board[i]===0 ||
-      state.bingoDraw.includes(
-        board[i]
-      );
-
-  for(let r=0;r<5;r++){
-
-    if(
-      [0,1,2,3,4]
-        .map(c=>marked(r*5+c))
-        .every(Boolean)
-    )
-      return true;
-
-  }
-
-  for(let c=0;c<5;c++){
-
-    if(
-      [0,1,2,3,4]
-        .map(r=>marked(r*5+c))
-        .every(Boolean)
-    )
-      return true;
-
-  }
-
-  if(
-    [0,1,2,3,4]
-      .map(i=>marked(i*5+i))
-      .every(Boolean)
-  )
-    return true;
-
-  if(
-    [0,1,2,3,4]
-      .map(i=>marked(i*5+(4-i)))
-      .every(Boolean)
-  )
-    return true;
-
-  return false;
-
-}
-
-
-function claimBingo(slot){
-
-  const board=
-    state.bingoBoards[slot];
-
-  if(
-    !board.length ||
-    !checkBingo(board)
-  )
-    return;
-
-  alert(
-    "BINGO — CARTELA "+
-    state.bingoCartelas[slot]
-  );
-
-  document
-    .getElementById(
-      "bingoButton"+slot
-    )
-    .disabled=true;
-
-}
-
-
-function renderBingoHistory(){
-
-  const box=
-    document.getElementById(
-      "bingoHistory"
-    );
-
-  box.innerHTML=
-    state.bingoHistory
-      .map(item=>`
-
-        <div class="historyRound">
-
-          <strong>
-            ROUND ${String(item.round).padStart(4,"0")}
-          </strong>
-
-          <br>
-
-          <span class="historyNums">
-            ${item.numbers.join(" • ")}
-          </span>
-
-        </div>
-
-      `)
-      .join("");
-
-}
-
-
-/* =========================================================
-   ROULETTE
-========================================================= */
-
-function rouletteColor(n){
-
-  if(n===0)
-    return "green";
-
-  const redNums=[
-    1,3,5,7,9,12,14,16,
-    18,19,21,23,25,27,
-    30,32,34,36
-  ];
-
-  return redNums.includes(n)
-    ?"red"
-    :"black";
-
-}
-
-
-function buildRoulette(){
-
-  const edge=
-    document.getElementById(
-      "rouletteEdgeNumbers"
-    );
-
-  edge.innerHTML="";
-
-  for(let n=0;n<=36;n++){
-
-    const span=
-      document.createElement("span");
-
-    span.className="edgeNumber";
-
-    const angle=
-      n*(360/37);
-
-    span.style.setProperty(
-      "--angle",
-      angle+"deg"
-    );
-
-    span.textContent=n;
-
-    edge.appendChild(span);
-
-  }
-
-  const grid=
-    document.getElementById(
-      "rouletteGrid"
-    );
-
-  grid.innerHTML="";
-
-  for(let n=0;n<=36;n++){
-
-    const b=
-      document.createElement("button");
-
-    b.className=
-      "rouletteNum "+
-      rouletteColor(n);
-
-    b.textContent=n;
-
-    b.onclick=
-      ()=>selectRouletteNumber(n);
-
-    grid.appendChild(b);
-
-  }
-
-}
-
-
-function selectRouletteNumber(n){
-
-  if(!state.bettingOpen)
-    return;
-
-  const slot=
-    state.rouletteSelection[1]
-      ?2
-      :1;
-
-  state.rouletteSelection[slot]=n;
-
-  document
-    .querySelectorAll(".rouletteNum")
-    .forEach(b=>
-      b.classList.toggle(
-        "selected",
-        Number(b.textContent)===n
-      )
-    );
-
-}
-
-
-function placeRouletteBet(slot){
-
-  if(
-    state.rouletteSelection[slot]===null
-  ){
-
-    alert(
-      "Select a number first."
-    );
-
-    return;
-
-  }
-
-  const amount=
-    Number(
-      document.getElementById(
-        "r"+slot
-      ).value
-    );
-
-  if(
-    amount<=0 ||
-    amount>state.balance
-  ){
-
-    alert("Invalid amount.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  updateBalance();
-
-}
-
-
-function runRoulette(){
-
-  state.bettingOpen=false;
-
-  const winner=
-    Math.floor(
-      Math.random()*37
-    );
-
-  state.rouletteWinner=
-    winner;
-
-  const wheel=
-    document.getElementById(
-      "rouletteWheel"
-    );
-
-  wheel.style.transform=
-    `rotate(${1440+winner*9.73}deg)`;
-
-  setTimeout(()=>{
-
-    document
-      .getElementById(
-        "rouletteResult"
-      )
-      .textContent=
-        "RESULT: "+
-        winner+
-        " — "+
-        rouletteColor(winner).toUpperCase();
-
-    document
-      .querySelectorAll(".rouletteNum")
-      .forEach(b=>
-        b.classList.toggle(
-          "winner",
-          Number(b.textContent)===winner
-        )
-      );
-
-    state.rouletteHistory.unshift({
-
-      round:state.rounds.roulette,
-
-      result:winner,
-
-      color:rouletteColor(winner)
-
-    });
-
-    state.rouletteHistory=
-      state.rouletteHistory.slice(0,10);
-
-    renderRouletteHistory();
-
-  },4200);
-
-}
-
-
-function renderRouletteHistory(){
-
-  document
-    .getElementById(
-      "rouletteHistory"
-    )
-    .innerHTML=
-      state.rouletteHistory
-        .map(item=>`
-
-          <div class="historyRound">
-
-            <strong>
-              ROUND ${String(item.round).padStart(4,"0")}
-            </strong>
-
-            <br>
-
-            <span class="historyNums">
-              ${item.result}
-              —
-              ${item.color.toUpperCase()}
-            </span>
-
-          </div>
-
-        `)
-        .join("");
-
-}
-
-
-/* =========================================================
-   AVIATOR
-========================================================= */
-
-function buildAviator(){
-
-  renderAviatorHistory();
-
-}
-
-
-function generateCrashPoint(){
-
-  /*
-    Secure/random server-side outcome must eventually
-    replace this frontend generator.
-
-    This intentionally does not use a fixed crash value.
-  */
-
-  const r=
-    Math.random();
-
-  return Math.max(
-    1.01,
-    Number(
-      (
-        1+
-        (-Math.log(
-          Math.max(
-            0.000001,
-            1-r
-          )
-        )*1.15)
-      ).toFixed(2)
-    )
-  );
-
-}
-
-
-function placeAviatorBet(slot){
-
-  if(!state.bettingOpen){
-
-    alert(
-      "The flight has already started."
-    );
-
-    return;
-
-  }
-
-  if(
-    state.aviatorBets[slot]
-  ){
-
-    return;
-
-  }
-
-  const amount=
-    Number(
-      document.getElementById(
-        "a"+slot
-      ).value
-    );
-
-  if(
-    amount<=0 ||
-    amount>state.balance
-  ){
-
-    alert("Invalid amount.");
-
-    return;
-
-  }
-
-  state.balance-=amount;
-
-  state.aviatorBets[slot]={
-    amount,
-    cashed:false,
-    cashout:null
-  };
-
-  updateBalance();
-
-  document
-    .getElementById(
-      "aviatorBtn"+slot
-    )
-    .textContent=
-      "CASH OUT";
-
-}
-
-
-function cashOutAviator(slot){
-
-  const bet=
-    state.aviatorBets[slot];
-
-  if(
-    !bet ||
-    bet.cashed ||
-    state.aviatorMultiplier<1
-  )
-    return;
-
-  const multiplier=
-    state.aviatorMultiplier;
-
-  const payout=
-    Number(
-      (
-        bet.amount*
-        multiplier
-      ).toFixed(2)
-    );
-
-  bet.cashed=true;
-  bet.cashout=multiplier;
-
-  state.balance+=payout;
-
-  updateBalance();
-
-  document
-    .getElementById(
-      "aviatorPayout"+slot
-    )
-    .textContent=
-      payout.toFixed(2)+
-      " ETB CASHED OUT";
-
-  document
-    .getElementById(
-      "aviatorBtn"+slot
-    )
-    .textContent=
-      "CASHED OUT";
-
-  setTimeout(()=>{
-
-    document
-      .getElementById(
-        "aviatorPayout"+slot
-      )
-      .textContent="";
-
-  },2000);
-
-}
-
-
-function runAviator(){
-
-  state.bettingOpen=true;
-
-  state.aviatorCrash=
-    generateCrashPoint();
-
-  state.aviatorMultiplier=1;
-
-  let seconds=10;
-
-  const countdown=
-    document.getElementById(
-      "aviatorCountdown"
-    );
-
-  const timer=
-    setInterval(()=>{
-
-      countdown.textContent=
-        "BETTING "+
-        seconds+
-        "s";
-
-      seconds--;
-
-      if(seconds<0){
-
-        clearInterval(timer);
-
-        startAviatorFlight();
-
-      }
-
-    },1000);
-
-}
-
-
-function startAviatorFlight(){
-
-  state.bettingOpen=false;
-
-  document
-    .getElementById(
-      "aviatorCountdown"
-    )
-    .textContent=
-      "FLIGHT LIVE";
-
-  const timer=
-    setInterval(()=>{
-
-      state.aviatorMultiplier=
-        Number(
-          (
-            state.aviatorMultiplier+
-            0.02+
-            Math.random()*0.08
-          ).toFixed(2)
-        );
-
-      const value=
-        state.aviatorMultiplier;
-
-      document
-        .getElementById(
-          "aviatorMultiplier"
-        )
-        .textContent=
-          value.toFixed(2)+"x";
-
-      const plane=
-        document.getElementById(
-          "plane"
-        );
-
-      plane.style.left=
-        Math.min(
-          88,
-          20+(value-1)*12
-        )+"%";
-
-      plane.style.bottom=
-        Math.min(
-          85,
-          30+(value-1)*8
-        )+"px";
-
-      [1,2].forEach(slot=>{
-
-        const bet=
-          state.aviatorBets[slot];
-
-        if(
-          bet &&
-          !bet.cashed
-        ){
-
-          const live=
-            bet.amount*value;
-
-          document
-            .getElementById(
-              "aviatorPayout"+slot
-            )
-            .textContent=
-              live.toFixed(2)+
-              " ETB @ "+
-              value.toFixed(2)+"x";
-
-        }
-
-      });
-
-      if(
-        value>=state.aviatorCrash
-      ){
-
-        clearInterval(timer);
-
-        finishAviator();
-
-      }
-
-    },300);
-
-}
-
-
-function finishAviator(){
-
-  state.bettingOpen=false;
-
-  const crash=
-    state.aviatorMultiplier;
-
-  document
-    .getElementById(
-      "aviatorCountdown"
-    )
-    .textContent=
-      "CRASHED "+
-      crash.toFixed(2)+"x";
-
-  state.aviatorHistory.unshift(
-    crash.toFixed(2)+"x"
-  );
-
-  state.aviatorHistory=
-    state.aviatorHistory.slice(0,10);
-
-  renderAviatorHistory();
-
-  document
-    .getElementById(
-      "aviatorRoundHistory"
-    ).innerHTML=
-      state.aviatorHistory
-        .map((x,i)=>`
-
-          <div class="historyRound">
-
-            <strong>
-              ROUND ${String(
-                state.rounds.aviator-i
-              ).padStart(4,"0")}
-            </strong>
-
-            <br>
-
-            <span class="historyNums">
-              CRASH ${x}
-            </span>
-
-          </div>
-
-        `)
-        .join("");
-
-}
-
-
-function renderAviatorHistory(){
-
-  document
-    .getElementById(
-      "aviatorHistory"
-    )
-    .innerHTML=
-      state.aviatorHistory
-        .map(x=>
-          `<div class="mult">${x}</div>`
-        )
-        .join("");
-
-}
-
-
-/* =========================================================
-   AMOUNT
-========================================================= */
-
-function changeAmount(id,delta){
-
-  const input=
-    document.getElementById(id);
-
-  let value=
-    Number(input.value)||0;
-
-  value+=delta;
-
-  if(value<1)
-    value=1;
-
-  input.value=value;
-
-}
-
-
-/* =========================================================
-   TABS
-========================================================= */
-
-function showTab(tab){
-
-  document
-    .getElementById("tabMy")
-    .classList.toggle(
-      "active",
-      tab==="my"
-    );
-
-  document
-    .getElementById("tabLive")
-    .classList.toggle(
-      "active",
-      tab==="live"
-    );
-
-  document
-    .getElementById("tabTop")
-    .classList.toggle(
-      "active",
-      tab==="top"
-    );
-
-  document
-    .getElementById("topSubTabs")
-    .classList.toggle(
-      "hidden",
-      tab!=="top"
-    );
-
-  if(tab==="my"){
-
-    document
-      .getElementById("feedContent")
-      .innerHTML=
-        `<div class="feedRow">
-          <span>MY BETS</span>
-          <span>Current round activity</span>
-        </div>`;
-
-  }
-
-  if(tab==="live"){
-
-    renderLiveBets();
-
-  }
-
-  if(tab==="top"){
-
-    showTop(
-      "daily",
-      document.querySelector(
-        ".subTabs button"
-      )
-    );
-
-  }
-
-}
-
-
-function renderLiveBets(){
-
-  const players=
-    Math.floor(
-      12+
-      Math.random()*80
-    );
-
-  const wins=
-    Math.floor(
-      2+
-      Math.random()*players
-    );
-
-  document
-    .getElementById("feedContent")
-    .innerHTML=`
-
-      <div class="feedRow">
-        <span>ROUND</span>
-        <span>${String(
-          state.rounds[state.game]
-        ).padStart(4,"0")}</span>
-      </div>
-
-      <div class="feedRow">
-        <span>PLAYERS</span>
-        <span>${players}</span>
-      </div>
-
-      <div class="feedRow">
-        <span>ACTIVE WINNERS</span>
-        <span class="win">${wins}</span>
-      </div>
-
-      <div class="feedRow">
-        <span>GAME</span>
-        <span>${state.game.toUpperCase()}</span>
-      </div>
-    `;
-
-}
-
-
-function showTop(period,button){
-
-  document
-    .querySelectorAll(".subTabs button")
-    .forEach(b=>
-      b.classList.remove("active")
-    );
-
-  if(button)
-    button.classList.add("active");
-
-  const names=[
-    "Player001",
-    "Player007",
-    "Player021",
-    "Player044",
-    "Player090"
-  ];
-
-  document
-    .getElementById("feedContent")
-    .innerHTML=
-      names.map(
-        (name,i)=>`
-
-          <div class="feedRow">
-
-            <span>
-              ${i+1}. ${name}
-            </span>
-
-            <span class="win">
-              ${period.toUpperCase()}
-            </span>
-
-          </div>
-
-        `
-      ).join("");
-
-}
-
-
-/* =========================================================
-   HELP
-========================================================= */
-
-function openHelp(){
-
-  const help={
-
-    keno:{
-      title:"How to Play Keno",
-      html:`
-        <h3>Choose a slot</h3>
-        <p>
-          Tap Slot 1 or Slot 2. Each slot has its own
-          selection of up to 10 numbers.
-        </p>
-
-        <h3>Choose numbers</h3>
-        <p>
-          Select from numbers 1–80. You may select
-          from 1 up to 10 numbers for each slot.
-        </p>
-
-        <h3>Place bet</h3>
-        <p>
-          Each slot has its own amount and Place Bet button.
-        </p>
-
-        <h3>Draw</h3>
-        <p>
-          Twenty numbers are called progressively.
-          Matches are highlighted.
-        </p>
-
-        <h3>Win / Lose</h3>
-        <p>
-          The final result and matches are shown after
-          the round finishes.
-        </p>
-      `
-    },
-
-    bingo:{
-      title:"How to Play Bingo",
-      html:`
-        <h3>Cartela</h3>
-        <p>
-          Enter a Cartela number from 1–120 and press OK.
-          The first Cartela goes to Slot 1. The next goes
-          to Slot 2.
-        </p>
-
-        <h3>Mark numbers</h3>
-        <p>
-          When a called number appears on your Cartela,
-          tap the matching cell.
-        </p>
-
-        <h3>BINGO</h3>
-        <p>
-          Complete a horizontal, vertical or diagonal line.
-          When the round allows a win, press the BINGO button
-          for the corresponding Cartela.
-        </p>
-
-        <h3>Round</h3>
-        <p>
-          Betting closes when the countdown reaches zero.
-          Numbers are then called progressively.
-        </p>
-      `
-    },
-
-    roulette:{
-      title:"How to Play Roulette",
-      html:`
-        <h3>Choose a number</h3>
-        <p>
-          Tap a number. Your selected number is highlighted.
-          Each slot can have its own selection.
-        </p>
-
-        <h3>Spin</h3>
-        <p>
-          Betting closes when the countdown reaches zero.
-          The wheel spins and stops on one number.
-        </p>
-
-        <h3>Win</h3>
-        <p>
-          A number bet wins when the wheel stops on that number.
-          The winning number is highlighted.
-        </p>
-
-        <h3>Lose</h3>
-        <p>
-          A number bet loses when the wheel stops on another
-          number.
-        </p>
-      `
-    },
-
-    aviator:{
-      title:"How to Play Aviator",
-      html:`
-        <h3>Place a bet</h3>
-        <p>
-          Place your Slot 1 or Slot 2 bet before the flight starts.
-        </p>
-
-        <h3>Live multiplier</h3>
-        <p>
-          The multiplier increases while the plane is flying.
-          The current potential payout is displayed live.
-        </p>
-
-        <h3>Cash Out</h3>
-        <p>
-          During the flight, Place Bet changes to Cash Out.
-          Tap it to cash out at the current multiplier.
-        </p>
-
-        <h3>Crash</h3>
-        <p>
-          If the flight crashes before cash out, the unsettled
-          bet does not receive a cash-out payout.
-        </p>
-
-        <h3>History</h3>
-        <p>
-          The latest 10 completed round multipliers are retained.
-          When a new round is completed, the oldest result drops out.
-        </p>
-      `
-    }
-
-  };
-
-  document
-    .getElementById("helpTitle")
-    .textContent=
-      help[state.game].title;
-
-  document
-    .getElementById("helpContent")
-    .innerHTML=
-      help[state.game].html;
-
-  document
-    .getElementById("helpOverlay")
-    .classList.remove("hidden");
-
-}
-
-
-function closeHelp(){
-
-  document
-    .getElementById("helpOverlay")
-    .classList.add("hidden");
-
-}
-
-
-/* =========================================================
-   WALLET ACTIONS
-========================================================= */
-
-const WALLET_API = {
-  deposit: "https://desta-play.onrender.com/api/deposit/request",
-  withdraw: "https://desta-play.onrender.com/api/withdraw/request"
 };
 
-function currentPlayerId(){
-  return String(
-    state.playerId ||
-    document.getElementById("profileId")?.textContent ||
-    ""
-  ).trim();
+function safeJsonResponse(response) {
+  return response.json().catch(() => ({ success: false, error: "Invalid response from server" }));
 }
 
-function openDeposit(){
-  const id=currentPlayerId();
-  document.getElementById("depositAccountId").value=id || "";
-  setWalletStatus("depositStatus","","");
+function loadTelegramUser() {
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    state.user = window.Telegram.WebApp.initDataUnsafe?.user || null;
+    if (window.Telegram.WebApp.initData) {
+      state.authToken = window.Telegram.WebApp.initData;
+      localStorage.setItem("destaAuthToken", state.authToken);
+    }
+  }
+}
+
+function updateBalance() {
+  const el = document.getElementById("userBalance");
+  if (el) el.textContent = state.balance.toFixed(2);
+}
+
+function switchTab(tab) {
+  state.game = tab;
+  document.querySelectorAll(".tabBtn").forEach(btn => btn.classList.remove("active"));
+  document.querySelectorAll(".gameView").forEach(view => view.classList.remove("active"));
+  
+  if (tab === "keno") {
+    document.getElementById("kenoView").classList.add("active");
+    event.target.classList.add("active");
+  }
+}
+
+function buildKeno() {
+  const grid = document.getElementById("kenoGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  for (let i = 1; i <= 80; i++) {
+    const btn = document.createElement("div");
+    btn.className = "kenoNum";
+    btn.textContent = i;
+    btn.onclick = () => toggleKenoNum(i, btn);
+    grid.appendChild(btn);
+  }
+}
+
+function toggleKenoNum(num, el) {
+  const idx = state.selectedKeno.indexOf(num);
+  if (idx > -1) {
+    state.selectedKeno.splice(idx, 1);
+    el.classList.remove("selected");
+  } else {
+    if (state.selectedKeno.length >= 10) return;
+    state.selectedKeno.push(num);
+    el.classList.add("selected");
+  }
+}
+
+function clearKenoSelection() {
+  state.selectedKeno = [];
+  document.querySelectorAll(".kenoNum").forEach(el => {
+    el.classList.remove("selected", "hit", "miss");
+  });
+}
+
+function quickPickKeno() {
+  clearKenoSelection();
+  const nums = [];
+  while (nums.length < 5) {
+    const r = Math.floor(Math.random() * 80) + 1;
+    if (!nums.includes(r)) nums.push(r);
+  }
+  state.selectedKeno = nums;
+  const gridNums = document.querySelectorAll(".kenoNum");
+  nums.forEach(n => gridNums[n - 1].classList.add("selected"));
+}
+
+function playKeno() {
+  if (state.selectedKeno.length === 0) return alert("Select at least 1 number.");
+  alert("Playing Keno with: " + state.selectedKeno.join(", "));
+}
+
+function openHelp() {
+  document.getElementById("helpContent").innerHTML = help[state.game].html;
+  document.getElementById("helpOverlay").classList.remove("hidden");
+}
+
+function closeHelp() {
+  document.getElementById("helpOverlay").classList.add("hidden");
+}
+
+/* =========================================================
+   WALLET / MODALS
+========================================================= */
+
+function openDeposit() {
   document.getElementById("depositModal").classList.remove("hidden");
+  fetchTransactionHistory();
 }
 
-function openWithdraw(){
-  const id=currentPlayerId();
-  document.getElementById("withdrawAccountId").value=id || "";
-  setWalletStatus("withdrawStatus","","");
+function closeDeposit() {
+  document.getElementById("depositModal").classList.add("hidden");
+}
+
+function openWithdraw() {
   document.getElementById("withdrawModal").classList.remove("hidden");
+  fetchTransactionHistory();
 }
 
-function closeWalletModal(id){
-  document.getElementById(id)?.classList.add("hidden");
+function closeWithdraw() {
+  document.getElementById("withdrawModal").classList.add("hidden");
 }
 
-function setWalletStatus(id,message,type){
-  const el=document.getElementById(id);
-  if(!el)return;
-  el.textContent=message||"";
-  el.className="walletStatus"+(type?" "+type:"");
+async function submitDeposit() {
+  const amount = Number(document.getElementById("depAmount").value);
+  const provider = document.getElementById("depProvider").value;
+  const referenceId = document.getElementById("depRef").value.trim();
+  const statusEl = document.getElementById("depStatus");
+
+  if (!amount || amount < 10) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = "Minimum deposit amount is 10 ETB.";
+    return;
+  }
+  if (!referenceId) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = "Transaction / Reference ID is required.";
+    return;
+  }
+
+  statusEl.className = "walletStatus wait";
+  statusEl.textContent = "Submitting deposit request...";
+
+  try {
+    const response = await fetch("https://desta-play.onrender.com/api/wallet/deposit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": "Bearer " + (state.authToken || localStorage.getItem("destaAuthToken"))
+      },
+      body: JSON.stringify({ amount, provider, referenceId })
+    });
+    const data = await safeJsonResponse(response);
+    if (!response.ok || !data.success) throw new Error(data.error || "Deposit submission failed.");
+
+    statusEl.className = "walletStatus ok";
+    statusEl.textContent = "Deposit submitted! Pending SMS & admin verification.";
+    document.getElementById("depAmount").value = "";
+    document.getElementById("depRef").value = "";
+    fetchTransactionHistory();
+  } catch (err) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = err.message || "Failed to submit deposit.";
+  }
 }
 
-async function postWalletRequest(url,payload,statusId,buttonId){
-  const button=document.getElementById(buttonId);
-  if(button)button.disabled=true;
-  setWalletStatus(statusId,"Submitting securely to the server…","wait");
-  try{
-    const headers={"Content-Type":"application/json","Accept":"application/json"};
-    if(state.authToken)headers.Authorization="Bearer "+state.authToken;
-    const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),cache:"no-store"});
-    let data={};
-    try{data=await safeJsonResponse(response)}catch(e){}
-    if(!response.ok || !data.success){
-      throw new Error(data.message || data.error || "Request could not be verified.");
+async function submitWithdraw() {
+  const amount = Number(document.getElementById("wdAmount").value);
+  const provider = document.getElementById("wdProvider").value;
+  const accountNumber = document.getElementById("wdAccount").value.trim();
+  const statusEl = document.getElementById("wdStatus");
+
+  if (!amount || amount < 50) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = "Minimum withdrawal amount is 50 ETB.";
+    return;
+  }
+  if (!accountNumber) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = "Destination phone/account number is required.";
+    return;
+  }
+
+  statusEl.className = "walletStatus wait";
+  statusEl.textContent = "Submitting withdrawal request...";
+
+  try {
+    const response = await fetch("https://desta-play.onrender.com/api/wallet/withdraw", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": "Bearer " + (state.authToken || localStorage.getItem("destaAuthToken"))
+      },
+      body: JSON.stringify({ amount, provider, accountNumber })
+    });
+    const data = await safeJsonResponse(response);
+    if (!response.ok || !data.success) throw new Error(data.error || "Withdrawal failed.");
+
+    statusEl.className = "walletStatus ok";
+    statusEl.textContent = "Withdrawal request submitted for approval.";
+    document.getElementById("wdAmount").value = "";
+    document.getElementById("wdAccount").value = "";
+    if (data.balance !== undefined) {
+      state.balance = Number(data.balance);
+      updateBalance();
     }
-    setWalletStatus(statusId,data.message || "Request submitted. Waiting for server verification.","ok");
-    if(typeof loadWalletData === "function")loadWalletData();
-    if(typeof loadServerAccount === "function")await loadServerAccount();
-    if(typeof updatePlayerDisplays === "function")updatePlayerDisplays();
-    return data;
-  }catch(error){
-    setWalletStatus(statusId,error.message || "Request failed. No balance was credited.","err");
-    return null;
-  }finally{
-    if(button)button.disabled=false;
+    fetchTransactionHistory();
+  } catch (err) {
+    statusEl.className = "walletStatus err";
+    statusEl.textContent = err.message || "Failed to submit withdrawal.";
   }
 }
 
-async function submitDeposit(){
-  const payload={
-    accountId:currentPlayerId(),
-    amount:Number(document.getElementById("depositAmount").value),
-    recipient:document.getElementById("depositRecipient").value.trim(),
-    transactionId:document.getElementById("depositReference").value.trim(),
-    referenceId:document.getElementById("depositReference").value.trim(),
-    senderPhone:document.getElementById("depositSender").value.trim(),
-    method:document.getElementById("depositMethod").value
-  };
-  if(!payload.accountId || !payload.amount || payload.amount<=0 || !payload.recipient || !payload.transactionId){
-    setWalletStatus("depositStatus","Enter the amount, payment recipient and transaction/reference ID.","err");
-    return;
-  }
-  await postWalletRequest(WALLET_API.deposit,payload,"depositStatus","depositSubmitBtn");
-}
+async function fetchTransactionHistory() {
+  const token = state.authToken || localStorage.getItem("destaAuthToken");
+  if (!token) return;
 
-async function submitWithdraw(){
-  const payload={
-    accountId:currentPlayerId(),
-    amount:Number(document.getElementById("withdrawAmount").value),
-    method:document.getElementById("withdrawMethod").value,
-    account:document.getElementById("withdrawAccount").value.trim()
-  };
-  if(!payload.accountId || !payload.amount || payload.amount<=0 || !payload.account){
-    setWalletStatus("withdrawStatus","Enter a valid amount and payment account/phone number.","err");
-    return;
-  }
-  await postWalletRequest(WALLET_API.withdraw,payload,"withdrawStatus","withdrawSubmitBtn");
-}
+  try {
+    const response = await fetch("https://desta-play.onrender.com/api/wallet/transactions", {
+      headers: {
+        "Accept": "application/json",
+        "Authorization": "Bearer " + token
+      }
+    });
+    const data = await safeJsonResponse(response);
+    if (response.ok && data.success) {
+      if (data.balance !== undefined) {
+        state.balance = Number(data.balance);
+        updateBalance();
+      }
 
-async function loadWalletData(){
-  if(!state.authToken)return;
-  try{
-    const headers={"Accept":"application/json","Authorization":"Bearer "+state.authToken};
-    const response=await fetch("https://desta-play.onrender.com/api/wallet",{cache:"no-store",headers});
-    if(!response.ok)return;
-    const data=await safeJsonResponse(response);
-    if(!data.success)return;
-    const wallet=data.wallet||data;
-    const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
-    const withdrawable=Number(wallet.withdrawable ?? wallet.withdrawableBalance ?? 0);
-    const locked=Number(wallet.lockedDeposit ?? wallet.lockedBalance ?? Math.max(0,balance-withdrawable));
-    const b=document.getElementById("walletBalance");
-    const w=document.getElementById("withdrawableBalance");
-    const l=document.getElementById("lockedBalance");
-    if(b)b.textContent=balance.toFixed(2);
-    if(w)w.textContent=withdrawable.toFixed(2);
-    if(l)l.textContent=locked.toFixed(2);
-    if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
-  }catch(error){console.warn("Wallet connection error:",error)}
-}
-
-function renderWalletTransactions(rows){
-  const box=document.getElementById("transactions");
-  if(!box)return;
-  if(!rows.length){box.textContent="No transactions yet.";return;}
-  box.innerHTML=rows.slice(0,20).map(tx=>{
-    const status=String(tx.status||"PENDING").toUpperCase();
-    const cls=status==="APPROVED"?"statusApproved":status==="REJECTED"?"statusRejected":"statusPending";
-    const type=String(tx.type||tx.kind||"TRANSACTION").toUpperCase();
-    const amount=Number(tx.amount||0).toFixed(2);
-    const ref=tx.transactionId||tx.referenceId||tx.reference||"";
-    return `<div class="transactionRow"><strong>${type}</strong> — ${amount} ETB<br><span class="transactionStatus ${cls}">${status}</span>${ref?` · ${escapeHtml(ref)}`:""}</div>`;
-  }).join("");
-}
-
-function escapeHtml(value){
-  return String(value).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
-}
-
-
-/* =========================================================
-   SERVER-AUTHORITATIVE LIVE ROUND STATE
-   ========================================================= */
-
-let liveRoundTimer = null;
-let liveRoundBusy = false;
-let lastServerRoundId = {};
-
-function updateCountdownFromServer(round){
-  const game = round.game;
-  const el = document.getElementById(game + "Countdown") ||
-             document.getElementById(game + "Status");
-  if(!el) return;
-
-  const seconds = Number(round.remainingSeconds || 0);
-  const betting = round.status === "BETTING";
-
-  el.textContent = betting
-    ? `BETTING ${seconds}s`
-    : `ROUND LIVE`;
-
-  if(betting){
-    el.classList.remove("closed");
-  }else{
-    el.classList.add("closed");
+      const txContainer = document.getElementById("transactions");
+      if (txContainer && Array.isArray(data.transactions)) {
+        if (data.transactions.length === 0) {
+          txContainer.textContent = "No transactions yet.";
+        } else {
+          txContainer.innerHTML = data.transactions.map(tx => `
+            <div class="transactionRow">
+              <div style="display:flex;justify-content:space-between">
+                <strong>${tx.type.toUpperCase()} (${tx.provider || "MANUAL"})</strong>
+                <span class="transactionStatus status${tx.status.charAt(0).toUpperCase() + tx.status.slice(1).toLowerCase()}">${tx.status}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:#aaa">
+                <span>Ref: ${tx.referenceId || tx.id || "—"}</span>
+                <strong style="color:${tx.type === 'deposit' ? '#18d66b' : '#ff5555'}">${tx.type === 'deposit' ? '+' : '-'}${Number(tx.amount).toFixed(2)} ETB</strong>
+              </div>
+            </div>
+          `).join("");
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to fetch transaction history:", err);
   }
 }
 
 /* =========================================================
-   INITIALIZATION
+   INIT
 ========================================================= */
 
-window.addEventListener("DOMContentLoaded",()=>{
+window.addEventListener("DOMContentLoaded", () => {
   loadTelegramUser();
+  updateBalance();
+  buildKeno();
 });
-
 </script>
+
+<!-- ======================================================
+     DEPOSIT MODAL
+====================================================== -->
+<div id="depositModal" class="walletModal hidden">
+  <div class="walletModalPanel">
+    <div class="walletModalHead">
+      <h2>DEPOSIT ETB</h2>
+      <button class="walletModalClose" onclick="closeDeposit()">✕</button>
+    </div>
+
+    <div class="walletHint">
+      Send funds to our official Telebirr / CBE Birr account, then enter the amount and transaction ID below for instant verification.
+    </div>
+
+    <label class="walletFormLabel">PAYMENT PROVIDER</label>
+    <select id="depProvider" class="walletFormSelect">
+      <option value="telebirr">Telebirr</option>
+      <option value="cbe_birr">CBE Birr</option>
+      <option value="cbe_bank">CBE Bank Transfer</option>
+    </select>
+
+    <label class="walletFormLabel">AMOUNT (ETB)</label>
+    <input id="depAmount" type="number" class="walletFormInput" placeholder="Minimum 10 ETB" min="10">
+
+    <label class="walletFormLabel">TRANSACTION / REFERENCE ID</label>
+    <input id="depRef" type="text" class="walletFormInput" placeholder="e.g. TX12345678">
+
+    <button class="walletSubmit" onclick="submitDeposit()">SUBMIT DEPOSIT</button>
+    <div id="depStatus" class="walletStatus"></div>
+    <div id="transactions" style="margin-top:15px; max-height:150px; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ======================================================
+     WITHDRAW MODAL
+====================================================== -->
+<div id="withdrawModal" class="walletModal hidden">
+  <div class="walletModalPanel">
+    <div class="walletModalHead">
+      <h2>WITHDRAW ETB</h2>
+      <button class="walletModalClose" onclick="closeWithdraw()">✕</button>
+    </div>
+
+    <div class="walletHint">
+      Withdrawals are processed to your mobile wallet or bank account once verified.
+    </div>
+
+    <label class="walletFormLabel">RECEIVING METHOD</label>
+    <select id="wdProvider" class="walletFormSelect">
+      <option value="telebirr">Telebirr</option>
+      <option value="cbe_birr">CBE Birr</option>
+      <option value="cbe_bank">CBE Bank Transfer</option>
+    </select>
+
+    <label class="walletFormLabel">AMOUNT (ETB)</label>
+    <input id="wdAmount" type="number" class="walletFormInput" placeholder="Minimum 50 ETB" min="50">
+
+    <label class="walletFormLabel">PHONE / ACCOUNT NUMBER</label>
+    <input id="wdAccount" type="tel" class="walletFormInput" placeholder="e.g. 0912345678">
+
+    <button class="walletSubmit" onclick="submitWithdraw()">SUBMIT WITHDRAWAL</button>
+    <div id="wdStatus" class="walletStatus"></div>
+  </div>
+</div>
 
 </body>
 </html>
