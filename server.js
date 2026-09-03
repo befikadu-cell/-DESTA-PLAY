@@ -47,6 +47,51 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
+/*
+|--------------------------------------------------------------------------
+| DESTA PLAY — EDITIONS 2–8 SERVER CONFIGURATION
+|--------------------------------------------------------------------------
+|
+| Keep private administrator IDs and bot secrets on Render environment
+| variables. Payment display values may be supplied here as placeholders
+| until the real values are configured.
+|
+| IMPORTANT: Minimum deposit is 50 ETB.
+|--------------------------------------------------------------------------
+*/
+
+const ADMIN_TELEGRAM_ID =
+    String(process.env.ADMIN_TELEGRAM_ID || "").trim();
+
+const ADMIN_PRIVATE_GROUP_ID =
+    String(process.env.ADMIN_PRIVATE_GROUP_ID || "").trim();
+
+const TELEGRAM_BOT_TOKEN =
+    String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
+
+const TELEGRAM_WEBHOOK_SECRET =
+    String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+
+const SMS_WEBHOOK_SECRET =
+    String(process.env.SMS_WEBHOOK_SECRET || "").trim();
+
+const PAYMENT_OWNER_NAME =
+    String(process.env.PAYMENT_OWNER_NAME || "TEST PAYMENT OWNER").trim();
+
+const PAYMENT_PHONE =
+    String(process.env.PAYMENT_PHONE || "TEST PAYMENT PHONE").trim();
+
+const TELEBIRR_ACCOUNT =
+    String(process.env.TELEBIRR_ACCOUNT || "TEST TELEBIRR ACCOUNT").trim();
+
+const MIN_DEPOSIT_AMOUNT = 50;
+
+const SUPPORTED_DEPOSIT_METHODS = {
+    telebirr: true,
+    mpesa: false,
+    cbe_birr: false
+};
+
 if (!SUPABASE_URL) {
     throw new Error("Missing SUPABASE_URL");
 }
@@ -203,6 +248,304 @@ async function dbError(context, error) {
         details: error?.details,
         hint: error?.hint
     });
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| EDITIONS 2–7 FINANCIAL / ADMIN HELPERS
+|--------------------------------------------------------------------------
+*/
+
+function normalizePhone(value) {
+    return String(value || "")
+        .trim()
+        .replace(/[^0-9+]/g, "")
+        .slice(0, 32);
+}
+
+function normalizeReference(value) {
+    return String(value || "")
+        .trim()
+        .slice(0, 200);
+}
+
+function safeJson(value) {
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return "{}";
+    }
+}
+
+function parseFirstAmount(text) {
+    const matches = String(text || "").match(/(?:ETB|Birr|Amount|Paid|received|sent)?\s*([0-9]{1,9}(?:[.,][0-9]{1,2})?)/gi) || [];
+
+    for (const item of matches) {
+        const numberMatch = item.match(/[0-9]{1,9}(?:[.,][0-9]{1,2})?/);
+        if (!numberMatch) continue;
+        const amount = Number(numberMatch[0].replace(",", ""));
+        if (Number.isFinite(amount) && amount > 0) return amount;
+    }
+
+    return null;
+}
+
+function extractReferenceCandidates(text) {
+    const source = String(text || "");
+    const values = new Set();
+
+    const labeled = source.match(/(?:transaction|trans|reference|ref|receipt|id)[\s:#-]*([A-Za-z0-9_-]{5,80})/gi) || [];
+
+    for (const item of labeled) {
+        const match = item.match(/([A-Za-z0-9_-]{5,80})$/);
+        if (match) values.add(match[1]);
+    }
+
+    const longTokens = source.match(/[A-Za-z0-9_-]{8,80}/g) || [];
+    for (const token of longTokens) values.add(token);
+
+    return [...values];
+}
+
+async function telegramApi(method, payload) {
+    if (!TELEGRAM_BOT_TOKEN) {
+        return { ok: false, skipped: true, error: "TELEGRAM_BOT_TOKEN is not configured" };
+    }
+
+    try {
+        const response = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok || !data?.ok) {
+            console.error("[TELEGRAM] API ERROR:", data || response.status);
+            return { ok: false, error: data?.description || `HTTP ${response.status}` };
+        }
+
+        return { ok: true, data };
+    } catch (error) {
+        console.error("[TELEGRAM] REQUEST ERROR:", error);
+        return { ok: false, error: error.message };
+    }
+}
+
+async function sendAdminTelegramMessage(text, replyMarkup = null) {
+    if (!ADMIN_TELEGRAM_ID) {
+        console.warn("[ADMIN] ADMIN_TELEGRAM_ID is not configured");
+        return { ok: false, skipped: true };
+    }
+
+    return telegramApi("sendMessage", {
+        chat_id: ADMIN_TELEGRAM_ID,
+        text,
+        parse_mode: "HTML",
+        ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+    });
+}
+
+async function sendAdminGroupAudit(text) {
+    if (!ADMIN_PRIVATE_GROUP_ID) {
+        console.warn("[ADMIN] ADMIN_PRIVATE_GROUP_ID is not configured");
+        return { ok: false, skipped: true };
+    }
+
+    return telegramApi("sendMessage", {
+        chat_id: ADMIN_PRIVATE_GROUP_ID,
+        text,
+        parse_mode: "HTML"
+    });
+}
+
+function transactionDescription(data) {
+    return safeJson({
+        edition: data.edition || null,
+        method: data.method || null,
+        recipient: data.recipient || null,
+        senderPhone: data.senderPhone || null,
+        recipientPhone: data.recipientPhone || null,
+        transactionId: data.transactionId || null,
+        referenceId: data.referenceId || null,
+        requestId: data.requestId || null,
+        requestedAt: data.requestedAt || null,
+        smsText: data.smsText || null
+    });
+}
+
+async function findTransactionById(id) {
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error) {
+        await dbError("findTransactionById", error);
+        throw new Error("Transaction lookup failed");
+    }
+
+    return data;
+}
+
+async function findPendingDeposits() {
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("type", "deposit")
+        .eq("status", "PENDING")
+        .order("created_at", { ascending: true })
+        .limit(100);
+
+    if (error) {
+        await dbError("findPendingDeposits", error);
+        throw new Error("Could not load pending deposits");
+    }
+
+    return data || [];
+}
+
+async function hasSuccessfulDepositReference(referenceId) {
+    const ref = normalizeReference(referenceId);
+    if (!ref) return false;
+
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("type", "deposit")
+        .eq("reference_id", ref)
+        .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
+        .limit(1);
+
+    if (error) {
+        await dbError("hasSuccessfulDepositReference", error);
+        throw new Error("Could not check duplicate payment reference");
+    }
+
+    return Array.isArray(data) && data.length > 0;
+}
+
+const paymentProcessingLocks = new Set();
+
+async function approveDepositTransaction(transaction, verification) {
+    if (!transaction) throw new Error("Deposit transaction not found");
+
+    const referenceId = normalizeReference(
+        verification.referenceId || transaction.reference_id
+    );
+
+    if (!referenceId) {
+        throw new Error("Payment reference is required");
+    }
+
+    if (paymentProcessingLocks.has(referenceId)) {
+        throw new Error("Payment verification is already being processed");
+    }
+
+    paymentProcessingLocks.add(referenceId);
+
+    try {
+        if (await hasSuccessfulDepositReference(referenceId)) {
+            throw new Error("This payment has already been credited");
+        }
+
+        const pending = await findTransactionById(transaction.id);
+
+        if (!pending || pending.status !== "PENDING") {
+            if (pending?.status === "SUCCESS" || pending?.status === "APPROVED" || pending?.status === "COMPLETED") {
+                throw new Error("This payment has already been credited");
+            }
+            throw new Error("Deposit is no longer pending");
+        }
+
+        const expectedAmount = Number(pending.amount);
+        const actualAmount = Number(verification.amount);
+
+        if (!Number.isFinite(actualAmount) || actualAmount !== expectedAmount) {
+            throw new Error("Payment amount does not match the pending deposit");
+        }
+
+        const { data: marked, error: markError } = await supabase
+            .from("transactions")
+            .update({
+                status: "APPROVED",
+                reference_id: referenceId,
+                description: transactionDescription({
+                    edition: 4,
+                    method: "telebirr",
+                    recipient: verification.receiver || null,
+                    senderPhone: verification.senderPhone || null,
+                    transactionId: referenceId,
+                    referenceId,
+                    requestId: pending.id,
+                    requestedAt: pending.created_at,
+                    smsText: verification.smsText || null
+                })
+            })
+            .eq("id", pending.id)
+            .eq("status", "PENDING")
+            .select("*")
+            .maybeSingle();
+
+        if (markError) {
+            await dbError("approveDepositTransaction mark", markError);
+            throw new Error("Could not approve deposit");
+        }
+
+        if (!marked) {
+            throw new Error("Deposit was already processed or changed");
+        }
+
+        const balanceAfter = await changeBalance({
+            playerId: pending.player_id,
+            amount: expectedAmount,
+            type: "deposit_credit",
+            description: "Verified Telebirr deposit",
+            roundId: referenceId,
+            metadata: {
+                referenceId,
+                verifiedAmount: expectedAmount,
+                sender: verification.sender || null,
+                senderPhone: verification.senderPhone || null,
+                receiver: verification.receiver || null,
+                receiverPhone: verification.receiverPhone || null,
+                smsTime: verification.smsTime || null
+            }
+        });
+
+        await sendAdminGroupAudit(
+            `DEPOSIT VERIFIED\nPlayer: ${pending.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`
+        );
+
+        return {
+            transaction: marked,
+            balanceAfter,
+            referenceId
+        };
+    } finally {
+        paymentProcessingLocks.delete(referenceId);
+    }
+}
+
+function withdrawalReplyMarkup(requestId) {
+    return {
+        inline_keyboard: [
+            [
+                { text: "ACCEPT", callback_data: `dpw:accept:${requestId}` },
+                { text: "REJECT", callback_data: `dpw:reject:${requestId}` },
+                { text: "COMPLETED", callback_data: `dpw:completed:${requestId}` }
+            ]
+        ]
+    };
 }
 
 /*
@@ -844,6 +1187,714 @@ app.get(
                 req.player.balance || 0
             )
         });
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 2 — PUBLIC PAYMENT CONFIGURATION
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+    "/api/payment/config",
+    requirePlayer,
+    (req, res) => {
+        return res.json({
+            success: true,
+            minimumDeposit: MIN_DEPOSIT_AMOUNT,
+            methods: {
+                telebirr: {
+                    available: true,
+                    ownerName: PAYMENT_OWNER_NAME,
+                    phone: PAYMENT_PHONE,
+                    account: TELEBIRR_ACCOUNT
+                },
+                mpesa: {
+                    available: false,
+                    message: "Payment method is not available now."
+                },
+                cbeBirr: {
+                    available: false,
+                    message: "Payment method is not available now."
+                }
+            }
+        });
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 3 — DEPOSIT REQUEST
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/deposit/request",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const amount = Number(req.body.amount);
+            const method = String(req.body.method || "telebirr").trim().toLowerCase();
+            const transactionId = normalizeReference(req.body.transactionId);
+            const referenceId = normalizeReference(req.body.referenceId || transactionId);
+            const recipient = String(req.body.recipient || PAYMENT_OWNER_NAME).trim().slice(0, 120);
+            const senderPhone = normalizePhone(req.body.senderPhone);
+
+            if (!Number.isFinite(amount) || amount < MIN_DEPOSIT_AMOUNT) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
+                });
+            }
+
+            if (!SUPPORTED_DEPOSIT_METHODS[method]) {
+                return res.status(400).json({
+                    success: false,
+                    error: method === "mpesa" || method === "cbe_birr"
+                        ? "Payment method is not available now."
+                        : "Unsupported payment method"
+                });
+            }
+
+            if (!referenceId) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Payment transaction/reference link is required"
+                });
+            }
+
+            if (await hasSuccessfulDepositReference(referenceId)) {
+                return res.status(409).json({
+                    success: false,
+                    error: "This payment reference has already been credited"
+                });
+            }
+
+            const { data: existingPending, error: duplicateError } = await supabase
+                .from("transactions")
+                .select("id,status")
+                .eq("type", "deposit")
+                .eq("reference_id", referenceId)
+                .in("status", ["PENDING", "APPROVED", "SUCCESS", "COMPLETED"])
+                .limit(1);
+
+            if (duplicateError) {
+                await dbError("deposit duplicate check", duplicateError);
+                throw new Error("Could not check payment reference");
+            }
+
+            if (existingPending?.length) {
+                return res.status(409).json({
+                    success: false,
+                    error: "This payment reference is already submitted"
+                });
+            }
+
+            const requestId = makeId("DEP");
+
+            const { data, error } = await supabase
+                .from("transactions")
+                .insert({
+                    id: requestId,
+                    player_id: req.player.id,
+                    type: "deposit",
+                    amount,
+                    balance_before: Number(req.player.balance || 0),
+                    balance_after: Number(req.player.balance || 0),
+                    status: "PENDING",
+                    description: transactionDescription({
+                        edition: 3,
+                        method,
+                        recipient,
+                        senderPhone,
+                        transactionId,
+                        referenceId,
+                        requestId,
+                        requestedAt: nowIso()
+                    }),
+                    reference_id: referenceId,
+                    created_at: nowIso()
+                })
+                .select("*")
+                .single();
+
+            if (error) {
+                await dbError("deposit request insert", error);
+                throw new Error("Could not create deposit request");
+            }
+
+            await sendAdminGroupAudit(
+                `DEPOSIT PENDING\nPlayer: ${req.player.id}\nAmount: ${amount} ETB\nReference: ${referenceId}\nRequest: ${requestId}`
+            );
+
+            return res.json({
+                success: true,
+                status: "PENDING",
+                requestId,
+                amount,
+                minimumDeposit: MIN_DEPOSIT_AMOUNT,
+                referenceId: data.reference_id
+            });
+        } catch (error) {
+            console.error("Deposit request error:", error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || "Could not create deposit request"
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 4 — SMS PAYMENT VERIFICATION
+|--------------------------------------------------------------------------
+|
+| The SMS forwarder can POST the complete SMS text here. The endpoint
+| never credits a deposit from the player's submission alone. A forwarded
+| payment must contain a matching amount and transaction/reference value.
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/payment/sms",
+    async (req, res) => {
+        try {
+            if (SMS_WEBHOOK_SECRET) {
+                const supplied = String(
+                    req.headers["x-sms-webhook-secret"] ||
+                    req.headers["x-webhook-secret"] ||
+                    ""
+                );
+
+                if (supplied !== SMS_WEBHOOK_SECRET) {
+                    return res.status(401).json({
+                        success: false,
+                        error: "Unauthorized"
+                    });
+                }
+            }
+
+            const smsText = String(
+                req.body.message ||
+                req.body.text ||
+                req.body.sms ||
+                req.body.body ||
+                ""
+            ).trim();
+
+            if (!smsText) {
+                return res.status(400).json({
+                    success: false,
+                    error: "SMS message is required"
+                });
+            }
+
+            const forwardedAmount =
+                Number(req.body.amount) ||
+                parseFirstAmount(smsText);
+
+            const referenceCandidates = [
+                normalizeReference(req.body.transactionId),
+                normalizeReference(req.body.referenceId),
+                ...extractReferenceCandidates(smsText)
+            ].filter(Boolean);
+
+            const sender = String(
+                req.body.sender ||
+                req.body.senderName ||
+                ""
+            ).trim();
+
+            const senderPhone = normalizePhone(
+                req.body.senderPhone ||
+                req.body.from ||
+                ""
+            );
+
+            const receiver = String(
+                req.body.receiver ||
+                req.body.recipient ||
+                ""
+            ).trim();
+
+            const receiverPhone = normalizePhone(
+                req.body.receiverPhone ||
+                req.body.to ||
+                ""
+            );
+
+            const pending = await findPendingDeposits();
+
+            let matched = null;
+
+            for (const deposit of pending) {
+                const description = String(deposit.description || "");
+                const referenceMatches =
+                    referenceCandidates.includes(String(deposit.reference_id || "")) ||
+                    referenceCandidates.some(token => description.includes(token));
+
+                const amountMatches =
+                    Number.isFinite(forwardedAmount) &&
+                    Number(deposit.amount) === Number(forwardedAmount);
+
+                if (referenceMatches && amountMatches) {
+                    matched = deposit;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                return res.status(200).json({
+                    success: true,
+                    verified: false,
+                    credited: false,
+                    message: "No pending deposit matched this SMS"
+                });
+            }
+
+            const referenceId = String(matched.reference_id || referenceCandidates[0] || "");
+
+            const result = await approveDepositTransaction(matched, {
+                amount: forwardedAmount,
+                referenceId,
+                sender,
+                senderPhone,
+                receiver,
+                receiverPhone,
+                smsTime: req.body.timestamp || req.body.time || null,
+                smsText
+            });
+
+            return res.json({
+                success: true,
+                verified: true,
+                credited: true,
+                playerId: matched.player_id,
+                amount: Number(matched.amount),
+                referenceId: result.referenceId,
+                balanceAfter: result.balanceAfter
+            });
+        } catch (error) {
+            console.error("SMS verification error:", error);
+            return res.status(400).json({
+                success: false,
+                verified: false,
+                credited: false,
+                error: error.message || "Payment verification failed"
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 5 — WITHDRAWAL REQUEST
+|--------------------------------------------------------------------------
+*/
+
+app.post(
+    "/api/withdraw/request",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const amount = Number(req.body.amount);
+            const recipientName = String(req.body.recipientName || req.body.fullName || "").trim().slice(0, 120);
+            const recipientPhone = normalizePhone(req.body.recipientPhone || req.body.phone);
+            const password = String(req.body.password || "");
+
+            if (!Number.isFinite(amount) || amount <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Invalid withdrawal amount"
+                });
+            }
+
+            const before = Number(req.player.balance || 0);
+
+            if (amount > before) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Insufficient balance",
+                    balanceBefore: before
+                });
+            }
+
+            if (!recipientName || !recipientPhone) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Recipient full name and phone are required"
+                });
+            }
+
+            if (!validPassword(password)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Password is required"
+                });
+            }
+
+            if (!req.player.password_hash) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Account password is not configured"
+                });
+            }
+
+            const valid = await argon2.verify(
+                req.player.password_hash,
+                password
+            );
+
+            if (!valid) {
+                return res.status(401).json({
+                    success: false,
+                    error: "Incorrect password"
+                });
+            }
+
+            const after = before - amount;
+            const requestId = makeId("WDR");
+
+            await changeBalance({
+                playerId: req.player.id,
+                amount: -amount,
+                type: "withdrawal_reserve",
+                description: `Withdrawal reservation ${requestId}`,
+                roundId: requestId,
+                metadata: {
+                    requestId,
+                    recipientName,
+                    recipientPhone
+                }
+            });
+
+            const { data, error } = await supabase
+                .from("transactions")
+                .insert({
+                    id: requestId,
+                    player_id: req.player.id,
+                    type: "withdrawal",
+                    amount,
+                    balance_before: before,
+                    balance_after: after,
+                    status: "PENDING",
+                    description: transactionDescription({
+                        edition: 5,
+                        recipient: recipientName,
+                        recipientPhone,
+                        requestId,
+                        requestedAt: nowIso()
+                    }),
+                    reference_id: requestId,
+                    created_at: nowIso()
+                })
+                .select("*")
+                .single();
+
+            if (error) {
+                await dbError("withdrawal request insert", error);
+
+                /* Reservation was already recorded; return it so a failed
+                   request insert does not silently consume player funds. */
+                await changeBalance({
+                    playerId: req.player.id,
+                    amount,
+                    type: "withdrawal_reservation_reversal",
+                    description: `Withdrawal request rollback ${requestId}`,
+                    roundId: requestId
+                });
+
+                throw new Error("Could not create withdrawal request");
+            }
+
+            const text =
+                `<b>DESTA PLAY — WITHDRAWAL REQUEST</b>\n` +
+                `Telegram name: ${String(req.player.username || "Player")}\n` +
+                `Username: ${String(req.player.telegram_username || "Not available")}\n` +
+                `Account/Player ID: ${String(req.player.id)}\n` +
+                `Recipient: ${recipientName}\n` +
+                `Phone: ${recipientPhone}\n` +
+                `Amount: ${amount} ETB\n` +
+                `Balance before: ${before} ETB\n` +
+                `Balance after: ${after} ETB\n` +
+                `Request ID: ${requestId}\n` +
+                `Request time: ${nowIso()}`;
+
+            await sendAdminTelegramMessage(
+                text,
+                withdrawalReplyMarkup(requestId)
+            );
+
+            await sendAdminGroupAudit(
+                text.replace(/<[^>]+>/g, "")
+            );
+
+            return res.json({
+                success: true,
+                status: "PENDING",
+                requestId,
+                amount,
+                balanceBefore: before,
+                balanceAfter: after
+            });
+        } catch (error) {
+            console.error("Withdrawal request error:", error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || "Could not create withdrawal request"
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 6 — TELEGRAM WITHDRAWAL CONTROL
+|--------------------------------------------------------------------------
+|
+| Telegram callback buttons are processed through the webhook below.
+| Passwords and password hashes are never sent to Telegram.
+|--------------------------------------------------------------------------
+*/
+
+async function processWithdrawalAction(action, requestId) {
+    const transaction = await findTransactionById(requestId);
+
+    if (!transaction || transaction.type !== "withdrawal") {
+        throw new Error("Withdrawal request not found");
+    }
+
+    if (action === "accept") {
+        if (transaction.status !== "PENDING") {
+            throw new Error(`Cannot ACCEPT withdrawal in ${transaction.status} status`);
+        }
+
+        const { data, error } = await supabase
+            .from("transactions")
+            .update({ status: "APPROVED" })
+            .eq("id", requestId)
+            .eq("status", "PENDING")
+            .select("*")
+            .maybeSingle();
+
+        if (error) {
+            await dbError("withdrawal accept", error);
+            throw new Error("Could not accept withdrawal");
+        }
+
+        if (!data) throw new Error("Withdrawal was already processed");
+
+        await sendAdminGroupAudit(
+            `WITHDRAWAL ACCEPTED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
+        );
+
+        return "ACCEPTED";
+    }
+
+    if (action === "reject") {
+        if (transaction.status !== "PENDING") {
+            throw new Error(`Cannot REJECT withdrawal in ${transaction.status} status`);
+        }
+
+        const player = await findPlayerById(transaction.player_id);
+        if (!player) throw new Error("Player not found");
+
+        const amount = Number(transaction.amount);
+        const before = Number(player.balance || 0);
+
+        const { data, error } = await supabase
+            .from("transactions")
+            .update({ status: "REJECTED" })
+            .eq("id", requestId)
+            .eq("status", "PENDING")
+            .select("*")
+            .maybeSingle();
+
+        if (error) {
+            await dbError("withdrawal reject", error);
+            throw new Error("Could not reject withdrawal");
+        }
+
+        if (!data) throw new Error("Withdrawal was already processed");
+
+        await changeBalance({
+            playerId: transaction.player_id,
+            amount,
+            type: "withdrawal_reversal",
+            description: `Withdrawal rejected ${requestId}`,
+            roundId: requestId
+        });
+
+        await sendAdminGroupAudit(
+            `WITHDRAWAL REJECTED\nRequest: ${requestId}\nAmount returned: ${amount} ETB\nBalance before return: ${before} ETB`
+        );
+
+        return "REJECTED";
+    }
+
+    if (action === "completed") {
+        if (transaction.status !== "APPROVED") {
+            throw new Error("COMPLETED is allowed only after ACCEPT");
+        }
+
+        const { data, error } = await supabase
+            .from("transactions")
+            .update({ status: "COMPLETED" })
+            .eq("id", requestId)
+            .eq("status", "APPROVED")
+            .select("*")
+            .maybeSingle();
+
+        if (error) {
+            await dbError("withdrawal completed", error);
+            throw new Error("Could not complete withdrawal");
+        }
+
+        if (!data) throw new Error("Withdrawal was already processed");
+
+        await sendAdminGroupAudit(
+            `WITHDRAWAL COMPLETED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
+        );
+
+        return "COMPLETED";
+    }
+
+    throw new Error("Unknown withdrawal action");
+}
+
+app.post(
+    "/api/admin/telegram/webhook",
+    async (req, res) => {
+        try {
+            if (TELEGRAM_WEBHOOK_SECRET) {
+                const supplied = String(
+                    req.headers["x-telegram-bot-api-secret-token"] ||
+                    ""
+                );
+
+                if (supplied !== TELEGRAM_WEBHOOK_SECRET) {
+                    return res.status(401).json({ success: false, error: "Unauthorized" });
+                }
+            }
+
+            const callback = req.body?.callback_query;
+            if (!callback) return res.json({ success: true });
+
+            const fromId = String(callback.from?.id || "");
+            if (!ADMIN_TELEGRAM_ID || fromId !== ADMIN_TELEGRAM_ID) {
+                await telegramApi("answerCallbackQuery", {
+                    callback_query_id: callback.id,
+                    text: "Not authorized",
+                    show_alert: true
+                });
+                return res.json({ success: true });
+            }
+
+            const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
+            if (!match) return res.json({ success: true });
+
+            const action = match[1];
+            const requestId = match[2];
+
+            const result = await processWithdrawalAction(action, requestId);
+
+            await telegramApi("answerCallbackQuery", {
+                callback_query_id: callback.id,
+                text: result,
+                show_alert: false
+            });
+
+            if (callback.message?.chat?.id && callback.message?.message_id) {
+                await telegramApi("editMessageReplyMarkup", {
+                    chat_id: callback.message.chat.id,
+                    message_id: callback.message.message_id,
+                    reply_markup: { inline_keyboard: [] }
+                });
+            }
+
+            return res.json({ success: true, result });
+        } catch (error) {
+            console.error("Telegram withdrawal webhook error:", error);
+
+            if (req.body?.callback_query?.id) {
+                await telegramApi("answerCallbackQuery", {
+                    callback_query_id: req.body.callback_query.id,
+                    text: error.message || "Action failed",
+                    show_alert: true
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                error: error.message || "Telegram action failed"
+            });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 7 — TRANSACTION HISTORY
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+    "/api/wallet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const { data, error } = await supabase
+                .from("transactions")
+                .select("*")
+                .eq("player_id", req.player.id)
+                .order("created_at", { ascending: false })
+                .limit(50);
+
+            if (error) {
+                await dbError("wallet transactions", error);
+                throw new Error("Could not load wallet transactions");
+            }
+
+            return res.json({
+                success: true,
+                balance: Number(req.player.balance || 0),
+                transactions: data || []
+            });
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: error.message || "Could not load wallet"
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/account/transactions",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const { data, error } = await supabase
+                .from("transactions")
+                .select("*")
+                .eq("player_id", req.player.id)
+                .order("created_at", { ascending: false })
+                .limit(50);
+
+            if (error) {
+                await dbError("account transactions", error);
+                throw new Error("Could not load transactions");
+            }
+
+            return res.json({ success: true, transactions: data || [] });
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                error: error.message || "Could not load transactions"
+            });
+        }
     }
 );
 
@@ -3060,6 +4111,135 @@ async function restoreHouseRound(
         );
     }
 }
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 8 — SERVER-AUTHORITATIVE KENO BET
+|--------------------------------------------------------------------------
+|
+| One slot, up to 10 numbers from 1–80, manual amount, minimum 10 ETB.
+| The draw itself remains server-authoritative.
+|--------------------------------------------------------------------------
+*/
+
+function kenoBetIsValid(amount) {
+    return validateEngineBet(keno, amount);
+}
+
+app.post(
+    "/api/keno/bet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const round = rounds.keno;
+            const amount = Number(req.body.amount);
+            const rawNumbers = Array.isArray(req.body.numbers)
+                ? req.body.numbers
+                : [];
+
+            const numbers = [...new Set(
+                rawNumbers.map(Number)
+            )];
+
+            if (!round || round.status !== "BETTING") {
+                return res.status(400).json({
+                    success: false,
+                    error: "Keno betting is closed"
+                });
+            }
+
+            if (!Number.isFinite(amount) || amount < 10) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Minimum Keno bet is 10 ETB"
+                });
+            }
+
+            try {
+                kenoBetIsValid(amount);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    error: error.message || "Invalid Keno bet amount"
+                });
+            }
+
+            if (numbers.length < 1 || numbers.length > 10) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Choose between 1 and 10 Keno numbers"
+                });
+            }
+
+            if (numbers.some(n => !Number.isInteger(n) || n < 1 || n > 80)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Keno numbers must be between 1 and 80"
+                });
+            }
+
+            const currentBalance = Number(req.player.balance || 0);
+            if (amount > currentBalance) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Insufficient balance"
+                });
+            }
+
+            if (!Array.isArray(round.bets)) round.bets = [];
+
+            if (round.bets.some(bet => bet.playerId === req.player.id)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "You already placed a Keno bet for this round"
+                });
+            }
+
+            const betId = makeId("KENOBET");
+
+            const balanceAfter = await changeBalance({
+                playerId: req.player.id,
+                amount: -amount,
+                type: "keno_bet",
+                game: "keno",
+                roundId: round.id,
+                description: "Keno bet",
+                metadata: {
+                    betId,
+                    numbers
+                }
+            });
+
+            round.bets.push({
+                betId,
+                playerId: req.player.id,
+                numbers,
+                amount,
+                placedAt: Date.now(),
+                cashedOut: false
+            });
+
+            await saveRound(round);
+
+            return res.json({
+                success: true,
+                betId,
+                roundId: round.id,
+                numbers,
+                amount,
+                balanceAfter,
+                bettingEndsAt: round.bettingEndsAt,
+                remainingMilliseconds: Math.max(0, round.bettingEndsAt - Date.now())
+            });
+        } catch (error) {
+            console.error("Keno bet error:", error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || "Could not place Keno bet"
+            });
+        }
+    }
+);
 
 /*
 |--------------------------------------------------------------------------
