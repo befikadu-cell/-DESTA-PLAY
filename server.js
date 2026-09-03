@@ -573,27 +573,6 @@ async function findPlayerByTelegramId(telegramId) {
     return data;
 }
 
-async function findPlayerByPhone(phone) {
-    const normalized = normalizePhone(phone);
-
-    if (!normalized) {
-        return null;
-    }
-
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("phone", normalized)
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findPlayerByPhone", error);
-        throw new Error("Database error");
-    }
-
-    return data;
-}
-
 async function findPlayerById(playerId) {
     const { data, error } = await supabase
         .from("players")
@@ -623,7 +602,6 @@ function publicPlayer(player) {
     return {
         playerId: player.id,
         telegramId: player.telegram_id,
-        phone: player.phone || null,
         telegramName: player.username || "Player",
         balance: Number(player.balance || 0),
         createdAt: player.created_at
@@ -919,79 +897,77 @@ async function registerHandler(req, res) {
         const {
             telegramId,
             telegramName,
-            phone,
             password
         } = req.body;
 
-        const normalizedPhone = normalizePhone(phone);
-
-        if (!normalizedPhone && (
+        if (
             telegramId === undefined ||
             telegramId === null ||
             String(telegramId).trim() === ""
-        )) {
+        ) {
             return res.status(400).json({
                 success: false,
-                error: "Phone number is required"
+                error: "Missing Telegram ID"
             });
         }
 
         if (!validPassword(password)) {
             return res.status(400).json({
                 success: false,
-                error: "Password must be between 8 and 128 characters"
+                error:
+                    "Password must be between 8 and 128 characters"
             });
         }
 
-        const existingByPhone = normalizedPhone
-            ? await findPlayerByPhone(normalizedPhone)
-            : null;
+        const existing =
+            await findPlayerByTelegramId(telegramId);
 
-        const existingByTelegram =
-            telegramId !== undefined && telegramId !== null && String(telegramId).trim() !== ""
-                ? await findPlayerByTelegramId(telegramId)
-                : null;
-
-        if (existingByPhone || existingByTelegram) {
+        if (existing) {
             return res.status(400).json({
                 success: false,
-                error: "Account already exists. Please login."
+                error:
+                    "Account already exists. Please login."
             });
         }
 
-        const passwordHash = await argon2.hash(password);
-        const playerId = makePlayerId();
-        const safeName = normalizeTelegramName(telegramName);
+        const passwordHash =
+            await argon2.hash(password);
 
-        const playerRecord = {
-            id: playerId,
-            telegram_id: telegramId === undefined || telegramId === null
-                ? null
-                : String(telegramId),
-            phone: normalizedPhone || null,
-            username: safeName,
-            password_hash: passwordHash,
-            balance: 0,
-            created_at: nowIso(),
-            updated_at: nowIso()
-        };
+        const playerId = makePlayerId();
+
+        const safeName =
+            normalizeTelegramName(telegramName);
 
         const { data: insertedPlayer, error } =
             await supabase
                 .from("players")
-                .insert(playerRecord)
+                .insert({
+                    id: playerId,
+                    telegram_id: String(telegramId),
+                    username: safeName,
+                    password_hash: passwordHash,
+                    balance: 0,
+                    created_at: nowIso(),
+                    updated_at: nowIso()
+                })
                 .select("*")
                 .single();
 
         if (error) {
-            await dbError("Register insert", error);
+            await dbError(
+                "Register insert",
+                error
+            );
+
             return res.status(500).json({
                 success: false,
-                error: "Failed to create player account"
+                error:
+                    "Failed to create player account"
             });
         }
 
-        const token = createSession(insertedPlayer);
+        const token =
+            createSession(insertedPlayer);
 
         return res.json({
             success: true,
@@ -1000,15 +976,25 @@ async function registerHandler(req, res) {
         });
     } catch (error) {
         console.error("Registration error:", error);
+
         return res.status(500).json({
             success: false,
-            error: error.message || "Registration failed"
+            error:
+                error.message ||
+                "Registration failed"
         });
     }
 }
 
-app.post("/api/auth/register", registerHandler);
-app.post("/api/account/register", registerHandler);
+app.post(
+    "/api/auth/register",
+    registerHandler
+);
+
+app.post(
+    "/api/account/register",
+    registerHandler
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -1018,35 +1004,46 @@ app.post("/api/account/register", registerHandler);
 
 async function loginHandler(req, res) {
     try {
-        const { phone, telegramId, password } = req.body;
-        const normalizedPhone = normalizePhone(phone);
+        const {
+            telegramId,
+            password
+        } = req.body;
 
-        if ((!normalizedPhone && (telegramId === undefined || telegramId === null || String(telegramId).trim() === "")) || !password) {
+        if (
+            telegramId === undefined ||
+            telegramId === null ||
+            !password
+        ) {
             return res.status(400).json({
                 success: false,
-                error: "Phone number and password are required"
+                error: "Missing credentials"
             });
         }
 
-        const player = normalizedPhone
-            ? await findPlayerByPhone(normalizedPhone)
-            : await findPlayerByTelegramId(telegramId);
+        const player =
+            await findPlayerByTelegramId(telegramId);
 
         if (!player) {
             return res.status(404).json({
                 success: false,
-                error: "Account not found. Please register first."
+                error:
+                    "Account not found. Please register first."
             });
         }
 
         if (!player.password_hash) {
             return res.status(401).json({
                 success: false,
-                error: "This account does not have a valid password. Please reset your password."
+                error:
+                    "This account does not have a valid password. Please contact support."
             });
         }
 
-        const valid = await argon2.verify(player.password_hash, password);
+        const valid =
+            await argon2.verify(
+                player.password_hash,
+                password
+            );
 
         if (!valid) {
             return res.status(401).json({
@@ -1055,7 +1052,8 @@ async function loginHandler(req, res) {
             });
         }
 
-        const token = createSession(player);
+        const token =
+            createSession(player);
 
         return res.json({
             success: true,
@@ -1064,50 +1062,92 @@ async function loginHandler(req, res) {
         });
     } catch (error) {
         console.error("Login error:", error);
+
         return res.status(500).json({
             success: false,
-            error: error.message || "Login failed"
+            error:
+                error.message ||
+                "Login failed"
         });
     }
 }
 
-app.post("/api/auth/login", loginHandler);
-app.post("/api/account/login", loginHandler);
+app.post(
+    "/api/auth/login",
+    loginHandler
+);
+
+app.post(
+    "/api/account/login",
+    loginHandler
+);
 
 /*
 |--------------------------------------------------------------------------
-| EDITION 1 — PASSWORD RESET REQUEST
-|--------------------------------------------------------------------------
-|
-| A forgotten-password request never changes a password by itself.
-| It identifies the account by phone and sends a reset request to the
-| configured administrator. The administrator must complete the reset.
-| Passwords and password hashes are never sent to Telegram.
-|
+| EDITION 1 — PASSWORD RESET
 |--------------------------------------------------------------------------
 */
+
+function passwordResetReplyMarkup(requestId) {
+    return {
+        inline_keyboard: [[
+            { text: "APPROVE RESET", callback_data: `dpr:approve:${requestId}` },
+            { text: "REJECT RESET", callback_data: `dpr:reject:${requestId}` }
+        ]]
+    };
+}
+
+async function findPasswordResetRequest(requestId, phone = null) {
+    let query = supabase.from("password_reset_requests").select("*").eq("id", requestId);
+    if (phone) query = query.eq("phone", normalizePhone(phone));
+    const { data, error } = await query.maybeSingle();
+    if (error) {
+        await dbError("findPasswordResetRequest", error);
+        throw new Error("Database error");
+    }
+    return data;
+}
+
+async function processPasswordResetAction(action, requestId) {
+    const request = await findPasswordResetRequest(requestId);
+    if (!request) throw new Error("Password reset request not found");
+
+    if (request.status === "PENDING" && action === "approve") {
+        const { data, error } = await supabase.from("password_reset_requests")
+            .update({ status: "APPROVED", approved_at: nowIso() })
+            .eq("id", requestId).eq("status", "PENDING").select("*").maybeSingle();
+        if (error) { await dbError("password reset approve", error); throw new Error("Could not approve password reset"); }
+        if (!data) throw new Error("Password reset request was already processed");
+        await sendAdminGroupAudit(`PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}`);
+        return "RESET APPROVED";
+    }
+
+    if (request.status === "PENDING" && action === "reject") {
+        const { data, error } = await supabase.from("password_reset_requests")
+            .update({ status: "REJECTED", rejected_at: nowIso() })
+            .eq("id", requestId).eq("status", "PENDING").select("*").maybeSingle();
+        if (error) { await dbError("password reset reject", error); throw new Error("Could not reject password reset"); }
+        if (!data) throw new Error("Password reset request was already processed");
+        await sendAdminGroupAudit(`PASSWORD RESET REJECTED\nRequest: ${requestId}\nPlayer: ${request.player_id}`);
+        return "RESET REJECTED";
+    }
+
+    throw new Error(`Cannot ${action} reset in ${request.status} status`);
+}
 
 app.post("/api/account/password-reset-request", async (req, res) => {
     try {
         const phone = normalizePhone(req.body.phone);
-
-        if (!phone) {
-            return res.status(400).json({
-                success: false,
-                error: "Phone number is required"
-            });
-        }
-
+        if (!phone) return res.status(400).json({ success: false, error: "Phone number is required" });
         const player = await findPlayerByPhone(phone);
-
-        if (!player) {
-            return res.status(404).json({
-                success: false,
-                error: "Account not found"
-            });
-        }
+        if (!player) return res.status(404).json({ success: false, error: "Account not found" });
 
         const requestId = makeId("RST");
+        const { data, error } = await supabase.from("password_reset_requests").insert({
+            id: requestId, player_id: player.id, phone, status: "PENDING", created_at: nowIso()
+        }).select("*").single();
+        if (error) { await dbError("password reset request insert", error); throw new Error("Could not create password reset request"); }
+
         const text =
             `<b>DESTA PLAY — PASSWORD RESET REQUEST</b>\n` +
             `Account/Player ID: ${String(player.id)}\n` +
@@ -1117,22 +1157,56 @@ app.post("/api/account/password-reset-request", async (req, res) => {
             `Request ID: ${requestId}\n` +
             `Request time: ${nowIso()}\n\n` +
             `No password or password hash is included.`;
-
-        await sendAdminTelegramMessage(text);
+        await sendAdminTelegramMessage(text, passwordResetReplyMarkup(requestId));
         await sendAdminGroupAudit(text.replace(/<[^>]+>/g, ""));
-
-        return res.json({
-            success: true,
-            status: "PENDING",
-            requestId,
-            message: "Password reset request sent to the administrator."
-        });
+        return res.json({ success: true, status: data.status, requestId, message: "Reset request submitted. Wait for administrator approval." });
     } catch (error) {
         console.error("Password reset request error:", error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || "Could not submit password reset request"
-        });
+        return res.status(500).json({ success: false, error: error.message || "Could not submit password reset request" });
+    }
+});
+
+app.get("/api/account/password-reset-status", async (req, res) => {
+    try {
+        const phone = normalizePhone(req.query.phone);
+        const requestId = String(req.query.requestId || "").trim();
+        if (!phone || !requestId) return res.status(400).json({ success: false, error: "Phone number and reset request ID are required" });
+        const request = await findPasswordResetRequest(requestId, phone);
+        if (!request) return res.status(404).json({ success: false, error: "Password reset request not found" });
+        return res.json({ success: true, status: request.status, requestId: request.id });
+    } catch (error) {
+        console.error("Password reset status error:", error);
+        return res.status(500).json({ success: false, error: error.message || "Could not check password reset status" });
+    }
+});
+
+app.post("/api/account/password-reset-complete", async (req, res) => {
+    try {
+        const phone = normalizePhone(req.body.phone);
+        const requestId = String(req.body.requestId || "").trim();
+        const password = req.body.password;
+        if (!phone || !requestId) return res.status(400).json({ success: false, error: "Phone number and reset request ID are required" });
+        if (!validPassword(password)) return res.status(400).json({ success: false, error: "Password must be between 8 and 128 characters" });
+        const request = await findPasswordResetRequest(requestId, phone);
+        if (!request) return res.status(404).json({ success: false, error: "Password reset request not found" });
+        if (request.status !== "APPROVED") return res.status(400).json({ success: false, error: request.status === "REJECTED" ? "Password reset was rejected by the administrator" : request.status === "COMPLETED" ? "Password reset has already been completed" : "Password reset is waiting for administrator approval" });
+
+        const passwordHash = await argon2.hash(password);
+        const { data: updatedPlayer, error: playerError } = await supabase.from("players")
+            .update({ password_hash: passwordHash, updated_at: nowIso() })
+            .eq("id", request.player_id).eq("phone", phone).select("*").maybeSingle();
+        if (playerError) { await dbError("password reset player update", playerError); throw new Error("Could not change password"); }
+        if (!updatedPlayer) return res.status(404).json({ success: false, error: "Player account not found" });
+
+        const { data: completedRequest, error: requestError } = await supabase.from("password_reset_requests")
+            .update({ status: "COMPLETED", completed_at: nowIso() })
+            .eq("id", requestId).eq("status", "APPROVED").select("*").maybeSingle();
+        if (requestError) { await dbError("password reset completion", requestError); throw new Error("Password changed, but reset status could not be finalized"); }
+        if (!completedRequest) throw new Error("Password reset request was already completed");
+        return res.json({ success: true, status: "COMPLETED", message: "Password changed successfully" });
+    } catch (error) {
+        console.error("Password reset completion error:", error);
+        return res.status(500).json({ success: false, error: error.message || "Could not reset password" });
     }
 });
 
@@ -1844,6 +1918,17 @@ app.post(
                     show_alert: true
                 });
                 return res.json({ success: true });
+            }
+
+            const resetMatch = String(callback.data || "").match(/^dpr:(approve|reject):(.+)$/);
+
+            if (resetMatch) {
+                const resetResult = await processPasswordResetAction(resetMatch[1], resetMatch[2]);
+                await telegramApi("answerCallbackQuery", { callback_query_id: callback.id, text: resetResult, show_alert: false });
+                if (callback.message?.chat?.id && callback.message?.message_id) {
+                    await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
+                }
+                return res.json({ success: true, result: resetResult });
             }
 
             const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
