@@ -3388,14 +3388,17 @@
     ========================================================= */
 
     function updateRound(){
-
-      document
-        .getElementById("roundNumber")
-        .textContent=
-          String(
-            state.rounds[state.game]
-          ).padStart(4,"0");
-
+      const game=state.game;
+      const displayNumbers=state.displayRoundNumbers || (state.displayRoundNumbers={});
+      const serverId=String(state.serverRoundIds?.[game] || state.roundIds?.[game] || "");
+      state.displayRoundServerIds=state.displayRoundServerIds || {};
+      if(serverId){
+        const previousId=state.displayRoundServerIds[game];
+        if(!displayNumbers[game]) displayNumbers[game]=1;
+        if(previousId && previousId!==serverId) displayNumbers[game]++;
+        state.displayRoundServerIds[game]=serverId;
+      }
+      document.getElementById("roundNumber").textContent=String(displayNumbers[game] || 1).padStart(4,"0");
     }
 
 
@@ -5678,77 +5681,51 @@
 
     async function fetchLiveRound(game){
       try{
-        const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round${game === "bingo" ? `?tier=${encodeURIComponent(Number(state.bingoAmounts?.[1] || 10))}` : ""}`, {
-          cache:"no-store",
-          headers:{"Accept":"application/json"}
-        });
-
+        const bingoTier = Number(state.bingoAmounts?.[1] || 10);
+        const roundUrl = game === "bingo"
+          ? `https://desta-play.onrender.com/api/game/bingo/round?tier=${encodeURIComponent(bingoTier)}`
+          : `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
+        const response = await fetch(roundUrl,{cache:"no-store",headers:{"Accept":"application/json"}});
         if(!response.ok) return false;
-
         const data = await safeJsonResponse(response);
-        if(data && data.success && data.round){
-          applyServerRound(data.round);
-          return true;
-        }
+        if(data && data.success && data.round){ applyServerRound(data.round); return true; }
         return false;
       }catch(error){
-        console.warn("Live round connection error:", error);
+        console.warn("Live round connection error:",error);
         return false;
       }
     }
 
     async function fetchAllLiveRounds(){
       if(liveRoundBusy) return;
-      liveRoundBusy = true;
-
+      liveRoundBusy=true;
       try{
-        /*
-         * The server's /api/status endpoint is the single authoritative
-         * snapshot for ALL four games. Read it first so the browser always
-         * receives Keno, Bingo, Roulette and Aviator from the same server
-         * timestamp. Individual round endpoints remain as a compatibility
-         * fallback only.
-         */
-        let statusLoaded = false;
-
+        /* Primary source: one server-authoritative snapshot for ALL games. */
+        let data=null;
         try{
-          const response = await fetch("https://desta-play.onrender.com/api/status", {
-            cache:"no-store",
-            headers:{"Accept":"application/json"}
-          });
-
-          if(response.ok){
-            const data = await safeJsonResponse(response);
-
-            if(data && data.success){
-              statusLoaded = true;
-
-              ["keno","roulette","aviator"].forEach(game => {
-                const round = data.games?.[game];
-                if(round) applyServerRound(round);
-              });
-
-              const bingoTier = Number(state.bingoAmounts?.[1] || 10);
-              const bingoRound = data.bingo?.[bingoTier];
-              if(bingoRound) applyServerRound(bingoRound);
-            }
-          }
+          const response=await fetch("https://desta-play.onrender.com/api/status",{cache:"no-store",headers:{"Accept":"application/json"}});
+          if(response.ok) data=await safeJsonResponse(response);
         }catch(error){
-          console.warn("Live status connection error:", error);
+          console.warn("Live status connection error:",error);
         }
 
-        /* If the combined snapshot is unavailable, try each game directly. */
-        if(!statusLoaded){
-          await Promise.all([
-            fetchLiveRound("keno"),
-            fetchLiveRound("bingo"),
-            fetchLiveRound("roulette"),
-            fetchLiveRound("aviator")
-          ]);
+        const received={keno:false,bingo:false,roulette:false,aviator:false};
+        if(data && data.success){
+          ["keno","bingo","roulette","aviator"].forEach(game=>{
+            const round = game === "bingo"
+              ? data.bingo?.[Number(state.bingoAmounts?.[1] || 10)]
+              : data.games?.[game];
+            if(round){ applyServerRound(round); received[game]=true; }
+          });
+        }
+
+        /* Individual endpoints are fallback only when the status snapshot lacks a game. */
+        for(const game of ["keno","bingo","roulette","aviator"]){
+          if(!received[game]) await fetchLiveRound(game);
         }
       }finally{
-        state.bettingOpen = !!state.bettingOpenByGame[state.game];
-        liveRoundBusy = false;
+        state.bettingOpen=!!state.bettingOpenByGame[state.game];
+        liveRoundBusy=false;
       }
     }
 
@@ -5961,7 +5938,7 @@
         <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
         <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
         <label class="walletFormLabel">WITHDRAWAL METHOD</label>
-        <select id="withdrawMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
+        <select id="withdrawMethod" class="walletFormSelect"><option value="Telebirr" selected>Telebirr</option><option value="M-Pesa">M-Pesa</option></select>
         <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
         <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Phone number receiving the money">
         <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
