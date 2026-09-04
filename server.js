@@ -1,5456 +1,5764 @@
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY — 24/7 CONTINUOUS BACKEND ENGINE
-|--------------------------------------------------------------------------
-|
-| Features:
-|   - Multi-Tier PVP Bingo
-|   - Server-authoritative game rounds
-|   - Permanent Supabase player/balance/transaction storage
-|   - Argon2 password hashing
-|   - Server-side authentication
-|   - Server-synchronized countdowns
-|   - Continuous 24/7 game loops
-|   - Engine-defined minimum bet validation
-|   - Keno / Bingo / Roulette / Aviator
-|
-|--------------------------------------------------------------------------
-*/
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>DESTA PLAY</title>
 
-"use strict";
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
 
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import crypto from "crypto";
-import argon2 from "argon2";
-import { createClient } from "@supabase/supabase-js";
-
-import * as keno from "./games/keno.js";
-import * as bingo from "./games/bingo.js";
-import * as roulette from "./games/roulette.js";
-import * as aviator from "./games/aviator.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/*
-|--------------------------------------------------------------------------
-| ENVIRONMENT
-|--------------------------------------------------------------------------
-*/
-
-const PORT = Number(process.env.PORT || 10000);
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SESSION_SECRET = process.env.SESSION_SECRET;
-
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY — EDITIONS 2–8 SERVER CONFIGURATION
-|--------------------------------------------------------------------------
-|
-| Keep private administrator IDs and bot secrets on Render environment
-| variables. Payment display values may be supplied here as placeholders
-| until the real values are configured.
-|
-| IMPORTANT: Minimum deposit is 50 ETB.
-|--------------------------------------------------------------------------
-*/
-
-const ADMIN_TELEGRAM_ID =
-    String(process.env.ADMIN_TELEGRAM_ID || "").trim();
-
-const ADMIN_PRIVATE_GROUP_ID =
-    String(process.env.ADMIN_PRIVATE_GROUP_ID || "").trim();
-
-const TELEGRAM_BOT_TOKEN =
-    String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
-
-const TELEGRAM_WEBHOOK_SECRET =
-    String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
-
-const SMS_WEBHOOK_SECRET =
-    String(process.env.SMS_WEBHOOK_SECRET || "").trim();
-
-const PAYMENT_OWNER_NAME =
-    String(process.env.PAYMENT_OWNER_NAME || "TEST PAYMENT OWNER").trim();
-
-const PAYMENT_PHONE =
-    String(process.env.PAYMENT_PHONE || "TEST PAYMENT PHONE").trim();
-
-const TELEBIRR_ACCOUNT =
-    String(process.env.TELEBIRR_ACCOUNT || "TEST TELEBIRR ACCOUNT").trim();
-
-const MIN_DEPOSIT_AMOUNT = 50;
-
-const SUPPORTED_DEPOSIT_METHODS = {
-    telebirr: true,
-    mpesa: false,
-    cbe_birr: false
-};
-
-if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-}
-
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-}
-
-if (!SESSION_SECRET) {
-    throw new Error("Missing SESSION_SECRET");
-}
-
-/*
-|--------------------------------------------------------------------------
-| SUPABASE
-|--------------------------------------------------------------------------
-*/
-
-const supabase = createClient(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EXPRESS
-|--------------------------------------------------------------------------
-*/
-
-const app = express();
-
-app.use(cors());
-app.use(express.json({ limit: "100kb" }));
-app.use(express.static(path.join(__dirname, "public")));
-
-/*
-|--------------------------------------------------------------------------
-| GAME ENGINES
-|--------------------------------------------------------------------------
-*/
-
-const games = {
-    keno,
-    bingo,
-    roulette,
-    aviator
-};
-
-const rounds = {};
-
-/*
-|--------------------------------------------------------------------------
-| ENGINE TIMING
-|--------------------------------------------------------------------------
-*/
-
-const DRAW_INTERVALS = {
-    bingo: 3000,
-    keno: 3000,
-    roulette: 3000,
-    aviator: 100
-};
-
-const BETTING_TIMERS = {
-    bingo: Number(bingo.BETTING_SECONDS || 40),
-    keno: Number(keno.BETTING_SECONDS || 40),
-    roulette: Number(roulette.BETTING_SECONDS || 40),
-    aviator: Number(aviator.BETTING_SECONDS || 10)
-};
-
-const NEXT_ROUND_DELAY = 5000;
-
-/*
-|--------------------------------------------------------------------------
-| PVP BINGO
-|--------------------------------------------------------------------------
-|
-| IMPORTANT:
-| The engine is authoritative for valid bingo bet amounts.
-| We do NOT create another conflicting minimum-bet rule here.
-|
-|--------------------------------------------------------------------------
-*/
-
-const bingoRooms = {};
-
-/*
-|--------------------------------------------------------------------------
-| GENERAL HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function nowIso() {
-    return new Date().toISOString();
-}
-
-function makeId(prefix = "DP") {
-    return (
-        `${prefix}-` +
-        Date.now() +
-        "-" +
-        crypto.randomBytes(4).toString("hex")
-    );
-}
-
-function makePlayerId() {
-    return (
-        "DP-" +
-        crypto.randomBytes(4).toString("hex").toUpperCase()
-    );
-}
-
-function normalizeTelegramName(name) {
-    if (typeof name !== "string") {
-        return "Player";
+    <style>
+    :root{
+      --red:#b40000;
+      --red2:#ef1b1b;
+      --gold:#ffcc33;
+      --gold2:#ff9f00;
+      --dark:#090909;
+      --dark2:#151515;
+      --panel:#1d1d1d;
+      --panel2:#252525;
+      --text:#fff;
+      --muted:#aaa;
+      --green:#18d66b;
+      --blue:#3498ff;
     }
 
-    return (
-        name
-            .trim()
-            .replace(/\s+/g, " ")
-            .slice(0, 80) || "Player"
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| PASSWORD VALIDATION
-|--------------------------------------------------------------------------
-|
-| Minimum: 6 characters
-| Maximum: 128 characters
-| Allowed: A-Z, a-z, 0-9, #, @
-|
-| The same account password is used for withdrawal verification.
-| There is no separate withdrawal password.
-|
-|--------------------------------------------------------------------------
-*/
-
-function validPassword(password) {
-    return (
-        typeof password === "string" &&
-        password.length >= 6 &&
-        password.length <= 128 &&
-        /^[A-Za-z0-9#@]+$/.test(password)
-    );
-}
-
-function numericAmount(value) {
-    const amount = Number(value);
-
-    if (!Number.isFinite(amount)) {
-        throw new Error("Invalid amount");
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
     }
 
-    return amount;
-}
-
-async function dbError(context, error) {
-    console.error(`[DATABASE ERROR] ${context}:`, {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint
-    });
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| EDITIONS 2–7 FINANCIAL / ADMIN HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function normalizePhone(value) {
-    return String(value || "")
-        .trim()
-        .replace(/[^0-9+]/g, "")
-        .slice(0, 32);
-}
-
-function normalizeReference(value) {
-    return String(value || "")
-        .trim()
-        .slice(0, 200);
-}
-
-function safeJson(value) {
-    try {
-        return JSON.stringify(value);
-    } catch (_) {
-        return "{}";
-    }
-}
-
-function parseFirstAmount(text) {
-    const matches = String(text || "").match(/(?:ETB|Birr|Amount|Paid|received|sent)?\s*([0-9]{1,9}(?:[.,][0-9]{1,2})?)/gi) || [];
-
-    for (const item of matches) {
-        const numberMatch = item.match(/[0-9]{1,9}(?:[.,][0-9]{1,2})?/);
-        if (!numberMatch) continue;
-        const amount = Number(numberMatch[0].replace(",", ""));
-        if (Number.isFinite(amount) && amount > 0) return amount;
+    html,body{
+      margin:0;
+      min-height:100%;
+      background:
+        radial-gradient(circle at top,#3b0000 0,#100000 35%,#050505 75%);
+      color:#fff;
+      font-family:Arial,Helvetica,sans-serif;
     }
 
-    return null;
-}
-
-function extractReferenceCandidates(text) {
-    const source = String(text || "");
-    const values = new Set();
-
-    const labeled = source.match(/(?:transaction|trans|reference|ref|receipt|id)[\s:#-]*([A-Za-z0-9_-]{5,80})/gi) || [];
-
-    for (const item of labeled) {
-        const match = item.match(/([A-Za-z0-9_-]{5,80})$/);
-        if (match) values.add(match[1]);
+    body{
+      min-height:100vh;
+      padding-bottom:72px;
     }
 
-    const longTokens = source.match(/[A-Za-z0-9_-]{8,80}/g) || [];
-    for (const token of longTokens) values.add(token);
-
-    return [...values];
-}
-
-async function telegramApi(method, payload) {
-    if (!TELEGRAM_BOT_TOKEN) {
-        return { ok: false, skipped: true, error: "TELEGRAM_BOT_TOKEN is not configured" };
+    button,input{
+      font:inherit;
     }
 
-    try {
-        const response = await fetch(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            }
-        );
-
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok || !data?.ok) {
-            console.error("[TELEGRAM] API ERROR:", data || response.status);
-            return { ok: false, error: data?.description || `HTTP ${response.status}` };
-        }
-
-        return { ok: true, data };
-    } catch (error) {
-        console.error("[TELEGRAM] REQUEST ERROR:", error);
-        return { ok: false, error: error.message };
-    }
-}
-
-async function sendAdminTelegramMessage(text, replyMarkup = null) {
-    if (!ADMIN_TELEGRAM_ID) {
-        console.warn("[ADMIN] ADMIN_TELEGRAM_ID is not configured");
-        return { ok: false, skipped: true };
+    button{
+      cursor:pointer;
     }
 
-    return telegramApi("sendMessage", {
-        chat_id: ADMIN_TELEGRAM_ID,
-        text,
-        parse_mode: "HTML",
-        ...(replyMarkup ? { reply_markup: replyMarkup } : {})
-    });
-}
-
-async function sendAdminGroupAudit(text) {
-    if (!ADMIN_PRIVATE_GROUP_ID) {
-        console.warn("[ADMIN] ADMIN_PRIVATE_GROUP_ID is not configured");
-        return { ok: false, skipped: true };
+    .hidden{
+      display:none!important;
     }
 
-    return telegramApi("sendMessage", {
-        chat_id: ADMIN_PRIVATE_GROUP_ID,
-        text,
-        parse_mode: "HTML"
-    });
-}
+    /* =========================================================
+       ACCOUNT / REGISTRATION
+    ========================================================= */
 
-function transactionDescription(data) {
-    return safeJson({
-        edition: data.edition || null,
-        method: data.method || null,
-        recipient: data.recipient || null,
-        senderPhone: data.senderPhone || null,
-        recipientPhone: data.recipientPhone || null,
-        transactionId: data.transactionId || null,
-        referenceId: data.referenceId || null,
-        requestId: data.requestId || null,
-        requestedAt: data.requestedAt || null,
-        smsText: data.smsText || null
-    });
-}
-
-async function findTransactionById(id) {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findTransactionById", error);
-        throw new Error("Transaction lookup failed");
+    #accountScreen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
     }
 
-    return data;
-}
-
-async function findPendingDeposits() {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("type", "deposit")
-        .eq("status", "PENDING")
-        .order("created_at", { ascending: true })
-        .limit(100);
-
-    if (error) {
-        await dbError("findPendingDeposits", error);
-        throw new Error("Could not load pending deposits");
+    .accountPanel{
+      width:100%;
+      max-width:420px;
+      padding:22px;
+      border-radius:18px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+      border:1px solid #6b2424;
+      box-shadow:0 15px 50px #000;
     }
 
-    return data || [];
-}
-
-async function hasSuccessfulDepositReference(referenceId) {
-    const ref = normalizeReference(referenceId);
-    if (!ref) return false;
-
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("id")
-        .eq("type", "deposit")
-        .eq("reference_id", ref)
-        .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
-        .limit(1);
-
-    if (error) {
-        await dbError("hasSuccessfulDepositReference", error);
-        throw new Error("Could not check duplicate payment reference");
+    .accountLogo{
+      text-align:center;
+      color:var(--gold);
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:1px;
+      margin-bottom:5px;
     }
 
-    return Array.isArray(data) && data.length > 0;
-}
-
-const paymentProcessingLocks = new Set();
-
-async function approveDepositTransaction(transaction, verification) {
-    if (!transaction) throw new Error("Deposit transaction not found");
-
-    const referenceId = normalizeReference(
-        verification.referenceId || transaction.reference_id
-    );
-
-    if (!referenceId) {
-        throw new Error("Payment reference is required");
+    .accountWelcome{
+      text-align:center;
+      color:#ddd;
+      font-size:13px;
+      margin-bottom:20px;
     }
 
-    if (paymentProcessingLocks.has(referenceId)) {
-        throw new Error("Payment verification is already being processed");
+    .accountInfo{
+      padding:12px;
+      border:1px solid #482020;
+      border-radius:10px;
+      background:#111;
+      margin-bottom:15px;
     }
 
-    paymentProcessingLocks.add(referenceId);
-
-    try {
-        if (await hasSuccessfulDepositReference(referenceId)) {
-            throw new Error("This payment has already been credited");
-        }
-
-        const pending = await findTransactionById(transaction.id);
-
-        if (!pending || pending.status !== "PENDING") {
-            if (pending?.status === "SUCCESS" || pending?.status === "APPROVED" || pending?.status === "COMPLETED") {
-                throw new Error("This payment has already been credited");
-            }
-            throw new Error("Deposit is no longer pending");
-        }
-
-        const expectedAmount = Number(pending.amount);
-        const actualAmount = Number(verification.amount);
-
-        if (!Number.isFinite(actualAmount) || actualAmount !== expectedAmount) {
-            throw new Error("Payment amount does not match the pending deposit");
-        }
-
-        const { data: marked, error: markError } = await supabase
-            .from("transactions")
-            .update({
-                status: "APPROVED",
-                reference_id: referenceId,
-                description: transactionDescription({
-                    edition: 4,
-                    method: "telebirr",
-                    recipient: verification.receiver || null,
-                    senderPhone: verification.senderPhone || null,
-                    transactionId: referenceId,
-                    referenceId,
-                    requestId: pending.id,
-                    requestedAt: pending.created_at,
-                    smsText: verification.smsText || null
-                })
-            })
-            .eq("id", pending.id)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
-
-        if (markError) {
-            await dbError("approveDepositTransaction mark", markError);
-            throw new Error("Could not approve deposit");
-        }
-
-        if (!marked) {
-            throw new Error("Deposit was already processed or changed");
-        }
-
-        const balanceAfter = await changeBalance({
-            playerId: pending.player_id,
-            amount: expectedAmount,
-            type: "deposit_credit",
-            description: "Verified Telebirr deposit",
-            roundId: referenceId,
-            metadata: {
-                referenceId,
-                verifiedAmount: expectedAmount,
-                sender: verification.sender || null,
-                senderPhone: verification.senderPhone || null,
-                receiver: verification.receiver || null,
-                receiverPhone: verification.receiverPhone || null,
-                smsTime: verification.smsTime || null
-            }
-        });
-
-        await sendAdminGroupAudit(
-            `DEPOSIT VERIFIED\nPlayer: ${pending.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`
-        );
-
-        return {
-            transaction: marked,
-            balanceAfter,
-            referenceId
-        };
-    } finally {
-        paymentProcessingLocks.delete(referenceId);
+    .accountInfoRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:5px 0;
+      font-size:12px;
     }
-}
 
-function withdrawalReplyMarkup(requestId) {
-    return {
-        inline_keyboard: [
+    .accountInfoRow span:last-child{
+      color:var(--gold);
+      font-weight:bold;
+    }
+
+    .accountLabel{
+      display:block;
+      margin:10px 0 5px;
+      color:#ffd43c;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .accountInput{
+      width:100%;
+      padding:11px;
+      border-radius:8px;
+      border:1px solid #633333;
+      background:#080808;
+      color:#fff;
+      outline:none;
+    }
+
+    .accountInput:focus{
+      border-color:var(--gold);
+    }
+
+    .accountBtn{
+      width:100%;
+      margin-top:14px;
+      padding:11px;
+      border:0;
+      border-radius:9px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+      color:#fff;
+      font-weight:900;
+    }
+
+    .accountMessage{
+      min-height:20px;
+      text-align:center;
+      font-size:11px;
+      margin-top:10px;
+    }
+
+    .accountMessage.error{
+      color:#ff5555;
+    }
+
+    .accountMessage.success{
+      color:var(--green);
+    }
+
+    /* =========================================================
+       HOME
+    ========================================================= */
+
+    #home{
+      min-height:100vh;
+      padding-bottom:80px;
+    }
+
+    .homeHeader{
+      padding:18px 15px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .logo{
+      font-size:25px;
+      font-weight:900;
+      color:var(--gold);
+      letter-spacing:1px;
+    }
+
+    .languageBox{
+      display:flex;
+      gap:6px;
+      padding:0 15px 15px;
+    }
+
+    .languageBox button{
+      border:1px solid #6d1717;
+      background:#210909;
+      color:#ddd;
+      border-radius:8px;
+      padding:7px 12px;
+    }
+
+    .languageBox button.active{
+      background:linear-gradient(180deg,var(--gold),#d58a00);
+      color:#170900;
+      font-weight:bold;
+    }
+
+    .playerSummary{
+      margin:0 10px 5px;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border:1px solid #5d2020;
+      border-radius:10px;
+      background:#110909;
+    }
+
+    .playerSummary small{
+      color:#aaa;
+    }
+
+    .playerSummary strong{
+      color:var(--gold);
+    }
+
+    .gameGrid{
+      padding:10px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .gameCard{
+      position:relative;
+      min-height:155px;
+      overflow:hidden;
+      border:1px solid #632020;
+      border-radius:16px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+      box-shadow:0 8px 25px #000;
+    }
+
+    .gameCard h3{
+      position:absolute;
+      z-index:5;
+      top:8px;
+      left:10px;
+      margin:0;
+      color:var(--gold);
+      font-size:16px;
+    }
+
+    .gameCard small{
+      position:absolute;
+      z-index:5;
+      bottom:8px;
+      left:10px;
+      color:#ddd;
+    }
+
+    .gameOpen{
+      position:absolute;
+      z-index:8;
+      right:8px;
+      bottom:7px;
+      border:0;
+      border-radius:8px;
+      padding:6px 9px;
+      background:var(--red2);
+      color:white;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .aviatorHome{
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+    }
+
+    .homePlane{
+      position:absolute;
+      font-size:35px;
+      animation:planeHome 3s linear infinite;
+    }
+
+    @keyframes planeHome{
+      0%{left:-40px;bottom:25px;transform:rotate(-8deg)}
+      50%{left:48%;bottom:75px;transform:rotate(-5deg)}
+      100%{left:110%;bottom:115px;transform:rotate(-2deg)}
+    }
+
+    .bingoHomeBalls{
+      position:absolute;
+      inset:40px 8px 30px;
+    }
+
+    .bingoHomeBalls span{
+      position:absolute;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(145deg,#ffe16a,#d88b00);
+      color:#500;
+      font-weight:bold;
+    }
+
+    .bingoHomeBalls span:nth-child(1){left:10%;top:15%}
+    .bingoHomeBalls span:nth-child(2){left:42%;top:40%}
+    .bingoHomeBalls span:nth-child(3){left:72%;top:20%}
+    .bingoHomeBalls span:nth-child(4){left:28%;top:70%}
+
+    .kenoHome{
+      position:absolute;
+      inset:42px 8px 25px;
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:5px;
+      align-content:center;
+    }
+
+    .kenoHome span{
+      width:25px;
+      height:25px;
+      border-radius:50%;
+      background:#c70000;
+      border:2px solid #ffcf40;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:9px;
+    }
+
+    .rouletteHome{
+      position:absolute;
+      width:85px;
+      height:85px;
+      border-radius:50%;
+      border:8px solid #d49a00;
+      left:50%;
+      top:53%;
+      transform:translate(-50%,-50%);
+      background:repeating-conic-gradient(
+        #b00000 0deg 20deg,
+        #111 20deg 40deg
+      );
+    }
+
+    .rouletteHome:after{
+      content:"0";
+      position:absolute;
+      inset:28px;
+      background:#d49a00;
+      border-radius:50%;
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       GAME
+    ========================================================= */
+
+    #gameScreen{
+      display:none;
+      min-height:100vh;
+      padding-bottom:80px;
+    }
+
+    .gameHeader{
+      position:sticky;
+      top:0;
+      z-index:100;
+      height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:7px 10px;
+      background:linear-gradient(180deg,#260000,#100000);
+      border-bottom:1px solid #652000;
+    }
+
+    .roundInfo{
+      color:#ffd04a;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .headerRight{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .balance{
+      background:#241b00;
+      border:1px solid #d79d00;
+      color:#ffd84c;
+      padding:6px 8px;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .helpBtn{
+      width:31px;
+      height:31px;
+      border-radius:50%;
+      border:1px solid #ffd24a;
+      background:#390900;
+      color:#ffd24a;
+      font-weight:900;
+    }
+
+    .gameTitle{
+      text-align:center;
+      padding:8px 0;
+      color:#fff;
+      font-size:20px;
+      font-weight:900;
+    }
+
+    .gameArea{
+      margin:0 8px;
+      border:1px solid #632020;
+      border-radius:14px;
+      background:#0d0d0d;
+      overflow:hidden;
+    }
+
+    .countdown{
+      text-align:center;
+      padding:8px;
+      color:#ffd13d;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .countdown.closed{
+      color:#ff5555;
+    }
+
+    /* =========================================================
+       TABS / SLOTS
+    ========================================================= */
+
+    .mainTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      margin:8px;
+      gap:4px;
+    }
+
+    .mainTabs button,
+    .subTabs button{
+      border:1px solid #6e2020;
+      background:#220b0b;
+      color:#ddd;
+      padding:9px 4px;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .mainTabs button.active,
+    .subTabs button.active{
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+    }
+
+    .subTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:4px;
+      margin:0 8px 8px;
+    }
+
+    .betSlots{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      padding:8px;
+    }
+
+    .betSlot{
+      background:linear-gradient(145deg,#251010,#111);
+      border:1px solid #702222;
+      border-radius:12px;
+      padding:8px;
+      transition:.2s;
+    }
+
+    .betSlot.active{
+      border-color:#ffd43b;
+      box-shadow:0 0 12px #8d6100;
+    }
+
+    .slotTitle{
+      text-align:center;
+      color:var(--gold);
+      font-weight:bold;
+      font-size:11px;
+      margin-bottom:7px;
+    }
+
+    .amountControl{
+      display:grid;
+      grid-template-columns:32px 1fr 32px;
+      gap:3px;
+    }
+
+    .amountControl button{
+      border:1px solid #a26d00;
+      background:#381c00;
+      color:#ffd13a;
+      border-radius:7px;
+      font-weight:bold;
+    }
+
+    .amountControl input{
+      min-width:0;
+      width:100%;
+      text-align:center;
+      background:#090909;
+      color:white;
+      border:1px solid #593333;
+      border-radius:7px;
+      padding:6px;
+    }
+
+    .placeBtn{
+      width:100%;
+      margin-top:7px;
+      border:0;
+      border-radius:8px;
+      padding:9px 4px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+      color:white;
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .placeBtn:disabled{
+      opacity:.45;
+    }
+
+    .livePayout{
+      margin-top:6px;
+      text-align:center;
+      color:var(--green);
+      font-size:10px;
+      font-weight:bold;
+      min-height:14px;
+    }
+
+    /* =========================================================
+       FEEDS
+    ========================================================= */
+
+    .feed{
+      margin:0 8px 8px;
+      background:#101010;
+      border:1px solid #362020;
+      border-radius:10px;
+      padding:8px;
+    }
+
+    .feedRow{
+      display:flex;
+      justify-content:space-between;
+      padding:6px 3px;
+      border-bottom:1px solid #222;
+      font-size:10px;
+    }
+
+    .feedRow:last-child{
+      border-bottom:0;
+    }
+
+    .win{
+      color:var(--green);
+    }
+
+    .muted{
+      color:#888;
+    }
+
+    /* =========================================================
+       KENO
+    ========================================================= */
+
+    .kenoSelectedRows{
+      padding:5px 8px;
+    }
+
+    .selectedRow{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      min-height:30px;
+      padding:5px;
+      margin-bottom:4px;
+      border:1px solid #432020;
+      border-radius:7px;
+      background:#130909;
+    }
+
+    .selectedRow strong{
+      color:var(--gold);
+      font-size:10px;
+      width:45px;
+    }
+
+    .selectedNumber{
+      padding:3px 6px;
+      border-radius:5px;
+      background:#8d0000;
+      color:#fff;
+      font-size:9px;
+      font-weight:bold;
+    }
+
+    .kenoBoard{
+      padding:8px;
+      display:grid;
+      grid-template-columns:repeat(10,1fr);
+      gap:4px;
+    }
+
+    .kenoNumber{
+      aspect-ratio:1;
+      border-radius:50%;
+      border:1px solid #6f2a2a;
+      background:#191919;
+      color:#ddd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:bold;
+    }
+
+    .kenoNumber.selected{
+      background:linear-gradient(145deg,#ffd43b,#bd7600);
+      color:#150900;
+      border-color:#ffe67d;
+    }
+
+    .kenoNumber.drawn{
+      background:#d00000;
+      color:white;
+      border-color:#ffcf3b;
+    }
+
+    .kenoNumber.hit{
+      box-shadow:0 0 14px #ffd52e;
+    }
+
+    .drawStatus{
+      text-align:center;
+      padding:8px;
+      color:#ffd44c;
+      font-size:12px;
+      font-weight:bold;
+    }
+
+    .drawBalls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:8px;
+      min-height:45px;
+      justify-content:center;
+    }
+
+    .ball{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#ff4b3e,#970000);
+      border:2px solid #ffd43b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:900;
+      font-size:11px;
+    }
+
+    .historyBox{
+      margin:8px;
+      border:1px solid #472222;
+      border-radius:10px;
+      overflow:hidden;
+    }
+
+    .historyHeader{
+      padding:9px;
+      color:var(--gold);
+      background:#190808;
+      font-weight:bold;
+      font-size:11px;
+    }
+
+    .historyRound{
+      padding:8px;
+      border-top:1px solid #292020;
+      font-size:9px;
+      line-height:1.8;
+      cursor:pointer;
+    }
+
+    .historyRound:hover{
+      background:#211010;
+    }
+
+    .historyRound strong{
+      color:#ffd44c;
+    }
+
+    .historyNums{
+      color:#ddd;
+    }
+
+    /* =========================================================
+       BINGO
+    ========================================================= */
+
+    .bingoAnimation{
+      height:180px;
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(circle,#451000,#080808 65%);
+    }
+
+    .bingoMachine{
+      position:absolute;
+      width:105px;
+      height:105px;
+      border:8px solid #e0a400;
+      border-radius:50%;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      animation:bingoMachine 2s linear infinite;
+    }
+
+    @keyframes bingoMachine{
+      to{transform:translate(-50%,-50%) rotate(360deg)}
+    }
+
+    .bingoBall{
+      position:absolute;
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#fff,#aaa);
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:bold;
+    }
+
+    .cartelaEntry{
+      display:grid;
+      grid-template-columns:1fr 65px;
+      gap:5px;
+      padding:8px;
+    }
+
+    .cartelaEntry input{
+      width:100%;
+      padding:8px;
+      border-radius:7px;
+      border:1px solid #633333;
+      background:#080808;
+      color:#fff;
+      text-align:center;
+    }
+
+    .cartelaEntry button{
+      border:0;
+      border-radius:7px;
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+      font-weight:900;
+    }
+
+    .cartelaTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:5px;
+      padding:8px 8px 0;
+    }
+
+    .cartelaTab{
+      text-align:center;
+      padding:8px;
+      border:1px solid #682020;
+      background:#200909;
+      color:#ffd13c;
+      border-radius:8px 8px 0 0;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .cartelaTab.active{
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+    }
+
+    .cartelaGridWrap{
+      padding:8px;
+    }
+
+    .cartelaGrid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:3px;
+      padding:6px;
+      background:#161616;
+      border:1px solid #522020;
+      border-radius:8px;
+    }
+
+    .cartelaCell{
+      aspect-ratio:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:4px;
+      background:#242424;
+      color:#ddd;
+      font-size:9px;
+      font-weight:bold;
+    }
+
+    .cartelaCell.marked{
+      background:#d00000;
+      color:#fff;
+      box-shadow:0 0 8px #ffcc33;
+    }
+
+    .cartelaCell.free{
+      background:#bd7900;
+      color:#111;
+    }
+
+    .cartelaStatus{
+      text-align:center;
+      color:#ffd43c;
+      font-size:10px;
+      min-height:18px;
+    }
+
+    .bingoDraw{
+      display:flex;
+      justify-content:center;
+      gap:7px;
+      padding:7px;
+      flex-wrap:wrap;
+    }
+
+    .bingoCalled{
+      width:38px;
+      height:38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:50%;
+      background:linear-gradient(145deg,#ff4b3e,#970000);
+      border:2px solid #ffd43b;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .bingoButtons{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      padding:8px;
+    }
+
+    .bingoBtn{
+      border:0;
+      border-radius:8px;
+      padding:10px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+      color:#fff;
+      font-weight:900;
+    }
+
+    /* =========================================================
+       ROULETTE
+    ========================================================= */
+
+    .rouletteArea{
+      padding:10px;
+      text-align:center;
+    }
+
+    .rouletteWheel{
+      width:190px;
+      height:190px;
+      margin:5px auto 12px;
+      border-radius:50%;
+      border:9px solid #d69a00;
+      background:repeating-conic-gradient(
+        #b00000 0deg 10deg,
+        #090909 10deg 20deg
+      );
+      position:relative;
+      transition:transform 4s cubic-bezier(.1,.7,.2,1);
+    }
+
+    .rouletteCenter{
+      position:absolute;
+      width:48px;
+      height:48px;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      border-radius:50%;
+      background:#d49a00;
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      z-index:3;
+    }
+
+    .rouletteEdgeNumbers{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .edgeNumber{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:24px;
+      height:24px;
+      margin:-12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:8px;
+      font-weight:900;
+      color:#fff;
+      text-shadow:0 1px 2px #000;
+      transform:
+        rotate(var(--angle))
+        translateY(-75px)
+        rotate(calc(var(--angle) * -1));
+    }
+
+    .rouletteResult{
+      min-height:25px;
+      color:#ffd13d;
+      font-weight:bold;
+    }
+
+    .rouletteGrid{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:3px;
+      padding:8px;
+    }
+
+    .rouletteNum{
+      padding:8px 2px;
+      border:1px solid #333;
+      border-radius:5px;
+      font-size:10px;
+      font-weight:bold;
+      color:#fff;
+    }
+
+    .rouletteNum.selected{
+      border-color:#ffd43b;
+      box-shadow:0 0 10px #ffd43b;
+      transform:scale(1.05);
+    }
+
+    .rouletteNum.winner{
+      box-shadow:0 0 12px #ffd43b;
+      border-color:#ffd43b;
+      transform:scale(1.08);
+    }
+
+    .red{background:#a80000}
+    .black{background:#090909}
+    .green{background:#008a4b}
+
+    /* =========================================================
+       AVIATOR
+    ========================================================= */
+
+    .aviatorHistory{
+      display:flex;
+      gap:5px;
+      overflow-x:auto;
+      padding:7px;
+      scrollbar-width:none;
+    }
+
+    .mult{
+      flex:0 0 auto;
+      padding:5px 8px;
+      border-radius:6px;
+      background:#211010;
+      border:1px solid #552323;
+      color:#ffcf3a;
+      font-size:10px;
+      font-weight:bold;
+    }
+
+    .aviatorFlight{
+      height:220px;
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(160deg,#230000,#050505 65%);
+    }
+
+    .gridLines{
+      position:absolute;
+      inset:0;
+      opacity:.15;
+      background-image:
+        linear-gradient(#fff 1px,transparent 1px),
+        linear-gradient(90deg,#fff 1px,transparent 1px);
+      background-size:40px 40px;
+    }
+
+    .flightMultiplier{
+      position:absolute;
+      left:50%;
+      top:32%;
+      transform:translate(-50%,-50%);
+      color:#ffd43a;
+      font-size:34px;
+      font-weight:900;
+    }
+
+    .plane{
+      position:absolute;
+      left:20%;
+      bottom:30px;
+      font-size:40px;
+    }
+
+    .flightCurve{
+      position:absolute;
+      left:-20%;
+      bottom:-80px;
+      width:140%;
+      height:200px;
+      border-top:3px solid #e20000;
+      border-radius:50%;
+      transform:rotate(-12deg);
+    }
+
+    .aviatorBetState{
+      text-align:center;
+      min-height:20px;
+      color:var(--green);
+      font-size:11px;
+      font-weight:bold;
+      padding:5px;
+    }
+
+    /* =========================================================
+       WALLET
+    ========================================================= */
+
+    #walletScreen,
+    #profileScreen{
+      display:none;
+      min-height:100vh;
+      padding:15px 10px 90px;
+    }
+
+    .pageTitle{
+      text-align:center;
+      color:var(--gold);
+      font-size:22px;
+      font-weight:900;
+      margin:10px 0 18px;
+    }
+
+    .walletBalance{
+      text-align:center;
+      padding:18px;
+      border:1px solid #6b2424;
+      border-radius:14px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+    }
+
+    .walletBalance small{
+      color:#aaa;
+    }
+
+    .walletBalance strong{
+      display:block;
+      margin-top:5px;
+      color:#ffd43c;
+      font-size:27px;
+    }
+
+    .walletButtons{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .walletBtn{
+      border:0;
+      border-radius:9px;
+      padding:12px;
+      font-weight:900;
+      color:#fff;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+    }
+
+    .walletCard{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid #472020;
+      border-radius:10px;
+      background:#101010;
+    }
+
+    .walletCard h3{
+      margin:0 0 8px;
+      color:#ffd43c;
+      font-size:13px;
+    }
+
+    .walletCard p{
+      color:#bbb;
+      font-size:11px;
+    }
+
+    /* =========================================================
+       PROFILE
+    ========================================================= */
+
+    .profileCard{
+      padding:15px;
+      border:1px solid #632020;
+      border-radius:14px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+    }
+
+    .profileRow{
+      display:flex;
+      justify-content:space-between;
+      padding:10px 3px;
+      border-bottom:1px solid #292020;
+      font-size:12px;
+    }
+
+    .profileRow:last-child{
+      border-bottom:0;
+    }
+
+    .profileRow span:last-child{
+      color:var(--gold);
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       BOTTOM NAVIGATION
+    ========================================================= */
+
+    .bottomNav{
+      position:fixed;
+      z-index:500;
+      left:0;
+      right:0;
+      bottom:0;
+      height:68px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      background:linear-gradient(180deg,#1b0505,#080000);
+      border-top:1px solid #6b2424;
+      box-shadow:0 -8px 25px #000;
+    }
+
+    .bottomNav button{
+      border:0;
+      background:transparent;
+      color:#aaa;
+      font-size:10px;
+      font-weight:bold;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+    }
+
+    .bottomNav button span{
+      font-size:20px;
+    }
+
+    .bottomNav button.active{
+      color:#ffd43c;
+    }
+
+    /* =========================================================
+       HELP
+    ========================================================= */
+
+    .helpOverlay{
+      position:fixed;
+      inset:0;
+      z-index:999;
+      background:rgba(0,0,0,.78);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+    }
+
+    .helpPanel{
+      width:100%;
+      max-width:420px;
+      max-height:85vh;
+      overflow:auto;
+      background:linear-gradient(145deg,#2a0808,#100000);
+      border:1px solid #d89c00;
+      border-radius:16px;
+      padding:15px;
+      box-shadow:0 15px 50px #000;
+    }
+
+    .helpPanel h2{
+      margin-top:0;
+      color:#ffd43c;
+    }
+
+    .helpPanel h3{
+      color:#ffbf26;
+      font-size:14px;
+    }
+
+    .helpPanel p{
+      color:#ddd;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .closeHelp{
+      width:100%;
+      border:0;
+      border-radius:8px;
+      padding:10px;
+      background:#bd0000;
+      color:#fff;
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media(max-width:360px){
+
+      .gameGrid{
+        gap:7px;
+        padding:7px;
+      }
+
+      .gameCard{
+        min-height:135px;
+      }
+
+      .kenoBoard{
+        gap:2px;
+      }
+
+      .kenoNumber{
+        font-size:8px;
+      }
+
+      .betSlots{
+        gap:4px;
+        padding:5px;
+      }
+
+      .amountControl{
+        grid-template-columns:27px 1fr 27px;
+      }
+
+    }
+
+    /* =========================================================
+       DEPOSIT / WITHDRAW MODALS
+    ========================================================= */
+    .walletModal{
+      position:fixed;
+      inset:0;
+      z-index:1200;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+      background:rgba(0,0,0,.82);
+    }
+    .walletModal.hidden{display:none!important}
+    .walletModalPanel{
+      width:100%;
+      max-width:430px;
+      max-height:90vh;
+      overflow:auto;
+      padding:16px;
+      border:1px solid #d79d00;
+      border-radius:16px;
+      background:linear-gradient(145deg,#2b0909,#0d0d0d);
+      box-shadow:0 18px 60px #000;
+    }
+    .walletModalHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .walletModalHead h2{margin:0;color:#ffd43c;font-size:18px}
+    .walletModalClose{
+      width:32px;height:32px;border:1px solid #6b2424;border-radius:50%;
+      background:#220707;color:#fff;font-size:20px;
+    }
+    .walletFormLabel{display:block;margin:9px 0 5px;color:#ffd43c;font-size:11px;font-weight:bold}
+    .walletFormInput,.walletFormSelect{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #633333;
+      background:#080808;color:#fff;outline:none;
+    }
+    .walletFormInput:focus,.walletFormSelect:focus{border-color:#ffd43c}
+    .walletHint{
+      margin:8px 0;padding:9px;border-radius:8px;background:#160909;
+      border:1px solid #402020;color:#bbb;font-size:10px;line-height:1.5;
+    }
+    .walletSubmit{
+      width:100%;margin-top:12px;padding:11px;border:0;border-radius:9px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-weight:900;
+    }
+    .walletSubmit:disabled{opacity:.5}
+    .walletPasswordBox{margin-top:12px;padding-top:8px;border-top:1px solid #472020}
+    .walletStatus{min-height:18px;margin-top:8px;text-align:center;font-size:11px}
+    .walletStatus.ok{color:#18d66b}.walletStatus.err{color:#ff5555}.walletStatus.wait{color:#ffd43c}
+    .walletStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+    .walletStat{padding:9px;border:1px solid #472020;border-radius:9px;background:#101010;text-align:center}
+    .walletStat small{display:block;color:#999;font-size:9px}.walletStat strong{color:#ffd43c;font-size:12px}
+    .transactionRow{padding:9px 3px;border-bottom:1px solid #292020;font-size:10px;line-height:1.5}
+    .transactionRow:last-child{border-bottom:0}
+    .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
+
+    </style>
+    </head>
+
+    <body>
+
+    <!-- ======================================================
+         ACCOUNT
+    ====================================================== -->
+
+    <section id="accountScreen" class="hidden">
+
+      <div class="accountPanel">
+
+        <div class="accountLogo">DESTA PLAY</div>
+
+        <div class="accountWelcome" id="accountWelcome">
+          Welcome. Create your DESTA PLAY account.
+        </div>
+
+        <div class="accountInfo">
+
+          <div class="accountInfoRow">
+            <span>Telegram name</span>
+            <span id="telegramName">Loading...</span>
+          </div>
+
+          <div class="accountInfoRow">
+            <span>Player ID</span>
+            <span id="playerId">Generating...</span>
+          </div>
+
+        </div>
+
+        <div id="accountCreateFields">
+          <label class="accountLabel">
+            PHONE NUMBER
+          </label>
+
+          <input
+            id="registrationPhone"
+            class="accountInput"
+            type="tel"
+            autocomplete="tel"
+            placeholder="Share your Telegram phone number"
+            readonly>
+
+          <button
+            class="accountBtn"
+            type="button"
+            onclick="shareRegistrationPhone()">
+            SHARE PHONE NUMBER THROUGH TELEGRAM
+          </button>
+
+          <div id="registrationPhoneStatus" class="accountMessage"></div>
+
+          <label class="accountLabel">
+            DESTA PLAY PASSWORD
+          </label>
+
+          <input
+            id="password"
+            class="accountInput"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Create password">
+
+          <label class="accountLabel">
+            CONFIRM PASSWORD
+          </label>
+
+          <input
+            id="passwordConfirm"
+            class="accountInput"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Confirm password">
+
+          <button
+            class="accountBtn"
+            onclick="createAccount()">
+            CREATE ACCOUNT
+          </button>
+
+        </div>
+
+        <div id="accountResetFields" class="hidden">
+          <label class="accountLabel">PHONE NUMBER</label>
+          <input id="resetPhone" class="accountInput" type="tel" autocomplete="tel" placeholder="Enter your registered phone number">
+
+          <button class="accountBtn" type="button" onclick="requestPasswordReset()">
+            SEND RECOVERY CODE
+          </button>
+
+          <div id="resetCodeFields" class="hidden">
+            <label class="accountLabel">RECOVERY CODE</label>
+            <input id="resetCode" class="accountInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the 6-digit code">
+            <button class="accountBtn" type="button" onclick="verifyPasswordResetCode()">
+              VERIFY CODE
+            </button>
+          </div>
+
+          <div id="resetNewPasswordFields" class="hidden">
+            <label class="accountLabel">NEW PASSWORD</label>
+            <input id="resetNewPassword" class="accountInput" type="password" autocomplete="new-password" placeholder="Create new password">
+
+            <label class="accountLabel">CONFIRM NEW PASSWORD</label>
+            <input id="resetNewPasswordConfirm" class="accountInput" type="password" autocomplete="new-password" placeholder="Confirm new password">
+
+            <button class="accountBtn" type="button" onclick="completePasswordReset()">
+              CREATE NEW PASSWORD
+            </button>
+          </div>
+
+          <button class="accountBtn" type="button" onclick="cancelPasswordReset()">
+            BACK TO HOME
+          </button>
+        </div>
+
+        <div
+          id="accountMessage"
+          class="accountMessage">
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         HOME
+    ====================================================== -->
+
+    <section id="home" class="hidden">
+
+      <div class="homeHeader">
+
+        <div class="logo">
+          DESTA PLAY
+        </div>
+
+      </div>
+
+      <div class="languageBox">
+
+        <button
+          id="langEN"
+          class="active"
+          onclick="setLanguage('en')">
+          English
+        </button>
+
+        <button
+          id="langAM"
+          onclick="setLanguage('am')">
+          አማርኛ
+        </button>
+
+      </div>
+
+      <div class="playerSummary">
+
+        <div>
+          <small>Player</small><br>
+          <strong id="homePlayerName">Player</strong>
+        </div>
+
+        <div>
+          <small>ID</small><br>
+          <strong id="homePlayerId">DP-000000</strong>
+        </div>
+
+      </div>
+
+      <div class="gameGrid">
+
+        <div class="gameCard">
+
+          <h3>AVIATOR</h3>
+
+          <div class="aviatorHome">
+            <div class="homePlane">✈️</div>
+          </div>
+
+          <small>Fly • Cash Out</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('aviator')">
+            PLAY
+          </button>
+
+        </div>
+
+
+        <div class="gameCard">
+
+          <h3>BINGO</h3>
+
+          <div class="bingoHomeBalls">
+            <span>7</span>
+            <span>30</span>
+            <span>52</span>
+            <span>71</span>
+          </div>
+
+          <small>Cartela • Draw</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('bingo')">
+            PLAY
+          </button>
+
+        </div>
+
+
+        <div class="gameCard">
+
+          <h3>KENO</h3>
+
+          <div class="kenoHome">
+            <span>7</span>
+            <span>22</span>
+            <span>31</span>
+            <span>48</span>
+            <span>73</span>
+          </div>
+
+          <small>1–80 • 20 Draw</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('keno')">
+            PLAY
+          </button>
+
+        </div>
+
+
+        <div class="gameCard">
+
+          <h3>ROULETTE</h3>
+
+          <div class="rouletteHome"></div>
+
+          <small>Spin • Number • Color</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('roulette')">
+            PLAY
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         GAME SCREEN
+    ====================================================== -->
+
+    <section id="gameScreen">
+
+      <header class="gameHeader">
+
+        <div class="roundInfo">
+          ROUND <span id="roundNumber">0001</span>
+        </div>
+
+        <div class="headerRight">
+
+          <div class="balance">
+            💰 <span id="balance">0.00</span> ETB
+          </div>
+
+          <button
+            class="helpBtn"
+            onclick="openHelp()">
+            ?
+          </button>
+
+        </div>
+
+      </header>
+
+
+      <div
+        class="gameTitle"
+        id="gameTitle">
+        KENO
+      </div>
+
+
+      <main class="gameArea">
+
+
+        <!-- ==================================================
+             KENO
+        ================================================== -->
+
+        <div id="kenoGame" class="hidden">
+
+          <div
+            class="countdown"
+            id="kenoCountdown">
+            BETTING 45s
+          </div>
+
+          <div class="kenoSelectedRows">
+
+            <div class="selectedRow">
+
+              <strong>SLOT 1</strong>
+
+              <div
+                id="kenoSlot1Numbers">
+                <span class="muted">No numbers</span>
+              </div>
+
+            </div>
+
+            <div class="selectedRow">
+
+              <strong>SLOT 2</strong>
+
+              <div
+                id="kenoSlot2Numbers">
+                <span class="muted">No numbers</span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div
+            class="kenoBoard"
+            id="kenoBoard">
+          </div>
+
+          <div
+            class="drawStatus"
+            id="kenoDrawStatus">
+            Waiting for draw...
+          </div>
+
+          <div
+            class="drawBalls"
+            id="kenoDrawBalls">
+          </div>
+
+          <div class="betSlots">
+
+            <div
+              class="betSlot"
+              id="kenoBetSlot1"
+              onclick="activateKenoSlot(1)">
+
+              <div class="slotTitle">
+                SLOT 1
+              </div>
+
+              <div class="amountControl">
+
+                <button
+                  onclick="event.stopPropagation();changeAmount('k1',-10)">
+                  −
+                </button>
+
+                <input
+                  id="k1"
+                  type="number"
+                  value="10"
+                  min="1"
+                  inputmode="decimal">
+
+                <button
+                  onclick="event.stopPropagation();changeAmount('k1',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="kenoPayout1">
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="event.stopPropagation();placeKenoBet(1)">
+                PLACE BET
+              </button>
+
+            </div>
+
+
+            <div
+              class="betSlot"
+              id="kenoBetSlot2"
+              onclick="activateKenoSlot(2)">
+
+              <div class="slotTitle">
+                SLOT 2
+              </div>
+
+              <div class="amountControl">
+
+                <button
+                  onclick="event.stopPropagation();changeAmount('k2',-10)">
+                  −
+                </button>
+
+                <input
+                  id="k2"
+                  type="number"
+                  value="10"
+                  min="1"
+                  inputmode="decimal">
+
+                <button
+                  onclick="event.stopPropagation();changeAmount('k2',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="kenoPayout2">
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="event.stopPropagation();placeKenoBet(2)">
+                PLACE BET
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="feed">
+
+            <div class="feedRow">
+              <span>Active slot</span>
+              <span id="activeKenoSlot">SLOT 1</span>
+            </div>
+
+            <div class="feedRow">
+              <span>Slot 1 selected</span>
+              <span id="kenoSelected1">0 / 10</span>
+            </div>
+
+            <div class="feedRow">
+              <span>Slot 2 selected</span>
+              <span id="kenoSelected2">0 / 10</span>
+            </div>
+
+            <div class="feedRow">
+              <span>Players in round</span>
+              <span id="kenoPlayers">0</span>
+            </div>
+
+          </div>
+
+          <div class="historyBox">
+
+            <div class="historyHeader">
+              LAST 10 KENO ROUNDS
+            </div>
+
+            <div id="kenoHistory">
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             BINGO
+        ================================================== -->
+
+        <div id="bingoGame" class="hidden">
+
+          <div class="countdown" id="bingoCountdown">
+            BETTING 45s
+          </div>
+
+          <div class="bingoAnimation">
+
+            <div class="bingoMachine"></div>
+
+            <div
+              class="bingoBall"
+              style="left:15%;top:30%">
+              7
+            </div>
+
+            <div
+              class="bingoBall"
+              style="right:15%;top:25%">
+              30
+            </div>
+
+            <div
+              class="bingoBall"
+              style="left:40%;bottom:15%">
+              52
+            </div>
+
+          </div>
+
+          <div
+            class="drawStatus"
+            id="bingoStatus">
+            Waiting for next draw...
+          </div>
+
+          <div class="cartelaEntry">
+
+            <input
+              id="cartelaEntry"
+              type="number"
+              min="1"
+              max="120"
+              placeholder="Enter Cartela number">
+
+            <button onclick="addCartela()">
+              OK
+            </button>
+
+          </div>
+
+          <div class="cartelaTabs">
+
+            <div
+              class="cartelaTab active"
+              id="cartelaTab1"
+              onclick="selectCartela(1)">
+              CARTELA 1
+            </div>
+
+            <div
+              class="cartelaTab"
+              id="cartelaTab2"
+              onclick="selectCartela(2)">
+              CARTELA 2
+            </div>
+
+          </div>
+
+          <div
+            class="cartelaGridWrap"
+            id="cartelaGridWrap">
+          </div>
+
+          <div
+            class="cartelaStatus"
+            id="cartelaStatus">
+            Enter a Cartela number.
+          </div>
+
+          <div
+            class="bingoDraw"
+            id="bingoDraw">
+          </div>
+
+          <div class="betSlots">
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                CARTELA 1 BET
+              </div>
+
+              <div
+                id="bingoAmount1"
+                style="text-align:center;color:#ffd43c;font-weight:bold">
+                10 ETB
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="placeBingoBet(1)">
+                PLACE BET
+              </button>
+
+              <div
+                class="livePayout"
+                id="bingoPayout1">
+              </div>
+
+            </div>
+
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                CARTELA 2 BET
+              </div>
+
+              <div
+                id="bingoAmount2"
+                style="text-align:center;color:#ffd43c;font-weight:bold">
+                10 ETB
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="placeBingoBet(2)">
+                PLACE BET
+              </button>
+
+              <div
+                class="livePayout"
+                id="bingoPayout2">
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="amountGrid" id="bingoAmounts"></div>
+
+          <div class="bingoButtons">
+
+            <button
+              class="bingoBtn"
+              id="bingoButton1"
+              onclick="claimBingo(1)"
+              disabled>
+              BINGO — CARTELA 1
+            </button>
+
+            <button
+              class="bingoBtn"
+              id="bingoButton2"
+              onclick="claimBingo(2)"
+              disabled>
+              BINGO — CARTELA 2
+            </button>
+
+          </div>
+
+          <div class="historyBox">
+
+            <div class="historyHeader">
+              LAST 10 BINGO ROUNDS
+            </div>
+
+            <div id="bingoHistory"></div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             ROULETTE
+        ================================================== -->
+
+        <div id="rouletteGame" class="hidden">
+
+          <div
+            class="countdown"
+            id="rouletteStatus">
+            BETTING 45s
+          </div>
+
+          <div class="rouletteArea">
+
+            <div
+              class="rouletteWheel"
+              id="rouletteWheel">
+
+              <div
+                class="rouletteEdgeNumbers"
+                id="rouletteEdgeNumbers">
+              </div>
+
+              <div class="rouletteCenter">
+                0
+              </div>
+
+            </div>
+
+            <div
+              class="rouletteResult"
+              id="rouletteResult">
+              Waiting for spin...
+            </div>
+
+          </div>
+
+          <div
+            class="rouletteGrid"
+            id="rouletteGrid">
+          </div>
+
+          <div class="betSlots">
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                SLOT 1
+              </div>
+
+              <div class="amountControl">
+
+                <button onclick="changeAmount('r1',-10)">
+                  −
+                </button>
+
+                <input
+                  id="r1"
+                  type="number"
+                  value="10"
+                  min="1">
+
+                <button onclick="changeAmount('r1',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="roulettePayout1">
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="placeRouletteBet(1)">
+                PLACE BET
+              </button>
+
+            </div>
+
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                SLOT 2
+              </div>
+
+              <div class="amountControl">
+
+                <button onclick="changeAmount('r2',-10)">
+                  −
+                </button>
+
+                <input
+                  id="r2"
+                  type="number"
+                  value="10"
+                  min="1">
+
+                <button onclick="changeAmount('r2',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="roulettePayout2">
+              </div>
+
+              <button
+                class="placeBtn"
+                onclick="placeRouletteBet(2)">
+                PLACE BET
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="historyBox">
+
+            <div class="historyHeader">
+              LAST 10 ROULETTE ROUNDS
+            </div>
+
+            <div id="rouletteHistory"></div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             AVIATOR
+        ================================================== -->
+
+        <div id="aviatorGame" class="hidden">
+
+          <div
+            class="aviatorHistory"
+            id="aviatorHistory">
+          </div>
+
+          <div
+            class="countdown"
+            id="aviatorCountdown">
+            BETTING 10s
+          </div>
+
+          <div class="aviatorFlight">
+
+            <div class="gridLines"></div>
+
+            <div class="flightCurve"></div>
+
+            <div
+              class="flightMultiplier"
+              id="aviatorMultiplier">
+              1.00x
+            </div>
+
+            <div
+              class="plane"
+              id="plane">
+              ✈️
+            </div>
+
+          </div>
+
+          <div
+            class="aviatorBetState"
+            id="aviatorBetState">
+          </div>
+
+          <div class="betSlots">
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                SLOT 1
+              </div>
+
+              <div class="amountControl">
+
+                <button onclick="changeAmount('a1',-10)">
+                  −
+                </button>
+
+                <input
+                  id="a1"
+                  type="number"
+                  value="10"
+                  min="1">
+
+                <button onclick="changeAmount('a1',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="aviatorPayout1">
+              </div>
+
+              <button
+                class="placeBtn"
+                id="aviatorBtn1"
+                onclick="placeAviatorBet(1)">
+                PLACE BET
+              </button>
+
+            </div>
+
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                SLOT 2
+              </div>
+
+              <div class="amountControl">
+
+                <button onclick="changeAmount('a2',-10)">
+                  −
+                </button>
+
+                <input
+                  id="a2"
+                  type="number"
+                  value="10"
+                  min="1">
+
+                <button onclick="changeAmount('a2',10)">
+                  +
+                </button>
+
+              </div>
+
+              <div
+                class="livePayout"
+                id="aviatorPayout2">
+              </div>
+
+              <button
+                class="placeBtn"
+                id="aviatorBtn2"
+                onclick="placeAviatorBet(2)">
+                PLACE BET
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="historyBox">
+
+            <div class="historyHeader">
+              LAST 10 AVIATOR ROUNDS
+            </div>
+
+            <div id="aviatorRoundHistory"></div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+
+      <div class="mainTabs">
+
+        <button
+          id="tabMy"
+          class="active"
+          onclick="showTab('my')">
+          MY BETS
+        </button>
+
+        <button
+          id="tabLive"
+          onclick="showTab('live')">
+          LIVE BETS
+        </button>
+
+        <button
+          id="tabTop"
+          onclick="showTab('top')">
+          TOP
+        </button>
+
+      </div>
+
+      <div
+        id="topSubTabs"
+        class="subTabs hidden">
+
+        <button
+          class="active"
+          onclick="showTop('daily',this)">
+          DAILY
+        </button>
+
+        <button
+          onclick="showTop('weekly',this)">
+          WEEKLY
+        </button>
+
+        <button
+          onclick="showTop('monthly',this)">
+          MONTHLY
+        </button>
+
+      </div>
+
+      <div
+        id="feedPanel"
+        class="feed">
+
+        <div id="feedContent"></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         WALLET
+    ====================================================== -->
+
+    <section id="walletScreen">
+
+      <div class="pageTitle">WALLET</div>
+
+      <div class="walletBalance">
+        <small>AVAILABLE BALANCE</small>
+        <strong><span id="walletBalance">0.00</span> ETB</strong>
+      </div>
+
+      <div class="walletStats">
+        <div class="walletStat"><small>WITHDRAWABLE</small><strong><span id="withdrawableBalance">0.00</span> ETB</strong></div>
+        <div class="walletStat"><small>LOCKED DEPOSIT</small><strong><span id="lockedBalance">0.00</span> ETB</strong></div>
+      </div>
+
+      <div class="walletButtons">
+        <button class="walletBtn" onclick="openDeposit()">DEPOSIT</button>
+        <button class="walletBtn" onclick="openWithdraw()">WITHDRAW</button>
+      </div>
+
+      <div class="walletCard">
+        <h3>DEPOSIT VERIFICATION</h3>
+        <p>After you send payment, submit the amount, payment recipient and transaction/reference ID. The server and SMS forwarder will cross-check the payment before any balance is credited.</p>
+      </div>
+
+      <div class="walletCard">
+        <h3>WITHDRAWAL</h3>
+        <p>Withdrawals are checked by the server. Your withdrawable balance is determined by the backend and cannot be changed from this page.</p>
+      </div>
+
+      <div class="walletCard">
+        <h3>TRANSACTIONS</h3>
+        <div id="transactions">No transactions yet.</div>
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         PROFILE
+    ====================================================== -->
+
+    <section id="profileScreen">
+
+      <div class="pageTitle">
+        PROFILE
+      </div>
+
+      <div class="profileCard">
+
+        <div class="profileRow">
+          <span>Telegram name</span>
+          <span id="profileName">—</span>
+        </div>
+
+        <div class="profileRow">
+          <span>Player ID</span>
+          <span id="profileId">—</span>
+        </div>
+
+        <div class="profileRow">
+          <span>Balance</span>
+          <span>
+            <span id="profileBalance">0.00</span> ETB
+          </span>
+        </div>
+
+        <div class="profileRow">
+          <span>Account</span>
+          <span>ACTIVE</span>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         BOTTOM MENU
+    ====================================================== -->
+
+    <nav class="bottomNav">
+
+      <button
+        id="navHome"
+        class="active"
+        onclick="showPage('home')">
+
+        <span>🏠</span>
+        HOME
+
+      </button>
+
+      <button
+        id="navGame"
+        onclick="showPage('game')">
+
+        <span>🎮</span>
+        GAME
+
+      </button>
+
+      <button
+        id="navWallet"
+        onclick="showPage('wallet')">
+
+        <span>👛</span>
+        WALLET
+
+      </button>
+
+      <button
+        id="navProfile"
+        onclick="showPage('profile')">
+
+        <span>👤</span>
+        PROFILE
+
+      </button>
+
+    </nav>
+
+
+    <!-- ======================================================
+         HELP
+    ====================================================== -->
+
+    <div
+      id="helpOverlay"
+      class="helpOverlay hidden">
+
+      <div class="helpPanel">
+
+        <h2 id="helpTitle">
+          How to Play
+        </h2>
+
+        <div id="helpContent"></div>
+
+        <button
+          class="closeHelp"
+          onclick="closeHelp()">
+          CLOSE
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <script>
+
+    /* =========================================================
+       TELEGRAM
+    ========================================================= */
+
+    const tg =
+      window.Telegram &&
+      window.Telegram.WebApp
+        ? window.Telegram.WebApp
+        : null;
+
+    if(tg){
+
+      tg.ready();
+      tg.expand();
+
+    }
+
+
+    /* =========================================================
+       STATE
+    ========================================================= */
+
+    const state = {
+
+      language:"en",
+
+      page:"home",
+
+      game:"keno",
+
+      balance:0,
+
+      accountCreated:false,
+
+      playerId:"",
+
+      telegramId:"",
+
+      telegramUsername:"",
+
+      telegramName:"Player",
+
+      rounds:{
+        keno:1,
+        bingo:1,
+        roulette:1,
+        aviator:1
+      },
+
+      activeKenoSlot:1,
+
+      kenoSelections:{
+        1:[],
+        2:[]
+      },
+
+      kenoBets:{
+        1:null,
+        2:null
+      },
+
+      kenoDraw:[],
+
+      kenoHistory:[],
+
+      bingoAmounts:{
+        1:10,
+        2:10
+      },
+
+      bingoCartelas:{
+        1:null,
+        2:null
+      },
+
+      activeCartela:1,
+
+      bingoBoards:{
+        1:[],
+        2:[]
+      },
+
+      bingoDraw:[],
+
+      bingoHistory:[],
+
+      rouletteSelection:{
+        1:null,
+        2:null
+      },
+
+      rouletteWinner:null,
+
+      rouletteHistory:[],
+
+      aviatorBets:{
+        1:null,
+        2:null
+      },
+
+      aviatorHistory:[],
+
+      aviatorCrash:1,
+
+      aviatorMultiplier:1,
+
+      bettingOpen:true,
+
+      countdown:45
+
+    };
+
+
+    /* =========================================================
+       TELEGRAM USER
+    ========================================================= */
+
+    function loadTelegramUser(){
+
+      if(tg && tg.initDataUnsafe){
+
+        const user=
+          tg.initDataUnsafe.user;
+
+        if(user){
+
+          state.telegramId=
+            String(user.id || "");
+
+          state.telegramUsername=
+            String(user.username || "");
+
+          state.telegramName=
             [
-                { text: "ACCEPT", callback_data: `dpw:accept:${requestId}` },
-                { text: "REJECT", callback_data: `dpw:reject:${requestId}` },
-                { text: "COMPLETED", callback_data: `dpw:completed:${requestId}` }
+              user.first_name || "",
+              user.last_name || ""
             ]
-        ]
-    };
-}
+            .join(" ")
+            .trim() ||
+            user.username ||
+            "Player";
 
-/*
-|--------------------------------------------------------------------------
-| PLAYER DATABASE
-|--------------------------------------------------------------------------
-|
-| The canonical player ID is players.id.
-|
-|--------------------------------------------------------------------------
-*/
-
-async function findPlayerByTelegramId(telegramId) {
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("telegram_id", String(telegramId))
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findPlayerByTelegramId", error);
-        throw new Error("Database error");
-    }
-
-    return data;
-}
-
-async function findPlayerById(playerId) {
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("id", playerId)
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findPlayerById", error);
-        throw new Error("Database error");
-    }
-
-    return data;
-}
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC PLAYER OBJECT
-|--------------------------------------------------------------------------
-*/
-
-function publicPlayer(player) {
-    if (!player) {
-        return null;
-    }    return {
-        playerId: player.id,
-        telegramId: player.telegram_id,
-        telegramName: player.username || "Player",
-        balance: Number(player.balance || 0),
-        createdAt: player.created_at
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| TRANSACTION LEDGER
-|--------------------------------------------------------------------------
-*/
-
-async function writeTransaction({
-    playerId,
-    type,
-    amount,
-    balanceBefore,
-    balanceAfter,
-    status = "SUCCESS",
-    description = null,
-    referenceId = null
-}) {
-    const { error } = await supabase
-        .from("transactions")
-        .insert({
-            id: makeId("TX"),
-            player_id: playerId,
-            type,
-            amount,
-            balance_before: balanceBefore,
-            balance_after: balanceAfter,
-            status,
-            description,
-            reference_id: referenceId,
-            created_at: nowIso()
-        });
-
-    if (error) {
-        await dbError("writeTransaction", error);
-
-        /*
-        |------------------------------------------------------------------
-        | IMPORTANT
-        |------------------------------------------------------------------
-        | The balance operation has already happened.
-        | Do not reverse it automatically here.
-        | The database ledger error is logged for investigation.
-        |------------------------------------------------------------------
-        */
-
-        throw new Error("Transaction ledger error");
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| BALANCE ENGINE
-|--------------------------------------------------------------------------
-*/
-
-async function changeBalance({
-    playerId,
-    amount,
-    type,
-    game = null,
-    roundId = null,
-    description = null,
-    metadata = {}
-}) {
-    const numeric = numericAmount(amount);
-
-    const player = await findPlayerById(playerId);
-
-    if (!player) {
-        throw new Error("Player not found");
-    }
-
-    const before = Number(player.balance || 0);
-    const after = before + numeric;
-
-    if (after < 0) {
-        throw new Error("Insufficient balance");
-    }
-
-    const { data, error } = await supabase
-        .from("players")
-        .update({
-            balance: after,
-            updated_at: nowIso()
-        })
-        .eq("id", playerId)
-        .select("*")
-        .maybeSingle();
-
-    if (error) {
-        await dbError("changeBalance update", error);
-        throw new Error("Could not update balance");
-    }
-
-    if (!data) {
-        throw new Error("Could not update player balance");
-    }
-
-    const finalDescription =
-        description ||
-        `${type}${game ? ` | ${game}` : ""}`;
-
-    await writeTransaction({
-        playerId,
-        type,
-        amount: numeric,
-        balanceBefore: before,
-        balanceAfter: after,
-        status: "SUCCESS",
-        description: finalDescription,
-        referenceId: roundId
-    });
-
-    console.log(
-        `[BALANCE] ${playerId} | ${before} -> ${after} | ${type}`
-    );
-
-    return after;
-}
-
-/*
-|--------------------------------------------------------------------------
-| SESSION SYSTEM
-|--------------------------------------------------------------------------
-|
-| Sessions are intentionally kept in server memory.
-|
-| Permanent account data remains in Supabase.
-|
-| If Render restarts, users simply authenticate again.
-|
-|--------------------------------------------------------------------------
-*/
-
-const sessions = new Map();
-
-function createSession(player) {
-    const token = crypto.randomBytes(32).toString("hex");
-
-    const tokenHash = crypto
-        .createHmac("sha256", SESSION_SECRET)
-        .update(token)
-        .digest("hex");
-
-    sessions.set(tokenHash, {
-        playerId: player.id,
-        createdAt: Date.now()
-    });
-
-    return token;
-}
-
-function getSessionPlayer(req) {
-    const authorization =
-        req.headers.authorization || "";
-
-    if (!authorization.startsWith("Bearer ")) {
-        return null;
-    }
-
-    const token =
-        authorization
-            .slice(7)
-            .trim();
-
-    if (!token) {
-        return null;
-    }
-
-    const tokenHash = crypto
-        .createHmac("sha256", SESSION_SECRET)
-        .update(token)
-        .digest("hex");
-
-    return sessions.get(tokenHash) || null;
-}
-
-async function requirePlayer(req, res, next) {
-    try {
-        const session = getSessionPlayer(req);
-
-        if (!session) {
-            return res.status(401).json({
-                success: false,
-                error: "Unauthorized"
-            });
         }
 
-        const player =
-            await findPlayerById(session.playerId);
+      }
 
-        if (!player) {
-            return res.status(401).json({
-                success: false,
-                error: "Player not found"
-            });
-        }
+      if(!state.telegramName)
+        state.telegramName="Player";
 
-        req.player = player;
+      const savedRegistrationPhone=localStorage.getItem("destaRegistrationPhone") || "";
+      const registrationPhoneInput=document.getElementById("registrationPhone");
+      if(registrationPhoneInput) registrationPhoneInput.value=savedRegistrationPhone;
 
-        next();
-    } catch (error) {
-        console.error("Authentication middleware error:", error);
-
-        return res.status(401).json({
-            success: false,
-            error: "Authentication failed"
-        });
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| ENGINE VALIDATION
-|--------------------------------------------------------------------------
-|
-| The game files are authoritative for minimum bet amounts.
-|
-|--------------------------------------------------------------------------
-*/
-
-function validateEngineBet(engine, amount) {
-    const value = Number(amount);
-
-    if (!Number.isFinite(value) || value <= 0) {
-        throw new Error("Invalid bet amount");
-    }
-
-    const validator =
-        engine?.validateBetAmount ||
-        engine?.default?.validateBetAmount;
-
-    if (typeof validator === "function") {
-        const result = validator(value);
-
-        /*
-        |--------------------------------------------------------------
-        | Support validators that:
-        |   - return boolean
-        |   - return an object
-        |   - throw an error
-        |--------------------------------------------------------------
-        */
-
-        if (result === false) {
-            throw new Error("Invalid bet amount");
-        }
-
-        if (
-            result &&
-            typeof result === "object" &&
-            result.valid === false
-        ) {
-            throw new Error(
-                result.error ||
-                result.message ||
-                "Invalid bet amount"
-            );
-        }
-
-        return value;
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Do NOT invent a new minimum here.
-    | If an engine doesn't expose a validator, the caller should
-    | handle that engine-specific limitation.
-    |--------------------------------------------------------------
-    */
-
-    return value;
-}
-
-/*
-|--------------------------------------------------------------------------
-| AUTH ROUTES
-|--------------------------------------------------------------------------
-*/
-
-/*
-|------------------------------------------------------------------
-| REGISTER
-|------------------------------------------------------------------
-*/
-
-async function registerHandler(req, res) {
-    try {
-        const {
-            telegramId,
-            telegramName,
-            password
-        } = req.body;
-
-        if (
-            telegramId === undefined ||
-            telegramId === null ||
-            String(telegramId).trim() === ""
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: "Missing Telegram ID"
-            });
-        }
-
-        if (!validPassword(password)) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    "Password must be between 8 and 128 characters"
-            });
-        }
-
-        const existing =
-            await findPlayerByTelegramId(telegramId);
-
-        if (existing) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    "Account already exists. Please login."
-            });
-        }
-
-        const passwordHash =
-            await argon2.hash(password);
-
-        const playerId = makePlayerId();
-
-        const safeName =
-            normalizeTelegramName(telegramName);
-
-        const { data: insertedPlayer, error } =
-            await supabase
-                .from("players")
-                .insert({
-                    id: playerId,
-                    telegram_id: String(telegramId),
-                    username: safeName,
-                    password_hash: passwordHash,
-                    balance: 0,
-                    created_at: nowIso(),
-                    updated_at: nowIso()
-                })
-                .select("*")
-                .single();
-
-        if (error) {
-            await dbError(
-                "Register insert",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    "Failed to create player account"
-            });
-        }
-
-        const token =
-            createSession(insertedPlayer);
-
-        return res.json({
-            success: true,
-            token,
-            player: publicPlayer(insertedPlayer)
-        });
-    } catch (error) {
-        console.error("Registration error:", error);
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Registration failed"
-        });
-    }
-}
-
-app.post(
-    "/api/auth/register",
-    registerHandler
-);
-
-app.post(
-    "/api/account/register",
-    registerHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| LOGIN
-|--------------------------------------------------------------------------
-*/
-
-async function loginHandler(req, res) {
-    try {
-        const {
-            telegramId,
-            password
-        } = req.body;
-
-        if (
-            telegramId === undefined ||
-            telegramId === null ||
-            !password
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: "Missing credentials"
-            });
-        }
-
-        const player =
-            await findPlayerByTelegramId(telegramId);
-
-        if (!player) {
-            return res.status(404).json({
-                success: false,
-                error:
-                    "Account not found. Please register first."
-            });
-        }
-
-        if (!player.password_hash) {
-            return res.status(401).json({
-                success: false,
-                error:
-                    "This account does not have a valid password. Please contact support."
-            });
-        }
-
-        const valid =
-            await argon2.verify(
-                player.password_hash,
-                password
-            );
-
-        if (!valid) {
-            return res.status(401).json({
-                success: false,
-                error: "Incorrect password"
-            });
-        }
-
-        const token =
-            createSession(player);
-
-        return res.json({
-            success: true,
-            token,
-            player: publicPlayer(player)
-        });
-    } catch (error) {
-        console.error("Login error:", error);
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Login failed"
-        });
-    }
-}
-
-app.post(
-    "/api/auth/login",
-    loginHandler
-);
-
-app.post(
-    "/api/account/login",
-    loginHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 1 — PASSWORD RESET
-|--------------------------------------------------------------------------
-*/
-
-function passwordResetReplyMarkup(requestId) {
-    return {
-        inline_keyboard: [[
-            {
-                text: "APPROVE RESET",
-                callback_data: `dpr:approve:${requestId}`
-            },
-            {
-                text: "REJECT RESET",
-                callback_data: `dpr:reject:${requestId}`
-            }
-        ]]
-    };
-}
-
-async function findPasswordResetRequest(
-    requestId,
-    phone = null
-) {
-    let query =
-        supabase
-            .from("password_reset_requests")
-            .select("*")
-            .eq("id", requestId);
-
-    if (phone) {
-        query =
-            query.eq(
-                "phone",
-                normalizePhone(phone)
-            );
-    }
-
-    const { data, error } =
-        await query.maybeSingle();
-
-    if (error) {
-        await dbError(
-            "findPasswordResetRequest",
-            error
+      state.playerId=
+        createPlayerId(
+          state.telegramId
         );
 
-        throw new Error("Database error");
+      document
+        .getElementById("telegramName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("playerId")
+        .textContent=
+          state.playerId;
+
     }
 
-    return data;
-}
 
-async function processPasswordResetAction(
-    action,
-    requestId
-) {
-    const request =
-        await findPasswordResetRequest(requestId);
+    function createPlayerId(telegramId){
 
-    if (!request) {
-        throw new Error(
-            "Password reset request not found"
-        );
-    }
+      if(telegramId){
 
-    if (
-        request.status === "PENDING" &&
-        action === "approve"
-    ) {
-        const { data, error } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "APPROVED",
-                    approved_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "PENDING")
-                .select("*")
-                .maybeSingle();
+        const digits=
+          telegramId
+            .replace(/\D/g,"")
+            .slice(-6);
 
-        if (error) {
-            await dbError(
-                "password reset approve",
-                error
-            );
+        return "DP-"+digits.padStart(6,"0");
 
-            throw new Error(
-                "Could not approve password reset"
-            );
-        }
+      }
 
-        if (!data) {
-            throw new Error(
-                "Password reset request was already processed"
-            );
-        }
-
-        await sendAdminGroupAudit(
-            `PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
+      let stored=
+        localStorage.getItem(
+          "destaPlayerId"
         );
 
-        return "RESET APPROVED";
-    }
+      if(!stored){
 
-    if (
-        request.status === "PENDING" &&
-        action === "reject"
-    ) {
-        const { data, error } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "REJECTED",
-                    rejected_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "PENDING")
-                .select("*")
-                .maybeSingle();
+        stored=
+          "DP-"+Math.floor(
+            100000+
+            Math.random()*900000
+          );
 
-        if (error) {
-            await dbError(
-                "password reset reject",
-                error
-            );
-
-            throw new Error(
-                "Could not reject password reset"
-            );
-        }
-
-        if (!data) {
-            throw new Error(
-                "Password reset request was already processed"
-            );
-        }
-
-        await sendAdminGroupAudit(
-            `PASSWORD RESET REJECTED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
+        localStorage.setItem(
+          "destaPlayerId",
+          stored
         );
 
-        return "RESET REJECTED";
+      }
+
+      return stored;
+
     }
 
-    throw new Error(
-        `Cannot ${action} reset in ${request.status} status`
-    );
-}
 
-app.post(
-    "/api/account/password-reset-request",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.body.phone);
+    /* =========================================================
+       ACCOUNT
+    ========================================================= */
 
-            if (!phone) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Phone number is required"
-                });
-            }
+    async function safeJsonResponse(response){
+      const text=await response.text();
 
-            const player =
-                await findPlayerByPhone(phone);
+      if(!text){
+        return {};
+      }
 
-            if (!player) {
-                return res.status(404).json({
-                    success: false,
-                    error: "Account not found"
-                });
-            }
-
-            const requestId =
-                makeId("RST");
-
-            const { data, error } =
-                await supabase
-                    .from("password_reset_requests")
-                    .insert({
-                        id: requestId,
-                        player_id: player.id,
-                        phone,
-                        status: "PENDING",
-                        created_at: nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "password reset request insert",
-                    error
-                );
-
-                throw new Error(
-                    "Could not create password reset request"
-                );
-            }
-
-            const text =
-                `<b>DESTA PLAY — PASSWORD RESET REQUEST</b>\n` +
-                `Account/Player ID: ${String(player.id)}\n` +
-                `Phone: ${phone}\n` +
-                `Telegram name: ${String(player.username || "Player")}\n` +
-                `Telegram ID: ${String(player.telegram_id || "Not available")}\n` +
-                `Request ID: ${requestId}\n` +
-                `Request time: ${nowIso()}\n\n` +
-                `No password or password hash is included.`;
-
-            await sendAdminTelegramMessage(
-                text,
-                passwordResetReplyMarkup(requestId)
-            );
-
-            await sendAdminGroupAudit(
-                text.replace(/<[^>]+>/g, "")
-            );
-
-            return res.json({
-                success: true,
-                status: data.status,
-                requestId,
-                message:
-                    "Reset request submitted. Wait for administrator approval."
-            });
-        } catch (error) {
-            console.error(
-                "Password reset request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not submit password reset request"
-            });
-        }
-    }
-);
-
-app.get(
-    "/api/account/password-reset-status",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.query.phone);
-
-            const requestId =
-                String(
-                    req.query.requestId || ""
-                ).trim();
-
-            if (!phone || !requestId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Phone number and reset request ID are required"
-                });
-            }
-
-            const request =
-                await findPasswordResetRequest(
-                    requestId,
-                    phone
-                );
-
-            if (!request) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Password reset request not found"
-                });
-            }
-
-            return res.json({
-                success: true,
-                status: request.status,
-                requestId: request.id
-            });
-        } catch (error) {
-            console.error(
-                "Password reset status error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not check password reset status"
-            });
-        }
-    }
-);
-
-app.post(
-    "/api/account/password-reset-complete",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.body.phone);
-
-            const requestId =
-                String(
-                    req.body.requestId || ""
-                ).trim();
-
-            const password =
-                req.body.password;
-
-            if (!phone || !requestId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Phone number and reset request ID are required"
-                });
-            }
-
-            if (!validPassword(password)) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Password must be between 8 and 128 characters"
-                });
-            }
-
-            const request =
-                await findPasswordResetRequest(
-                    requestId,
-                    phone
-                );
-
-            if (!request) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Password reset request not found"
-                });
-            }
-
-            if (request.status !== "APPROVED") {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        request.status === "REJECTED"
-                            ? "Password reset was rejected by the administrator"
-                            : request.status === "COMPLETED"
-                                ? "Password reset has already been completed"
-                                : "Password reset is waiting for administrator approval"
-                });
-            }
-
-            const passwordHash =
-                await argon2.hash(password);
-
-            const {
-                data: updatedPlayer,
-                error: playerError
-            } =
-                await supabase
-                    .from("players")
-                    .update({
-                        password_hash: passwordHash,
-                        updated_at: nowIso()
-                    })
-                    .eq("id", request.player_id)
-                    .eq("phone", phone)
-                    .select("*")
-                    .maybeSingle();
-
-            if (playerError) {
-                await dbError(
-                    "password reset player update",
-                    playerError
-                );
-
-                throw new Error(
-                    "Could not change password"
-                );
-            }
-
-            if (!updatedPlayer) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Player account not found"
-                });
-            }
-                    const { data: completedRequest, error: requestError } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "COMPLETED",
-                    completed_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "APPROVED")
-                .select("*")
-                .maybeSingle();
-
-        if (requestError) {
-            await dbError(
-                "password reset completion",
-                requestError
-            );
-
-            throw new Error(
-                "Password changed, but reset status could not be finalized"
-            );
-        }
-
-        if (!completedRequest) {
-            throw new Error(
-                "Password reset request was already completed"
-            );
-        }
-
-        return res.json({
-            success: true,
-            status: "COMPLETED",
-            message: "Password changed successfully"
-        });
-    } catch (error) {
-        console.error(
-            "Password reset completion error:",
-            error
+      try{
+        return JSON.parse(text);
+      }catch(error){
+        console.warn(
+          "Expected JSON but server returned non-JSON:",
+          response.url,
+          text.slice(0,200)
         );
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Could not reset password"
-        });
-    }
-});
-
-/*
-|--------------------------------------------------------------------------
-| CURRENT ACCOUNT
-|--------------------------------------------------------------------------
-*/
-
-async function meHandler(req, res) {
-    return res.json({
-        success: true,
-        player: publicPlayer(req.player)
-    });
-}
-
-app.get(
-    "/api/auth/me",
-    requirePlayer,
-    meHandler
-);
-
-app.get(
-    "/api/account/me",
-    requirePlayer,
-    meHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| LOGOUT
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/auth/logout",
-    requirePlayer,
-    (req, res) => {
-        const authorization =
-            req.headers.authorization || "";
-
-        const token =
-            authorization.slice(7).trim();
-
-        if (token) {
-            const tokenHash =
-                crypto
-                    .createHmac(
-                        "sha256",
-                        SESSION_SECRET
-                    )
-                    .update(token)
-                    .digest("hex");
-
-            sessions.delete(tokenHash);
-        }
-
-        res.json({
-            success: true
-        });
-    }
-);
-
-app.post(
-    "/api/account/logout",
-    requirePlayer,
-    (req, res) => {
-        const authorization =
-            req.headers.authorization || "";
-
-        const token =
-            authorization.slice(7).trim();
-
-        if (token) {
-            const tokenHash =
-                crypto
-                    .createHmac(
-                        "sha256",
-                        SESSION_SECRET
-                    )
-                    .update(token)
-                    .digest("hex");
-
-            sessions.delete(tokenHash);
-        }
-
-        res.json({
-            success: true
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BALANCE
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/account/balance",
-    requirePlayer,
-    (req, res) => {
-        res.json({
-            success: true,
-            balance: Number(
-                req.player.balance || 0
-            )
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 2 — PUBLIC PAYMENT CONFIGURATION
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/payment/config",
-    requirePlayer,
-    (req, res) => {
-        return res.json({
-            success: true,
-            minimumDeposit: MIN_DEPOSIT_AMOUNT,
-            methods: {
-                telebirr: {
-                    available: true,
-                    ownerName: PAYMENT_OWNER_NAME,
-                    phone: PAYMENT_PHONE,
-                    account: TELEBIRR_ACCOUNT
-                },
-                mpesa: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
-                },
-                cbeBirr: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
-                }
-            }
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 3 — DEPOSIT REQUEST
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/deposit/request",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const amount =
-                Number(req.body.amount);
-
-            const method =
-                String(
-                    req.body.method ||
-                    "telebirr"
-                )
-                    .trim()
-                    .toLowerCase();
-
-            const transactionId =
-                normalizeReference(
-                    req.body.transactionId
-                );
-
-            const referenceId =
-                normalizeReference(
-                    req.body.referenceId ||
-                    transactionId
-                );
-
-            const recipient =
-                String(
-                    req.body.recipient ||
-                    PAYMENT_OWNER_NAME
-                )
-                    .trim()
-                    .slice(0, 120);
-
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone
-                );
-
-            if (
-                !Number.isFinite(amount) ||
-                amount < MIN_DEPOSIT_AMOUNT
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
-                });
-            }
-
-            if (
-                !SUPPORTED_DEPOSIT_METHODS[method]
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        method === "mpesa" ||
-                        method === "cbe_birr"
-                            ? "Payment method is not available now."
-                            : "Unsupported payment method"
-                });
-            }
-
-            if (!referenceId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Payment transaction/reference link is required"
-                });
-            }
-
-            if (
-                await hasSuccessfulDepositReference(
-                    referenceId
-                )
-            ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference has already been credited"
-                });
-            }
-
-            const {
-                data: existingPending,
-                error: duplicateError
-            } =
-                await supabase
-                    .from("transactions")
-                    .select("id,status")
-                    .eq("type", "deposit")
-                    .eq(
-                        "reference_id",
-                        referenceId
-                    )
-                    .in(
-                        "status",
-                        [
-                            "PENDING",
-                            "APPROVED",
-                            "SUCCESS",
-                            "COMPLETED"
-                        ]
-                    )
-                    .limit(1);
-
-            if (duplicateError) {
-                await dbError(
-                    "deposit duplicate check",
-                    duplicateError
-                );
-
-                throw new Error(
-                    "Could not check payment reference"
-                );
-            }
-
-            if (existingPending?.length) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference is already submitted"
-                });
-            }
-
-            const requestId =
-                makeId("DEP");
-
-            const { data, error } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id: req.player.id,
-                        type: "deposit",
-                        amount,
-                        balance_before:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        balance_after:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        status: "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 3,
-                                method,
-                                recipient,
-                                senderPhone,
-                                transactionId,
-                                referenceId,
-                                requestId,
-                                requestedAt: nowIso()
-                            }),
-                        reference_id: referenceId,
-                        created_at: nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "deposit request insert",
-                    error
-                );
-
-                throw new Error(
-                    "Could not create deposit request"
-                );
-            }
-
-            await sendAdminGroupAudit(
-                `DEPOSIT PENDING\nPlayer: ${req.player.id}\nAmount: ${amount} ETB\nReference: ${referenceId}\nRequest: ${requestId}`
-            );
-
-            return res.json({
-                success: true,
-                status: "PENDING",
-                requestId,
-                amount,
-                minimumDeposit:
-                    MIN_DEPOSIT_AMOUNT,
-                referenceId:
-                    data.reference_id
-            });
-        } catch (error) {
-            console.error(
-                "Deposit request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not create deposit request"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 4 — SMS PAYMENT VERIFICATION
-|--------------------------------------------------------------------------
-|
-| The SMS forwarder can POST the complete SMS text here. The endpoint
-| never credits a deposit from the player's submission alone. A forwarded
-| payment must contain a matching amount and transaction/reference value.
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/payment/sms",
-    async (req, res) => {
-        try {
-            if (SMS_WEBHOOK_SECRET) {
-                const supplied =
-                    String(
-                        req.headers[
-                            "x-sms-webhook-secret"
-                        ] ||
-                        req.headers[
-                            "x-webhook-secret"
-                        ] ||
-                        ""
-                    );
-
-                if (
-                    supplied !==
-                    SMS_WEBHOOK_SECRET
-                ) {
-                    return res.status(401).json({
-                        success: false,
-                        error: "Unauthorized"
-                    });
-                }
-            }
-
-            const smsText =
-                String(
-                    req.body.message ||
-                    req.body.text ||
-                    req.body.sms ||
-                    req.body.body ||
-                    ""
-                ).trim();
-
-            if (!smsText) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "SMS message is required"
-                });
-            }
-
-            const forwardedAmount =
-                Number(req.body.amount) ||
-                parseFirstAmount(smsText);
-
-            const referenceCandidates = [
-                normalizeReference(
-                    req.body.transactionId
-                ),
-                normalizeReference(
-                    req.body.referenceId
-                ),
-                ...extractReferenceCandidates(
-                    smsText
-                )
-            ].filter(Boolean);
-
-            const sender =
-                String(
-                    req.body.sender ||
-                    req.body.senderName ||
-                    ""
-                ).trim();
-
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone ||
-                    req.body.from ||
-                    ""
-                );
-
-            const receiver =
-                String(
-                    req.body.receiver ||
-                    req.body.recipient ||
-                    ""
-                ).trim();
-
-            const receiverPhone =
-                normalizePhone(
-                    req.body.receiverPhone ||
-                    req.body.to ||
-                    ""
-                );
-
-            const pending =
-                await findPendingDeposits();
-
-            let matched = null;
-
-            for (const deposit of pending) {
-                const description =
-                    String(
-                        deposit.description || ""
-                    );
-
-                const referenceMatches =
-                    referenceCandidates.includes(
-                        String(
-                            deposit.reference_id || ""
-                        )
-                    ) ||
-                    referenceCandidates.some(
-                        token =>
-                            description.includes(
-                                token
-                            )
-                    );
-
-                const amountMatches =
-                    Number.isFinite(
-                        forwardedAmount
-                    ) &&
-                    Number(deposit.amount) ===
-                        Number(
-                            forwardedAmount
-                        );
-
-                if (
-                    referenceMatches &&
-                    amountMatches
-                ) {
-                    matched = deposit;
-                    break;
-                }
-            }
-
-            if (!matched) {
-                return res.status(200).json({
-                    success: true,
-                    verified: false,
-                    credited: false,
-                    message:
-                        "No pending deposit matched this SMS"
-                });
-            }
-
-            const referenceId =
-                String(
-                    matched.reference_id ||
-                    referenceCandidates[0] ||
-                    ""
-                );
-
-            const result =
-                await approveDepositTransaction(
-                    matched,
-                    {
-                        amount:
-                            forwardedAmount,
-                        referenceId,
-                        sender,
-                        senderPhone,
-                        receiver,
-                        receiverPhone,
-                        smsTime:
-                            req.body.timestamp ||
-                            req.body.time ||
-                            null,
-                        smsText
-                    }
-                );
-
-            return res.json({
-                success: true,
-                verified: true,
-                credited: true,
-                playerId:
-                    matched.player_id,
-                amount:
-                    Number(matched.amount),
-                referenceId:
-                    result.referenceId,
-                balanceAfter:
-                    result.balanceAfter
-            });
-        } catch (error) {
-            console.error(
-                "SMS verification error:",
-                error
-            );
-
-            return res.status(400).json({
-                success: false,
-                verified: false,
-                credited: false,
-                error:
-                    error.message ||
-                    "Payment verification failed"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 5 — WITHDRAWAL REQUEST
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/withdraw/request",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const amount =
-                Number(req.body.amount);
-
-            const recipientName =
-                String(
-                    req.body.recipientName ||
-                    req.body.fullName ||
-                    ""
-                )
-                    .trim()
-                    .slice(0, 120);
-
-            const recipientPhone =
-                normalizePhone(
-                    req.body.recipientPhone ||
-                    req.body.phone
-                );
-
-            const password =
-                String(
-                    req.body.password || ""
-                );
-
-            if (
-                !Number.isFinite(amount) ||
-                amount <= 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Invalid withdrawal amount"
-                });
-            }
-
-            const before =
-                Number(
-                    req.player.balance || 0
-                );
-
-            if (amount > before) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Insufficient balance",
-                    balanceBefore: before
-                });
-            }
-
-            if (
-                !recipientName ||
-                !recipientPhone
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Recipient full name and phone are required"
-                });
-            }
-
-            if (!validPassword(password)) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Password is required"
-                });
-            }
-
-            if (!req.player.password_hash) {
-                return res.status(401).json({
-                    success: false,
-                    error:
-                        "Account password is not configured"
-                });
-            }
-
-            const valid =
-                await argon2.verify(
-                    req.player.password_hash,
-                    password
-                );
-
-            if (!valid) {
-                return res.status(401).json({
-                    success: false,
-                    error:
-                        "Incorrect password"
-                });
-            }
-
-            const after =
-                before - amount;
-
-            const requestId =
-                makeId("WDR");
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-                amount: -amount,
-                type:
-                    "withdrawal_reserve",
-                description:
-                    `Withdrawal reservation ${requestId}`,
-                roundId:
-                    requestId,
-                metadata: {
-                    requestId,
-                    recipientName,
-                    recipientPhone
-                }
-            });
-
-            const {
-                data,
-                error
-            } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id:
-                            req.player.id,
-                        type:
-                            "withdrawal",
-                        amount,
-                        balance_before:
-                            before,
-                        balance_after:
-                            after,
-                        status:
-                            "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 5,
-                                recipient:
-                                    recipientName,
-                                recipientPhone,
-                                requestId,
-                                requestedAt:
-                                    nowIso()
-                            }),
-                        reference_id:
-                            requestId,
-                        created_at:
-                            nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "withdrawal request insert",
-                    error
-                );
-
-                /*
-                 * Reservation was already recorded; return it so a failed
-                 * request insert does not silently consume player funds.
-                 */
-                await changeBalance({
-                    playerId:
-                        req.player.id,
-                    amount,
-                    type:
-                        "withdrawal_reservation_reversal",
-                    description:
-                        `Withdrawal request rollback ${requestId}`,
-                    roundId:
-                        requestId
-                });
-
-                throw new Error(
-                    "Could not create withdrawal request"
-                );
-            }
-
-            const text =
-                `<b>DESTA PLAY — WITHDRAWAL REQUEST</b>\n` +
-                `Telegram name: ${String(req.player.username || "Player")}\n` +
-                `Username: ${String(req.player.telegram_username || "Not available")}\n` +
-                `Account/Player ID: ${String(req.player.id)}\n` +
-                `Recipient: ${recipientName}\n` +
-                `Phone: ${recipientPhone}\n` +
-                `Amount: ${amount} ETB\n` +
-                `Balance before: ${before} ETB\n` +
-                `Balance after: ${after} ETB\n` +
-                `Request ID: ${requestId}\n` +
-                `Request time: ${nowIso()}`;
-
-            await sendAdminTelegramMessage(
-                text,
-                withdrawalReplyMarkup(
-                    requestId
-                )
-            );
-
-            await sendAdminGroupAudit(
-                text.replace(
-                    /<[^>]+>/g,
-                    ""
-                )
-            );
-
-            return res.json({
-                success: true,
-                status: "PENDING",
-                requestId,
-                amount,
-                balanceBefore: before,
-                balanceAfter: after
-            });
-        } catch (error) {
-            console.error(
-                "Withdrawal request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not create withdrawal request"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 6 — TELEGRAM WITHDRAWAL CONTROL
-|--------------------------------------------------------------------------
-|
-| Telegram callback buttons are processed through the webhook below.
-| Passwords and password hashes are never sent to Telegram.
-|--------------------------------------------------------------------------
-*/
-
-async function processWithdrawalAction(
-    action,
-    requestId
-) {
-    const transaction =
-        await findTransactionById(
-            requestId
-        );
-
-    if (
-        !transaction ||
-        transaction.type !==
-            "withdrawal"
-    ) {
-        throw new Error(
-            "Withdrawal request not found"
-        );
+        return {};
+      }
     }
 
-    if (action === "accept") {
-        if (
-            transaction.status !==
-            "PENDING"
-        ) {
-            throw new Error(
-                `Cannot ACCEPT withdrawal in ${transaction.status} status`
-            );
-        }
-                const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "APPROVED" })
-            .eq("id", requestId)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
-
-        if (error) {
-            await dbError("withdrawal accept", error);
-            throw new Error("Could not accept withdrawal");
-        }
-
-        if (!data) throw new Error("Withdrawal was already processed");
-
-        await sendAdminGroupAudit(
-            `WITHDRAWAL ACCEPTED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
-
-        return "ACCEPTED";
+    function clearAccountMessage(){
+      const message=document.getElementById("accountMessage");
+      if(message){
+        message.className="accountMessage";
+        message.textContent="";
+      }
     }
 
-    if (action === "reject") {
-        if (transaction.status !== "PENDING") {
-            throw new Error(`Cannot REJECT withdrawal in ${transaction.status} status`);
-        }
-
-        const player = await findPlayerById(transaction.player_id);
-        if (!player) throw new Error("Player not found");
-
-        const amount = Number(transaction.amount);
-        const before = Number(player.balance || 0);
-
-        const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "REJECTED" })
-            .eq("id", requestId)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
-
-        if (error) {
-            await dbError("withdrawal reject", error);
-            throw new Error("Could not reject withdrawal");
-        }
-
-        if (!data) throw new Error("Withdrawal was already processed");
-
-        await changeBalance({
-            playerId: transaction.player_id,
-            amount,
-            type: "withdrawal_reversal",
-            description: `Withdrawal rejected ${requestId}`,
-            roundId: requestId
-        });
-
-        await sendAdminGroupAudit(
-            `WITHDRAWAL REJECTED\nRequest: ${requestId}\nAmount returned: ${amount} ETB\nBalance before return: ${before} ETB`
-        );
-
-        return "REJECTED";
+    function showCreateAccount(){
+      document.getElementById("accountWelcome").textContent="Welcome. Create your DESTA PLAY account.";
+      document.getElementById("accountResetFields").classList.add("hidden");
+      document.getElementById("accountCreateFields").classList.remove("hidden");
+      clearAccountMessage();
     }
 
-    if (action === "completed") {
-        if (transaction.status !== "APPROVED") {
-            throw new Error("COMPLETED is allowed only after ACCEPT");
-        }
-
-        const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "COMPLETED" })
-            .eq("id", requestId)
-            .eq("status", "APPROVED")
-            .select("*")
-            .maybeSingle();
-
-        if (error) {
-            await dbError("withdrawal completed", error);
-            throw new Error("Could not complete withdrawal");
-        }
-
-        if (!data) throw new Error("Withdrawal was already processed");
-
-        await sendAdminGroupAudit(
-            `WITHDRAWAL COMPLETED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
-
-        return "COMPLETED";
+    function showForgotPassword(){
+      document.getElementById("accountWelcome").textContent="Forgot your DESTA PLAY password?";
+      document.getElementById("accountCreateFields").classList.add("hidden");
+      document.getElementById("accountResetFields").classList.remove("hidden");
+      document.getElementById("resetCodeFields").classList.add("hidden");
+      document.getElementById("resetNewPasswordFields").classList.add("hidden");
+      passwordResetToken="";
+      const savedPhone=localStorage.getItem("destaResetPhone") || "";
+      document.getElementById("resetPhone").value=savedPhone;
+      document.getElementById("resetCode").value="";
+      clearAccountMessage();
     }
 
-    throw new Error("Unknown withdrawal action");
-}
+    let passwordResetToken="";
 
-app.post(
-    "/api/admin/telegram/webhook",
-    async (req, res) => {
-        try {
-            if (TELEGRAM_WEBHOOK_SECRET) {
-                const supplied = String(
-                    req.headers["x-telegram-bot-api-secret-token"] ||
-                    ""
-                );
-
-                if (supplied !== TELEGRAM_WEBHOOK_SECRET) {
-                    return res.status(401).json({ success: false, error: "Unauthorized" });
-                }
-            }
-
-            const callback = req.body?.callback_query;
-            if (!callback) return res.json({ success: true });
-
-            const fromId = String(callback.from?.id || "");
-            if (!ADMIN_TELEGRAM_ID || fromId !== ADMIN_TELEGRAM_ID) {
-                await telegramApi("answerCallbackQuery", {
-                    callback_query_id: callback.id,
-                    text: "Not authorized",
-                    show_alert: true
-                });
-                return res.json({ success: true });
-            }
-
-            const resetMatch = String(callback.data || "").match(/^dpr:(approve|reject):(.+)$/);
-
-            if (resetMatch) {
-                const resetResult = await processPasswordResetAction(resetMatch[1], resetMatch[2]);
-                await telegramApi("answerCallbackQuery", { callback_query_id: callback.id, text: resetResult, show_alert: false });
-                if (callback.message?.chat?.id && callback.message?.message_id) {
-                    await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
-                }
-                return res.json({ success: true, result: resetResult });
-            }
-
-            const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
-            if (!match) return res.json({ success: true });
-
-            const action = match[1];
-            const requestId = match[2];
-
-            const result = await processWithdrawalAction(action, requestId);
-
-            await telegramApi("answerCallbackQuery", {
-                callback_query_id: callback.id,
-                text: result,
-                show_alert: false
-            });
-
-            if (callback.message?.chat?.id && callback.message?.message_id) {
-                await telegramApi("editMessageReplyMarkup", {
-                    chat_id: callback.message.chat.id,
-                    message_id: callback.message.message_id,
-                    reply_markup: { inline_keyboard: [] }
-                });
-            }
-
-            return res.json({ success: true, result });
-        } catch (error) {
-            console.error("Telegram withdrawal webhook error:", error);
-
-            if (req.body?.callback_query?.id) {
-                await telegramApi("answerCallbackQuery", {
-                    callback_query_id: req.body.callback_query.id,
-                    text: error.message || "Action failed",
-                    show_alert: true
-                });
-            }
-
-            return res.status(400).json({
-                success: false,
-                error: error.message || "Telegram action failed"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 7 — TRANSACTION HISTORY
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/wallet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const { data, error } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("player_id", req.player.id)
-                .order("created_at", { ascending: false })
-                .limit(50);
-
-            if (error) {
-                await dbError("wallet transactions", error);
-                throw new Error("Could not load wallet transactions");
-            }
-
-            return res.json({
-                success: true,
-                balance: Number(req.player.balance || 0),
-                transactions: data || []
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not load wallet"
-            });
-        }
-    }
-);
-
-app.get(
-    "/api/account/transactions",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const { data, error } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("player_id", req.player.id)
-                .order("created_at", { ascending: false })
-                .limit(50);
-
-            if (error) {
-                await dbError("account transactions", error);
-                throw new Error("Could not load transactions");
-            }
-
-            return res.json({ success: true, transactions: data || [] });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not load transactions"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ENGINE HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function getBingoCartela(number) {
-    const value = Number(number);
-
-    const getCartela =
-        bingo.getCartela ||
-        bingo.default?.getCartela;
-
-    if (typeof getCartela !== "function") {
-        throw new Error(
-            "Bingo cartela engine is unavailable"
-        );
-    }
-
-    return getCartela(value);
-}
-
-function bingoBetIsValid(amount) {
-    return validateEngineBet(
-        bingo,
-        amount
-    );
-}
-
-function isWinningBingoCard(
-    card,
-    drawnNumbers
-) {
-    const checkWinningPatterns =
-        bingo.checkWinningPatterns ||
-        bingo.default?.checkWinningPatterns;
-
-    if (
-        typeof checkWinningPatterns !==
-        "function"
-    ) {
-        return false;
-    }
-
-    const numberSet =
-        drawnNumbers instanceof Set
-            ? drawnNumbers
-            : new Set(drawnNumbers);
-
-    return Boolean(
-        checkWinningPatterns(
-            card,
-            numberSet
-        )
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO DRAW
-|--------------------------------------------------------------------------
-*/
-
-function generateBingoDraw() {
-    const numbers =
-        Array.from(
-            { length: 75 },
-            (_, index) => index + 1
-        );
-
-    const result = [];
-
-    while (numbers.length > 0) {
-        const index =
-            crypto.randomInt(
-                0,
-                numbers.length
-            );
-
-        result.push(
-            numbers.splice(index, 1)[0]
-        );
-    }
-
-    return result;
-}
-
-/*
-|--------------------------------------------------------------------------
-| SAVE BINGO ROUND
-|--------------------------------------------------------------------------
-*/
-
-async function saveBingoRound(tier) {
-    const room =
-        bingoRooms[tier];
-
-    if (!room) {
+    async function shareRegistrationPhone(){
+      const message=document.getElementById("accountMessage");
+      const status=document.getElementById("registrationPhoneStatus");
+      if(!tg || typeof tg.requestContact !== "function"){
+        if(status){ status.className="accountMessage error"; status.textContent="Telegram phone sharing is not available here. Open the Mini App from Telegram."; }
         return;
-    }
-
-    const payload = {
-        id: room.id,
-        round_id: room.id,
-        game: "bingo",
-        tier_id: tier,
-        status: room.status,
-        betting_seconds:
-            BETTING_TIMERS.bingo,
-        betting_started_at:
-            new Date(
-                room.bettingStartedAt
-            ).toISOString(),
-        betting_ends_at:
-            new Date(
-                room.bettingEndsAt
-            ).toISOString(),
-        drawn_numbers:
-            room.drawnNumbers,
-        current_number:
-            room.currentNumber,
-        result:
-            room.winner
-                ? {
-                    winner:
-                        room.winner.playerId,
-                    prize:
-                        room.winnerPrize
-                }
-                : null,
-        engine_state: {
-            drawIndex:
-                room.drawIndex,
-
-            players:
-                room.players.map(
-                    player => ({
-                        playerId:
-                            player.playerId,
-                        telegramName:
-                            player.telegramName,
-                        cartelaNumber:
-                            player.cartelaNumber,
-                        cartela:
-                            player.cartela
-                    })
-                ),
-
-            winner:
-                room.winner
-                    ? {
-                        playerId:
-                            room.winner.playerId,
-                        telegramName:
-                            room.winner.telegramName,
-                        cartelaNumber:
-                            room.winner.cartelaNumber
-                    }
-                    : null,
-
-            totalPool:
-                room.totalPool,
-
-            houseRake:
-                room.houseRake,
-
-            winnerPrize:
-                room.winnerPrize
-        },
-        updated_at: nowIso()
-    };
-
-    const { error } =
-        await supabase
-            .from("game_rounds")
-            .upsert(
-                payload,
-                {
-                    onConflict: "id"
-                }
-            );
-
-    if (error) {
-        await dbError(
-            `saveBingoRound tier ${tier}`,
-            error
-        );
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| START BINGO ROUND
-|--------------------------------------------------------------------------
-*/
-
-function startNewBingoRound(tier) {
-    let entryFee;
-
-    try {
-        entryFee =
-            bingoBetIsValid(tier);
-    } catch (error) {
-        console.error(
-            `[BINGO] Engine rejected configured tier ${tier}:`,
-            error.message
-        );
-
-        return;
-    }
-
-    const now =
-        Date.now();
-
-    const bettingEndsAt =
-        now +
-        BETTING_TIMERS.bingo *
-        1000;
-
-    const room = {
-        id:
-            `bingo-${entryFee}-${now}-` +
-            crypto
-                .randomBytes(4)
-                .toString("hex"),
-
-        tierId: entryFee,
-
-        entryFee,
-
-        status: "BETTING",
-
-        createdAt: now,
-
-        bettingStartedAt: now,
-
-        bettingEndsAt,
-
-        players: [],
-
-        secretDraw:
-            generateBingoDraw(),
-
-        drawnNumbers: [],
-
-        drawIndex: 0,
-
-        currentNumber: null,
-
-        winner: null,
-
-        totalPool: 0,
-
-        houseRake: 0,
-
-        winnerPrize: 0
-    };
-
-    bingoRooms[entryFee] =
-        room;
-
-    console.log(
-        `[BINGO ${entryFee}] NEW ROUND ${room.id}`
-    );
-
-    saveBingoRound(
-        entryFee
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            const current =
-                bingoRooms[entryFee];
-
-            if (
-                !current ||
-                current.id !== room.id ||
-                current.status !==
-                    "BETTING"
-            ) {
+      }
+      if(status){ status.className="accountMessage"; status.textContent="Waiting for Telegram phone sharing…"; }
+      try{
+        tg.requestContact(async function(shared){
+          if(shared !== true && shared !== "true"){
+            if(status){ status.className="accountMessage error"; status.textContent="Phone sharing was cancelled."; }
+            return;
+          }
+          if(status){ status.className="accountMessage"; status.textContent="Phone shared. Checking…"; }
+          for(let i=0;i<15;i++){
+            try{
+              const response=await fetch("https://desta-play.onrender.com/api/account/registration-contact?telegramId="+encodeURIComponent(state.telegramId),{cache:"no-store",headers:{"Accept":"application/json"}});
+              const data=await safeJsonResponse(response);
+              if(response.ok && data.success && data.shared){
+                document.getElementById("registrationPhone").value=data.phone || "";
+                localStorage.setItem("destaRegistrationPhone",data.phone || "");
+                if(status){ status.className="accountMessage success"; status.textContent="Phone number received successfully."; }
                 return;
-            }
-
-            startBingoDrawPhase(
-                entryFee
-            );
-        },
-        BETTING_TIMERS.bingo *
-            1000
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| START BINGO DRAWING
-|--------------------------------------------------------------------------
-*/
-
-function startBingoDrawPhase(tier) {
-    const room =
-        bingoRooms[tier];
-
-    if (
-        !room ||
-        room.status !== "BETTING"
-    ) {
-        return;
-    }
-
-    room.status = "DRAWING";
-    room.drawIndex = 0;
-    room.drawnNumbers = [];
-    room.currentNumber = null;
-
-    saveBingoRound(
-        tier
-    ).catch(console.error);
-
-    revealNextBingoNumber(
-        tier
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| REVEAL BINGO NUMBER
-|--------------------------------------------------------------------------
-*/
-
-function revealNextBingoNumber(tier) {
-    const room =
-        bingoRooms[tier];
-
-    if (
-        !room ||
-        room.status !== "DRAWING"
-    ) {
-        return;
-    }
-
-    if (
-        room.drawIndex >=
-        room.secretDraw.length
-    ) {
-        resolveBingoWinner(
-            tier
-        );
-
-        return;
-    }
-
-    const number =
-        room.secretDraw[
-            room.drawIndex
-        ];
-
-    room.currentNumber =
-        number;
-
-    room.drawnNumbers.push(
-        number
-            );
-
-    room.drawIndex++;
-
-    console.log(
-        `[BINGO ${tier}] DRAW ${room.drawIndex}/75 -> ${number}`
-    );
-
-    saveBingoRound(
-        tier
-    ).catch(console.error);
-
-    let winningPlayer = null;
-
-    for (
-        const player of room.players
-    ) {
-        if (
-            isWinningBingoCard(
-                player.cartela,
-                room.drawnNumbers
-            )
-        ) {
-            winningPlayer =
-                player;
-
-            break;
-        }
-    }
-
-    if (winningPlayer) {
-        resolveBingoWinner(
-            tier,
-            winningPlayer
-        );
-
-        return;
-    }
-
-    setTimeout(
-        () => {
-            const current =
-                bingoRooms[tier];
-
-            if (
-                !current ||
-                current.id !== room.id ||
-                current.status !==
-                    "DRAWING"
-            ) {
-                return;
-            }
-
-            revealNextBingoNumber(
-                tier
-            );
-        },
-        DRAW_INTERVALS.bingo
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| RESOLVE BINGO
-|--------------------------------------------------------------------------
-*/
-
-async function resolveBingoWinner(
-    tier,
-    winnerObj = null
-) {
-    const room =
-        bingoRooms[tier];
-
-    if (
-        !room ||
-        room.status === "FINISHED"
-    ) {
-        return;
-    }
-
-    room.status = "FINISHED";
-
-    const grossPool =
-        room.players.length *
-        room.entryFee;
-
-    /*
-    |--------------------------------------------------------------
-    | Existing rule:
-    | 90% player pool
-    | 10% platform rake
-    |--------------------------------------------------------------
-    */
-
-    const houseRake =
-        grossPool * 0.10;
-
-    const winnerPrize =
-        grossPool - houseRake;
-
-    room.totalPool =
-        grossPool;
-
-    room.houseRake =
-        houseRake;
-
-    room.winnerPrize =
-        winnerPrize;
-
-    const winningPlayer =
-        winnerObj;
-
-    if (winningPlayer) {
-        room.winner =
-            winningPlayer;
-
-        try {
-            await changeBalance({
-                playerId:
-                    winningPlayer.playerId,
-
-                amount:
-                    winnerPrize,
-
-                type:
-                    "bingo_win",
-
-                game:
-                    "bingo",
-
-                roundId:
-                    room.id,
-
-                description:
-                    `Bingo prize - tier ${tier}`,
-
-                metadata: {
-                    tier,
-                    grossPool,
-                    houseRake,
-                    winnerPrize
-                }
-            });
-
-            console.log(
-                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${winnerPrize} ETB`
-            );
-        } catch (error) {
-            console.error(
-                `[BINGO ${tier}] PAYOUT ERROR:`,
-                error
-            );
-        }
-    } else {
-        console.log(
-            `[BINGO ${tier}] No winning card`
-        );
-    }
-
-    await saveBingoRound(
-        tier
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            startNewBingoRound(
-                tier
-            );
-        },
-        NEXT_ROUND_DELAY
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO JOIN
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/bingo/join",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const {
-                tier,
-                cartelaNumber
-            } = req.body;
-
-            const selectedTier =
-                Number(tier);
-
-            const selectedCartela =
-                Number(cartelaNumber);
-
-            /*
-            |----------------------------------------------------------
-            | ENGINE VALIDATES BET AMOUNT
-            |----------------------------------------------------------
-            */
-
-            let entryFee;
-
-            try {
-                entryFee =
-                    bingoBetIsValid(
-                        selectedTier
-                    );
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        error.message ||
-                        "Invalid bingo bet amount"
-                });
-            }
-
-            const room =
-                bingoRooms[entryFee];
-
-            if (
-                !room ||
-                room.status !== "BETTING"
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Betting is closed for this room"
-                });
-            }
-
-            if (
-                !Number.isInteger(
-                    selectedCartela
-                ) ||
-                selectedCartela < 1 ||
-                selectedCartela > 120
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Cartela number must be between 1 and 120"
-                });
-            }
-
-            const alreadyJoined =
-                room.players.some(
-                    player =>
-                        player.playerId ===
-                        req.player.id
-                );
-
-            if (alreadyJoined) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Player already joined this round"
-                });
-            }
-
-            const playerCartela =
-                getBingoCartela(
-                    selectedCartela
-                );
-
-            if (
-                !playerCartela ||
-                !Array.isArray(
-                    playerCartela
-                ) ||
-                playerCartela.length === 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Could not generate cartela"
-                });
-            }
-
-            /*
-            |----------------------------------------------------------
-            | DEBIT PLAYER
-            |----------------------------------------------------------
-            */
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-
-                amount:
-                    -entryFee,
-
-                type:
-                    "bingo_entry",
-
-                game:
-                    "bingo",
-
-                roundId:
-                    room.id,
-
-                description:
-                    `Bingo entry - tier ${entryFee}`,
-
-                metadata: {
-                    tier:
-                        entryFee,
-
-                    cartelaNumber:
-                        selectedCartela
-                }
-            });
-
-            room.players.push({
-                playerId:
-                    req.player.id,
-
-                telegramName:
-                    req.player.username ||
-                    "Player",
-
-                cartelaNumber:
-                    selectedCartela,
-
-                cartela:
-                    playerCartela
-            });
-
-            await saveBingoRound(
-                entryFee
-            );
-
-            const grossPool =
-                room.players.length *
-                room.entryFee;
-
-            const winnerPrize =
-                grossPool * 0.90;
-
-            return res.json({
-                success: true,
-
-                tier:
-                    entryFee,
-
-                roundId:
-                    room.id,
-
-                playersInRoom:
-                    room.players.length,
-
-                grossPool,
-
-                winnerPrize,
-
-                serverTime:
-                    Date.now(),
-
-                bettingEndsAt:
-                    room.bettingEndsAt,
-
-                bettingRemainingMilliseconds:
-                    Math.max(
-                        0,
-                        room.bettingEndsAt -
-                            Date.now()
-                    ),
-
-                cartela:
-                    playerCartela
-            });
-        } catch (error) {
-            console.error(
-                "Bingo join error:",
-                error
-            );
-
-            return res.status(400).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not join bingo"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BINGO CARTELA
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/bingo/cartela/:number",
-    (req, res) => {
-        try {
-            const number =
-                Number(
-                    req.params.number
-                );
-
-            if (
-                !Number.isInteger(
-                    number
-                ) ||
-                number < 1 ||
-                number > 120
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Cartela number must be between 1 and 120"
-                });
-            }
-
-            const cartela =
-                getBingoCartela(
-                    number
-                );
-
-            return res.json({
-                success: true,
-                cartela
-            });
-        } catch (error) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not generate cartela"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC BINGO ROUND
-|--------------------------------------------------------------------------
-*/
-
-function getPublicBingoRound(
-    tier
-) {
-    const room =
-        bingoRooms[tier];
-
-    if (!room) {
-        return null;
-    }
-
-    const now =
-        Date.now();
-
-    const remaining =
-        Math.max(
-            0,
-            room.bettingEndsAt -
-                now
-        );
-
-    return {
-        id:
-            room.id,
-
-        game:
-            "bingo",
-
-        tier:
-            room.entryFee,
-
-        status:
-            room.status,
-
-        serverTime:
-            now,
-
-        bettingStartedAt:
-            room.bettingStartedAt,
-
-        bettingEndsAt:
-            room.bettingEndsAt,
-
-        remainingMilliseconds:
-            remaining,
-
-        remainingSeconds:
-            Math.ceil(
-                remaining / 1000
-            ),
-
-        drawnNumbers:
-            [...room.drawnNumbers],
-
-        drawIndex:
-            room.drawIndex,
-
-        currentNumber:
-            room.currentNumber,
-
-        playersInRoom:
-            room.players.length,
-
-        grossPool:
-            room.totalPool ||
-            room.players.length *
-                room.entryFee,
-
-        winnerPrize:
-            room.winnerPrize ||
-            (
-                room.players.length *
-                room.entryFee *
-                0.90
-            ),
-
-        winner:
-            room.winner
-                ? {
-                    playerId:
-                        room.winner.playerId,
-                    telegramName:
-                        room.winner.telegramName
-                }
-                : null
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ROUND ROUTES
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/bingo/round",
-    (req, res) => {
-        const tier =
-            Number(
-                req.query.tier
-            );
-
-        if (
-            Number.isInteger(tier) &&
-            bingoRooms[tier]
-        ) {
-            return res.json({
-                success: true,
-                serverTime:
-                    Date.now(),
-                round:
-                    getPublicBingoRound(
-                        tier
-                    )
-            });
-        }
-
-        const rooms = {};
-
-        for (
-            const [roomTier, room]
-            of Object.entries(
-                bingoRooms
-            )
-        ) {
-            rooms[roomTier] =
-                getPublicBingoRound(
-                    Number(roomTier)
-                );
-        }
-
-        return res.json({
-            success: true,
-            serverTime:
-                Date.now(),
-            rooms
+              }
+            }catch(e){ console.warn("Registration phone check:",e); }
+            await new Promise(resolve=>setTimeout(resolve,800));
+          }
+          if(status){ status.className="accountMessage error"; status.textContent="Telegram sent the contact, but the server has not received it yet. Try again."; }
         });
+      }catch(error){
+        if(status){ status.className="accountMessage error"; status.textContent=error.message || "Could not share phone number."; }
+      }
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| GENERIC HOUSE GAME HELPERS
-|--------------------------------------------------------------------------
-*/
+    function cancelPasswordReset(){
+      passwordResetToken="";
+      document.getElementById("accountScreen").classList.add("hidden");
+      document.getElementById("home").classList.remove("hidden");
+      showHome();
+    }
 
-function generateKenoDraw() {
-    const engineGenerator =
-        keno.createDraw ||
-        keno.generateDraw ||
-        keno.default?.createDraw ||
-        keno.default?.generateDraw;
+    function resetMessage(text, type=""){
+      const message=document.getElementById("accountMessage");
+      message.className="accountMessage" + (type ? " " + type : "");
+      message.textContent=text;
+    }
 
-    if (
-        typeof engineGenerator ===
-        "function"
-    ) {
-        const generated =
-                        engineGenerator();
+    async function requestPasswordReset(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      if(!phone){ resetMessage("Enter your registered phone number.","error"); return; }
+      resetMessage("Sending recovery code through Telegram…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-request",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not send recovery code.");
+        document.getElementById("resetCodeFields").classList.remove("hidden");
+        document.getElementById("resetNewPasswordFields").classList.add("hidden");
+        localStorage.setItem("destaResetPhone",phone);
+        localStorage.setItem("destaResetRequestId",data.requestId || "");
+        resetMessage("A recovery code was sent by the Telegram bot. It is valid for 5 minutes.","success");
+      }catch(error){ console.error("Password reset request error:",error); resetMessage(error.message || "Could not send recovery code.","error"); }
+    }
 
-        if (
-            Array.isArray(generated) &&
-            generated.length > 0
-        ) {
-            return generated;
+    async function verifyPasswordResetCode(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      const requestId=localStorage.getItem("destaResetRequestId") || "";
+      const code=document.getElementById("resetCode").value.trim();
+      if(!phone || !requestId || !code){ resetMessage("Enter the recovery code sent by Telegram.","error"); return; }
+      resetMessage("Verifying recovery code…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-verify-code",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone,requestId,code})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not verify recovery code.");
+        passwordResetToken=data.resetToken || "";
+        document.getElementById("resetCodeFields").classList.add("hidden");
+        document.getElementById("resetNewPasswordFields").classList.remove("hidden");
+        resetMessage("Code verified. Create your new password.","success");
+        document.getElementById("resetNewPassword").focus();
+      }catch(error){ console.error("Password reset code error:",error); resetMessage(error.message || "Could not verify recovery code.","error"); }
+    }
+
+    async function completePasswordReset(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      const requestId=localStorage.getItem("destaResetRequestId") || "";
+      const password=document.getElementById("resetNewPassword").value;
+      const confirm=document.getElementById("resetNewPasswordConfirm").value;
+      if(!passwordResetToken){ resetMessage("Verify the recovery code first.","error"); return; }
+      if(password.length<6 || password.length>128 || !/^[A-Za-z0-9#@]+$/.test(password)){ resetMessage("Password must be at least 6 characters and may contain only letters, numbers, #, or @.","error"); return; }
+      if(password!==confirm){ resetMessage("Passwords do not match.","error"); return; }
+      resetMessage("Creating new password…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-complete",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone,requestId,resetToken:passwordResetToken,password})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not reset password.");
+        passwordResetToken="";
+        localStorage.removeItem("destaResetPhone");
+        localStorage.removeItem("destaResetRequestId");
+        document.getElementById("resetCode").value="";
+        document.getElementById("resetNewPassword").value="";
+        document.getElementById("resetNewPasswordConfirm").value="";
+        document.getElementById("resetNewPasswordFields").classList.add("hidden");
+        resetMessage("Password changed successfully. Your old password is no longer valid.","success");
+        setTimeout(showHome,900);
+      }catch(error){ console.error("Password reset completion error:",error); resetMessage(error.message || "Could not reset password.","error"); }
+    }
+
+    async function loginAccount(){
+      const password=document.getElementById("loginPassword").value;
+      const message=document.getElementById("accountMessage");
+      if(!password){ message.className="accountMessage error"; message.textContent="Enter your password."; return; }
+      if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
+      message.className="accountMessage"; message.textContent="Logging in...";
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,password})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Login failed.");
+        state.authToken=data.token || "";
+        localStorage.setItem("destaAuthToken",state.authToken);
+        localStorage.setItem("destaAccountCreated","true");
+        state.accountCreated=true;
+        state.balance=Number(data.player?.balance || 0);
+        state.playerId=data.player?.playerId || state.playerId;
+        state.telegramName=data.player?.telegramName || state.telegramName;
+        message.className="accountMessage success"; message.textContent="Login successful.";
+        updatePlayerDisplays();
+        setTimeout(showHome,300);
+      }catch(error){ console.error("Account login error:",error); message.className="accountMessage error"; message.textContent=error.message || "Login failed."; }
+    }
+
+    async function createAccount(){
+      const password=document.getElementById("password").value;
+      const confirm=document.getElementById("passwordConfirm").value;
+      const message=document.getElementById("accountMessage");
+      if(password.length<6 || password.length>128 || !/^[A-Za-z0-9#@]+$/.test(password)){ message.className="accountMessage error"; message.textContent="Password must be at least 6 characters and may contain only letters, numbers, #, or @."; return; }
+      if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
+      const registrationPhone=document.getElementById("registrationPhone").value.trim();
+      if(!registrationPhone){ message.className="accountMessage error"; message.textContent="Share your phone number through Telegram first."; return; }
+      if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
+      message.className="accountMessage"; message.textContent="Creating account...";
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,telegramUsername:state.telegramUsername,password,phone:document.getElementById("registrationPhone").value.trim()})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
+        state.authToken=data.token || "";
+        localStorage.setItem("destaAuthToken",state.authToken);
+        localStorage.setItem("destaAccountCreated","true");
+        state.accountCreated=true;
+        state.balance=Number(data.player?.balance || 0);
+        message.className="accountMessage success"; message.textContent="Account created.";
+        updatePlayerDisplays();
+        setTimeout(showHome,300);
+      }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
+    }
+
+    function showHome(){
+
+      document
+        .getElementById("accountScreen")
+        .classList.add("hidden");
+
+      document
+        .getElementById("home")
+        .classList.remove("hidden");
+
+      updatePlayerDisplays();
+
+      showPage("home");
+
+    }
+
+
+    /* =========================================================
+       PLAYER DISPLAY
+    ========================================================= */
+
+    function updatePlayerDisplays(){
+
+      document
+        .getElementById("homePlayerName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("homePlayerId")
+        .textContent=
+          state.playerId;
+
+      document
+        .getElementById("profileName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("profileId")
+        .textContent=
+          state.playerId;
+
+      updateBalance();
+
+    }
+
+
+    /* =========================================================
+       LANGUAGE
+    ========================================================= */
+
+    function setLanguage(lang){
+
+      state.language=lang;
+
+      document
+        .getElementById("langEN")
+        .classList.toggle(
+          "active",
+          lang==="en"
+        );
+
+      document
+        .getElementById("langAM")
+        .classList.toggle(
+          "active",
+          lang==="am"
+        );
+
+    }
+
+
+    /* =========================================================
+       NAVIGATION
+    ========================================================= */
+
+    function showPage(page){
+
+      if(
+        !state.accountCreated &&
+        !localStorage.getItem("destaAccountCreated")
+      ){
+
+        return;
+
+      }
+
+      state.page=page;
+
+      document
+        .getElementById("home")
+        .classList.add("hidden");
+
+      document
+        .getElementById("gameScreen")
+        .style.display="none";
+
+      document
+        .getElementById("walletScreen")
+        .style.display="none";
+
+      document
+        .getElementById("profileScreen")
+        .style.display="none";
+
+      document
+        .querySelectorAll(".bottomNav button")
+        .forEach(b=>
+          b.classList.remove("active")
+        );
+
+      if(page==="home"){
+
+        document
+          .getElementById("home")
+          .classList.remove("hidden");
+
+        document
+          .getElementById("navHome")
+          .classList.add("active");
+
+      }
+
+      if(page==="game"){
+
+        document
+          .getElementById("gameScreen")
+          .style.display="block";
+
+        document
+          .getElementById("navGame")
+          .classList.add("active");
+
+      }
+
+      if(page==="wallet"){
+
+        document
+          .getElementById("walletScreen")
+          .style.display="block";
+
+        document
+          .getElementById("navWallet")
+          .classList.add("active");
+
+        updateBalance();
+
+      }
+
+      if(page==="profile"){
+
+        document
+          .getElementById("profileScreen")
+          .style.display="block";
+
+        document
+          .getElementById("navProfile")
+          .classList.add("active");
+
+        updatePlayerDisplays();
+
+      }
+
+    }
+
+
+    /* =========================================================
+       OPEN GAME
+    ========================================================= */
+
+    function openGame(game){
+
+      state.game=game;
+
+      showPage("game");
+
+      document
+        .getElementById("gameTitle")
+        .textContent=
+          game.toUpperCase();
+
+      updateRound();
+
+      hideAllGames();
+
+      document
+        .getElementById(game+"Game")
+        .classList.remove("hidden");
+
+      buildGame();
+
+    }
+
+
+    /* =========================================================
+       HIDE GAMES
+    ========================================================= */
+
+    function hideAllGames(){
+
+      [
+        "keno",
+        "bingo",
+        "roulette",
+        "aviator"
+      ].forEach(g=>{
+
+        document
+          .getElementById(g+"Game")
+          .classList.add("hidden");
+
+      });
+
+    }
+
+
+    /* =========================================================
+       BUILD GAME
+    ========================================================= */
+
+    function buildGame(){
+
+      if(state.game==="keno")
+        buildKeno();
+
+      if(state.game==="bingo")
+        buildBingo();
+
+      if(state.game==="roulette")
+        buildRoulette();
+
+      if(state.game==="aviator")
+        buildAviator();
+
+    }
+
+
+    /* =========================================================
+       ROUND
+    ========================================================= */
+
+    function updateRound(){
+
+      document
+        .getElementById("roundNumber")
+        .textContent=
+          String(
+            state.rounds[state.game]
+          ).padStart(4,"0");
+
+    }
+
+
+    /* =========================================================
+       BALANCE
+    ========================================================= */
+
+    function updateBalance(){
+
+      const value=
+        state.balance.toFixed(2);
+
+      document
+        .getElementById("balance")
+        .textContent=value;
+
+      document
+        .getElementById("walletBalance")
+        .textContent=value;
+
+      document
+        .getElementById("profileBalance")
+        .textContent=value;
+
+    }
+
+
+    /* =========================================================
+       KENO
+    ========================================================= */
+
+    function buildKeno(){
+
+      const board=
+        document.getElementById(
+          "kenoBoard"
+        );
+
+      board.innerHTML="";
+
+      for(let n=1;n<=80;n++){
+
+        const b=
+          document.createElement("button");
+
+        b.className="kenoNumber";
+
+        b.textContent=
+          String(n).padStart(2,"0");
+
+        if(
+          state.kenoSelections[
+            state.activeKenoSlot
+          ].includes(n)
+        ){
+
+          b.classList.add("selected");
+
         }
+
+        b.onclick=
+          ()=>selectKeno(n,b);
+
+        board.appendChild(b);
+
+      }
+
+      updateKenoSelectionDisplay();
+
+      updateKenoSlotVisuals();
+
     }
 
-    /*
-    |--------------------------------------------------------------
-    | Secure fallback.
-    |--------------------------------------------------------------
-    */
 
-    const numbers =
-        Array.from(
-            { length: 80 },
-            (_, index) => index + 1
-        );
+    function activateKenoSlot(slot){
 
-    const result = [];
+      if(!state.bettingOpen)
+        return;
 
-    while (
-        result.length < 20
-    ) {
-        const index =
-            crypto.randomInt(
-                0,
-                numbers.length
-            );
+      state.activeKenoSlot=slot;
 
-        result.push(
-            numbers.splice(
-                index,
-                1
-            )[0]
-        );
+      document
+        .getElementById("activeKenoSlot")
+        .textContent=
+          "SLOT "+slot;
+
+      buildKeno();
+
     }
 
-    return result;
-}
 
-/*
-|--------------------------------------------------------------------------
-| AVIATOR CRASH POINT
-|--------------------------------------------------------------------------
-*/
+    function updateKenoSlotVisuals(){
 
-function generateCrashPoint(round = null) {
-    const generator =
-        aviator.generateSecureBalancedCrashPoint ||
-        aviator.default
-            ?.generateSecureBalancedCrashPoint;
+      document
+        .getElementById("kenoBetSlot1")
+        .classList.toggle(
+          "active",
+          state.activeKenoSlot===1
+        );
 
-    if (
-        typeof generator ===
-        "function"
-    ) {
-        const safeRound =
-            round || {
-                bets: []
-            };
+      document
+        .getElementById("kenoBetSlot2")
+        .classList.toggle(
+          "active",
+          state.activeKenoSlot===2
+        );
 
-        if (
-            !Array.isArray(
-                safeRound.bets
+    }
+
+
+    function selectKeno(n,button){
+
+      if(!state.bettingOpen)
+        return;
+
+      const slot=
+        state.activeKenoSlot;
+
+      const selected=
+        state.kenoSelections[slot];
+
+      const index=
+        selected.indexOf(n);
+
+      if(index>=0){
+
+        selected.splice(index,1);
+
+      }else{
+
+        if(selected.length>=10){
+
+          alert(
+            "Maximum 10 numbers per slot."
+          );
+
+          return;
+
+        }
+
+        selected.push(n);
+
+      }
+
+      buildKeno();
+
+    }
+
+
+    function updateKenoSelectionDisplay(){
+
+      [1,2].forEach(slot=>{
+
+        const target=
+          document.getElementById(
+            "kenoSlot"+slot+"Numbers"
+          );
+
+        const selected=
+          state.kenoSelections[slot];
+
+        target.innerHTML=
+          selected.length
+          ?selected
+            .map(n=>
+              `<span class="selectedNumber">${n}</span>`
             )
-        ) {
-            safeRound.bets = [];
-        }
+            .join("")
+          :`<span class="muted">No numbers</span>`;
 
-        const value =
-            Number(
-                generator(
-                    safeRound,
-                    10000
-                )
-            );
+        document
+          .getElementById(
+            "kenoSelected"+slot
+          )
+          .textContent=
+            selected.length+
+            " / 10";
 
-        if (
-            Number.isFinite(value) &&
-            value >= 1
-        ) {
-            return Number(
-                value.toFixed(2)
-            );
-        }
+      });
+
     }
 
-    /*
-    |--------------------------------------------------------------
-    | Compatibility fallback.
-    | Prefer the secure engine function above whenever available.
-    |--------------------------------------------------------------
-    */
 
-    const legacyGenerator =
-        aviator.generateCrashPoint ||
-        aviator.default?.generateCrashPoint;
+    function placeKenoBet(slot){
 
-    if (
-        typeof legacyGenerator ===
-        "function"
-    ) {
-        const value =
-            Number(
-                legacyGenerator()
-            );
+      if(!state.bettingOpen){
 
-        if (
-            Number.isFinite(value) &&
-            value >= 1
-        ) {
-            return Number(
-                value.toFixed(2)
-            );
-        }
-    }
+        alert("Betting is closed.");
 
-    /*
-    |--------------------------------------------------------------
-    | Cryptographically random fallback.
-    |--------------------------------------------------------------
-    */
+        return;
 
-    const cents =
-        crypto.randomInt(
-            100,
-            10001
+      }
+
+      const numbers=
+        state.kenoSelections[slot];
+
+      if(numbers.length<1){
+
+        alert(
+          "Select 1 to 10 numbers for Slot "+slot+"."
         );
 
-    return Number(
-        (cents / 100).toFixed(2)
-    );
-}
+        return;
 
-/*
-|--------------------------------------------------------------------------
-| SAVE HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
+      }
 
-async function saveRound(
-    round
-) {
-    const payload = {
-        id:
-            round.id,
-
-        round_id:
-            round.id,
-
-        game:
-            round.game,
-
-        status:
-            round.status,
-
-        betting_seconds:
-            round.bettingSeconds,
-
-        betting_started_at:
-            new Date(
-                round.bettingStartedAt
-            ).toISOString(),
-
-        betting_ends_at:
-            new Date(
-                round.bettingEndsAt
-            ).toISOString(),
-
-        drawn_numbers:
-            round.drawnNumbers,
-
-        current_number:
-            round.currentNumber,
-
-        result:
-            round.result,
-
-        multiplier:
-            round.multiplier,
-
-        crash_point:
-            round.crashPoint,
-
-        engine_state: {
-            secretDraw:
-                round.secretDraw ||
-                null,
-
-            drawIndex:
-                round.drawIndex ||
-                0,
-
-            secretCrashPoint:
-                round.secretCrashPoint ||
-                null,
-
-            flyingStartedAt:
-                round.flyingStartedAt ||
-                null,
-
-            multiplier:
-                round.multiplier,
-
-            currentNumber:
-                round.currentNumber
-        },
-
-        updated_at:
-            nowIso()
-    };
-
-    const { error } =
-        await supabase
-            .from("game_rounds")
-            .upsert(
-                payload,
-                {
-                    onConflict: "id"
-                }
-            );
-
-    if (error) {
-        await dbError(
-            "saveRound",
-            error
-        );
-
-        throw new Error(
-            "Could not save game round"
-        );
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-function getPublicRound(
-    gameName
-) {
-    const round =
-        rounds[gameName];
-
-    if (!round) {
-        return null;
-    }
-
-    const now =
-        Date.now();
-
-    const remaining =
-        Math.max(
-            0,
-            round.bettingEndsAt -
-                now
-        );
-
-    return {
-        id:
-            round.id,
-
-        game:
-            round.game,
-
-        status:
-            round.status,
-
-        serverTime:
-            now,
-
-        serverTimeIso:
-            new Date(
-                now
-            ).toISOString(),
-
-        bettingSeconds:
-            round.bettingSeconds,
-
-        bettingStartedAt:
-            round.bettingStartedAt,
-
-        bettingEndsAt:
-            round.bettingEndsAt,
-
-        bettingEndsAtIso:
-            new Date(
-                round.bettingEndsAt
-            ).toISOString(),
-
-        remainingMilliseconds:
-            remaining,
-
-        remainingSeconds:
-            Math.ceil(
-                remaining / 1000
-            ),
-
-        drawnNumbers:
-            [
-                ...(round.drawnNumbers ||
-                    [])
-            ],
-
-        drawIndex:
-            round.drawIndex || 0,
-
-        currentNumber:
-            round.currentNumber,
-
-        result:
-            round.result,
-
-        multiplier:
-            round.multiplier,
-
-        crashPoint:
-            (
-                round.status ===
-                    "CRASHED" ||
-                round.status ===
-                    "FINISHED"
-            )
-                ? round.crashPoint
-                : null
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| START HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-function startHouseRound(
-    gameName
-) {
-    const bettingSeconds =
+      const amount=
         Number(
-            BETTING_TIMERS[
-                gameName
-            ] || 40
+          document.getElementById(
+            "k"+slot
+          ).value
         );
 
-    const now =
-        Date.now();
+      if(amount<=0 || amount>state.balance){
 
-    const round = {
-        id:
-            `${gameName}-${now}-` +
-            crypto
-                .randomBytes(4)
-                .toString("hex"),
+        alert("Invalid balance or amount.");
 
-        game:
-            gameName,
-
-        status:
-            "BETTING",
-
-        createdAt:
-            now,
-
-        startedAt:
-            now,
-
-        bettingSeconds,
-
-        bettingStartedAt:
-            now,
-
-        bettingEndsAt:
-            now +
-            bettingSeconds *
-                1000,
-
-        drawnNumbers: [],
-
-        drawIndex: 0,
-
-        currentNumber: null,
-
-        result: null,
-
-        crashPoint: null,
-
-        multiplier: 1.00
-    };
-
-    /*
-    |--------------------------------------------------------------
-    | KENO
-    |--------------------------------------------------------------
-    */
-
-    if (
-        gameName === "keno"
-    ) {
-        round.secretDraw =
-            generateKenoDraw();
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | AVIATOR
-    |--------------------------------------------------------------
-    |
-    | ONLY FIX:
-    | The Aviator engine expects round.bets to exist.
-    |--------------------------------------------------------------
-    */
-
-    if (
-        gameName === "aviator"
-    ) {
-        round.bets = [];
-
-        round.secretCrashPoint =
-            generateCrashPoint(
-                round
-            );
-    }
-
-    rounds[gameName] =
-        round;
-
-    console.log(
-        `[${gameName.toUpperCase()}] NEW ROUND ${round.id} | BETTING ${bettingSeconds}s`
-    );
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            const current =
-                rounds[gameName];
-
-            if (
-                !current ||
-                current.id !==
-                    round.id ||
-                current.status !==
-                    "BETTING"
-            ) {
-                return;
-            }
-
-            if (
-                gameName ===
-                "keno"
-            ) {
-                startKenoDraw(
-                    gameName,
-                    round.id
-                );
-            }
-
-            if (
-                gameName ===
-                "roulette"
-            ) {
-                startRouletteSpin(
-                    round.id
-                );
-            }
-
-            if (
-                gameName ===
-                "aviator"
-            ) {
-                startAviatorFlight(
-                    round.id
-                );
-            }
-        },
-        bettingSeconds *
-            1000
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| KENO DRAW
-|--------------------------------------------------------------------------
-*/
-
-function startKenoDraw(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
         return;
+
+      }
+
+      if(
+        state.kenoBets[slot]
+      ){
+
+        alert("This slot is already placed.");
+
+        return;
+
+      }
+
+      state.balance-=amount;
+
+      state.kenoBets[slot]={
+        amount,
+        numbers:[...numbers],
+        placed:true
+      };
+
+      updateBalance();
+
     }
 
-    round.status =
-        "DRAWING";
 
-    round.drawIndex =
-        0;
+    /* =========================================================
+       KENO DRAW
+    ========================================================= */
 
-    round.drawnNumbers =
+    function generateKenoDraw(){
+
+      const pool=
+        Array.from(
+          {length:80},
+          (_,i)=>i+1
+        );
+
+      const result=[];
+
+      while(result.length<20){
+
+        const index=
+          Math.floor(
+            Math.random()*pool.length
+          );
+
+        result.push(
+          pool.splice(index,1)[0]
+        );
+
+      }
+
+      return result;
+
+    }
+
+
+    function runKenoDraw(){
+
+      state.bettingOpen=false;
+
+      state.kenoDraw=
+        generateKenoDraw();
+
+      const balls=
+        document.getElementById(
+          "kenoDrawBalls"
+        );
+
+      balls.innerHTML="";
+
+      let i=0;
+
+      const timer=
+        setInterval(()=>{
+
+          if(i>=state.kenoDraw.length){
+
+            clearInterval(timer);
+
+            finishKeno();
+
+            return;
+
+          }
+
+          const n=
+            state.kenoDraw[i];
+
+          const ball=
+            document.createElement("div");
+
+          ball.className="ball";
+
+          ball.textContent=
+            String(n).padStart(2,"0");
+
+          balls.appendChild(ball);
+
+          document
+            .getElementById("kenoDrawStatus")
+            .textContent=
+              "DRAWING "+
+              (i+1)+
+              " / 20";
+
+          document
+            .querySelectorAll(".kenoNumber")
+            .forEach((button,index)=>{
+
+              if(index===n-1){
+
+                button.classList.add("drawn");
+
+                if(
+                  state.kenoSelections[1]
+                    .includes(n) ||
+                  state.kenoSelections[2]
+                    .includes(n)
+                ){
+
+                  button.classList.add("hit");
+
+                }
+
+              }
+
+            });
+
+          i++;
+
+        },700);
+
+    }
+
+
+    function finishKeno(){
+
+      document
+        .getElementById("kenoDrawStatus")
+        .textContent=
+          "DRAW COMPLETE";
+
+      const round=
+        state.rounds.keno;
+
+      state.kenoHistory.unshift({
+        round,
+        numbers:[...state.kenoDraw]
+      });
+
+      state.kenoHistory=
+        state.kenoHistory.slice(0,10);
+
+      renderKenoHistory();
+
+      settleKeno();
+
+    }
+
+
+    function settleKeno(){
+
+      [1,2].forEach(slot=>{
+
+        const bet=
+          state.kenoBets[slot];
+
+        if(!bet)
+          return;
+
+        const hits=
+          bet.numbers.filter(
+            n=>state.kenoDraw.includes(n)
+          ).length;
+
+        /*
+          Frontend display only.
+          Final payout calculation belongs on server.js.
+        */
+
+        document
+          .getElementById(
+            "kenoPayout"+slot
+          )
+          .textContent=
+            hits+
+            " matches";
+
+      });
+
+    }
+
+
+    function renderKenoHistory(){
+
+      const box=
+        document.getElementById(
+          "kenoHistory"
+        );
+
+      box.innerHTML=
+        state.kenoHistory
+          .map((item,index)=>`
+
+            <div
+              class="historyRound"
+              onclick="viewKenoHistory(${index})">
+
+              <strong>
+                ROUND ${String(item.round).padStart(4,"0")}
+              </strong>
+
+              <br>
+
+              <span class="historyNums">
+                ${item.numbers.join(" • ")}
+              </span>
+
+            </div>
+
+          `)
+          .join("");
+
+    }
+
+
+    function viewKenoHistory(index){
+
+      const item=
+        state.kenoHistory[index];
+
+      if(!item)
+        return;
+
+      document
+        .getElementById("kenoDrawStatus")
+        .textContent=
+          "ROUND "+
+          String(item.round).padStart(4,"0")+
+          " — "+
+          item.numbers.join(" • ");
+
+    }
+
+
+    /* =========================================================
+       BINGO
+    ========================================================= */
+
+    function buildBingo(){
+
+      buildBingoAmounts();
+
+      renderCartela();
+
+    }
+
+
+    function buildBingoAmounts(){
+
+      const amounts=[
+        10,20,25,50,100,
+        150,200,250,300,400,500
+      ];
+
+      const box=
+        document.getElementById(
+          "bingoAmounts"
+        );
+
+      box.innerHTML="";
+
+      amounts.forEach(amount=>{
+
+        const b=
+          document.createElement("button");
+
+        b.className="amountPreset";
+
+        b.textContent=
+          amount+" ETB";
+
+        b.onclick=()=>{
+
+          state.bingoAmounts[1]=amount;
+          state.bingoAmounts[2]=amount;
+
+          document
+            .getElementById("bingoAmount1")
+            .textContent=
+              amount+" ETB";
+
+          document
+            .getElementById("bingoAmount2")
+            .textContent=
+              amount+" ETB";
+
+          document
+            .querySelectorAll(".amountPreset")
+            .forEach(x=>
+              x.classList.remove("active")
+            );
+
+          b.classList.add("active");
+
+        };
+
+        box.appendChild(b);
+
+      });
+
+    }
+
+
+    function addCartela(){
+
+      const input=
+        document.getElementById(
+          "cartelaEntry"
+        );
+
+      const value=
+        Number(input.value);
+
+      if(
+        !Number.isInteger(value) ||
+        value<1 ||
+        value>120
+      ){
+
+        document
+          .getElementById("cartelaStatus")
+          .textContent=
+            "Enter a Cartela number from 1 to 120.";
+
+        return;
+
+      }
+
+      if(
+        state.bingoCartelas[1]===value ||
+        state.bingoCartelas[2]===value
+      ){
+
+        document
+          .getElementById("cartelaStatus")
+          .textContent=
+            "That Cartela is already selected.";
+
+        return;
+
+      }
+
+      let slot;
+
+      if(!state.bingoCartelas[1])
+        slot=1;
+      else if(!state.bingoCartelas[2])
+        slot=2;
+      else{
+
+        document
+          .getElementById("cartelaStatus")
+          .textContent=
+            "Both Cartela slots are already filled.";
+
+        return;
+
+      }
+
+      state.bingoCartelas[slot]=value;
+
+      state.bingoBoards[slot]=
+        generateCartela(value);
+
+      input.value="";
+
+      selectCartela(slot);
+
+      document
+        .getElementById("cartelaStatus")
+        .textContent=
+          "Cartela "+
+          value+
+          " added to Slot "+
+          slot+".";
+
+      renderCartela();
+
+    }
+
+
+    function selectCartela(slot){
+
+      state.activeCartela=slot;
+
+      document
+        .getElementById("cartelaTab1")
+        .classList.toggle(
+          "active",
+          slot===1
+        );
+
+      document
+        .getElementById("cartelaTab2")
+        .classList.toggle(
+          "active",
+          slot===2
+        );
+
+      renderCartela();
+
+    }
+
+
+    function generateCartela(seed){
+
+      let value=
+        Number(seed);
+
+      const numbers=
         [];
 
-    round.currentNumber =
-        null;
+      while(numbers.length<25){
 
-    saveRound(
-        round
-    ).catch(console.error);
+        value=
+          (value*9301+49297)%233280;
 
-    console.log(
-        `[KENO] DRAWING STARTED ${round.id}`
-    );
+        const n=
+          Math.floor(
+            value/233280*75
+          )+1;
 
-    revealNextKenoNumber(
-        gameName,
-        round.id
-    );
-}
+        if(
+          !numbers.includes(n)
+        ){
 
-function revealNextKenoNumber(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
+          numbers.push(n);
 
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "DRAWING"
-    ) {
-        return;
+        }
+
+      }
+
+      numbers[12]=0;
+
+      return numbers;
+
     }
 
-    if (
-        round.drawIndex >=
-        round.secretDraw.length
-    ) {
-        finishHouseRound(
-            gameName,
-            round.id
+
+    function renderCartela(){
+
+      const wrap=
+        document.getElementById(
+          "cartelaGridWrap"
         );
 
-        return;
-    }
+      const slot=
+        state.activeCartela;
 
-    const number =
-        round.secretDraw[
-            round.drawIndex
-        ];
+      const cartela=
+        state.bingoCartelas[slot];
 
-    round.currentNumber =
-        number;
+      if(!cartela){
 
-    round.drawnNumbers.push(
-        number
-    );
-
-    round.drawIndex++;
-
-    console.log(
-        `[KENO] DRAW ${round.drawIndex}/20 -> ${number}`
-    );
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            revealNextKenoNumber(
-                gameName,
-                roundId
-            );
-        },
-        DRAW_INTERVALS.keno
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| ROULETTE
-|--------------------------------------------------------------------------
-*/
-
-
-function startRouletteSpin(
-    roundId
-) {
-    const round =
-        rounds.roulette;
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
-        return;
-    }
-
-    round.status =
-        "SPINNING";
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[ROULETTE] SPINNING ${round.id}`
-    );
-
-    setTimeout(
-        async () => {
-            const current =
-                rounds.roulette;
-
-            if (
-                !current ||
-                current.id !==
-                    roundId ||
-                current.status !==
-                    "SPINNING"
-            ) {
-                return;
-            }
-
-            try {
-                const spinFn =
-                    roulette.spin ||
-                    roulette.default
-                        ?.spin;
-
-                if (
-                    typeof spinFn !==
-                    "function"
-                ) {
-                    throw new Error(
-                        "Roulette engine spin function unavailable"
-                    );
-                }
-
-                current.result =
-                    spinFn();
-
-                current.status =
-                    "FINISHED";
-
-                console.log(
-                    `[ROULETTE] RESULT ${current.result}`
-                );
-
-                await saveRound(
-                    current
-                );
-
-                finishHouseRound(
-                    "roulette",
-                    roundId
-                );
-            } catch (error) {
-                console.error(
-                    "[ROULETTE] Spin error:",
-                    error
-                );
-
-                current.status =
-                    "FINISHED";
-
-                await saveRound(
-                    current
-                ).catch(
-                    console.error
-                );
-
-                finishHouseRound(
-                    "roulette",
-                    roundId
-                );
-            }
-        },
-        DRAW_INTERVALS.roulette
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| AVIATOR
-|--------------------------------------------------------------------------
-*/
-
-function startAviatorFlight(
-    roundId
-) {
-    const round =
-        rounds.aviator;
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
-        return;
-    }
-
-    round.status =
-        "FLYING";
-
-    round.flyingStartedAt =
-        Date.now();
-
-    round.multiplier =
-        1.00;
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[AVIATOR] FLIGHT ${round.id} | CRASH ${round.secretCrashPoint}x`
-    );
-
-    updateAviator(
-        round.id
-    );
-}
-
-function updateAviator(
-    roundId
-) {
-    const round =
-        rounds.aviator;
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "FLYING"
-    ) {
-        return;
-    }
-
-    const elapsed =
-        Date.now() -
-        round.flyingStartedAt;
-
-    const seconds =
-        elapsed / 1000;
-
-    /*
-    |--------------------------------------------------------------
-    | Existing multiplier curve preserved.
-    |--------------------------------------------------------------
-    */
-
-    round.multiplier =
-        Number(
-            Math.max(
-                1,
-                Math.pow(
-                    1.18,
-                    seconds
-                )
-            ).toFixed(2)
-        );
-
-    if (
-        round.multiplier >=
-        round.secretCrashPoint
-    ) {
-        round.multiplier =
-            round.secretCrashPoint;
-
-        round.crashPoint =
-            round.secretCrashPoint;
-
-        round.status =
-            "CRASHED";
-
-        console.log(
-            `[AVIATOR] CRASH ${round.crashPoint}x`
-        );
-
-        saveRound(
-            round
-        ).catch(console.error);
-
-        setTimeout(
-            () => {
-                finishHouseRound(
-                    "aviator",
-                    round.id
-                );
-            },
-            DRAW_INTERVALS.aviator
-        );
+        wrap.innerHTML=
+          `<div class="cartelaGrid">
+            <div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">
+              Enter Cartela number above.
+            </div>
+          </div>`;
 
         return;
+
+      }
+
+      const board=
+        state.bingoBoards[slot];
+
+      wrap.innerHTML=
+        `<div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:bold;margin-bottom:5px">
+          CARTELA ${cartela} — SLOT ${slot}
+        </div>
+        <div class="cartelaGrid">
+          ${
+            board.map((n,i)=>`
+
+              <button
+                class="cartelaCell ${n===0?"free":""}"
+                onclick="markCartelaCell(${slot},${i})">
+
+                ${n===0?"FREE":n}
+
+              </button>
+
+            `).join("")
+          }
+        </div>`;
+
     }
 
-    /*
-    |--------------------------------------------------------------
-    | Persist current server state.
-    |--------------------------------------------------------------
-    */
 
-    saveRound(
-        round
-    ).catch(console.error);
+    function markCartelaCell(slot,index){
 
-    setTimeout(
-        () => {
-            updateAviator(
-                roundId
-            );
-        },
-        DRAW_INTERVALS.aviator
-    );
-}
+      if(!state.bettingOpen)
+        return;
 
-/*
-|--------------------------------------------------------------------------
-| FINISH HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
+      const board=
+        state.bingoBoards[slot];
 
-function finishHouseRound(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
+      if(!board[index])
+        return;
 
-    if (
-        !round ||
-        (
-            roundId &&
-            round.id !==
-                roundId
+      if(
+        !state.bingoDraw.includes(
+          board[index]
         )
-    ) {
+      ){
+
         return;
+
+      }
+
+      renderCartela();
+
     }
 
-    if (
-        round.status !==
-        "CRASHED"
-    ) {
-        round.status =
-            "FINISHED";
-    }
 
-    saveRound(
-        round
-    ).catch(console.error);
+    function placeBingoBet(slot){
 
-    console.log(
-        `[${gameName.toUpperCase()}] FINISHED -> NEW ROUND IN 5 SECONDS`
-    );
+      if(!state.bettingOpen){
 
-    const finishedRoundId =
-        round.id;
+        alert("Betting is closed.");
 
-    setTimeout(
-        () => {
-            const current =
-                rounds[gameName];
+        return;
 
-            if (
-                !current ||
-                current.id !==
-                    finishedRoundId
-            ) {
-                return;
-            }
+      }
 
-            startHouseRound(
-                gameName
-            );
-        },
-        NEXT_ROUND_DELAY
-    );
-}
+      if(
+        !state.bingoCartelas[slot]
+      ){
 
-/*
-|--------------------------------------------------------------------------
-| RESTORE HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-async function restoreHouseRound(
-    gameName
-) {
-    try {
-        const {
-            data,
-            error
-        } = await supabase
-            .from("game_rounds")
-            .select("*")
-            .eq(
-                "game",
-                gameName
-            )
-            .order(
-                "updated_at",
-                {
-                    ascending:
-                        false
-                }
-            )
-            .limit(1)
-            .maybeSingle();
-
-        if (
-            error ||
-            !data
-        ) {
-            console.log(
-                `[${gameName}] No saved round. Starting new round.`
-            );
-
-            startHouseRound(
-                gameName
-            );
-
-            return;
-        }
-
-        if (
-            data.status ===
-                "FINISHED" ||
-            data.status ===
-                "CRASHED"
-        ) {
-            startHouseRound(
-                gameName
-            );
-
-            return;
-        }
-
-        const state =
-            data.engine_state ||
-            {};
-
-        const bettingStartedAt =
-            new Date(
-                data.betting_started_at
-            ).getTime();
-
-        const bettingEndsAt =
-            new Date(
-                data.betting_ends_at
-            ).getTime();
-
-        if (
-            !Number.isFinite(
-                bettingStartedAt
-            ) ||
-            !Number.isFinite(
-                bettingEndsAt
-            )
-        ) {
-            startHouseRound(
-                gameName
-            );
-
-            return;
-        }
-
-        const round = {
-            id:
-                data.round_id ||
-                data.id,
-
-            game:
-                data.game,
-
-            status:
-                data.status,
-
-            createdAt:
-                bettingStartedAt,
-
-            startedAt:
-                bettingStartedAt,
-
-            bettingSeconds:
-                Number(
-                    data.betting_seconds ||
-                    BETTING_TIMERS[
-                        gameName
-                    ]
-                ),
-
-            bettingStartedAt,
-
-            bettingEndsAt,
-
-            drawnNumbers:
-                Array.isArray(
-                    data.drawn_numbers
-                )
-                    ? data.drawn_numbers
-                    : [],
-
-            drawIndex:
-                Number(
-                    state.drawIndex ??
-                    data.drawn_numbers
-                        ?.length ??
-                    0
-                ),
-
-            currentNumber:
-                state.currentNumber ??
-                data.current_number ??
-                null,
-
-            result:
-                data.result,
-
-            crashPoint:
-                data.crash_point,
-
-            multiplier:
-                Number(
-                    state.multiplier ??
-                    data.multiplier ??
-                    1
-                )
-        };
-
-        if (
-            gameName ===
-            "keno"
-        ) {
-            round.secretDraw =
-                Array.isArray(
-                    state.secretDraw
-                )
-                    ? state.secretDraw
-                    : generateKenoDraw();
-        }
-
-        if (
-            gameName ===
-            "aviator"
-        ) {
-            round.bets = [];
-
-            round.secretCrashPoint =
-                Number(
-                    state.secretCrashPoint
-                );
-
-            round.flyingStartedAt =
-                state.flyingStartedAt;
-
-            if (
-                !Number.isFinite(
-                    round.secretCrashPoint
-                )
-            ) {
-                round.secretCrashPoint =
-                    generateCrashPoint(
-                        round
-                    );
-            }
-        }
-
-        rounds[gameName] =
-            round;
-
-        console.log(
-            `[${gameName.toUpperCase()}] RESTORED ${round.id} | ${round.status}`
+        alert(
+          "Add a Cartela to Slot "+slot+"."
         );
 
-        /*
-        |--------------------------------------------------------------
-        | BETTING
-        |--------------------------------------------------------------
-        */
+        return;
 
-        if (
-            round.status ===
-            "BETTING"
-        ) {
-            const remaining =
-                Math.max(
-                    0,
-                    round.bettingEndsAt -
-                        Date.now()
-                );
+      }
 
-            setTimeout(
-                () => {
-                    const current =
-                        rounds[
-                            gameName
-                        ];
+      const amount=
+        state.bingoAmounts[slot];
 
-                    if (
-                        !current ||
-                        current.id !==
-                            round.id ||
-                        current.status !==
-                            "BETTING"
-                    ) {
-                        return;
-                    }
+      if(amount>state.balance){
 
-                    if (
-                        gameName ===
-                        "keno"
-                    ) {
-                        startKenoDraw(
-                            gameName,
-                            round.id
-                        );
-                    }
+        alert("Insufficient balance.");
 
-                    if (
-                        gameName ===
-                        "roulette"
-                    ) {
-                        startRouletteSpin(
-                            round.id
-                        );
-                    }
+        return;
 
-                    if (
-                        gameName ===
-                        "aviator"
-                    ) {
-                        startAviatorFlight(
-                            round.id
-                        );
-                    }
-                },
-                remaining
-            );
+      }
+
+      state.balance-=amount;
+
+      updateBalance();
+
+    }
+
+
+    function runBingoDraw(){
+
+      state.bettingOpen=false;
+
+      state.bingoDraw=[];
+
+      const display=
+        document.getElementById(
+          "bingoDraw"
+        );
+
+      display.innerHTML="";
+
+      let count=0;
+
+      const timer=
+        setInterval(()=>{
+
+          if(count>=20){
+
+            clearInterval(timer);
+
+            finishBingo();
 
             return;
-        }
 
-        /*
-        |--------------------------------------------------------------
-        | KENO DRAWING
-        |--------------------------------------------------------------
-        */
+          }
 
-        if (
-            gameName ===
-                "keno" &&
-            round.status ===
-                "DRAWING"
-        ) {
-            revealNextKenoNumber(
-                gameName,
-                round.id
-            );
+          let n=
+            Math.floor(
+              Math.random()*75
+            )+1;
 
-            return;
-        }
+          while(
+            state.bingoDraw.includes(n)
+          ){
 
-        /*
-        |--------------------------------------------------------------
-        | ROULETTE SPINNING
-        |--------------------------------------------------------------
-        */
+            n=
+              Math.floor(
+                Math.random()*75
+              )+1;
 
-        if (
-            gameName ===
-                "roulette" &&
-            round.status ===
-                "SPINNING"
-        ) {
-            startRouletteSpin(
-                round.id
-            );
-                        return;
-        }
+          }
 
-        /*
-        |--------------------------------------------------------------------------
-        | AVIATOR FLYING
-        |--------------------------------------------------------------------------
-        */
+          state.bingoDraw.push(n);
 
-        if (
-            gameName ===
-                "aviator" &&
-            round.status ===
-                "FLYING"
-        ) {
-            /*
-            |----------------------------------------------------------
-            | Recalculate the multiplier from the original start time.
-            | This prevents a Render restart from resetting the flight
-            | timer.
-            |----------------------------------------------------------
-            */
+          const ball=
+            document.createElement("div");
 
-            if (
-                !round.flyingStartedAt
-            ) {
-                round.flyingStartedAt =
-                    Date.now();
-            }
+          ball.className=
+            "bingoCalled";
 
-            updateAviator(
-                round.id
-            );
+          ball.textContent=n;
 
-            return;
-        }
+          display.appendChild(ball);
 
-        startHouseRound(
-            gameName
-        );
-    } catch (error) {
-        console.error(
-            `[${gameName.toUpperCase()}] RESTORE ERROR:`,
-            error
-        );
+          document
+            .getElementById("bingoStatus")
+            .textContent=
+              "CALLED "+
+              (count+1)+
+              " / 20 — "+
+              n;
 
-        startHouseRound(
-            gameName
-        );
+          count++;
+
+        },800);
+
     }
-}
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 8 — SERVER-AUTHORITATIVE KENO BET
-|--------------------------------------------------------------------------
-|
-| One slot, up to 10 numbers from 1–80, manual amount, minimum 10 ETB.
-| The draw itself remains server-authoritative.
-|--------------------------------------------------------------------------
-*/
 
-function kenoBetIsValid(amount) {
-    return validateEngineBet(keno, amount);
-}
+    function finishBingo(){
 
-app.post(
-    "/api/keno/bet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const round = rounds.keno;
-            const amount = Number(req.body.amount);
-            const rawNumbers = Array.isArray(req.body.numbers)
-                ? req.body.numbers
-                : [];
+      state.bingoHistory.unshift({
 
-            const numbers = [...new Set(
-                rawNumbers.map(Number)
-            )];
+        round:state.rounds.bingo,
 
-            if (!round || round.status !== "BETTING") {
-                return res.status(400).json({
-                    success: false,
-                    error: "Keno betting is closed"
-                });
-            }
+        numbers:[...state.bingoDraw]
 
-            if (!Number.isFinite(amount) || amount < 10) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Minimum Keno bet is 10 ETB"
-                });
-            }
+      });
 
-            try {
-                kenoBetIsValid(amount);
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    error: error.message || "Invalid Keno bet amount"
-                });
-            }
+      state.bingoHistory=
+        state.bingoHistory.slice(0,10);
 
-            if (numbers.length < 1 || numbers.length > 10) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Choose between 1 and 10 Keno numbers"
-                });
-            }
+      renderBingoHistory();
 
-            if (numbers.some(n => !Number.isInteger(n) || n < 1 || n > 80)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Keno numbers must be between 1 and 80"
-                });
-            }
+      [1,2].forEach(slot=>{
 
-            const currentBalance = Number(req.player.balance || 0);
-            if (amount > currentBalance) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Insufficient balance"
-                });
-            }
+        const board=
+          state.bingoBoards[slot];
 
-            if (!Array.isArray(round.bets)) round.bets = [];
+        if(!board.length)
+          return;
 
-            if (round.bets.some(bet => bet.playerId === req.player.id)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "You already placed a Keno bet for this round"
-                });
-            }
+        const win=
+          checkBingo(board);
 
-            const betId = makeId("KENOBET");
+        document
+          .getElementById(
+            "bingoButton"+slot
+          )
+          .disabled=!win;
 
-            const balanceAfter = await changeBalance({
-                playerId: req.player.id,
-                amount: -amount,
-                type: "keno_bet",
-                game: "keno",
-                roundId: round.id,
-                description: "Keno bet",
-                metadata: {
-                    betId,
-                    numbers
-                }
-            });
+      });
 
-            round.bets.push({
-                betId,
-                playerId: req.player.id,
-                numbers,
-                amount,
-                placedAt: Date.now(),
-                cashedOut: false
-            });
-
-            await saveRound(round);
-
-            return res.json({
-                success: true,
-                betId,
-                roundId: round.id,
-                numbers,
-                amount,
-                balanceAfter,
-                bettingEndsAt: round.bettingEndsAt,
-                remainingMilliseconds: Math.max(0, round.bettingEndsAt - Date.now())
-            });
-        } catch (error) {
-            console.error("Keno bet error:", error);
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not place Keno bet"
-            });
-        }
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| GAME HISTORY
-|--------------------------------------------------------------------------
-*/
 
-app.get(
-    "/api/game/:game/history",
-    async (req, res) => {
-        try {
-            const gameName =
-                String(
-                    req.params.game ||
-                    ""
-                ).toLowerCase();
+    function checkBingo(board){
 
-            if (
-                !games[gameName]
-            ) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Game not found"
-                });
-            }
+      const marked=
+        i=>
+          board[i]===0 ||
+          state.bingoDraw.includes(
+            board[i]
+          );
 
-            const limit =
-                Math.min(
-                    Math.max(
-                        Number(
-                            req.query.limit ||
-                            20
-                        ),
-                        1
-                    ),
-                    100
-                );
+      for(let r=0;r<5;r++){
 
-            const {
-                data,
-                error
-            } = await supabase
-                .from("game_rounds")
-                .select(
-                    "id,round_id,game,status,result,drawn_numbers,current_number,multiplier,crash_point,created_at,updated_at"
-                )
-                .eq(
-                    "game",
-                    gameName
-                )
-                .order(
-                    "created_at",
-                    {
-                        ascending:
-                            false
-                    }
-                )
-                .limit(limit);
+        if(
+          [0,1,2,3,4]
+            .map(c=>marked(r*5+c))
+            .every(Boolean)
+        )
+          return true;
 
-            if (error) {
-                await dbError(
-                    "Game history",
-                    error
-                );
+      }
 
-                return res.status(500).json({
-                    success: false,
-                    error:
-                        "Could not load game history"
-                });
-            }
+      for(let c=0;c<5;c++){
 
-            return res.json({
-                success: true,
-                game:
-                    gameName,
-                history:
-                    data || []
-            });
-        } catch (error) {
-            console.error(
-                "History error:",
-                error
-            );
+        if(
+          [0,1,2,3,4]
+            .map(r=>marked(r*5+c))
+            .every(Boolean)
+        )
+          return true;
 
-            return res.status(500).json({
-                success: false,
-                error:
-                    "Could not load history"
-            });
-        }
-    }
-);
+      }
 
-/*
-|--------------------------------------------------------------------------
-| STATUS
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/status",
-    (req, res) => {
-        const houseState = {};
-
-        for (
-            const gameName
-            of Object.keys(
-                games
-            )
-        ) {
-            houseState[
-                gameName
-            ] =
-                getPublicRound(
-                    gameName
-                );
-        }
-
-        const bingoState = {};
-
-        for (
-            const tier
-            of Object.keys(
-                bingoRooms
-            )
-        ) {
-            bingoState[tier] =
-                getPublicBingoRound(
-                    Number(tier)
-                );
-        }
-
-        return res.json({
-            success: true,
-
-            status:
-                "online",
-
-            serverTime:
-                Date.now(),
-
-            serverTimeIso:
-                nowIso(),
-
-            games:
-                houseState,
-
-            bingo:
-                bingoState
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| GENERIC ROUND API
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/game/:game/round",
-    (req, res) => {
-        const gameName =
-            String(
-                req.params.game ||
-                ""
-            ).toLowerCase();
-
-        /*
-        |--------------------------------------------------------------
-        | Bingo uses tier rooms rather than one global room.
-        |--------------------------------------------------------------
-        */
-
-        if (
-            gameName ===
-            "bingo"
-        ) {
-            const tier =
-                Number(
-                    req.query.tier
-                );
-
-            if (
-                Number.isInteger(
-                    tier
-                ) &&
-                bingoRooms[tier]
-            ) {
-                return res.json({
-                    success: true,
-                    serverTime:
-                        Date.now(),
-                    serverTimeIso:
-                        nowIso(),
-                    round:
-                        getPublicBingoRound(
-                            tier
-                        )
-                });
-            }
-
-            const rooms = {};
-
-            for (
-                const roomTier
-                of Object.keys(
-                    bingoRooms
-                )
-            ) {
-                rooms[
-                    roomTier
-                ] =
-                    getPublicBingoRound(
-                        Number(
-                            roomTier
-                        )
-                    );
-            }
-
-            return res.json({
-                success: true,
-                serverTime:
-                    Date.now(),
-                serverTimeIso:
-                    nowIso(),
-                rooms
-            });
-        }
-
-        if (
-            !games[gameName]
-        ) {
-            return res.status(404).json({
-                success: false,
-                error:
-                    "Game not found"
-            });
-        }
-
-        return res.json({
-            success: true,
-
-            serverTime:
-                Date.now(),
-
-            serverTimeIso:
-                nowIso(),
-
-            round:
-                getPublicRound(
-                    gameName
-                )
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| SERVER TIME
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/server-time",
-    (req, res) => {
-        const now =
-            Date.now();
-
-        res.json({
-            success: true,
-            serverTime:
-                now,
-            serverTimeIso:
-                new Date(
-                    now
-                ).toISOString()
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| HEALTH
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/health",
-    (req, res) => {
-        res.json({
-            success: true,
-            status:
-                "healthy",
-            serverTime:
-                Date.now()
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| DATABASE TEST
-|--------------------------------------------------------------------------
-*/
-
-async function testDatabaseConnection() {
-    try {
-        const {
-            data,
-            error
-        } = await supabase
-            .from("players")
-            .select("id")
-            .limit(1);
-
-        if (error) {
-            await dbError(
-                "Supabase connection test",
-                error
-            );
-
-            return false;
-        }
-
-        console.log(
-            "[SUPABASE] DATABASE CONNECTION OK"
-        );
-
+      if(
+        [0,1,2,3,4]
+          .map(i=>marked(i*5+i))
+          .every(Boolean)
+      )
         return true;
-    } catch (error) {
-        console.error(
-            "[SUPABASE] CONNECTION TEST FAILED:",
-            error
-        );
 
-        return false;
+      if(
+        [0,1,2,3,4]
+          .map(i=>marked(i*5+(4-i)))
+          .every(Boolean)
+      )
+        return true;
+
+      return false;
+
     }
-}
 
-/*
-|--------------------------------------------------------------------------
-| BOOT
-|--------------------------------------------------------------------------
-*/
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    async () => {
-        console.log(
-            "========================================"
+    function claimBingo(slot){
+
+      const board=
+        state.bingoBoards[slot];
+
+      if(
+        !board.length ||
+        !checkBingo(board)
+      )
+        return;
+
+      alert(
+        "BINGO — CARTELA "+
+        state.bingoCartelas[slot]
+      );
+
+      document
+        .getElementById(
+          "bingoButton"+slot
+        )
+        .disabled=true;
+
+    }
+
+
+    function renderBingoHistory(){
+
+      const box=
+        document.getElementById(
+          "bingoHistory"
         );
 
-        console.log(
-            "       DESTA PLAY BACKEND SERVER"
+      box.innerHTML=
+        state.bingoHistory
+          .map(item=>`
+
+            <div class="historyRound">
+
+              <strong>
+                ROUND ${String(item.round).padStart(4,"0")}
+              </strong>
+
+              <br>
+
+              <span class="historyNums">
+                ${item.numbers.join(" • ")}
+              </span>
+
+            </div>
+
+          `)
+          .join("");
+
+    }
+
+
+    /* =========================================================
+       ROULETTE
+    ========================================================= */
+
+    function rouletteColor(n){
+
+      if(n===0)
+        return "green";
+
+      const redNums=[
+        1,3,5,7,9,12,14,16,
+        18,19,21,23,25,27,
+        30,32,34,36
+      ];
+
+      return redNums.includes(n)
+        ?"red"
+        :"black";
+
+    }
+
+
+    function buildRoulette(){
+
+      const edge=
+        document.getElementById(
+          "rouletteEdgeNumbers"
         );
 
-        console.log(
-            "========================================"
+      edge.innerHTML="";
+
+      for(let n=0;n<=36;n++){
+
+        const span=
+          document.createElement("span");
+
+        span.className="edgeNumber";
+
+        const angle=
+          n*(360/37);
+
+        span.style.setProperty(
+          "--angle",
+          angle+"deg"
         );
 
-        console.log(
-            `Port: ${PORT}`
+        span.textContent=n;
+
+        edge.appendChild(span);
+
+      }
+
+      const grid=
+        document.getElementById(
+          "rouletteGrid"
         );
 
-        console.log(
-            "Keno / Bingo / Roulette / Aviator"
+      grid.innerHTML="";
+
+      for(let n=0;n<=36;n++){
+
+        const b=
+          document.createElement("button");
+
+        b.className=
+          "rouletteNum "+
+          rouletteColor(n);
+
+        b.textContent=n;
+
+        b.onclick=
+          ()=>selectRouletteNumber(n);
+
+        grid.appendChild(b);
+
+      }
+
+    }
+
+
+    function selectRouletteNumber(n){
+
+      if(!state.bettingOpen)
+        return;
+
+      const slot=
+        state.rouletteSelection[1]
+          ?2
+          :1;
+
+      state.rouletteSelection[slot]=n;
+
+      document
+        .querySelectorAll(".rouletteNum")
+        .forEach(b=>
+          b.classList.toggle(
+            "selected",
+            Number(b.textContent)===n
+          )
         );
 
-        console.log(
-            "Permanent Supabase Storage"
+    }
+
+
+    function placeRouletteBet(slot){
+
+      if(
+        state.rouletteSelection[slot]===null
+      ){
+
+        alert(
+          "Select a number first."
         );
 
-        console.log(
-            "Argon2 Authentication"
+        return;
+
+      }
+
+      const amount=
+        Number(
+          document.getElementById(
+            "r"+slot
+          ).value
         );
 
-        console.log(
-            "Server-Authoritative Round Engine"
+      if(
+        amount<=0 ||
+        amount>state.balance
+      ){
+
+        alert("Invalid amount.");
+
+        return;
+
+      }
+
+      state.balance-=amount;
+
+      updateBalance();
+
+    }
+
+
+    function runRoulette(){
+
+      state.bettingOpen=false;
+
+      const winner=
+        Math.floor(
+          Math.random()*37
         );
 
-        console.log(
-            "========================================"
+      state.rouletteWinner=
+        winner;
+
+      const wheel=
+        document.getElementById(
+          "rouletteWheel"
         );
 
-        const databaseOK =
-            await testDatabaseConnection();
+      wheel.style.transform=
+        `rotate(${1440+winner*9.73}deg)`;
 
-        if (!databaseOK) {
-            console.error(
-                "[BOOT] Database connection failed."
-            );
+      setTimeout(()=>{
 
-            /*
-            |----------------------------------------------------------
-            | Do not pretend the database is working.
-            | The server remains alive for Render health checks,
-            | but game/account operations requiring Supabase will fail.
-            |----------------------------------------------------------
-            */
-        }
+        document
+          .getElementById(
+            "rouletteResult"
+          )
+          .textContent=
+            "RESULT: "+
+            winner+
+            " — "+
+            rouletteColor(winner).toUpperCase();
 
-        /*
-        |--------------------------------------------------------------
-        | START BINGO ROOMS
-        |--------------------------------------------------------------
-        |
-        | IMPORTANT:
-        | We ask the Bingo engine for its fixed bet amounts.
-        | No old hard-coded [10,20,30...] list is used here.
-        |
-        |--------------------------------------------------------------
-        */
-
-        const engineBingoAmounts =
-            bingo.FIXED_BET_AMOUNTS ||
-                        bingo.default
-                ?.FIXED_BET_AMOUNTS;
-
-        if (
-            Array.isArray(
-                engineBingoAmounts
-            ) &&
-            engineBingoAmounts.length
-        ) {
-            console.log(
-                "[BINGO] Engine bet amounts:",
-                engineBingoAmounts
-            );
-
-            for (
-                const tier
-                of engineBingoAmounts
-            ) {
-                try {
-                    bingoBetIsValid(
-                        tier
-                    );
-
-                    startNewBingoRound(
-                        tier
-                    );
-                } catch (error) {
-                    console.error(
-                        `[BINGO] Skipping invalid engine tier ${tier}:`,
-                        error.message
-                    );
-                }
-            }
-        } else {
-            /*
-            |----------------------------------------------------------
-            | Compatibility fallback.
-            |----------------------------------------------------------
-            | The currently audited Bingo engine is expected to expose
-            | FIXED_BET_AMOUNTS. If it does not, no invented tiers are
-            | created.
-            |----------------------------------------------------------
-            */
-
-            console.error(
-                "[BINGO] FIXED_BET_AMOUNTS not exported by bingo engine. No Bingo rooms started."
-            );
-        }
-
-        /*
-        |--------------------------------------------------------------
-        | RESTORE HOUSE GAMES
-        |--------------------------------------------------------------
-        */
-
-        for (
-            const gameName
-            of Object.keys(
-                games
+        document
+          .querySelectorAll(".rouletteNum")
+          .forEach(b=>
+            b.classList.toggle(
+              "winner",
+              Number(b.textContent)===winner
             )
-        ) {
-            await restoreHouseRound(
-                gameName
+          );
+
+        state.rouletteHistory.unshift({
+
+          round:state.rounds.roulette,
+
+          result:winner,
+
+          color:rouletteColor(winner)
+
+        });
+
+        state.rouletteHistory=
+          state.rouletteHistory.slice(0,10);
+
+        renderRouletteHistory();
+
+      },4200);
+
+    }
+
+
+    function renderRouletteHistory(){
+
+      document
+        .getElementById(
+          "rouletteHistory"
+        )
+        .innerHTML=
+          state.rouletteHistory
+            .map(item=>`
+
+              <div class="historyRound">
+
+                <strong>
+                  ROUND ${String(item.round).padStart(4,"0")}
+                </strong>
+
+                <br>
+
+                <span class="historyNums">
+                  ${item.result}
+                  —
+                  ${item.color.toUpperCase()}
+                </span>
+
+              </div>
+
+            `)
+            .join("");
+
+    }
+
+
+    /* =========================================================
+       AVIATOR
+    ========================================================= */
+
+    function buildAviator(){
+
+      renderAviatorHistory();
+
+    }
+
+
+    function generateCrashPoint(){
+
+      /*
+        Secure/random server-side outcome must eventually
+        replace this frontend generator.
+
+        This intentionally does not use a fixed crash value.
+      */
+
+      const r=
+        Math.random();
+
+      return Math.max(
+        1.01,
+        Number(
+          (
+            1+
+            (-Math.log(
+              Math.max(
+                0.000001,
+                1-r
+              )
+            )*1.15)
+          ).toFixed(2)
+        )
+      );
+
+    }
+
+
+    function placeAviatorBet(slot){
+
+      if(!state.bettingOpen){
+
+        alert(
+          "The flight has already started."
+        );
+
+        return;
+
+      }
+
+      if(
+        state.aviatorBets[slot]
+      ){
+
+        return;
+
+      }
+
+      const amount=
+        Number(
+          document.getElementById(
+            "a"+slot
+          ).value
+        );
+
+      if(
+        amount<=0 ||
+        amount>state.balance
+      ){
+
+        alert("Invalid amount.");
+
+        return;
+
+      }
+
+      state.balance-=amount;
+
+      state.aviatorBets[slot]={
+        amount,
+        cashed:false,
+        cashout:null
+      };
+
+      updateBalance();
+
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASH OUT";
+
+    }
+
+
+    function cashOutAviator(slot){
+
+      const bet=
+        state.aviatorBets[slot];
+
+      if(
+        !bet ||
+        bet.cashed ||
+        state.aviatorMultiplier<1
+      )
+        return;
+
+      const multiplier=
+        state.aviatorMultiplier;
+
+      const payout=
+        Number(
+          (
+            bet.amount*
+            multiplier
+          ).toFixed(2)
+        );
+
+      bet.cashed=true;
+      bet.cashout=multiplier;
+
+      state.balance+=payout;
+
+      updateBalance();
+
+      document
+        .getElementById(
+          "aviatorPayout"+slot
+        )
+        .textContent=
+          payout.toFixed(2)+
+          " ETB CASHED OUT";
+
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASHED OUT";
+
+      setTimeout(()=>{
+
+        document
+          .getElementById(
+            "aviatorPayout"+slot
+          )
+          .textContent="";
+
+      },2000);
+
+    }
+
+
+    function runAviator(){
+
+      state.bettingOpen=true;
+
+      state.aviatorCrash=
+        generateCrashPoint();
+
+      state.aviatorMultiplier=1;
+
+      let seconds=10;
+
+      const countdown=
+        document.getElementById(
+          "aviatorCountdown"
+        );
+
+      const timer=
+        setInterval(()=>{
+
+          countdown.textContent=
+            "BETTING "+
+            seconds+
+            "s";
+
+          seconds--;
+
+          if(seconds<0){
+
+            clearInterval(timer);
+
+            startAviatorFlight();
+
+          }
+
+        },1000);
+
+    }
+
+
+    function startAviatorFlight(){
+
+      state.bettingOpen=false;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "FLIGHT LIVE";
+
+      const timer=
+        setInterval(()=>{
+
+          state.aviatorMultiplier=
+            Number(
+              (
+                state.aviatorMultiplier+
+                0.02+
+                Math.random()*0.08
+              ).toFixed(2)
             );
+
+          const value=
+            state.aviatorMultiplier;
+
+          document
+            .getElementById(
+              "aviatorMultiplier"
+            )
+            .textContent=
+              value.toFixed(2)+"x";
+
+          const plane=
+            document.getElementById(
+              "plane"
+            );
+
+          plane.style.left=
+            Math.min(
+              88,
+              20+(value-1)*12
+            )+"%";
+
+          plane.style.bottom=
+            Math.min(
+              85,
+              30+(value-1)*8
+            )+"px";
+
+          [1,2].forEach(slot=>{
+
+            const bet=
+              state.aviatorBets[slot];
+
+            if(
+              bet &&
+              !bet.cashed
+            ){
+
+              const live=
+                bet.amount*value;
+
+              document
+                .getElementById(
+                  "aviatorPayout"+slot
+                )
+                .textContent=
+                  live.toFixed(2)+
+                  " ETB @ "+
+                  value.toFixed(2)+"x";
+
+            }
+
+          });
+
+          if(
+            value>=state.aviatorCrash
+          ){
+
+            clearInterval(timer);
+
+            finishAviator();
+
+          }
+
+        },300);
+
+    }
+
+
+    function finishAviator(){
+
+      state.bettingOpen=false;
+
+      const crash=
+        state.aviatorMultiplier;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "CRASHED "+
+          crash.toFixed(2)+"x";
+
+      state.aviatorHistory.unshift(
+        crash.toFixed(2)+"x"
+      );
+
+      state.aviatorHistory=
+        state.aviatorHistory.slice(0,10);
+
+      renderAviatorHistory();
+
+      document
+        .getElementById(
+          "aviatorRoundHistory"
+        ).innerHTML=
+          state.aviatorHistory
+            .map((x,i)=>`
+
+              <div class="historyRound">
+
+                <strong>
+                  ROUND ${String(
+                    state.rounds.aviator-i
+                  ).padStart(4,"0")}
+                </strong>
+
+                <br>
+
+                <span class="historyNums">
+                  CRASH ${x}
+                </span>
+
+              </div>
+
+            `)
+            .join("");
+
+    }
+
+
+    function renderAviatorHistory(){
+
+      document
+        .getElementById(
+          "aviatorHistory"
+        )
+        .innerHTML=
+          state.aviatorHistory
+            .map(x=>
+              `<div class="mult">${x}</div>`
+            )
+            .join("");
+
+    }
+
+
+    /* =========================================================
+       AMOUNT
+    ========================================================= */
+
+    function changeAmount(id,delta){
+
+      const input=
+        document.getElementById(id);
+
+      let value=
+        Number(input.value)||0;
+
+      value+=delta;
+
+      if(value<1)
+        value=1;
+
+      input.value=value;
+
+    }
+
+
+    /* =========================================================
+       TABS
+    ========================================================= */
+
+    function showTab(tab){
+
+      document
+        .getElementById("tabMy")
+        .classList.toggle(
+          "active",
+          tab==="my"
+        );
+
+      document
+        .getElementById("tabLive")
+        .classList.toggle(
+          "active",
+          tab==="live"
+        );
+
+      document
+        .getElementById("tabTop")
+        .classList.toggle(
+          "active",
+          tab==="top"
+        );
+
+      document
+        .getElementById("topSubTabs")
+        .classList.toggle(
+          "hidden",
+          tab!=="top"
+        );
+
+      if(tab==="my"){
+
+        document
+          .getElementById("feedContent")
+          .innerHTML=
+            `<div class="feedRow">
+              <span>MY BETS</span>
+              <span>Current round activity</span>
+            </div>`;
+
+      }
+
+      if(tab==="live"){
+
+        renderLiveBets();
+
+      }
+
+      if(tab==="top"){
+
+        showTop(
+          "daily",
+          document.querySelector(
+            ".subTabs button"
+          )
+        );
+
+      }
+
+    }
+
+
+    function renderLiveBets(){
+
+      const players=
+        Math.floor(
+          12+
+          Math.random()*80
+        );
+
+      const wins=
+        Math.floor(
+          2+
+          Math.random()*players
+        );
+
+      document
+        .getElementById("feedContent")
+        .innerHTML=`
+
+          <div class="feedRow">
+            <span>ROUND</span>
+            <span>${String(
+              state.rounds[state.game]
+            ).padStart(4,"0")}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>PLAYERS</span>
+            <span>${players}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>ACTIVE WINNERS</span>
+            <span class="win">${wins}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>GAME</span>
+            <span>${state.game.toUpperCase()}</span>
+          </div>
+        `;
+
+    }
+
+
+    function showTop(period,button){
+
+      document
+        .querySelectorAll(".subTabs button")
+        .forEach(b=>
+          b.classList.remove("active")
+        );
+
+      if(button)
+        button.classList.add("active");
+
+      const names=[
+        "Player001",
+        "Player007",
+        "Player021",
+        "Player044",
+        "Player090"
+      ];
+
+      document
+        .getElementById("feedContent")
+        .innerHTML=
+          names.map(
+            (name,i)=>`
+
+              <div class="feedRow">
+
+                <span>
+                  ${i+1}. ${name}
+                </span>
+
+                <span class="win">
+                  ${period.toUpperCase()}
+                </span>
+
+              </div>
+
+            `
+          ).join("");
+
+    }
+
+
+    /* =========================================================
+       HELP
+    ========================================================= */
+
+    function openHelp(){
+
+      const help={
+
+        keno:{
+          title:"How to Play Keno",
+          html:`
+            <h3>Choose a slot</h3>
+            <p>
+              Tap Slot 1 or Slot 2. Each slot has its own
+              selection of up to 10 numbers.
+            </p>
+
+            <h3>Choose numbers</h3>
+            <p>
+              Select from numbers 1–80. You may select
+              from 1 up to 10 numbers for each slot.
+            </p>
+
+            <h3>Place bet</h3>
+            <p>
+              Each slot has its own amount and Place Bet button.
+            </p>
+
+            <h3>Draw</h3>
+            <p>
+              Twenty numbers are called progressively.
+              Matches are highlighted.
+            </p>
+
+            <h3>Win / Lose</h3>
+            <p>
+              The final result and matches are shown after
+              the round finishes.
+            </p>
+          `
+        },
+
+        bingo:{
+          title:"How to Play Bingo",
+          html:`
+            <h3>Cartela</h3>
+            <p>
+              Enter a Cartela number from 1–120 and press OK.
+              The first Cartela goes to Slot 1. The next goes
+              to Slot 2.
+            </p>
+
+            <h3>Mark numbers</h3>
+            <p>
+              When a called number appears on your Cartela,
+              tap the matching cell.
+            </p>
+
+            <h3>BINGO</h3>
+            <p>
+              Complete a horizontal, vertical or diagonal line.
+              When the round allows a win, press the BINGO button
+              for the corresponding Cartela.
+            </p>
+
+            <h3>Round</h3>
+            <p>
+              Betting closes when the countdown reaches zero.
+              Numbers are then called progressively.
+            </p>
+          `
+        },
+
+        roulette:{
+          title:"How to Play Roulette",
+          html:`
+            <h3>Choose a number</h3>
+            <p>
+              Tap a number. Your selected number is highlighted.
+              Each slot can have its own selection.
+            </p>
+
+            <h3>Spin</h3>
+            <p>
+              Betting closes when the countdown reaches zero.
+              The wheel spins and stops on one number.
+            </p>
+
+            <h3>Win</h3>
+            <p>
+              A number bet wins when the wheel stops on that number.
+              The winning number is highlighted.
+            </p>
+
+            <h3>Lose</h3>
+            <p>
+              A number bet loses when the wheel stops on another
+              number.
+            </p>
+          `
+        },
+
+        aviator:{
+          title:"How to Play Aviator",
+          html:`
+            <h3>Place a bet</h3>
+            <p>
+              Place your Slot 1 or Slot 2 bet before the flight starts.
+            </p>
+
+            <h3>Live multiplier</h3>
+            <p>
+              The multiplier increases while the plane is flying.
+              The current potential payout is displayed live.
+            </p>
+
+            <h3>Cash Out</h3>
+            <p>
+              During the flight, Place Bet changes to Cash Out.
+              Tap it to cash out at the current multiplier.
+            </p>
+
+            <h3>Crash</h3>
+            <p>
+              If the flight crashes before cash out, the unsettled
+              bet does not receive a cash-out payout.
+            </p>
+
+            <h3>History</h3>
+            <p>
+              The latest 10 completed round multipliers are retained.
+              When a new round is completed, the oldest result drops out.
+            </p>
+          `
         }
 
-        console.log(
-            "========================================"
-        );
+      };
 
-        console.log(
-            "       DESTA PLAY ENGINE ONLINE"
-        );
+      document
+        .getElementById("helpTitle")
+        .textContent=
+          help[state.game].title;
 
-        console.log(
-            "========================================"
-        );
+      document
+        .getElementById("helpContent")
+        .innerHTML=
+          help[state.game].html;
+
+      document
+        .getElementById("helpOverlay")
+        .classList.remove("hidden");
+
     }
-);
+
+
+    function closeHelp(){
+
+      document
+        .getElementById("helpOverlay")
+        .classList.add("hidden");
+
+    }
+
+
+    /* =========================================================
+       WALLET ACTIONS
+    ========================================================= */
+
+    const WALLET_API = {
+      deposit: "https://desta-play.onrender.com/api/deposit/request",
+      withdraw: "https://desta-play.onrender.com/api/withdraw/request"
+    };
+
+    function currentPlayerId(){
+      return String(
+        state.playerId ||
+        document.getElementById("profileId")?.textContent ||
+        ""
+      ).trim();
+    }
+
+    let depositState={amount:0,phone:"",method:"telebirr",ownerName:"",paymentPhone:"",account:""};
+
+    function openDeposit(){
+      const id=currentPlayerId();
+      document.getElementById("depositAccountId").value=id || "";
+      document.getElementById("depositStep1").classList.remove("hidden");
+      document.getElementById("depositStep2").classList.add("hidden");
+      document.getElementById("depositStep3").classList.add("hidden");
+      document.getElementById("depositAmount").value="";
+      document.getElementById("depositSender").value=localStorage.getItem("destaDepositPhone") || "";
+      setWalletStatus("depositStatus","","");
+      document.getElementById("depositModal").classList.remove("hidden");
+    }
+
+    async function startDepositPayment(){
+      const amount=Number(document.getElementById("depositAmount").value);
+      const phone=document.getElementById("depositSender").value.trim();
+      const method=document.getElementById("depositMethod").value.trim().toLowerCase();
+      if(!amount || amount<=0 || !phone){
+        setWalletStatus("depositStatus","Enter your phone number and deposit amount.","err");
+        return;
+      }
+      const button=document.getElementById("depositPayBtn");
+      if(button)button.disabled=true;
+      setWalletStatus("depositStatus","Loading payment information…","wait");
+      try{
+        const headers={"Accept":"application/json"};
+        if(state.authToken)headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch("https://desta-play.onrender.com/api/payment/config",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success)throw new Error(data.error || "Could not load payment information.");
+        const selected=data.methods?.[method];
+        if(!selected?.available)throw new Error(selected?.message || "Payment method is not available now.");
+        const min=Number(data.minimumDeposit || 50);
+        if(amount<min)throw new Error(`Minimum deposit amount is ${min} ETB`);
+        depositState={amount,phone,method,ownerName:selected.ownerName || "",paymentPhone:selected.phone || "",account:selected.account || ""};
+        localStorage.setItem("destaDepositPhone",phone);
+        document.getElementById("depositOwnerName").textContent=depositState.ownerName || "—";
+        document.getElementById("depositPaymentPhone").textContent=depositState.paymentPhone || depositState.account || "—";
+        document.getElementById("depositPaymentCopy").value=depositState.paymentPhone || depositState.account || "";
+        document.getElementById("depositStep1").classList.add("hidden");
+        document.getElementById("depositStep2").classList.remove("hidden");
+        setWalletStatus("depositStatus","Pay the exact amount externally, then return and tap I HAVE PAID.","ok");
+      }catch(error){ setWalletStatus("depositStatus",error.message || "Could not load payment information.","err"); }
+      finally{ if(button)button.disabled=false; }
+    }
+
+    function copyDepositPayment(){
+      const value=document.getElementById("depositPaymentCopy").value || "";
+      if(navigator.clipboard && value){
+        navigator.clipboard.writeText(value).then(()=>setWalletStatus("depositStatus","Payment number copied.","ok")).catch(()=>setWalletStatus("depositStatus","Select and copy the payment number.","err"));
+      }
+    }
+
+    function depositPaid(){
+      document.getElementById("depositStep2").classList.add("hidden");
+      document.getElementById("depositStep3").classList.remove("hidden");
+      setWalletStatus("depositStatus","Paste the Telegram transaction-message link, then submit.","wait");
+    }
+
+    function openWithdraw(){
+      const id=currentPlayerId();
+      document.getElementById("withdrawAccountId").value=id || "";
+      document.getElementById("withdrawPasswordBox").classList.add("hidden");
+      document.getElementById("withdrawAmount").value="";
+      document.getElementById("withdrawAccount").value="";
+      setWalletStatus("withdrawStatus","","");
+      document.getElementById("withdrawModal").classList.remove("hidden");
+    }
+
+    function closeWalletModal(id){
+      document.getElementById(id)?.classList.add("hidden");
+    }
+
+    function setWalletStatus(id,message,type){
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.textContent=message||"";
+      el.className="walletStatus"+(type?" "+type:"");
+    }
+
+    async function postWalletRequest(url,payload,statusId,buttonId){
+      const button=document.getElementById(buttonId);
+      if(button)button.disabled=true;
+      setWalletStatus(statusId,"Submitting securely to the server…","wait");
+      try{
+        const headers={"Content-Type":"application/json","Accept":"application/json"};
+        if(state.authToken)headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),cache:"no-store"});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success)throw new Error(data.message || data.error || "Request could not be completed.");
+        setWalletStatus(statusId,data.message || "Request submitted.","ok");
+        if(typeof loadWalletData === "function")loadWalletData();
+        if(typeof loadServerAccount === "function")await loadServerAccount();
+        if(typeof updatePlayerDisplays === "function")updatePlayerDisplays();
+        return data;
+      }catch(error){
+        setWalletStatus(statusId,error.message || "Request failed.","err");
+        return null;
+      }finally{ if(button)button.disabled=false; }
+    }
+
+    async function submitDeposit(){
+      const link=document.getElementById("depositReference").value.trim();
+      if(!depositState.amount || !depositState.phone || !link){
+        setWalletStatus("depositStatus","Enter the Telegram transaction-message link.","err");
+        return;
+      }
+      const data=await postWalletRequest(WALLET_API.deposit,{
+        amount:depositState.amount,
+        recipient:depositState.ownerName,
+        transactionId:link,
+        referenceId:link,
+        senderPhone:depositState.phone,
+        method:depositState.method
+      },"depositStatus","depositSubmitBtn");
+      if(data){
+        document.getElementById("depositStep3").classList.add("hidden");
+        document.getElementById("depositStep1").classList.remove("hidden");
+        document.getElementById("depositReference").value="";
+        setWalletStatus("depositStatus","Deposit is PENDING. Balance will be credited only after verification.","ok");
+      }
+    }
+
+    function showWithdrawalPasswordBox(){
+      const amount=Number(document.getElementById("withdrawAmount").value);
+      const account=document.getElementById("withdrawAccount").value.trim();
+      if(!amount || amount<=0 || !account){
+        setWalletStatus("withdrawStatus","Enter a valid withdrawal amount and withdrawal phone number.","err");
+        return;
+      }
+      document.getElementById("withdrawPasswordBox").classList.remove("hidden");
+      document.getElementById("withdrawPassword").value="";
+      document.getElementById("withdrawPassword").focus();
+      setWalletStatus("withdrawStatus","Enter your DESTA PLAY password to verify the withdrawal.","wait");
+    }
+
+    function showForgotPasswordFromWithdrawal(){
+      closeWalletModal("withdrawModal");
+      document.getElementById("accountScreen").classList.remove("hidden");
+      document.getElementById("home").classList.add("hidden");
+      showForgotPassword();
+    }
+
+    async function submitWithdraw(){
+      const payload={
+        amount:Number(document.getElementById("withdrawAmount").value),
+        method:document.getElementById("withdrawMethod").value,
+        account:document.getElementById("withdrawAccount").value.trim(),
+        password:document.getElementById("withdrawPassword").value
+      };
+      if(!payload.amount || payload.amount<=0 || !payload.account){
+        setWalletStatus("withdrawStatus","Enter a valid withdrawal amount and withdrawal phone number.","err");
+        return;
+      }
+      if(!payload.password){
+        setWalletStatus("withdrawStatus","Enter your password.","err");
+        return;
+      }
+      const data=await postWalletRequest(WALLET_API.withdraw,payload,"withdrawStatus","withdrawVerifyBtn");
+      if(data){
+        document.getElementById("withdrawPasswordBox").classList.add("hidden");
+        document.getElementById("withdrawAmount").value="";
+        document.getElementById("withdrawAccount").value="";
+        setWalletStatus("withdrawStatus",`Withdrawal pending. Balance updated to ${Number(data.balanceAfter || 0).toFixed(2)} ETB.`,"ok");
+      }
+    }
+
+    async function loadWalletData(){
+      if(!state.authToken)return;
+      try{
+        const headers={"Accept":"application/json","Authorization":"Bearer "+state.authToken};
+        const response=await fetch("https://desta-play.onrender.com/api/wallet",{cache:"no-store",headers});
+        if(!response.ok)return;
+        const data=await safeJsonResponse(response);
+        if(!data.success)return;
+        const wallet=data.wallet||data;
+        const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
+        const withdrawable=Number(wallet.withdrawable ?? wallet.withdrawableBalance ?? 0);
+        const locked=Number(wallet.lockedDeposit ?? wallet.lockedBalance ?? Math.max(0,balance-withdrawable));
+        const b=document.getElementById("walletBalance");
+        const w=document.getElementById("withdrawableBalance");
+        const l=document.getElementById("lockedBalance");
+        if(b)b.textContent=balance.toFixed(2);
+        if(w)w.textContent=withdrawable.toFixed(2);
+        if(l)l.textContent=locked.toFixed(2);
+        if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
+      }catch(error){console.warn("Wallet connection error:",error)}
+    }
+
+    function renderWalletTransactions(rows){
+      const box=document.getElementById("transactions");
+      if(!box)return;
+      if(!rows.length){box.textContent="No transactions yet.";return;}
+      box.innerHTML=rows.slice(0,20).map(tx=>{
+        const status=String(tx.status||"PENDING").toUpperCase();
+        const cls=status==="APPROVED"?"statusApproved":status==="REJECTED"?"statusRejected":"statusPending";
+        const type=String(tx.type||tx.kind||"TRANSACTION").toUpperCase();
+        const amount=Number(tx.amount||0).toFixed(2);
+        const ref=tx.transactionId||tx.referenceId||tx.reference||"";
+        return `<div class="transactionRow"><strong>${type}</strong> — ${amount} ETB<br><span class="transactionStatus ${cls}">${status}</span>${ref?` · ${escapeHtml(ref)}`:""}</div>`;
+      }).join("");
+    }
+
+    function escapeHtml(value){
+      return String(value).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+    }
+
+
+    /* =========================================================
+       SERVER-AUTHORITATIVE LIVE ROUND STATE
+       ========================================================= */
+
+    let liveRoundTimer = null;
+    let liveRoundBusy = false;
+    let lastServerRoundId = {};
+
+    function updateCountdownFromServer(round){
+      const game = round.game;
+      const el = document.getElementById(game + "Countdown") ||
+                 document.getElementById(game + "Status");
+      if(!el) return;
+
+      const seconds = Number(round.remainingSeconds || 0);
+      const betting = round.status === "BETTING";
+
+      el.textContent = betting
+        ? "BETTING " + seconds + "s"
+        : (round.status === "DRAWING" ? "DRAWING" :
+           round.status === "FLYING" ? "FLYING" :
+           round.status === "SPINNING" ? "SPINNING" :
+           round.status === "CRASHED" ? "CRASHED" :
+           "BETTING CLOSED");
+
+      el.classList.toggle("closed", !betting);
+    }
+
+    function applyServerRound(round){
+      if(!round || !round.game) return;
+
+      const game = round.game;
+      const previousId = lastServerRoundId[game];
+      const isNewRound = previousId && previousId !== round.id;
+      lastServerRoundId[game] = round.id;
+
+      state.roundIds = state.roundIds || {};
+      state.roundIds[game] = round.id;
+      state.serverRoundIds[game] = String(round.id || "");
+      state.rounds[game] = String(round.id || state.rounds[game] || "");
+      state.bettingOpenByGame[game] = round.status === "BETTING";
+      if(state.game === game){ state.bettingOpen = state.bettingOpenByGame[game]; state.countdown = Number(round.remainingSeconds || 0); }
+
+      updateRound();
+      updateCountdownFromServer(round);
+
+      if(game === "keno"){
+        const drawn = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
+        const changed = JSON.stringify(state.kenoDraw) !== JSON.stringify(drawn);
+        state.kenoDraw = [...drawn];
+
+        if(isNewRound){
+          state.kenoSelections = {1:[],2:[]};
+          state.kenoBets = {1:null,2:null};
+          const balls = document.getElementById("kenoDrawBalls");
+          if(balls) balls.innerHTML = "";
+        }
+
+        if(changed || isNewRound) renderServerKeno(round);
+      }
+
+      if(game === "bingo"){
+        const called = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
+        const changed = JSON.stringify(state.bingoDraw) !== JSON.stringify(called);
+        state.bingoDraw = [...called];
+
+        if(isNewRound){
+          state.bingoDraw = [];
+          const display = document.getElementById("bingoDraw");
+          if(display) display.innerHTML = "";
+          const b1 = document.getElementById("bingoButton1");
+          const b2 = document.getElementById("bingoButton2");
+          if(b1) b1.disabled = true;
+          if(b2) b2.disabled = true;
+        }
+
+        if(changed || isNewRound) renderServerBingo(round);
+      }
+
+      if(game === "roulette"){
+        if(round.result && round.status === "FINISHED"){
+          const winner = typeof round.result === "object"
+            ? Number(round.result.number ?? round.result.result ?? round.result.winner)
+            : Number(round.result);
+          if(Number.isFinite(winner)) renderServerRoulette(winner);
+        }
+      }
+
+      if(game === "aviator"){
+        const multiplier = Number(round.multiplier || 1);
+        const el = document.getElementById("aviatorMultiplier");
+        if(el) el.textContent = multiplier.toFixed(2) + "x";
+
+        if(round.status === "CRASHED" && round.crashPoint != null){
+          if(el) el.textContent = Number(round.crashPoint).toFixed(2) + "x CRASH";
+        }
+      }
+    }
+
+    function renderServerKeno(round){
+      const balls = document.getElementById("kenoDrawBalls");
+      if(balls){
+        balls.innerHTML = (round.drawnNumbers || []).map(n =>
+          `<div class="ball">${String(n).padStart(2,"0")}</div>`
+        ).join("");
+      }
+
+      const status = document.getElementById("kenoDrawStatus");
+      if(status){
+        status.textContent = round.status === "DRAWING"
+          ? `DRAWING ${(round.drawnNumbers || []).length} / ${round.totalDraws || 20}`
+          : round.status === "FINISHED"
+            ? "DRAW COMPLETE"
+            : round.status === "BETTING"
+              ? "Waiting for draw..."
+              : round.status;
+      }
+
+      document.querySelectorAll(".kenoNumber").forEach(button => {
+        const n = Number(button.textContent);
+        button.classList.toggle("drawn", (round.drawnNumbers || []).includes(n));
+        button.classList.toggle("hit",
+          (round.drawnNumbers || []).includes(n) &&
+          ((state.kenoSelections[1] || []).includes(n) ||
+           (state.kenoSelections[2] || []).includes(n))
+        );
+      });
+    }
+
+    function renderServerBingo(round){
+      const display = document.getElementById("bingoDraw");
+      if(display){
+        display.innerHTML = (round.drawnNumbers || []).map(n =>
+          `<div class="bingoCalled">${n}</div>`
+        ).join("");
+      }
+
+      const status = document.getElementById("bingoStatus");
+      if(status){
+        const nums = round.drawnNumbers || [];
+        status.textContent = round.status === "DRAWING"
+          ? `CALLED ${nums.length} / ${round.totalDraws || 20}${nums.length ? " — " + nums[nums.length-1] : ""}`
+          : round.status === "FINISHED"
+            ? "DRAW COMPLETE"
+            : round.status === "BETTING"
+              ? "Waiting for next draw..."
+              : round.status;
+      }
+
+      if(typeof renderCartela === "function") renderCartela();
+    }
+
+    function renderServerRoulette(winner){
+      state.rouletteWinner = winner;
+
+      const result = document.getElementById("rouletteResult");
+      if(result) result.textContent = "RESULT: " + winner + " — " + rouletteColor(winner).toUpperCase();
+
+      document.querySelectorAll(".rouletteNum").forEach(b => {
+        b.classList.toggle("winner", Number(b.textContent) === winner);
+      });
+    }
+
+    async function fetchLiveRound(game){
+      try{
+        const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`, {
+          cache:"no-store",
+          headers:{"Accept":"application/json"}
+        });
+
+        if(!response.ok) return;
+
+        const data = await safeJsonResponse(response);
+        if(data && data.success && data.round){
+          applyServerRound(data.round);
+        }
+      }catch(error){
+        console.warn("Live round connection error:", error);
+      }
+    }
+
+    async function fetchAllLiveRounds(){
+      if(liveRoundBusy) return;
+      liveRoundBusy = true;
+      try{
+        await Promise.all([
+          fetchLiveRound("keno"),
+          fetchLiveRound("bingo"),
+          fetchLiveRound("roulette"),
+          fetchLiveRound("aviator")
+        ]);
+      }finally{
+        state.bettingOpen = !!state.bettingOpenByGame[state.game];
+        liveRoundBusy = false;
+      }
+    }
+
+    async function loadRoundHistory(game){
+      try{
+        const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/history`, {
+          cache:"no-store",
+          headers:{"Accept":"application/json"}
+        });
+        if(!response.ok) return;
+        const data = await safeJsonResponse(response);
+        if(!data.success || !Array.isArray(data.rounds)) return;
+
+        const rows = data.rounds.slice(0,10);
+
+        if(game === "keno"){
+          state.kenoHistory = rows.map(r => ({
+            round:r.round_id,
+            numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+          }));
+          renderKenoHistory();
+        }
+
+        if(game === "bingo"){
+          state.bingoHistory = rows.map(r => ({
+            round:r.round_id,
+            numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+          }));
+          renderBingoHistory();
+        }
+
+        if(game === "roulette"){
+          state.rouletteHistory = rows.map(r => {
+            const value = typeof r.result === "object"
+              ? Number(r.result.number ?? r.result.result ?? r.result.winner)
+              : Number(r.result);
+            return {
+              round:r.round_id,
+              result:value,
+              color:rouletteColor(value)
+            };
+          });
+          renderRouletteHistory();
+        }
+
+        if(game === "aviator"){
+          state.aviatorHistory = rows.map(r => ({
+            round:r.round_id,
+            multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
+          }));
+          renderAviatorHistory();
+        }
+      }catch(error){
+        console.warn("History connection error:", error);
+      }
+    }
+
+    function startLiveRoundSync(){
+      clearInterval(liveRoundTimer);
+      fetchAllLiveRounds();
+      ["keno","bingo","roulette","aviator"].forEach(loadRoundHistory);
+      liveRoundTimer = setInterval(() => {
+        fetchAllLiveRounds();
+      }, 1000);
+    }
+
+    /* The server owns the round. The browser never creates or advances rounds. */
+    function startGameRound(){
+      startLiveRoundSync();
+    }
+
+    function startGameDraw(){
+      /* Server-authoritative: no local draw is generated here. */
+      fetchAllLiveRounds();
+    }
+
+    function startNextRound(){
+      fetchAllLiveRounds();
+      loadRoundHistory(state.game);
+    }
+
+    /* =========================================================
+       INITIALIZE
+       ========================================================= */
+
+    async function bootstrapTelegramAccount(){
+      if(!state.telegramId) return false;
+
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/bootstrap?telegramId="+encodeURIComponent(state.telegramId),{cache:"no-store",headers:{"Accept":"application/json"}});
+        const data=await safeJsonResponse(response);
+
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not initialize account.");
+
+        if(data.registered && data.token){
+          state.authToken=data.token;
+          localStorage.setItem("destaAuthToken",state.authToken);
+          localStorage.setItem("destaAccountCreated","true");
+          state.accountCreated=true;
+          state.balance=Number(data.player?.balance || 0);
+          state.playerId=data.player?.playerId || state.playerId;
+          state.telegramName=data.player?.telegramName || state.telegramName;
+          updatePlayerDisplays();
+          loadWalletData();
+          showHome();
+          return true;
+        }
+
+        state.accountCreated=false;
+        localStorage.removeItem("destaAccountCreated");
+        showCreateAccount();
+        document.getElementById("accountScreen").classList.remove("hidden");
+        return false;
+      }catch(error){
+        console.warn("Telegram account bootstrap unavailable:",error);
+        return false;
+      }
+    }
+
+    async function loadServerAccount(){
+      if(!state.authToken) return false;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/me",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
+        if(!response.ok) throw new Error("Session expired");
+        const data=await safeJsonResponse(response);
+        if(!data.success || !data.player) throw new Error("Invalid account response");
+        state.accountCreated=true; state.balance=Number(data.player.balance || 0);
+        state.playerId=data.player.playerId || state.playerId; state.telegramId=String(data.player.telegramId || state.telegramId); state.telegramName=data.player.telegramName || state.telegramName;
+        localStorage.setItem("destaAccountCreated","true"); updatePlayerDisplays(); loadWalletData(); return true;
+      }catch(error){
+        console.warn("Account session unavailable:",error); state.authToken=""; localStorage.removeItem("destaAuthToken"); localStorage.removeItem("destaAccountCreated"); return false;
+      }
+    }
+
+    loadTelegramUser();
+
+    (async function initializeDesta(){
+      loadTelegramUser();
+
+      let authenticated=await loadServerAccount();
+
+      if(!authenticated){
+        authenticated=await bootstrapTelegramAccount();
+      }
+
+      if(!authenticated){
+        document.getElementById("accountScreen").classList.remove("hidden");
+        showCreateAccount();
+      }
+
+      buildKeno(); buildBingo(); buildRoulette(); buildAviator(); showTab("my"); startLiveRoundSync();
+      setInterval(loadWalletData, 5000);
+    })();
+
+    </script>
+
+    <!-- ======================================================
+         DEPOSIT MODAL
+    ====================================================== -->
+    <div id="depositModal" class="walletModal hidden">
+      <div class="walletModalPanel">
+        <div class="walletModalHead"><h2>DEPOSIT</h2><button class="walletModalClose" onclick="closeWalletModal('depositModal')">×</button></div>
+
+        <div id="depositStep1">
+          <div class="walletHint">Enter the phone number you will use to send the payment and the deposit amount. Tap PAY to view the payment account.</div>
+          <label class="walletFormLabel">ACCOUNT ID</label>
+          <input id="depositAccountId" class="walletFormInput" readonly>
+          <label class="walletFormLabel">YOUR PAYMENT PHONE NUMBER</label>
+          <input id="depositSender" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Your payment phone number">
+          <label class="walletFormLabel">DEPOSIT AMOUNT (ETB)</label>
+          <input id="depositAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
+          <label class="walletFormLabel">PAYMENT METHOD</label>
+          <select id="depositMethod" class="walletFormSelect">
+            <option value="telebirr">Telebirr</option>
+            <option value="mpesa">M-Pesa — Payment method is not available now.</option>
+            <option value="cbe_birr">CBE Birr — Payment method is not available now.</option>
+          </select>
+          <button id="depositPayBtn" class="walletSubmit" onclick="startDepositPayment()">PAY</button>
+        </div>
+
+        <div id="depositStep2" class="hidden">
+          <div class="walletHint">Send the exact deposit amount externally using the payment information below.</div>
+          <div class="walletCard"><h3>PAYMENT INFORMATION</h3>
+            <p><strong>NAME:</strong> <span id="depositOwnerName">—</span></p>
+            <p><strong>PAYMENT NUMBER:</strong> <span id="depositPaymentPhone">—</span></p>
+          </div>
+          <input id="depositPaymentCopy" class="walletFormInput" readonly>
+          <button class="walletSubmit" type="button" onclick="copyDepositPayment()">COPY PAYMENT NUMBER</button>
+          <button class="walletSubmit" type="button" onclick="depositPaid()">I HAVE PAID</button>
+        </div>
+
+        <div id="depositStep3" class="hidden">
+          <div class="walletHint">Paste the Telegram transaction-message link for the payment you just made.</div>
+          <label class="walletFormLabel">TELEGRAM TRANSACTION-MESSAGE LINK</label>
+          <input id="depositReference" class="walletFormInput" type="text" autocomplete="off" placeholder="Paste transaction message link">
+          <button id="depositSubmitBtn" class="walletSubmit" onclick="submitDeposit()">SUBMIT</button>
+        </div>
+
+        <div id="depositStatus" class="walletStatus"></div>
+      </div>
+    </div>
+
+    <div id="withdrawModal" class="walletModal hidden">
+      <div class="walletModalPanel">
+        <div class="walletModalHead"><h2>WITHDRAW</h2><button class="walletModalClose" onclick="closeWalletModal('withdrawModal')">×</button></div>
+        <div class="walletHint">Enter the amount and the phone number that should receive the withdrawal. After tapping WITHDRAW, a password verification box will appear.</div>
+        <label class="walletFormLabel">ACCOUNT ID</label>
+        <input id="withdrawAccountId" class="walletFormInput" readonly>
+        <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
+        <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
+        <label class="walletFormLabel">WITHDRAWAL METHOD</label>
+        <select id="withdrawMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
+        <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
+        <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Phone number receiving the money">
+        <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
+
+        <div id="withdrawPasswordBox" class="walletPasswordBox hidden">
+          <div class="walletHint">Password verification is required before the withdrawal is created.</div>
+          <label class="walletFormLabel">DESTA PLAY PASSWORD</label>
+          <input id="withdrawPassword" class="walletFormInput" type="password" autocomplete="current-password" placeholder="Enter your password">
+           <button class="walletSubmit" type="button" onclick="showForgotPasswordFromWithdrawal()">FORGOT PASSWORD?</button>
+          <button id="withdrawVerifyBtn" class="walletSubmit" onclick="submitWithdraw()">VERIFY</button>
+        </div>
+
+        <div id="withdrawStatus" class="walletStatus"></div>
+      </div>
+    </div>
+
+    </body>
+    </html>
