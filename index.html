@@ -2043,30 +2043,6 @@
             BETTING 45s
           </div>
 
-          <div class="bingoAnimation">
-
-            <div class="bingoMachine"></div>
-
-            <div
-              class="bingoBall"
-              style="left:15%;top:30%">
-              7
-            </div>
-
-            <div
-              class="bingoBall"
-              style="right:15%;top:25%">
-              30
-            </div>
-
-            <div
-              class="bingoBall"
-              style="left:40%;bottom:15%">
-              52
-            </div>
-
-          </div>
-
           <div
             class="drawStatus"
             id="bingoStatus">
@@ -2122,62 +2098,7 @@
             id="bingoDraw">
           </div>
 
-          <div class="betSlots">
 
-            <div class="betSlot">
-
-              <div class="slotTitle">
-                CARTELA 1 BET
-              </div>
-
-              <div
-                id="bingoAmount1"
-                style="text-align:center;color:#ffd43c;font-weight:bold">
-                10 ETB
-              </div>
-
-              <button
-                class="placeBtn"
-                onclick="placeBingoBet(1)">
-                PLACE BET
-              </button>
-
-              <div
-                class="livePayout"
-                id="bingoPayout1">
-              </div>
-
-            </div>
-
-
-            <div class="betSlot">
-
-              <div class="slotTitle">
-                CARTELA 2 BET
-              </div>
-
-              <div
-                id="bingoAmount2"
-                style="text-align:center;color:#ffd43c;font-weight:bold">
-                10 ETB
-              </div>
-
-              <button
-                class="placeBtn"
-                onclick="placeBingoBet(2)">
-                PLACE BET
-              </button>
-
-              <div
-                class="livePayout"
-                id="bingoPayout2">
-              </div>
-
-            </div>
-
-          </div>
-
-          <div class="amountGrid" id="bingoAmounts"></div>
 
           <div class="bingoButtons">
 
@@ -4212,46 +4133,6 @@
     }
 
 
-    function placeBingoBet(slot){
-
-      if(!state.bettingOpen){
-
-        alert("Betting is closed.");
-
-        return;
-
-      }
-
-      if(
-        !state.bingoCartelas[slot]
-      ){
-
-        alert(
-          "Add a Cartela to Slot "+slot+"."
-        );
-
-        return;
-
-      }
-
-      const amount=
-        state.bingoAmounts[slot];
-
-      if(amount>state.balance){
-
-        alert("Insufficient balance.");
-
-        return;
-
-      }
-
-      state.balance-=amount;
-
-      updateBalance();
-
-    }
-
-
     function runBingoDraw(){
 
       state.bettingOpen=false;
@@ -5303,8 +5184,8 @@
             <h3>BINGO</h3>
             <p>
               Complete a horizontal, vertical or diagonal line.
-              When the round allows a win, press the BINGO button
-              for the corresponding Cartela.
+              When the round allows a win, press BINGO for the
+              corresponding Cartela.
             </p>
 
             <h3>Round</h3>
