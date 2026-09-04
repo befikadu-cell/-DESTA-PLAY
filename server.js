@@ -2981,7 +2981,11 @@ async function saveBingoRound(tier) {
                         cartelaNumber:
                             player.cartelaNumber,
                         cartela:
-                            player.cartela
+                            player.cartela,
+                        paid:
+                            player.paid === true,
+                        paymentFailed:
+                            player.paymentFailed === true
                     })
                 ),
 
@@ -3122,7 +3126,12 @@ function startNewBingoRound(tier) {
 
             startBingoDrawPhase(
                 entryFee
-            );
+            ).catch(error => {
+                console.error(
+                    `[BINGO ${entryFee}] BETTING CLOSE ERROR:`,
+                    error
+                );
+            });
         },
         BETTING_TIMERS.bingo *
             1000
@@ -3131,11 +3140,76 @@ function startNewBingoRound(tier) {
 
 /*
 |--------------------------------------------------------------------------
+| SETTLE BINGO ENTRIES AT BETTING CLOSE
+|--------------------------------------------------------------------------
+*/
+
+async function settleBingoEntries(tier) {
+    const room = bingoRooms[tier];
+    if (!room) return;
+
+    const pendingByPlayer = new Map();
+
+    for (const entry of room.players) {
+        if (entry.paid === true) continue;
+        const playerId = String(entry.playerId || "").trim();
+        if (!playerId) continue;
+        if (!pendingByPlayer.has(playerId)) pendingByPlayer.set(playerId, []);
+        pendingByPlayer.get(playerId).push(entry);
+    }
+
+    for (const [playerId, entries] of pendingByPlayer.entries()) {
+        const totalAmount = entries.length * Number(room.entryFee);
+        try {
+            const player = await findPlayerById(playerId);
+            const balance = Number(player?.balance || 0);
+
+            if (balance < totalAmount) {
+                console.warn(`[BINGO ${tier}] INSUFFICIENT BALANCE ${playerId}: required ${totalAmount}, available ${balance}`);
+                for (const entry of entries) {
+                    entry.paid = false;
+                    entry.paymentFailed = true;
+                }
+                continue;
+            }
+
+            const balanceAfter = await changeBalance({
+                playerId,
+                amount: -totalAmount,
+                type: "bingo_entry",
+                game: "bingo",
+                roundId: room.id,
+                description: `Bingo entry - ${entries.length} Cartela(s) - tier ${tier}`,
+                metadata: {
+                    tier,
+                    cartelaNumbers: entries.map(entry => entry.cartelaNumber),
+                    cartelaCount: entries.length
+                }
+            });
+
+            for (const entry of entries) {
+                entry.paid = true;
+                entry.paymentFailed = false;
+            }
+
+            console.log(`[BINGO ${tier}] DEBIT ${playerId} -> ${totalAmount} ETB for ${entries.length} Cartela(s) | balance ${balanceAfter}`);
+        } catch (error) {
+            console.error(`[BINGO ${tier}] ENTRY DEBIT ERROR for ${playerId}:`, error);
+            for (const entry of entries) {
+                entry.paid = false;
+                entry.paymentFailed = true;
+            }
+        }
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | START BINGO DRAWING
 |--------------------------------------------------------------------------
 */
 
-function startBingoDrawPhase(tier) {
+async function startBingoDrawPhase(tier) {
     const room =
         bingoRooms[tier];
 
@@ -3146,12 +3220,14 @@ function startBingoDrawPhase(tier) {
         return;
     }
 
+    await settleBingoEntries(tier);
+
     room.status = "DRAWING";
     room.drawIndex = 0;
     room.drawnNumbers = [];
     room.currentNumber = null;
 
-    saveBingoRound(
+    await saveBingoRound(
         tier
     ).catch(console.error);
 
@@ -3216,6 +3292,7 @@ function revealNextBingoNumber(tier) {
         const player of room.players
     ) {
         if (
+            player.paid === true &&
             isWinningBingoCard(
                 player.cartela,
                 room.drawnNumbers
@@ -3281,8 +3358,13 @@ async function resolveBingoWinner(
 
     room.status = "FINISHED";
 
+    const paidEntries =
+        room.players.filter(
+            player => player.paid === true
+        );
+
     const grossPool =
-        room.players.length *
+        paidEntries.length *
         room.entryFee;
 
     /*
@@ -3448,7 +3530,9 @@ app.post(
                 room.players.some(
                     player =>
                         player.playerId ===
-                        req.player.id
+                            req.player.id &&
+                        Number(player.cartelaNumber) ===
+                            selectedCartela
                 );
 
             if (alreadyJoined) {
@@ -3480,37 +3564,9 @@ app.post(
 
             /*
             |----------------------------------------------------------
-            | DEBIT PLAYER
+            | REGISTER ENTRY — DEBIT AT BETTING CLOSE
             |----------------------------------------------------------
             */
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-
-                amount:
-                    -entryFee,
-
-                type:
-                    "bingo_entry",
-
-                game:
-                    "bingo",
-
-                roundId:
-                    room.id,
-
-                description:
-                    `Bingo entry - tier ${entryFee}`,
-
-                metadata: {
-                    tier:
-                        entryFee,
-
-                    cartelaNumber:
-                        selectedCartela
-                }
-            });
 
             room.players.push({
                 playerId:
@@ -3524,7 +3580,10 @@ app.post(
                     selectedCartela,
 
                 cartela:
-                    playerCartela
+                    playerCartela,
+
+                paid: false,
+                paymentFailed: false
             });
 
             await saveBingoRound(
@@ -3532,7 +3591,9 @@ app.post(
             );
 
             const grossPool =
-                room.players.length *
+                room.players.filter(
+                    player => player.paid === true
+                ).length *
                 room.entryFee;
 
             const winnerPrize =
@@ -3701,17 +3762,23 @@ function getPublicBingoRound(
             room.currentNumber,
 
         playersInRoom:
-            room.players.length,
+            room.players.filter(
+                player => player.paid === true
+            ).length,
 
         grossPool:
             room.totalPool ||
-            room.players.length *
+            room.players.filter(
+                player => player.paid === true
+            ).length *
                 room.entryFee,
 
         winnerPrize:
             room.winnerPrize ||
             (
-                room.players.length *
+                room.players.filter(
+                    player => player.paid === true
+                ).length *
                 room.entryFee *
                 0.90
             ),
@@ -3884,7 +3951,7 @@ function generateCrashPoint(round = null) {
             value >= 1
         ) {
             return Number(
-                value.toFixed(2)
+                Math.max(2, value).toFixed(2)
             );
         }
     }
@@ -3914,7 +3981,7 @@ function generateCrashPoint(round = null) {
             value >= 1
         ) {
             return Number(
-                value.toFixed(2)
+                Math.max(2, value).toFixed(2)
             );
         }
     }
@@ -5638,15 +5705,33 @@ app.listen(
             |----------------------------------------------------------
             | Compatibility fallback.
             |----------------------------------------------------------
-            | The currently audited Bingo engine is expected to expose
-            | FIXED_BET_AMOUNTS. If it does not, no invented tiers are
-            | created.
+            | Keep the fixed Bingo stake list used by the Mini App.
+            | Every amount is still validated by the Bingo engine before
+            | a room is created.
             |----------------------------------------------------------
             */
 
-            console.error(
-                "[BINGO] FIXED_BET_AMOUNTS not exported by bingo engine. No Bingo rooms started."
+            const fallbackBingoAmounts = [
+                10, 20, 30, 50, 100, 150, 200,
+                250, 300, 350, 400, 450, 500
+            ];
+
+            console.warn(
+                "[BINGO] FIXED_BET_AMOUNTS not exported; using validated fixed stake fallback:",
+                fallbackBingoAmounts
             );
+
+            for (const tier of fallbackBingoAmounts) {
+                try {
+                    bingoBetIsValid(tier);
+                    startNewBingoRound(tier);
+                } catch (error) {
+                    console.error(
+                        `[BINGO] Skipping invalid fallback tier ${tier}:`,
+                        error.message
+                    );
+                }
+            }
         }
 
         /*
