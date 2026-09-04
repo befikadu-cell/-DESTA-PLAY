@@ -32,7 +32,7 @@ const TOTAL_CARTELAS = 120;
 */
 
 export const FIXED_BET_AMOUNTS = [
-    20, 30, 50, 80, 100, 150, 200, 250, 300, 400, 500, 1000
+    20, 30, 50, 80, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 1000
 ];
 
 export function validateBetAmount(amount) {
