@@ -5256,6 +5256,8 @@ app.get(
                 success: true,
                 game:
                     gameName,
+                rounds:
+                    data || [],
                 history:
                     data || []
             });
