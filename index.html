@@ -3294,8 +3294,10 @@
       if(!allowed.includes(value)) return;
       state.bingoAmounts[1]=value;
       state.bingoAmounts[2]=value;
-      document.getElementById("bingoAmount1").textContent=value+" ETB";
-      document.getElementById("bingoAmount2").textContent=value+" ETB";
+      const amount1=document.getElementById("bingoAmount1");
+      const amount2=document.getElementById("bingoAmount2");
+      if(amount1) amount1.textContent=value+" ETB";
+      if(amount2) amount2.textContent=value+" ETB";
       document.getElementById("bingoStakeScreen")?.classList.add("hidden");
       document.getElementById("gameTitle")?.classList.remove("hidden");
       document.getElementById("bingoGame")?.classList.remove("hidden");
@@ -3322,6 +3324,7 @@
       const stakeScreen=document.getElementById("bingoStakeScreen");
       const gameTitle=document.getElementById("gameTitle");
       if(game === "bingo"){
+        buildBingoAmounts();
         stakeScreen?.classList.remove("hidden");
         gameTitle?.classList.add("hidden");
       }else{
@@ -3882,47 +3885,44 @@
           "bingoAmounts"
         );
 
-      box.innerHTML="";
+      if(box) box.innerHTML="";
 
       const stakeGrid=document.getElementById("bingoStakeGrid");
       if(stakeGrid) stakeGrid.innerHTML="";
 
       amounts.forEach(amount=>{
 
-        const b=
-          document.createElement("button");
+        if(box){
+          const b=
+            document.createElement("button");
 
-        b.className="amountPreset";
+          b.className="amountPreset";
 
-        b.textContent=
-          amount+" ETB";
+          b.textContent=
+            amount+" ETB";
 
-        b.onclick=()=>{
+          b.onclick=()=>{
 
-          state.bingoAmounts[1]=amount;
-          state.bingoAmounts[2]=amount;
+            state.bingoAmounts[1]=amount;
+            state.bingoAmounts[2]=amount;
 
-          document
-            .getElementById("bingoAmount1")
-            .textContent=
-              amount+" ETB";
+            const amount1=document.getElementById("bingoAmount1");
+            const amount2=document.getElementById("bingoAmount2");
+            if(amount1) amount1.textContent=amount+" ETB";
+            if(amount2) amount2.textContent=amount+" ETB";
 
-          document
-            .getElementById("bingoAmount2")
-            .textContent=
-              amount+" ETB";
+            document
+              .querySelectorAll(".amountPreset")
+              .forEach(x=>
+                x.classList.remove("active")
+              );
 
-          document
-            .querySelectorAll(".amountPreset")
-            .forEach(x=>
-              x.classList.remove("active")
-            );
+            b.classList.add("active");
 
-          b.classList.add("active");
+          };
 
-        };
-
-        box.appendChild(b);
+          box.appendChild(b);
+        }
 
         if(stakeGrid){
           const sb=document.createElement("button");
@@ -5678,19 +5678,27 @@
 
     async function fetchLiveRound(game){
       try{
-        const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`, {
+        const bingoTier = Number(state.bingoAmounts?.[1] || 10);
+        const roundUrl = game === "bingo"
+          ? `https://desta-play.onrender.com/api/bingo/round?tier=${encodeURIComponent(bingoTier)}`
+          : `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
+
+        const response = await fetch(roundUrl, {
           cache:"no-store",
           headers:{"Accept":"application/json"}
         });
 
-        if(!response.ok) return;
+        if(!response.ok) return false;
 
         const data = await safeJsonResponse(response);
         if(data && data.success && data.round){
           applyServerRound(data.round);
+          return true;
         }
+        return false;
       }catch(error){
         console.warn("Live round connection error:", error);
+        return false;
       }
     }
 
@@ -5698,12 +5706,41 @@
       if(liveRoundBusy) return;
       liveRoundBusy = true;
       try{
-        await Promise.all([
+        const results = await Promise.all([
           fetchLiveRound("keno"),
           fetchLiveRound("bingo"),
           fetchLiveRound("roulette"),
           fetchLiveRound("aviator")
         ]);
+
+        /*
+         * One server status request is the fallback for every game.
+         * This keeps all four games server-authoritative even if an
+         * individual round route returns no round during a restart.
+         */
+        if(results.some(ok => !ok)){
+          try{
+            const response = await fetch("https://desta-play.onrender.com/api/status",{
+              cache:"no-store",
+              headers:{"Accept":"application/json"}
+            });
+            if(response.ok){
+              const data = await safeJsonResponse(response);
+              if(data && data.success){
+                ["keno","roulette","aviator"].forEach(game=>{
+                  const round=data.games?.[game];
+                  if(round) applyServerRound(round);
+                });
+
+                const bingoTier = Number(state.bingoAmounts?.[1] || 10);
+                const bingoRound=data.bingo?.[bingoTier];
+                if(bingoRound) applyServerRound(bingoRound);
+              }
+            }
+          }catch(error){
+            console.warn("Live status fallback error:", error);
+          }
+        }
       }finally{
         state.bettingOpen = !!state.bettingOpenByGame[state.game];
         liveRoundBusy = false;
