@@ -223,11 +223,27 @@ function normalizeTelegramName(name) {
     );
 }
 
+/*
+|--------------------------------------------------------------------------
+| PASSWORD VALIDATION
+|--------------------------------------------------------------------------
+|
+| Minimum: 6 characters
+| Maximum: 128 characters
+| Allowed: A-Z, a-z, 0-9, #, @
+|
+| The same account password is used for withdrawal verification.
+| There is no separate withdrawal password.
+|
+|--------------------------------------------------------------------------
+*/
+
 function validPassword(password) {
     return (
         typeof password === "string" &&
-        password.length >= 8 &&
-        password.length <= 128
+        password.length >= 6 &&
+        password.length <= 128 &&
+        /^[A-Za-z0-9#@]+$/.test(password)
     );
 }
 
@@ -440,7 +456,7 @@ async function approveDepositTransaction(transaction, verification) {
     if (!transaction) throw new Error("Deposit transaction not found");
 
     const referenceId = normalizeReference(
-        verification.referenceId || verification.transactionId || transaction.reference_id
+        verification.referenceId || transaction.reference_id
     );
 
     if (!referenceId) {
@@ -472,33 +488,6 @@ async function approveDepositTransaction(transaction, verification) {
 
         if (!Number.isFinite(actualAmount) || actualAmount !== expectedAmount) {
             throw new Error("Payment amount does not match the pending deposit");
-        }
-
-        let pendingDetails = {};
-        try { pendingDetails = JSON.parse(String(pending.description || "{}")); } catch (_) { pendingDetails = {}; }
-
-        const expectedSenderPhone = normalizePhone(pendingDetails.senderPhone || "");
-        const actualSenderPhone = normalizePhone(verification.senderPhone || "");
-        if (expectedSenderPhone && (!actualSenderPhone || expectedSenderPhone !== actualSenderPhone)) {
-            throw new Error("Sender phone number does not match the phone number submitted for this deposit");
-        }
-
-        const expectedRecipientPhone = normalizePhone(PAYMENT_PHONE);
-        const actualReceiverPhone = normalizePhone(verification.receiverPhone || "");
-        if (expectedRecipientPhone && (!actualReceiverPhone || expectedRecipientPhone !== actualReceiverPhone)) {
-            throw new Error("Receiver/payment phone number does not match the configured payment number");
-        }
-
-        const expectedRecipient = String(pendingDetails.recipient || PAYMENT_OWNER_NAME).trim().toLowerCase();
-        const actualReceiver = String(verification.receiver || "").trim().toLowerCase();
-        if (expectedRecipient && actualReceiver && expectedRecipient !== actualReceiver) {
-            throw new Error("Receiver/payment name does not match the configured payment account");
-        }
-
-        const verifiedReferenceId = normalizeReference(verification.referenceId || verification.transactionId || pending.reference_id);
-        if (!verifiedReferenceId) throw new Error("Verified payment reference ID is missing");
-        if (verifiedReferenceId !== String(pending.reference_id || "") && await hasSuccessfulDepositReference(verifiedReferenceId)) {
-            throw new Error("This verified payment transaction has already been credited");
         }
 
         const { data: marked, error: markError } = await supabase
@@ -624,9 +613,7 @@ async function findPlayerById(playerId) {
 function publicPlayer(player) {
     if (!player) {
         return null;
-    }
-
-    return {
+    }    return {
         playerId: player.id,
         telegramId: player.telegram_id,
         telegramName: player.username || "Player",
@@ -794,9 +781,10 @@ function getSessionPlayer(req) {
         return null;
     }
 
-    const token = authorization
-        .slice(7)
-        .trim();
+    const token =
+        authorization
+            .slice(7)
+            .trim();
 
     if (!token) {
         return null;
@@ -907,40 +895,6 @@ function validateEngineBet(engine, amount) {
     return value;
 }
 
-const registrationContacts = new Map();
-const passwordResetCodes = new Map();
-
-function cleanupTemporaryAuthData() {
-    const now = Date.now();
-    for (const [telegramId, record] of registrationContacts) {
-        if (!record || record.expiresAt <= now) registrationContacts.delete(telegramId);
-    }
-    for (const [requestId, record] of passwordResetCodes) {
-        if (!record || record.expiresAt <= now) passwordResetCodes.delete(requestId);
-    }
-}
-
-setInterval(cleanupTemporaryAuthData, 60 * 1000).unref();
-
-async function findPlayerByPhone(phone) {
-    const normalized = normalizePhone(phone);
-    if (!normalized) return null;
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("phone", normalized)
-        .maybeSingle();
-    if (error) {
-        await dbError("findPlayerByPhone", error);
-        throw new Error("Could not verify phone number");
-    }
-    return data;
-}
-
-function generateRecoveryCode() {
-    return String(crypto.randomInt(100000, 1000000));
-}
-
 /*
 |--------------------------------------------------------------------------
 | AUTH ROUTES
@@ -958,9 +912,7 @@ async function registerHandler(req, res) {
         const {
             telegramId,
             telegramName,
-            telegramUsername,
-            password,
-            phone
+            password
         } = req.body;
 
         if (
@@ -982,15 +934,6 @@ async function registerHandler(req, res) {
             });
         }
 
-        const normalizedPhone = normalizePhone(phone);
-        const contact = registrationContacts.get(String(telegramId));
-        if (!normalizedPhone || !contact || contact.phone !== normalizedPhone || contact.expiresAt <= Date.now()) {
-            return res.status(400).json({
-                success: false,
-                error: "Please share your phone number through Telegram first."
-            });
-        }
-
         const existing =
             await findPlayerByTelegramId(telegramId);
 
@@ -999,14 +942,6 @@ async function registerHandler(req, res) {
                 success: false,
                 error:
                     "Account already exists. Please login."
-            });
-        }
-
-        const existingPhone = await findPlayerByPhone(normalizedPhone);
-        if (existingPhone) {
-            return res.status(400).json({
-                success: false,
-                error: "This phone number is already registered."
             });
         }
 
@@ -1025,8 +960,6 @@ async function registerHandler(req, res) {
                     id: playerId,
                     telegram_id: String(telegramId),
                     username: safeName,
-                    telegram_username: String(telegramUsername || "").trim().slice(0, 80) || null,
-                    phone: normalizedPhone,
                     password_hash: passwordHash,
                     balance: 0,
                     created_at: nowIso(),
@@ -1164,212 +1097,445 @@ app.post(
     loginHandler
 );
 
-app.get("/api/account/registration-contact", async (req, res) => {
-    try {
-        const telegramId = String(req.query.telegramId || "").trim();
-        if (!telegramId) return res.status(400).json({ success: false, error: "Telegram ID is required" });
-        const contact = registrationContacts.get(telegramId);
-        if (!contact || contact.expiresAt <= Date.now()) {
-            if (contact) registrationContacts.delete(telegramId);
-            return res.json({ success: true, shared: false });
-        }
-        return res.json({ success: true, shared: true, phone: contact.phone });
-    } catch (error) {
-        console.error("Registration contact status error:", error);
-        return res.status(500).json({ success: false, error: "Could not check shared phone number" });
-    }
-});
-
 /*
 |--------------------------------------------------------------------------
 | EDITION 1 — PASSWORD RESET
 |--------------------------------------------------------------------------
-|
-| Phone -> Telegram recovery code -> new password.
-| Recovery code is valid for five minutes and is never stored in plaintext
-| in Supabase or sent to the administrator.
-|--------------------------------------------------------------------------
 */
 
-async function findPasswordResetRequest(requestId, phone = null) {
-    let query = supabase.from("password_reset_requests").select("*").eq("id", requestId);
-    if (phone) query = query.eq("phone", normalizePhone(phone));
-    const { data, error } = await query.maybeSingle();
+function passwordResetReplyMarkup(requestId) {
+    return {
+        inline_keyboard: [[
+            {
+                text: "APPROVE RESET",
+                callback_data: `dpr:approve:${requestId}`
+            },
+            {
+                text: "REJECT RESET",
+                callback_data: `dpr:reject:${requestId}`
+            }
+        ]]
+    };
+}
+
+async function findPasswordResetRequest(
+    requestId,
+    phone = null
+) {
+    let query =
+        supabase
+            .from("password_reset_requests")
+            .select("*")
+            .eq("id", requestId);
+
+    if (phone) {
+        query =
+            query.eq(
+                "phone",
+                normalizePhone(phone)
+            );
+    }
+
+    const { data, error } =
+        await query.maybeSingle();
+
     if (error) {
-        await dbError("findPasswordResetRequest", error);
+        await dbError(
+            "findPasswordResetRequest",
+            error
+        );
+
         throw new Error("Database error");
     }
+
     return data;
 }
 
-app.post("/api/account/password-reset-request", async (req, res) => {
-    try {
-        const phone = normalizePhone(req.body.phone);
-        if (!phone) return res.status(400).json({ success: false, error: "Phone number is required" });
+async function processPasswordResetAction(
+    action,
+    requestId
+) {
+    const request =
+        await findPasswordResetRequest(requestId);
 
-        const player = await findPlayerByPhone(phone);
-        if (!player) return res.status(404).json({ success: false, error: "Account not found for this phone number" });
+    if (!request) {
+        throw new Error(
+            "Password reset request not found"
+        );
+    }
 
-        const code = generateRecoveryCode();
-        const requestId = makeId("RST");
-        const codeHash = await argon2.hash(code);
-        const expiresAt = Date.now() + (5 * 60 * 1000);
-
-        passwordResetCodes.set(requestId, {
-            playerId: player.id,
-            phone,
-            codeHash,
-            expiresAt,
-            verifiedTokenHash: null,
-            verifiedExpiresAt: 0
-        });
-
-        const { data, error } = await supabase.from("password_reset_requests").insert({
-            id: requestId,
-            player_id: player.id,
-            phone,
-            status: "CODE_SENT",
-            created_at: nowIso()
-        }).select("*").single();
+    if (
+        request.status === "PENDING" &&
+        action === "approve"
+    ) {
+        const { data, error } =
+            await supabase
+                .from("password_reset_requests")
+                .update({
+                    status: "APPROVED",
+                    approved_at: nowIso()
+                })
+                .eq("id", requestId)
+                .eq("status", "PENDING")
+                .select("*")
+                .maybeSingle();
 
         if (error) {
-            passwordResetCodes.delete(requestId);
-            await dbError("password reset request insert", error);
-            throw new Error("Could not create password reset request");
+            await dbError(
+                "password reset approve",
+                error
+            );
+
+            throw new Error(
+                "Could not approve password reset"
+            );
         }
 
-        const telegramResult = await telegramApi("sendMessage", {
-            chat_id: String(player.telegram_id),
-            text:
-                `DESTA PLAY password recovery code: ${code}\n\n` +
-                `This code expires in 5 minutes.\n` +
-                `Do not share this code with anyone.`
-        });
-
-        if (!telegramResult.ok) {
-            passwordResetCodes.delete(requestId);
-            await supabase.from("password_reset_requests")
-                .update({ status: "FAILED" })
-                .eq("id", requestId)
-                .eq("status", "CODE_SENT");
-            return res.status(503).json({ success: false, error: "Could not send the recovery code through Telegram" });
+        if (!data) {
+            throw new Error(
+                "Password reset request was already processed"
+            );
         }
 
         await sendAdminGroupAudit(
-            `PASSWORD RECOVERY CODE SENT\nPlayer: ${player.id}\nPhone: ${phone}\nRequest: ${requestId}\nExpires: ${new Date(expiresAt).toISOString()}`
+            `PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
         );
 
+        return "RESET APPROVED";
+    }
+
+    if (
+        request.status === "PENDING" &&
+        action === "reject"
+    ) {
+        const { data, error } =
+            await supabase
+                .from("password_reset_requests")
+                .update({
+                    status: "REJECTED",
+                    rejected_at: nowIso()
+                })
+                .eq("id", requestId)
+                .eq("status", "PENDING")
+                .select("*")
+                .maybeSingle();
+
+        if (error) {
+            await dbError(
+                "password reset reject",
+                error
+            );
+
+            throw new Error(
+                "Could not reject password reset"
+            );
+        }
+
+        if (!data) {
+            throw new Error(
+                "Password reset request was already processed"
+            );
+        }
+
+        await sendAdminGroupAudit(
+            `PASSWORD RESET REJECTED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
+        );
+
+        return "RESET REJECTED";
+    }
+
+    throw new Error(
+        `Cannot ${action} reset in ${request.status} status`
+    );
+}
+
+app.post(
+    "/api/account/password-reset-request",
+    async (req, res) => {
+        try {
+            const phone =
+                normalizePhone(req.body.phone);
+
+            if (!phone) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Phone number is required"
+                });
+            }
+
+            const player =
+                await findPlayerByPhone(phone);
+
+            if (!player) {
+                return res.status(404).json({
+                    success: false,
+                    error: "Account not found"
+                });
+            }
+
+            const requestId =
+                makeId("RST");
+
+            const { data, error } =
+                await supabase
+                    .from("password_reset_requests")
+                    .insert({
+                        id: requestId,
+                        player_id: player.id,
+                        phone,
+                        status: "PENDING",
+                        created_at: nowIso()
+                    })
+                    .select("*")
+                    .single();
+
+            if (error) {
+                await dbError(
+                    "password reset request insert",
+                    error
+                );
+
+                throw new Error(
+                    "Could not create password reset request"
+                );
+            }
+
+            const text =
+                `<b>DESTA PLAY — PASSWORD RESET REQUEST</b>\n` +
+                `Account/Player ID: ${String(player.id)}\n` +
+                `Phone: ${phone}\n` +
+                `Telegram name: ${String(player.username || "Player")}\n` +
+                `Telegram ID: ${String(player.telegram_id || "Not available")}\n` +
+                `Request ID: ${requestId}\n` +
+                `Request time: ${nowIso()}\n\n` +
+                `No password or password hash is included.`;
+
+            await sendAdminTelegramMessage(
+                text,
+                passwordResetReplyMarkup(requestId)
+            );
+
+            await sendAdminGroupAudit(
+                text.replace(/<[^>]+>/g, "")
+            );
+
+            return res.json({
+                success: true,
+                status: data.status,
+                requestId,
+                message:
+                    "Reset request submitted. Wait for administrator approval."
+            });
+        } catch (error) {
+            console.error(
+                "Password reset request error:",
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                error:
+                    error.message ||
+                    "Could not submit password reset request"
+            });
+        }
+    }
+);
+
+app.get(
+    "/api/account/password-reset-status",
+    async (req, res) => {
+        try {
+            const phone =
+                normalizePhone(req.query.phone);
+
+            const requestId =
+                String(
+                    req.query.requestId || ""
+                ).trim();
+
+            if (!phone || !requestId) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Phone number and reset request ID are required"
+                });
+            }
+
+            const request =
+                await findPasswordResetRequest(
+                    requestId,
+                    phone
+                );
+
+            if (!request) {
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        "Password reset request not found"
+                });
+            }
+
+            return res.json({
+                success: true,
+                status: request.status,
+                requestId: request.id
+            });
+        } catch (error) {
+            console.error(
+                "Password reset status error:",
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                error:
+                    error.message ||
+                    "Could not check password reset status"
+            });
+        }
+    }
+);
+
+app.post(
+    "/api/account/password-reset-complete",
+    async (req, res) => {
+        try {
+            const phone =
+                normalizePhone(req.body.phone);
+
+            const requestId =
+                String(
+                    req.body.requestId || ""
+                ).trim();
+
+            const password =
+                req.body.password;
+
+            if (!phone || !requestId) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Phone number and reset request ID are required"
+                });
+            }
+
+            if (!validPassword(password)) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Password must be between 8 and 128 characters"
+                });
+            }
+
+            const request =
+                await findPasswordResetRequest(
+                    requestId,
+                    phone
+                );
+
+            if (!request) {
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        "Password reset request not found"
+                });
+            }
+
+            if (request.status !== "APPROVED") {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        request.status === "REJECTED"
+                            ? "Password reset was rejected by the administrator"
+                            : request.status === "COMPLETED"
+                                ? "Password reset has already been completed"
+                                : "Password reset is waiting for administrator approval"
+                });
+            }
+
+            const passwordHash =
+                await argon2.hash(password);
+
+            const {
+                data: updatedPlayer,
+                error: playerError
+            } =
+                await supabase
+                    .from("players")
+                    .update({
+                        password_hash: passwordHash,
+                        updated_at: nowIso()
+                    })
+                    .eq("id", request.player_id)
+                    .eq("phone", phone)
+                    .select("*")
+                    .maybeSingle();
+
+            if (playerError) {
+                await dbError(
+                    "password reset player update",
+                    playerError
+                );
+
+                throw new Error(
+                    "Could not change password"
+                );
+            }
+
+            if (!updatedPlayer) {
+                return res.status(404).json({
+                    success: false,
+                    error:
+                        "Player account not found"
+                });
+            }
+                    const { data: completedRequest, error: requestError } =
+            await supabase
+                .from("password_reset_requests")
+                .update({
+                    status: "COMPLETED",
+                    completed_at: nowIso()
+                })
+                .eq("id", requestId)
+                .eq("status", "APPROVED")
+                .select("*")
+                .maybeSingle();
+
+        if (requestError) {
+            await dbError(
+                "password reset completion",
+                requestError
+            );
+
+            throw new Error(
+                "Password changed, but reset status could not be finalized"
+            );
+        }
+
+        if (!completedRequest) {
+            throw new Error(
+                "Password reset request was already completed"
+            );
+        }
+
         return res.json({
             success: true,
-            requestId,
-            status: data.status,
-            expiresInSeconds: 300,
-            message: "A recovery code was sent to you through the Telegram bot. It is valid for 5 minutes."
+            status: "COMPLETED",
+            message: "Password changed successfully"
         });
     } catch (error) {
-        console.error("Password reset request error:", error);
-        return res.status(500).json({ success: false, error: error.message || "Could not request password reset" });
-    }
-});
+        console.error(
+            "Password reset completion error:",
+            error
+        );
 
-app.post("/api/account/password-reset-verify-code", async (req, res) => {
-    try {
-        const phone = normalizePhone(req.body.phone);
-        const requestId = String(req.body.requestId || "").trim();
-        const code = String(req.body.code || "").trim();
-
-        if (!phone || !requestId || !code) {
-            return res.status(400).json({ success: false, error: "Phone number, request ID and recovery code are required" });
-        }
-
-        const request = await findPasswordResetRequest(requestId, phone);
-        const record = passwordResetCodes.get(requestId);
-        if (!request || !record || record.phone !== phone || record.playerId !== request.player_id) {
-            return res.status(404).json({ success: false, error: "Password reset request not found" });
-        }
-
-        if (record.expiresAt <= Date.now()) {
-            passwordResetCodes.delete(requestId);
-            await supabase.from("password_reset_requests").update({ status: "EXPIRED" }).eq("id", requestId).eq("status", "CODE_SENT");
-            return res.status(400).json({ success: false, error: "Recovery code has expired. Request a new code." });
-        }
-
-        const valid = await argon2.verify(record.codeHash, code);
-        if (!valid) return res.status(401).json({ success: false, error: "Incorrect recovery code" });
-
-        const resetToken = crypto.randomBytes(32).toString("hex");
-        record.verifiedTokenHash = crypto.createHmac("sha256", SESSION_SECRET).update(resetToken).digest("hex");
-        record.verifiedExpiresAt = Date.now() + (10 * 60 * 1000);
-        record.codeHash = null;
-        record.expiresAt = 0;
-
-        await supabase.from("password_reset_requests")
-            .update({ status: "CODE_VERIFIED" })
-            .eq("id", requestId)
-            .eq("status", "CODE_SENT");
-
-        return res.json({
-            success: true,
-            resetToken,
-            message: "Code verified. Create your new password."
+        return res.status(500).json({
+            success: false,
+            error:
+                error.message ||
+                "Could not reset password"
         });
-    } catch (error) {
-        console.error("Password reset code verification error:", error);
-        return res.status(500).json({ success: false, error: error.message || "Could not verify recovery code" });
-    }
-});
-
-app.post("/api/account/password-reset-complete", async (req, res) => {
-    try {
-        const phone = normalizePhone(req.body.phone);
-        const requestId = String(req.body.requestId || "").trim();
-        const resetToken = String(req.body.resetToken || "").trim();
-        const password = req.body.password;
-
-        if (!phone || !requestId || !resetToken) {
-            return res.status(400).json({ success: false, error: "Phone number, request ID and reset token are required" });
-        }
-        if (!validPassword(password)) {
-            return res.status(400).json({ success: false, error: "Password must be between 8 and 128 characters" });
-        }
-
-        const request = await findPasswordResetRequest(requestId, phone);
-        const record = passwordResetCodes.get(requestId);
-        if (!request || !record || record.phone !== phone || record.playerId !== request.player_id) {
-            return res.status(404).json({ success: false, error: "Password reset request not found" });
-        }
-
-        const tokenHash = crypto.createHmac("sha256", SESSION_SECRET).update(resetToken).digest("hex");
-        if (!record.verifiedTokenHash || record.verifiedTokenHash !== tokenHash || record.verifiedExpiresAt <= Date.now()) {
-            return res.status(401).json({ success: false, error: "Password reset verification has expired. Start again." });
-        }
-
-        const passwordHash = await argon2.hash(password);
-        const { data: updatedPlayer, error: playerError } = await supabase.from("players")
-            .update({ password_hash: passwordHash, updated_at: nowIso() })
-            .eq("id", request.player_id)
-            .eq("phone", phone)
-            .select("*")
-            .maybeSingle();
-
-        if (playerError) { await dbError("password reset player update", playerError); throw new Error("Could not change password"); }
-        if (!updatedPlayer) return res.status(404).json({ success: false, error: "Player account not found" });
-
-        const { data: completedRequest, error: requestError } = await supabase.from("password_reset_requests")
-            .update({ status: "COMPLETED", completed_at: nowIso() })
-            .eq("id", requestId)
-            .eq("status", "CODE_VERIFIED")
-            .select("*")
-            .maybeSingle();
-
-        if (requestError) { await dbError("password reset completion", requestError); throw new Error("Password changed, but reset status could not be finalized"); }
-        if (!completedRequest) throw new Error("Password reset request was already completed");
-
-        passwordResetCodes.delete(requestId);
-        return res.json({ success: true, status: "COMPLETED", message: "Password changed successfully. The old password is no longer valid." });
-    } catch (error) {
-        console.error("Password reset completion error:", error);
-        return res.status(500).json({ success: false, error: error.message || "Could not reset password" });
     }
 });
 
@@ -1503,11 +1669,13 @@ app.get(
                 },
                 mpesa: {
                     available: false,
-                    message: "Payment method is not available now."
+                    message:
+                        "Payment method is not available now."
                 },
                 cbeBirr: {
                     available: false,
-                    message: "Payment method is not available now."
+                    message:
+                        "Payment method is not available now."
                 }
             }
         });
@@ -1525,94 +1693,173 @@ app.post(
     requirePlayer,
     async (req, res) => {
         try {
-            const amount = Number(req.body.amount);
-            const method = String(req.body.method || "telebirr").trim().toLowerCase();
-            const transactionId = normalizeReference(req.body.transactionId);
-            const referenceId = normalizeReference(req.body.referenceId || transactionId);
-            const recipient = String(req.body.recipient || PAYMENT_OWNER_NAME).trim().slice(0, 120);
-            const senderPhone = normalizePhone(req.body.senderPhone);
+            const amount =
+                Number(req.body.amount);
 
-            if (!Number.isFinite(amount) || amount < MIN_DEPOSIT_AMOUNT) {
+            const method =
+                String(
+                    req.body.method ||
+                    "telebirr"
+                )
+                    .trim()
+                    .toLowerCase();
+
+            const transactionId =
+                normalizeReference(
+                    req.body.transactionId
+                );
+
+            const referenceId =
+                normalizeReference(
+                    req.body.referenceId ||
+                    transactionId
+                );
+
+            const recipient =
+                String(
+                    req.body.recipient ||
+                    PAYMENT_OWNER_NAME
+                )
+                    .trim()
+                    .slice(0, 120);
+
+            const senderPhone =
+                normalizePhone(
+                    req.body.senderPhone
+                );
+
+            if (
+                !Number.isFinite(amount) ||
+                amount < MIN_DEPOSIT_AMOUNT
+            ) {
                 return res.status(400).json({
                     success: false,
-                    error: `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
+                    error:
+                        `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
                 });
             }
 
-            if (!SUPPORTED_DEPOSIT_METHODS[method]) {
+            if (
+                !SUPPORTED_DEPOSIT_METHODS[method]
+            ) {
                 return res.status(400).json({
                     success: false,
-                    error: method === "mpesa" || method === "cbe_birr"
-                        ? "Payment method is not available now."
-                        : "Unsupported payment method"
+                    error:
+                        method === "mpesa" ||
+                        method === "cbe_birr"
+                            ? "Payment method is not available now."
+                            : "Unsupported payment method"
                 });
             }
 
             if (!referenceId) {
                 return res.status(400).json({
                     success: false,
-                    error: "Payment transaction/reference link is required"
+                    error:
+                        "Payment transaction/reference link is required"
                 });
             }
 
-            if (await hasSuccessfulDepositReference(referenceId)) {
+            if (
+                await hasSuccessfulDepositReference(
+                    referenceId
+                )
+            ) {
                 return res.status(409).json({
                     success: false,
-                    error: "This payment reference has already been credited"
+                    error:
+                        "This payment reference has already been credited"
                 });
             }
 
-            const { data: existingPending, error: duplicateError } = await supabase
-                .from("transactions")
-                .select("id,status")
-                .eq("type", "deposit")
-                .eq("reference_id", referenceId)
-                .in("status", ["PENDING", "APPROVED", "SUCCESS", "COMPLETED"])
-                .limit(1);
+            const {
+                data: existingPending,
+                error: duplicateError
+            } =
+                await supabase
+                    .from("transactions")
+                    .select("id,status")
+                    .eq("type", "deposit")
+                    .eq(
+                        "reference_id",
+                        referenceId
+                    )
+                    .in(
+                        "status",
+                        [
+                            "PENDING",
+                            "APPROVED",
+                            "SUCCESS",
+                            "COMPLETED"
+                        ]
+                    )
+                    .limit(1);
 
             if (duplicateError) {
-                await dbError("deposit duplicate check", duplicateError);
-                throw new Error("Could not check payment reference");
+                await dbError(
+                    "deposit duplicate check",
+                    duplicateError
+                );
+
+                throw new Error(
+                    "Could not check payment reference"
+                );
             }
 
             if (existingPending?.length) {
                 return res.status(409).json({
                     success: false,
-                    error: "This payment reference is already submitted"
+                    error:
+                        "This payment reference is already submitted"
                 });
             }
 
-            const requestId = makeId("DEP");
+            const requestId =
+                makeId("DEP");
 
-            const { data, error } = await supabase
-                .from("transactions")
-                .insert({
-                    id: requestId,
-                    player_id: req.player.id,
-                    type: "deposit",
-                    amount,
-                    balance_before: Number(req.player.balance || 0),
-                    balance_after: Number(req.player.balance || 0),
-                    status: "PENDING",
-                    description: transactionDescription({
-                        edition: 3,
-                        method,
-                        recipient,
-                        senderPhone,
-                        transactionId,
-                        referenceId,
-                        requestId,
-                        requestedAt: nowIso()
-                    }),
-                    reference_id: referenceId,
-                    created_at: nowIso()
-                })
-                .select("*")
-                .single();
+            const { data, error } =
+                await supabase
+                    .from("transactions")
+                    .insert({
+                        id: requestId,
+                        player_id: req.player.id,
+                        type: "deposit",
+                        amount,
+                        balance_before:
+                            Number(
+                                req.player.balance || 0
+                            ),
+                        balance_after:
+                            Number(
+                                req.player.balance || 0
+                            ),
+                        status: "PENDING",
+                        description:
+                            transactionDescription({
+                                edition: 3,
+                                method,
+                                recipient,
+                                senderPhone,
+                                transactionId,
+                                referenceId,
+                                requestId,
+                                requestedAt: nowIso()
+                            }),
+                        reference_id: referenceId,
+                        created_at: nowIso()
+                    })
+                    .select("*")
+                    .single();
 
             if (error) {
-                await dbError("deposit request insert", error);
-                throw new Error("Could not create deposit request");
+                await dbError(
+                    "deposit request insert",
+                    error
+                );
+
+                throw new Error(
+                    "Could not create deposit request"
+                );
             }
 
             await sendAdminGroupAudit(
@@ -1624,14 +1871,22 @@ app.post(
                 status: "PENDING",
                 requestId,
                 amount,
-                minimumDeposit: MIN_DEPOSIT_AMOUNT,
-                referenceId: data.reference_id
+                minimumDeposit:
+                    MIN_DEPOSIT_AMOUNT,
+                referenceId:
+                    data.reference_id
             });
         } catch (error) {
-            console.error("Deposit request error:", error);
+            console.error(
+                "Deposit request error:",
+                error
+            );
+
             return res.status(500).json({
                 success: false,
-                error: error.message || "Could not create deposit request"
+                error:
+                    error.message ||
+                    "Could not create deposit request"
             });
         }
     }
@@ -1653,13 +1908,21 @@ app.post(
     async (req, res) => {
         try {
             if (SMS_WEBHOOK_SECRET) {
-                const supplied = String(
-                    req.headers["x-sms-webhook-secret"] ||
-                    req.headers["x-webhook-secret"] ||
-                    ""
-                );
+                const supplied =
+                    String(
+                        req.headers[
+                            "x-sms-webhook-secret"
+                        ] ||
+                        req.headers[
+                            "x-webhook-secret"
+                        ] ||
+                        ""
+                    );
 
-                if (supplied !== SMS_WEBHOOK_SECRET) {
+                if (
+                    supplied !==
+                    SMS_WEBHOOK_SECRET
+                ) {
                     return res.status(401).json({
                         success: false,
                         error: "Unauthorized"
@@ -1667,18 +1930,20 @@ app.post(
                 }
             }
 
-            const smsText = String(
-                req.body.message ||
-                req.body.text ||
-                req.body.sms ||
-                req.body.body ||
-                ""
-            ).trim();
+            const smsText =
+                String(
+                    req.body.message ||
+                    req.body.text ||
+                    req.body.sms ||
+                    req.body.body ||
+                    ""
+                ).trim();
 
             if (!smsText) {
                 return res.status(400).json({
                     success: false,
-                    error: "SMS message is required"
+                    error:
+                        "SMS message is required"
                 });
             }
 
@@ -1687,139 +1952,149 @@ app.post(
                 parseFirstAmount(smsText);
 
             const referenceCandidates = [
-                normalizeReference(req.body.transactionId),
-                normalizeReference(req.body.referenceId),
-                ...extractReferenceCandidates(smsText)
+                normalizeReference(
+                    req.body.transactionId
+                ),
+                normalizeReference(
+                    req.body.referenceId
+                ),
+                ...extractReferenceCandidates(
+                    smsText
+                )
             ].filter(Boolean);
 
-            const sender = String(
-                req.body.sender ||
-                req.body.senderName ||
-                ""
-            ).trim();
+            const sender =
+                String(
+                    req.body.sender ||
+                    req.body.senderName ||
+                    ""
+                ).trim();
 
-            const senderPhone = normalizePhone(
-                req.body.senderPhone ||
-                req.body.from ||
-                ""
-            );
+            const senderPhone =
+                normalizePhone(
+                    req.body.senderPhone ||
+                    req.body.from ||
+                    ""
+                );
 
-            const receiver = String(
-                req.body.receiver ||
-                req.body.recipient ||
-                ""
-            ).trim();
+            const receiver =
+                String(
+                    req.body.receiver ||
+                    req.body.recipient ||
+                    ""
+                ).trim();
 
-            const receiverPhone = normalizePhone(
-                req.body.receiverPhone ||
-                req.body.to ||
-                ""
-            );
+            const receiverPhone =
+                normalizePhone(
+                    req.body.receiverPhone ||
+                    req.body.to ||
+                    ""
+                );
 
-            const pending = await findPendingDeposits();
+            const pending =
+                await findPendingDeposits();
 
             let matched = null;
 
             for (const deposit of pending) {
-                const description = String(deposit.description || "");
+                const description =
+                    String(
+                        deposit.description || ""
+                    );
+
                 const referenceMatches =
-                    referenceCandidates.includes(String(deposit.reference_id || "")) ||
-                    referenceCandidates.some(token => description.includes(token));
+                    referenceCandidates.includes(
+                        String(
+                            deposit.reference_id || ""
+                        )
+                    ) ||
+                    referenceCandidates.some(
+                        token =>
+                            description.includes(
+                                token
+                            )
+                    );
 
-                let pendingDetails = {};
-                try { pendingDetails = JSON.parse(description || "{}"); } catch (_) { pendingDetails = {}; }
-                const senderMatches =
-                    !pendingDetails.senderPhone ||
-                    !senderPhone ||
-                    normalizePhone(pendingDetails.senderPhone) === senderPhone;
-                const receiverMatches =
-                    !receiverPhone ||
-                    normalizePhone(PAYMENT_PHONE) === receiverPhone;
                 const amountMatches =
-                    Number.isFinite(forwardedAmount) &&
-                    Number(deposit.amount) === Number(forwardedAmount);
+                    Number.isFinite(
+                        forwardedAmount
+                    ) &&
+                    Number(deposit.amount) ===
+                        Number(
+                            forwardedAmount
+                        );
 
-                if (amountMatches && (referenceMatches || (senderMatches && receiverMatches))) {
+                if (
+                    referenceMatches &&
+                    amountMatches
+                ) {
                     matched = deposit;
                     break;
                 }
             }
 
             if (!matched) {
-                const reason = "No pending deposit matched the supplied transaction amount/reference/sender/receiver details";
-                const alert =
-                    `<b>DESTA PLAY — DEPOSIT VERIFICATION FAILED</b>\n` +
-                    `Reason: ${reason}\n` +
-                    `Amount: ${String(forwardedAmount || "Not detected")} ETB\n` +
-                    `Sender: ${sender || "Not provided"}\n` +
-                    `Sender phone: ${senderPhone || "Not provided"}\n` +
-                    `Receiver: ${receiver || "Not provided"}\n` +
-                    `Receiver phone: ${receiverPhone || "Not provided"}\n` +
-                    `References: ${referenceCandidates.join(", ") || "None"}\n` +
-                    `SMS time: ${String(req.body.timestamp || req.body.time || "Not provided")}`;
-                await sendAdminTelegramMessage(alert);
-                await sendAdminGroupAudit(alert.replace(/<[^>]+>/g, ""));
                 return res.status(200).json({
                     success: true,
                     verified: false,
                     credited: false,
-                    message: reason
+                    message:
+                        "No pending deposit matched this SMS"
                 });
             }
 
             const referenceId =
-                normalizeReference(req.body.transactionId) ||
-                normalizeReference(req.body.referenceId) ||
-                referenceCandidates.find(value => value !== String(matched.reference_id || "")) ||
-                String(matched.reference_id || "");
+                String(
+                    matched.reference_id ||
+                    referenceCandidates[0] ||
+                    ""
+                );
 
-            let result;
-            try {
-                result = await approveDepositTransaction(matched, {
-                    amount: forwardedAmount,
-                    referenceId,
-                    sender,
-                    senderPhone,
-                    receiver,
-                    receiverPhone,
-                    smsTime: req.body.timestamp || req.body.time || null,
-                    smsText
-                });
-            } catch (verificationError) {
-                const reason = verificationError.message || "Payment verification failed";
-                const alert =
-                    `<b>DESTA PLAY — DEPOSIT NOT CREDITED</b>\n` +
-                    `Reason: ${reason}\n` +
-                    `Player: ${matched.player_id}\n` +
-                    `Pending amount: ${matched.amount} ETB\n` +
-                    `SMS amount: ${String(forwardedAmount || "Not detected")} ETB\n` +
-                    `Sender: ${sender || "Not provided"}\n` +
-                    `Sender phone: ${senderPhone || "Not provided"}\n` +
-                    `Receiver: ${receiver || "Not provided"}\n` +
-                    `Receiver phone: ${receiverPhone || "Not provided"}\n` +
-                    `Reference(s): ${referenceCandidates.join(", ") || "None"}\n` +
-                    `Request: ${matched.id}`;
-                await sendAdminTelegramMessage(alert);
-                await sendAdminGroupAudit(alert.replace(/<[^>]+>/g, ""));
-                return res.status(200).json({ success: true, verified: false, credited: false, error: reason });
-            }
+            const result =
+                await approveDepositTransaction(
+                    matched,
+                    {
+                        amount:
+                            forwardedAmount,
+                        referenceId,
+                        sender,
+                        senderPhone,
+                        receiver,
+                        receiverPhone,
+                        smsTime:
+                            req.body.timestamp ||
+                            req.body.time ||
+                            null,
+                        smsText
+                    }
+                );
 
             return res.json({
                 success: true,
                 verified: true,
                 credited: true,
-                playerId: matched.player_id,
-                amount: Number(matched.amount),
-                referenceId: result.referenceId,
-                balanceAfter: result.balanceAfter
+                playerId:
+                    matched.player_id,
+                amount:
+                    Number(matched.amount),
+                referenceId:
+                    result.referenceId,
+                balanceAfter:
+                    result.balanceAfter
             });
         } catch (error) {
-            console.error("SMS verification error:", error);
+            console.error(
+                "SMS verification error:",
+                error
+            );
+
             return res.status(400).json({
                 success: false,
                 verified: false,
                 credited: false,
-                error: error.message || "Payment verification failed"
+                error:
+                    error.message ||
+                    "Payment verification failed"
             });
         }
     }
@@ -1836,70 +2111,111 @@ app.post(
     requirePlayer,
     async (req, res) => {
         try {
-            const amount = Number(req.body.amount);
-            const recipientName = String(req.body.recipientName || req.body.fullName || req.player.username || "Player").trim().slice(0, 120);
-            const recipientPhone = normalizePhone(req.body.recipientPhone || req.body.phone || req.body.account);
-            const password = String(req.body.password || "");
+            const amount =
+                Number(req.body.amount);
 
-            if (!Number.isFinite(amount) || amount <= 0) {
+            const recipientName =
+                String(
+                    req.body.recipientName ||
+                    req.body.fullName ||
+                    ""
+                )
+                    .trim()
+                    .slice(0, 120);
+
+            const recipientPhone =
+                normalizePhone(
+                    req.body.recipientPhone ||
+                    req.body.phone
+                );
+
+            const password =
+                String(
+                    req.body.password || ""
+                );
+
+            if (
+                !Number.isFinite(amount) ||
+                amount <= 0
+            ) {
                 return res.status(400).json({
                     success: false,
-                    error: "Invalid withdrawal amount"
+                    error:
+                        "Invalid withdrawal amount"
                 });
             }
 
-            const before = Number(req.player.balance || 0);
+            const before =
+                Number(
+                    req.player.balance || 0
+                );
 
             if (amount > before) {
                 return res.status(400).json({
                     success: false,
-                    error: "Insufficient balance",
+                    error:
+                        "Insufficient balance",
                     balanceBefore: before
                 });
             }
 
-            if (!recipientPhone) {
+            if (
+                !recipientName ||
+                !recipientPhone
+            ) {
                 return res.status(400).json({
                     success: false,
-                    error: "Withdrawal phone number is required"
+                    error:
+                        "Recipient full name and phone are required"
                 });
             }
 
             if (!validPassword(password)) {
                 return res.status(400).json({
                     success: false,
-                    error: "Password is required"
+                    error:
+                        "Password is required"
                 });
             }
 
             if (!req.player.password_hash) {
                 return res.status(401).json({
                     success: false,
-                    error: "Account password is not configured"
+                    error:
+                        "Account password is not configured"
                 });
             }
 
-            const valid = await argon2.verify(
-                req.player.password_hash,
-                password
-            );
+            const valid =
+                await argon2.verify(
+                    req.player.password_hash,
+                    password
+                );
 
             if (!valid) {
                 return res.status(401).json({
                     success: false,
-                    error: "Incorrect password"
+                    error:
+                        "Incorrect password"
                 });
             }
 
-            const after = before - amount;
-            const requestId = makeId("WDR");
+            const after =
+                before - amount;
+
+            const requestId =
+                makeId("WDR");
 
             await changeBalance({
-                playerId: req.player.id,
+                playerId:
+                    req.player.id,
                 amount: -amount,
-                type: "withdrawal_reserve",
-                description: `Withdrawal reservation ${requestId}`,
-                roundId: requestId,
+                type:
+                    "withdrawal_reserve",
+                description:
+                    `Withdrawal reservation ${requestId}`,
+                roundId:
+                    requestId,
                 metadata: {
                     requestId,
                     recipientName,
@@ -1907,43 +2223,68 @@ app.post(
                 }
             });
 
-            const { data, error } = await supabase
-                .from("transactions")
-                .insert({
-                    id: requestId,
-                    player_id: req.player.id,
-                    type: "withdrawal",
-                    amount,
-                    balance_before: before,
-                    balance_after: after,
-                    status: "PENDING",
-                    description: transactionDescription({
-                        edition: 5,
-                        recipient: recipientName,
-                        recipientPhone,
-                        requestId,
-                        requestedAt: nowIso()
-                    }),
-                    reference_id: requestId,
-                    created_at: nowIso()
-                })
-                .select("*")
-                .single();
+            const {
+                data,
+                error
+            } =
+                await supabase
+                    .from("transactions")
+                    .insert({
+                        id: requestId,
+                        player_id:
+                            req.player.id,
+                        type:
+                            "withdrawal",
+                        amount,
+                        balance_before:
+                            before,
+                        balance_after:
+                            after,
+                        status:
+                            "PENDING",
+                        description:
+                            transactionDescription({
+                                edition: 5,
+                                recipient:
+                                    recipientName,
+                                recipientPhone,
+                                requestId,
+                                requestedAt:
+                                    nowIso()
+                            }),
+                        reference_id:
+                            requestId,
+                        created_at:
+                            nowIso()
+                    })
+                    .select("*")
+                    .single();
 
             if (error) {
-                await dbError("withdrawal request insert", error);
+                await dbError(
+                    "withdrawal request insert",
+                    error
+                );
 
-                /* Reservation was already recorded; return it so a failed
-                   request insert does not silently consume player funds. */
+                /*
+                 * Reservation was already recorded; return it so a failed
+                 * request insert does not silently consume player funds.
+                 */
                 await changeBalance({
-                    playerId: req.player.id,
+                    playerId:
+                        req.player.id,
                     amount,
-                    type: "withdrawal_reservation_reversal",
-                    description: `Withdrawal request rollback ${requestId}`,
-                    roundId: requestId
+                    type:
+                        "withdrawal_reservation_reversal",
+                    description:
+                        `Withdrawal request rollback ${requestId}`,
+                    roundId:
+                        requestId
                 });
 
-                throw new Error("Could not create withdrawal request");
+                throw new Error(
+                    "Could not create withdrawal request"
+                );
             }
 
             const text =
@@ -1961,11 +2302,16 @@ app.post(
 
             await sendAdminTelegramMessage(
                 text,
-                withdrawalReplyMarkup(requestId)
+                withdrawalReplyMarkup(
+                    requestId
+                )
             );
 
             await sendAdminGroupAudit(
-                text.replace(/<[^>]+>/g, "")
+                text.replace(
+                    /<[^>]+>/g,
+                    ""
+                )
             );
 
             return res.json({
@@ -1977,10 +2323,16 @@ app.post(
                 balanceAfter: after
             });
         } catch (error) {
-            console.error("Withdrawal request error:", error);
+            console.error(
+                "Withdrawal request error:",
+                error
+            );
+
             return res.status(500).json({
                 success: false,
-                error: error.message || "Could not create withdrawal request"
+                error:
+                    error.message ||
+                    "Could not create withdrawal request"
             });
         }
     }
@@ -1996,19 +2348,35 @@ app.post(
 |--------------------------------------------------------------------------
 */
 
-async function processWithdrawalAction(action, requestId) {
-    const transaction = await findTransactionById(requestId);
+async function processWithdrawalAction(
+    action,
+    requestId
+) {
+    const transaction =
+        await findTransactionById(
+            requestId
+        );
 
-    if (!transaction || transaction.type !== "withdrawal") {
-        throw new Error("Withdrawal request not found");
+    if (
+        !transaction ||
+        transaction.type !==
+            "withdrawal"
+    ) {
+        throw new Error(
+            "Withdrawal request not found"
+        );
     }
 
     if (action === "accept") {
-        if (transaction.status !== "PENDING") {
-            throw new Error(`Cannot ACCEPT withdrawal in ${transaction.status} status`);
+        if (
+            transaction.status !==
+            "PENDING"
+        ) {
+            throw new Error(
+                `Cannot ACCEPT withdrawal in ${transaction.status} status`
+            );
         }
-
-        const { data, error } = await supabase
+                const { data, error } = await supabase
             .from("transactions")
             .update({ status: "APPROVED" })
             .eq("id", requestId)
@@ -2116,23 +2484,6 @@ app.post(
                 }
             }
 
-            const message = req.body?.message;
-            if (message) {
-                const fromId = String(message.from?.id || "");
-                const contact = message.contact;
-                if (contact && fromId && String(contact.user_id || "") === fromId) {
-                    const phone = normalizePhone(contact.phone_number);
-                    if (phone) {
-                        registrationContacts.set(fromId, { phone, expiresAt: Date.now() + (10 * 60 * 1000) });
-                        await telegramApi("sendMessage", {
-                            chat_id: fromId,
-                            text: "Your phone number was received. Return to DESTA PLAY and continue registration."
-                        });
-                    }
-                }
-                return res.json({ success: true });
-            }
-
             const callback = req.body?.callback_query;
             if (!callback) return res.json({ success: true });
 
@@ -2144,6 +2495,17 @@ app.post(
                     show_alert: true
                 });
                 return res.json({ success: true });
+            }
+
+            const resetMatch = String(callback.data || "").match(/^dpr:(approve|reject):(.+)$/);
+
+            if (resetMatch) {
+                const resetResult = await processPasswordResetAction(resetMatch[1], resetMatch[2]);
+                await telegramApi("answerCallbackQuery", { callback_query_id: callback.id, text: resetResult, show_alert: false });
+                if (callback.message?.chat?.id && callback.message?.message_id) {
+                    await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
+                }
+                return res.json({ success: true, result: resetResult });
             }
 
             const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
@@ -2161,13 +2523,10 @@ app.post(
             });
 
             if (callback.message?.chat?.id && callback.message?.message_id) {
-                const currentText = String(callback.message.text || "");
-                const cleanText = currentText.replace(/\n\nSTATUS:.*$/s, "");
-                await telegramApi("editMessageText", {
+                await telegramApi("editMessageReplyMarkup", {
                     chat_id: callback.message.chat.id,
                     message_id: callback.message.message_id,
-                    text: `${cleanText}\n\nSTATUS: ${result}`,
-                    parse_mode: "HTML"
+                    reply_markup: { inline_keyboard: [] }
                 });
             }
 
@@ -2616,7 +2975,7 @@ function revealNextBingoNumber(tier) {
 
     room.drawnNumbers.push(
         number
-    );
+            );
 
     room.drawIndex++;
 
@@ -3216,7 +3575,7 @@ function generateKenoDraw() {
         "function"
     ) {
         const generated =
-            engineGenerator();
+                        engineGenerator();
 
         if (
             Array.isArray(generated) &&
@@ -3819,6 +4178,9 @@ function revealNextKenoNumber(
 |--------------------------------------------------------------------------
 */
 
+|--------------------------------------------------------------------------
+*/
+
 function startRouletteSpin(
     roundId
 ) {
@@ -4416,14 +4778,13 @@ async function restoreHouseRound(
             startRouletteSpin(
                 round.id
             );
-
-            return;
+                        return;
         }
 
         /*
-        |--------------------------------------------------------------
+        |--------------------------------------------------------------------------
         | AVIATOR FLYING
-        |--------------------------------------------------------------
+        |--------------------------------------------------------------------------
         */
 
         if (
@@ -5016,7 +5377,7 @@ app.listen(
 
         const engineBingoAmounts =
             bingo.FIXED_BET_AMOUNTS ||
-            bingo.default
+                        bingo.default
                 ?.FIXED_BET_AMOUNTS;
 
         if (
