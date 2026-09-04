@@ -31,6 +31,7 @@
     html,body{
       margin:0;
       min-height:100%;
+      height:100%;
       background:
         radial-gradient(circle at top,#3b0000 0,#100000 35%,#050505 75%);
       color:#fff;
@@ -39,7 +40,10 @@
 
     body{
       min-height:100vh;
-      padding-bottom:72px;
+      height:100vh;
+      overflow:hidden;
+      padding-bottom:0;
+      overscroll-behavior:none;
     }
 
     button,input{
@@ -59,7 +63,13 @@
     ========================================================= */
 
     #accountScreen{
+      position:fixed;
+      inset:0;
+      z-index:1000;
       min-height:100vh;
+      height:100vh;
+      overflow-y:auto;
+      overscroll-behavior:contain;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -166,7 +176,12 @@
     ========================================================= */
 
     #home{
+      position:fixed;
+      inset:0;
       min-height:100vh;
+      height:100vh;
+      overflow-y:auto;
+      overscroll-behavior:contain;
       padding-bottom:80px;
     }
 
@@ -367,9 +382,92 @@
     ========================================================= */
 
     #gameScreen{
+      position:fixed;
+      inset:0;
+      z-index:200;
       display:none;
       min-height:100vh;
+      height:100vh;
+      overflow-y:auto;
+      overscroll-behavior:contain;
       padding-bottom:80px;
+    }
+
+    .gameMenu{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:4px;
+      padding:6px 8px 2px;
+      background:#0b0b0b;
+    }
+    .gameMenu button{
+      border:1px solid #542020;
+      background:#1b0909;
+      color:#bbb;
+      border-radius:7px;
+      padding:7px 2px;
+      font-size:9px;
+      font-weight:900;
+    }
+    .gameMenu button.active{
+      background:#8d0000;
+      color:#ffd43c;
+      border-color:#ffd43c;
+    }
+
+    .gameBackBtn{
+      border:1px solid #ffd24a;
+      background:#2a0808;
+      color:#ffd24a;
+      border-radius:8px;
+      padding:7px 9px;
+      font-size:10px;
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .bingoStakeScreen{
+      margin:10px 8px;
+      padding:14px;
+      border:1px solid #632020;
+      border-radius:14px;
+      background:#0d0d0d;
+    }
+
+    .bingoStakeTitle{
+      text-align:center;
+      color:#ffd43c;
+      font-size:17px;
+      font-weight:900;
+      margin-bottom:5px;
+    }
+
+    .bingoStakeHint{
+      text-align:center;
+      color:#aaa;
+      font-size:11px;
+      margin-bottom:12px;
+    }
+
+    .bingoStakeGrid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:7px;
+    }
+
+    .bingoStakeBtn{
+      border:1px solid #6e2020;
+      background:#220b0b;
+      color:#fff;
+      border-radius:9px;
+      padding:11px 4px;
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .bingoStakeBtn:active{
+      background:#b40000;
+      border-color:#ffd43c;
     }
 
     .gameHeader{
@@ -731,6 +829,67 @@
        BINGO
     ========================================================= */
 
+    .cartelaCaption{
+      text-align:center;
+      color:#ffd43c;
+      font-size:11px;
+      font-weight:900;
+      margin:5px 0 7px;
+    }
+
+    .cartelaBingoBoard{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+      padding:5px;
+    }
+
+    .cartelaColumn{
+      display:grid;
+      grid-template-rows:32px repeat(5,1fr);
+      gap:3px;
+      min-width:0;
+    }
+
+    .cartelaLetter{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      border-radius:7px;
+      font-weight:900;
+      font-size:14px;
+    }
+
+    .cartelaCell{
+      min-width:0;
+      min-height:39px;
+      border:1px solid #5b3131;
+      border-radius:6px;
+      background:#171717;
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+    }
+
+    .cartelaCell.free{
+      background:#d49a00;
+      color:#111;
+    }
+
+    .cartelaCell.marked:not(.free){
+      background:#d00000;
+      border-color:#ff4b4b;
+      color:#fff;
+    }
+
+    .cartelaHint{
+      text-align:center;
+      color:#999;
+      font-size:9px;
+      padding:3px 8px 8px;
+    }
+
     .bingoAnimation{
       height:180px;
       position:relative;
@@ -1084,7 +1243,13 @@
 
     #walletScreen,
     #profileScreen{
+      position:fixed;
+      inset:0;
+      z-index:200;
       display:none;
+      height:100vh;
+      overflow-y:auto;
+      overscroll-behavior:contain;
       min-height:100vh;
       padding:15px 10px 90px;
     }
@@ -1401,7 +1566,7 @@
         </div>
 
         <div id="accountCreateFields">
-          <label class="accountLabel">
+          <label class="accountLabel" id="registrationPhoneLabel">
             PHONE NUMBER
           </label>
 
@@ -1414,6 +1579,7 @@
             readonly>
 
           <button
+            id="sharePhoneBtn"
             class="accountBtn"
             type="button"
             onclick="shareRegistrationPhone()">
@@ -1422,7 +1588,7 @@
 
           <div id="registrationPhoneStatus" class="accountMessage"></div>
 
-          <label class="accountLabel">
+          <label class="accountLabel" id="passwordLabel">
             DESTA PLAY PASSWORD
           </label>
 
@@ -1433,7 +1599,7 @@
             autocomplete="new-password"
             placeholder="Create password">
 
-          <label class="accountLabel">
+          <label class="accountLabel" id="confirmPasswordLabel">
             CONFIRM PASSWORD
           </label>
 
@@ -1445,6 +1611,7 @@
             placeholder="Confirm password">
 
           <button
+            id="createAccountBtn"
             class="accountBtn"
             onclick="createAccount()">
             CREATE ACCOUNT
@@ -1469,10 +1636,10 @@
           </div>
 
           <div id="resetNewPasswordFields" class="hidden">
-            <label class="accountLabel">NEW PASSWORD</label>
+            <label id="resetNewPasswordLabel" class="accountLabel">NEW PASSWORD</label>
             <input id="resetNewPassword" class="accountInput" type="password" autocomplete="new-password" placeholder="Create new password">
 
-            <label class="accountLabel">CONFIRM NEW PASSWORD</label>
+            <label id="resetConfirmNewLabel" class="accountLabel">CONFIRM NEW PASSWORD</label>
             <input id="resetNewPasswordConfirm" class="accountInput" type="password" autocomplete="new-password" placeholder="Confirm new password">
 
             <button class="accountBtn" type="button" onclick="completePasswordReset()">
@@ -1480,7 +1647,7 @@
             </button>
           </div>
 
-          <button class="accountBtn" type="button" onclick="cancelPasswordReset()">
+          <button id="resetBackHome" class="accountBtn" type="button" onclick="cancelPasswordReset()">
             BACK TO HOME
           </button>
         </div>
@@ -1529,12 +1696,12 @@
       <div class="playerSummary">
 
         <div>
-          <small>Player</small><br>
+          <small id="homePlayerLabel">Player</small><br>
           <strong id="homePlayerName">Player</strong>
         </div>
 
         <div>
-          <small>ID</small><br>
+          <small id="homePlayerIdLabel">ID</small><br>
           <strong id="homePlayerId">DP-000000</strong>
         </div>
 
@@ -1635,6 +1802,10 @@
 
       <header class="gameHeader">
 
+        <button id="gameBack" class="gameBackBtn" type="button" onclick="closeGameToHome()">
+          ← BACK
+        </button>
+
         <div class="roundInfo">
           ROUND <span id="roundNumber">0001</span>
         </div>
@@ -1655,6 +1826,19 @@
 
       </header>
 
+      <div class="gameMenu" id="gameMenu">
+        <button data-game="keno" onclick="openGame('keno')">KENO</button>
+        <button data-game="bingo" onclick="openGame('bingo')">BINGO</button>
+        <button data-game="roulette" onclick="openGame('roulette')">ROULETTE</button>
+        <button data-game="aviator" onclick="openGame('aviator')">AVIATOR</button>
+      </div>
+
+
+      <section id="bingoStakeScreen" class="bingoStakeScreen hidden">
+        <div class="bingoStakeTitle" id="bingoStakeTitle">BINGO STAKE</div>
+        <div class="bingoStakeHint" id="bingoStakeHint">Choose your fixed stake before entering Bingo.</div>
+        <div class="bingoStakeGrid" id="bingoStakeGrid"></div>
+      </section>
 
       <div
         class="gameTitle"
@@ -2285,14 +2469,13 @@
 
           </div>
 
-          <div class="historyBox">
-
-            <div class="historyHeader">
-              LAST 10 AVIATOR ROUNDS
+          <div class="aviatorRecentBox">
+            <div class="aviatorRecentHead">
+              <strong id="aviatorRecentTitle">LATEST AVIATOR ROUNDS</strong>
+              <button id="aviatorHistoryToggle" type="button" onclick="toggleAviatorHistory()">▼</button>
             </div>
-
-            <div id="aviatorRoundHistory"></div>
-
+            <div id="aviatorRecentLine" class="aviatorRecentLine"></div>
+            <div id="aviatorRoundHistory" class="aviatorExpandedHistory hidden"></div>
           </div>
 
         </div>
@@ -2980,26 +3163,101 @@
        LANGUAGE
     ========================================================= */
 
+    const LANGUAGE_TEXT={
+      en:{
+        play:"PLAY", player:"Player", id:"ID", back:"← BACK", myBets:"MY BETS", live:"LIVE", top:"TOP",
+        home:"HOME", games:"GAMES", wallet:"WALLET", profile:"PROFILE", english:"English", amharic:"አማርኛ",
+        keno:"KENO", bingo:"BINGO", roulette:"ROULETTE", aviator:"AVIATOR",
+        fly:"Fly • Cash Out", cartelaDraw:"Cartela • Draw", kenoInfo:"1–80 • 20 Draw", rouletteInfo:"Spin • Number • Color",
+        bingoStake:"BINGO STAKE", chooseStake:"Choose your fixed stake before entering Bingo.",
+        placeBet:"PLACE BET", cashOut:"CASH OUT",
+        betting:"BETTING", flightLive:"FLIGHT LIVE", waiting:"Waiting for draw...",
+        lastAviator:"LATEST AVIATOR ROUNDS", expand:"EXPAND", collapse:"COLLAPSE",
+        homeWelcome:"Welcome. Create your DESTA PLAY account.", phone:"PHONE NUMBER",
+        sharePhone:"SHARE PHONE NUMBER THROUGH TELEGRAM", password:"DESTA PLAY PASSWORD",
+        confirmPassword:"CONFIRM PASSWORD", createAccount:"CREATE ACCOUNT", backHome:"BACK TO HOME",
+        forgot:"FORGOT PASSWORD", newPassword:"NEW PASSWORD", confirmNew:"CONFIRM NEW PASSWORD"
+      },
+      am:{
+        play:"ተጫወት", player:"ተጫዋች", id:"መለያ", back:"← ተመለስ", myBets:"የእኔ ውርርዶች", live:"ቀጥታ", top:"ምርጥ",
+        home:"መነሻ", games:"ጨዋታዎች", wallet:"ዋሌት", profile:"መገለጫ", english:"English", amharic:"አማርኛ",
+        keno:"ኪኖ", bingo:"ቢንጎ", roulette:"ሩሌት", aviator:"አቪዬተር",
+        fly:"በረራ • ውጣ", cartelaDraw:"ካርቴላ • ስዕል", kenoInfo:"1–80 • 20 ስዕሎች", rouletteInfo:"ስፒን • ቁጥር • ቀለም",
+        bingoStake:"የቢንጎ ውርርድ", chooseStake:"ወደ ቢንጎ ከመግባትዎ በፊት ቋሚ ውርርድ ይምረጡ።",
+        placeBet:"ውርርድ አስገባ", cashOut:"ውጣ",
+        betting:"ውርርድ", flightLive:"በረራ በቀጥታ", waiting:"ስዕሉን በመጠበቅ ላይ...",
+        lastAviator:"የቅርብ የአቪዬተር ዙሮች", expand:"አስፋፋ", collapse:"ዝጋ",
+        homeWelcome:"እንኳን ወደ DESTA PLAY በደህና መጡ። መለያዎን ይፍጠሩ።", phone:"ስልክ ቁጥር",
+        sharePhone:"የቴሌግራም ስልክ ቁጥር አጋራ", password:"DESTA PLAY የይለፍ ቃል",
+        confirmPassword:"የይለፍ ቃል ያረጋግጡ", createAccount:"መለያ ፍጠር", backHome:"ወደ መነሻ ተመለስ",
+        forgot:"የይለፍ ቃል ረሳሁ", newPassword:"አዲስ የይለፍ ቃል", confirmNew:"አዲሱን የይለፍ ቃል አረጋግጥ"
+      }
+    };
+
     function setLanguage(lang){
-
       state.language=lang;
+      localStorage.setItem("destaLanguage",lang);
+      const t=LANGUAGE_TEXT[lang]||LANGUAGE_TEXT.en;
 
-      document
-        .getElementById("langEN")
-        .classList.toggle(
-          "active",
-          lang==="en"
-        );
+      document.getElementById("langEN")?.classList.toggle("active",lang==="en");
+      document.getElementById("langAM")?.classList.toggle("active",lang==="am");
 
-      document
-        .getElementById("langAM")
-        .classList.toggle(
-          "active",
-          lang==="am"
-        );
+      const byId={
+        homePlayerLabel:t.player,
+        homePlayerIdLabel:t.id,
+        gameBack:t.back,
+        tabMy:t.myBets,
+        tabLive:t.live,
+        tabTop:t.top,
+        navHome:t.home,
+        navGame:t.games,
+        navWallet:t.wallet,
+        navProfile:t.profile,
+        bingoStakeTitle:t.bingoStake,
+        bingoStakeHint:t.chooseStake,
+        accountWelcome:t.homeWelcome,
+        registrationPhoneLabel:t.phone,
+        sharePhoneBtn:t.sharePhone,
+        passwordLabel:t.password,
+        confirmPasswordLabel:t.confirmPassword,
+        createAccountBtn:t.createAccount,
+        resetBackHome:t.backHome,
+        resetNewPasswordLabel:t.newPassword,
+        resetConfirmNewLabel:t.confirmNew,
+        aviatorRecentTitle:t.lastAviator
+      };
+      Object.entries(byId).forEach(([id,text])=>{
+        const el=document.getElementById(id);
+        if(el) el.textContent=text;
+      });
 
+      const gameMap={aviator:t.aviator,bingo:t.bingo,keno:t.keno,roulette:t.roulette};
+      document.querySelectorAll(".gameCard").forEach(card=>{
+        const btn=card.querySelector(".gameOpen");
+        const small=card.querySelector("small");
+        const key=(btn?.getAttribute("onclick")||"").match(/openGame\(['\"](\w+)['\"]\)/)?.[1];
+        if(!key) return;
+        const h=card.querySelector("h3");
+        if(h) h.textContent=gameMap[key]||key.toUpperCase();
+        if(small){
+          small.textContent=key==="aviator"?t.fly:key==="bingo"?t.cartelaDraw:key==="keno"?t.kenoInfo:t.rouletteInfo;
+        }
+        if(btn) btn.textContent=t.play;
+      });
+
+      document.querySelectorAll(".gameBackBtn").forEach(b=>b.textContent=t.back);
+      document.querySelectorAll(".gameMenu button").forEach(b=>{
+        const g=b.dataset.game;
+        b.textContent=gameMap[g]||g.toUpperCase();
+        b.classList.toggle("active",g===state.game);
+      });
+      document.querySelectorAll(".amountPreset").forEach(b=>{
+        const n=b.textContent.match(/\d+/);
+        if(n) b.textContent=n[0]+" ETB";
+      });
+      const title=document.getElementById("gameTitle");
+      if(title) title.textContent=(gameMap[state.game]||String(state.game).toUpperCase());
     }
-
 
     /* =========================================================
        NAVIGATION
@@ -3041,6 +3299,9 @@
         );
 
       if(page==="home"){
+
+        document.getElementById("bingoStakeScreen")?.classList.add("hidden");
+        document.getElementById("gameTitle")?.classList.remove("hidden");
 
         document
           .getElementById("home")
@@ -3099,9 +3360,32 @@
        OPEN GAME
     ========================================================= */
 
+    function closeGameToHome(){
+      document.getElementById("bingoStakeScreen")?.classList.add("hidden");
+      document.getElementById("gameTitle")?.classList.remove("hidden");
+      showPage("home");
+      showHome();
+    }
+
+    function chooseBingoStake(amount){
+      const value=Number(amount);
+      const allowed=[10,20,30,50,100,150,200,250,300,350,400,450,500];
+      if(!allowed.includes(value)) return;
+      state.bingoAmounts[1]=value;
+      state.bingoAmounts[2]=value;
+      document.getElementById("bingoAmount1").textContent=value+" ETB";
+      document.getElementById("bingoAmount2").textContent=value+" ETB";
+      document.getElementById("bingoStakeScreen")?.classList.add("hidden");
+      document.getElementById("gameTitle")?.classList.remove("hidden");
+      document.getElementById("bingoGame")?.classList.remove("hidden");
+      buildBingo();
+      fetchLiveRound("bingo");
+    }
+
     function openGame(game){
 
       state.game=game;
+      document.querySelectorAll(".gameMenu button").forEach(b=>b.classList.toggle("active",b.dataset.game===game));
 
       showPage("game");
 
@@ -3114,11 +3398,20 @@
 
       hideAllGames();
 
-      document
-        .getElementById(game+"Game")
-        .classList.remove("hidden");
+      const stakeScreen=document.getElementById("bingoStakeScreen");
+      const gameTitle=document.getElementById("gameTitle");
+      if(game === "bingo"){
+        stakeScreen?.classList.remove("hidden");
+        gameTitle?.classList.add("hidden");
+      }else{
+        stakeScreen?.classList.add("hidden");
+        gameTitle?.classList.remove("hidden");
+        document.getElementById(game+"Game")?.classList.remove("hidden");
+        buildGame();
+      }
 
-      buildGame();
+      setLanguage(state.language || "en");
+      fetchLiveRound(game);
 
     }
 
@@ -3660,8 +3953,7 @@
     function buildBingoAmounts(){
 
       const amounts=[
-        10,20,25,50,100,
-        150,200,250,300,400,500
+        10,20,30,50,100,150,200,250,300,350,400,450,500
       ];
 
       const box=
@@ -3670,6 +3962,9 @@
         );
 
       box.innerHTML="";
+
+      const stakeGrid=document.getElementById("bingoStakeGrid");
+      if(stakeGrid) stakeGrid.innerHTML="";
 
       amounts.forEach(amount=>{
 
@@ -3707,6 +4002,15 @@
         };
 
         box.appendChild(b);
+
+        if(stakeGrid){
+          const sb=document.createElement("button");
+          sb.className="bingoStakeBtn";
+          sb.type="button";
+          sb.textContent=amount+" ETB";
+          sb.onclick=()=>chooseBingoStake(amount);
+          stakeGrid.appendChild(sb);
+        }
 
       });
 
@@ -3851,55 +4155,36 @@
 
     function renderCartela(){
 
-      const wrap=
-        document.getElementById(
-          "cartelaGridWrap"
-        );
-
-      const slot=
-        state.activeCartela;
-
-      const cartela=
-        state.bingoCartelas[slot];
+      const wrap=document.getElementById("cartelaGridWrap");
+      const slot=state.activeCartela;
+      const cartela=state.bingoCartelas[slot];
 
       if(!cartela){
-
-        wrap.innerHTML=
-          `<div class="cartelaGrid">
-            <div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">
-              Enter Cartela number above.
-            </div>
-          </div>`;
-
+        wrap.innerHTML=`<div class="cartelaGrid"><div style="grid-column:1/-1;text-align:center;padding:20px;color:#777">Enter Cartela number above.</div></div>`;
         return;
-
       }
 
-      const board=
-        state.bingoBoards[slot];
-
-      wrap.innerHTML=
-        `<div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:bold;margin-bottom:5px">
-          CARTELA ${cartela} — SLOT ${slot}
-        </div>
-        <div class="cartelaGrid">
-          ${
-            board.map((n,i)=>`
-
-              <button
-                class="cartelaCell ${n===0?"free":""}"
-                onclick="markCartelaCell(${slot},${i})">
-
-                ${n===0?"FREE":n}
-
-              </button>
-
-            `).join("")
-          }
-        </div>`;
-
+      const board=state.bingoBoards[slot] || generateCartela(cartela);
+      state.bingoBoards[slot]=board;
+      const letters=["B","I","N","G","O"];
+      const colors=["#173f9e","#8d1f8f","#087c50","#b36b00","#9b1d1d"];
+      let html=`<div class="cartelaCaption">CARTELA ${cartela} — SLOT ${slot}</div>`;
+      html+=`<div class="cartelaBingoBoard">`;
+      letters.forEach((letter,col)=>{
+        html+=`<div class="cartelaColumn">`;
+        html+=`<div class="cartelaLetter" style="background:${colors[col]}">${letter}</div>`;
+        for(let row=0;row<5;row++){
+          const i=row*5+col;
+          const n=board[i];
+          const marked=n===0 || state.bingoDraw.includes(n);
+          html+=`<button type="button" class="cartelaCell ${n===0?"free":""} ${marked?"marked":""}" onclick="markCartelaCell(${slot},${i})">${n===0?"FREE":n}</button>`;
+        }
+        html+=`</div>`;
+      });
+      html+=`</div>`;
+      html+=`<div class="cartelaHint">Drawn numbers on your Cartela turn red. Complete a row, column, or diagonal, then press BINGO.</div>`;
+      wrap.innerHTML=html;
     }
-
 
     function markCartelaCell(slot,index){
 
@@ -4757,19 +5042,28 @@
     }
 
 
+    function toggleAviatorHistory(){
+      const box=document.getElementById("aviatorRoundHistory");
+      const btn=document.getElementById("aviatorHistoryToggle");
+      if(!box)return;
+      box.classList.toggle("hidden");
+      if(btn)btn.textContent=box.classList.contains("hidden")?"▼":"▲";
+    }
+
     function renderAviatorHistory(){
-
-      document
-        .getElementById(
-          "aviatorHistory"
-        )
-        .innerHTML=
-          state.aviatorHistory
-            .map(x=>
-              `<div class="mult">${x}</div>`
-            )
-            .join("");
-
+      const history=Array.isArray(state.aviatorHistory)?state.aviatorHistory:[];
+      const compact=document.getElementById("aviatorRecentLine");
+      if(compact){
+        compact.innerHTML=history.slice(0,10).map(x=>`<div class="mult">${typeof x==="string"?x:Number(x.multiplier ?? x).toFixed(2)+"x"}</div>`).join("");
+      }
+      const expanded=document.getElementById("aviatorRoundHistory");
+      if(expanded){
+        expanded.innerHTML=history.slice(0,20).map((x,i)=>{
+          const mult=typeof x==="string"?x:Number(x.multiplier ?? x).toFixed(2)+"x";
+          const round=typeof x==="object"?x.round:(Number(state.rounds.aviator||0)-i);
+          return `<div class="historyRound"><strong>ROUND ${String(round).padStart(4,"0")}</strong><br><span class="historyNums">CRASH ${mult}</span></div>`;
+        }).join("");
+      }
     }
 
 
@@ -5545,7 +5839,7 @@
         const data = await safeJsonResponse(response);
         if(!data.success || !Array.isArray(data.rounds)) return;
 
-        const rows = data.rounds.slice(0,10);
+        const rows = data.rounds.slice(0,20);
 
         if(game === "keno"){
           state.kenoHistory = rows.map(r => ({
@@ -5667,6 +5961,7 @@
     }
 
     loadTelegramUser();
+    state.language=localStorage.getItem("destaLanguage") || "en";
 
     (async function initializeDesta(){
       loadTelegramUser();
