@@ -3941,7 +3941,34 @@
     }
 
 
-    function addCartela(){
+    async function registerBingoCartela(slot){
+      const cartelaNumber=Number(state.bingoCartelas[slot] || 0);
+      const tier=Number(state.bingoAmounts?.[1] || 10);
+      if(!cartelaNumber || !state.authToken) return false;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bingo/join",{
+          method:"POST",cache:"no-store",
+          headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},
+          body:JSON.stringify({tier,cartelaNumber})
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not enter this Cartela.");
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent=`Cartela ${cartelaNumber} is entered. ${tier} ETB will be deducted when the betting countdown reaches 0.`;
+        return true;
+      }catch(error){
+        console.error("Bingo Cartela registration error:",error);
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent=error.message || "Could not enter this Cartela.";
+        return false;
+      }
+    }
+
+    function registerAllSelectedBingoCartelas(){
+      [1,2].forEach(slot=>{ if(state.bingoCartelas[slot]) registerBingoCartela(slot); });
+    }
+
+    async function addCartela(){
 
       const input=
         document.getElementById(
@@ -4015,6 +4042,7 @@
           slot+".";
 
       renderCartela();
+      await registerBingoCartela(slot);
 
     }
 
@@ -5593,6 +5621,7 @@
         }
 
         if(changed || isNewRound) renderServerBingo(round);
+        if(isNewRound) registerAllSelectedBingoCartelas();
       }
 
       if(game === "roulette"){
@@ -5682,9 +5711,10 @@
     async function fetchLiveRound(game){
       try{
         const bingoTier = Number(state.bingoAmounts?.[1] || 10);
+        const liveCacheKey = Date.now();
         const roundUrl = game === "bingo"
-          ? `https://desta-play.onrender.com/api/game/bingo/round?tier=${encodeURIComponent(bingoTier)}`
-          : `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
+          ? `https://desta-play.onrender.com/api/game/bingo/round?tier=${encodeURIComponent(bingoTier)}&live=${liveCacheKey}`
+          : `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round?live=${liveCacheKey}`;
         const response = await fetch(roundUrl,{cache:"no-store",headers:{"Accept":"application/json"}});
         if(!response.ok) return false;
         const data = await safeJsonResponse(response);
@@ -5703,7 +5733,7 @@
         /* Primary source: one server-authoritative snapshot for ALL games. */
         let data=null;
         try{
-          const response=await fetch("https://desta-play.onrender.com/api/status",{cache:"no-store",headers:{"Accept":"application/json"}});
+          const response=await fetch("https://desta-play.onrender.com/api/status?live="+Date.now(),{cache:"no-store",headers:{"Accept":"application/json"}});
           if(response.ok) data=await safeJsonResponse(response);
         }catch(error){
           console.warn("Live status connection error:",error);
