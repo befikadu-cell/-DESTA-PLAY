@@ -5481,7 +5481,7 @@ app.get(
             } = await supabase
                 .from("game_rounds")
                 .select(
-                    "id,round_id,game,status,result,drawn_numbers,current_number,multiplier,crash_point,created_at,updated_at"
+                    "id,round_id,game,status,result,drawn_numbers,current_number,multiplier,crash_point,engine_state,created_at,updated_at"
                 )
                 .eq(
                     "game",
