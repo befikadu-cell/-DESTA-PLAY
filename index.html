@@ -6034,6 +6034,120 @@
     let liveRoundBusy = false;
     let lastServerRoundId = {};
 
+    /* =========================================================
+       VOICE ANNOUNCER — ALL GAMES
+       Uses the device/browser speech engine. Announcements are
+       server-driven and are emitted only when something changes.
+       ========================================================= */
+    const voiceState = {
+      enabled: true,
+      unlocked: false,
+      lastRoundId: {},
+      lastStatus: {},
+      lastDrawCount: {},
+      lastResult: {},
+      lastAviatorMilestone: {}
+    };
+
+    function getVoiceLanguage(){
+      return String(state.language || "en").toLowerCase() === "am" ? "am-ET" : "en-US";
+    }
+
+    function unlockVoice(){
+      voiceState.unlocked = true;
+      try{
+        if("speechSynthesis" in window){
+          window.speechSynthesis.getVoices();
+          if(window.speechSynthesis.paused) window.speechSynthesis.resume();
+        }
+      }catch(e){}
+    }
+
+    function voiceText(en, am){
+      return String(state.language || "en").toLowerCase() === "am" ? am : en;
+    }
+
+    function speakGameVoice(en, am, priority=false){
+      if(!voiceState.enabled || !voiceState.unlocked || !("speechSynthesis" in window)) return;
+      try{
+        const text=voiceText(en,am);
+        if(!text) return;
+        const utterance=new SpeechSynthesisUtterance(text);
+        utterance.lang=getVoiceLanguage();
+        utterance.rate=priority ? 0.92 : 1.0;
+        utterance.pitch=1.0;
+        utterance.volume=1.0;
+        if(priority) window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      }catch(error){
+        console.warn("Voice announcement error:", error);
+      }
+    }
+
+    function announceRoundVoice(round){
+      if(!round || !round.game) return;
+      const game=round.game;
+      const id=String(round.id || "");
+      const status=String(round.status || "");
+      const previousId=voiceState.lastRoundId[game];
+      const previousStatus=voiceState.lastStatus[game];
+      const isNewRound=Boolean(id && previousId && previousId!==id);
+
+      if(id && previousId!==id){
+        voiceState.lastRoundId[game]=id;
+        voiceState.lastDrawCount[game]=0;
+        voiceState.lastResult[game]="";
+        voiceState.lastAviatorMilestone[game]=0;
+        if(isNewRound){
+          if(game==="keno") speakGameVoice("New Keno round. Betting is open.","አዲስ የኬኖ ዙር። ውርርድ ተከፍቷል።",true);
+          else if(game==="bingo") speakGameVoice("New Bingo round. Betting is open.","አዲስ የቢንጎ ዙር። ውርርድ ተከፍቷል።",true);
+          else if(game==="roulette") speakGameVoice("New Roulette round. Betting is open.","አዲስ የሩሌት ዙር። ውርርድ ተከፍቷል።",true);
+          else if(game==="aviator") speakGameVoice("New Aviator round. Betting is open.","አዲስ የአቪዬተር ዙር። ውርርድ ተከፍቷል።",true);
+        }
+      }
+
+      if(status!==previousStatus){
+        voiceState.lastStatus[game]=status;
+        if(status==="DRAWING") speakGameVoice(game==="bingo"?"Bingo drawing has started.":"Keno drawing has started.",game==="bingo"?"የቢንጎ ስዕል ጀምሯል።":"የኬኖ ስዕል ጀምሯል።");
+        else if(status==="SPINNING") speakGameVoice("Roulette is spinning.","ሩሌት እየተሽከረከረ ነው።");
+        else if(status==="FLYING") speakGameVoice("Aviator is flying. Cash out before the crash.","አቪዬተር በረራ ጀምሯል። ከመውደቁ በፊት ገንዘብዎን ያውጡ።");
+        else if(status==="CRASHED") speakGameVoice("Aviator crashed.","አቪዬተር ወድቋል።",true);
+        else if(status==="FINISHED") speakGameVoice(game==="roulette"?"Roulette result is ready.":game==="bingo"?"Bingo round finished.":"Keno round finished.",game==="roulette"?"የሩሌት ውጤት ዝግጁ ነው።":game==="bingo"?"የቢንጎ ዙር ተጠናቋል።":"የኬኖ ዙር ተጠናቋል።");
+      }
+
+      if((game==="keno" || game==="bingo") && Array.isArray(round.drawnNumbers)){
+        const count=round.drawnNumbers.length;
+        if(count>Number(voiceState.lastDrawCount[game]||0)){
+          const n=round.drawnNumbers[count-1];
+          voiceState.lastDrawCount[game]=count;
+          if(game==="bingo") speakGameVoice(`Bingo number ${n}.`,`የቢንጎ ቁጥር ${n}።`);
+          else speakGameVoice(`Keno number ${n}.`,`የኬኖ ቁጥር ${n}።`);
+        }
+      }
+
+      if(game==="roulette" && status==="FINISHED" && round.result!=null){
+        const raw=typeof round.result==="object" ? round.result : {number:round.result};
+        const winner=Number(raw.number ?? raw.result ?? raw.winner ?? raw.value);
+        if(Number.isFinite(winner) && String(winner)!==String(voiceState.lastResult[game])){
+          voiceState.lastResult[game]=String(winner);
+          const color=rouletteColor(winner);
+          speakGameVoice(`Roulette result ${winner}, ${color}.`,`የሩሌት ውጤት ${winner}፣ ${color}።`,true);
+        }
+      }
+
+      if(game==="aviator" && status==="FLYING"){
+        const multiplier=Number(round.multiplier||1);
+        const milestone=multiplier>=10?10:multiplier>=5?5:multiplier>=3?3:multiplier>=2?2:0;
+        if(milestone>Number(voiceState.lastAviatorMilestone[game]||0)){
+          voiceState.lastAviatorMilestone[game]=milestone;
+          speakGameVoice(`Aviator ${milestone.toFixed(2)} times.`,`አቪዬተር ${milestone.toFixed(2)} ጊዜ።`);
+        }
+      }
+    }
+
+    document.addEventListener("pointerdown", unlockVoice, {once:false, passive:true});
+    document.addEventListener("touchstart", unlockVoice, {once:false, passive:true});
+
     function updateCountdownFromServer(round){
       const game = round.game;
       const el = document.getElementById(game + "Countdown") ||
@@ -6056,6 +6170,8 @@
 
     function applyServerRound(round){
       if(!round || !round.game) return;
+
+      announceRoundVoice(round);
 
       const game=round.game;
       const previousId=lastServerRoundId[game];
