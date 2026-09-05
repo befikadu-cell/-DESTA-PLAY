@@ -187,6 +187,16 @@ const games = {
 
 const rounds = {};
 
+/* Persistent display sequence for each server-authoritative house game. */
+const roundCounters = {
+    keno: 0,
+    roulette: 0,
+    aviator: 0
+};
+
+/* Persistent display sequence for each Bingo stake room. */
+const bingoRoundCounters = {};
+
 /*
 |--------------------------------------------------------------------------
 | ENGINE TIMING
@@ -3000,6 +3010,9 @@ async function saveBingoRound(tier) {
             totalPool:
                 room.totalPool,
 
+            roundNumber:
+                Number(room.roundNumber || 1),
+
             houseRake:
                 room.houseRake,
 
@@ -3032,6 +3045,38 @@ async function saveBingoRound(tier) {
 | START BINGO ROUND
 |--------------------------------------------------------------------------
 */
+
+async function seedBingoRoundCounter(tier) {
+    try {
+        const { data, error } = await supabase
+            .from("game_rounds")
+            .select("engine_state, updated_at")
+            .eq("game", "bingo")
+            .eq("tier_id", Number(tier))
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (!error && data) {
+            const saved = Number(
+                data.engine_state?.roundNumber ||
+                0
+            );
+
+            if (Number.isFinite(saved) && saved > 0) {
+                bingoRoundCounters[Number(tier)] = Math.max(
+                    Number(bingoRoundCounters[Number(tier)] || 0),
+                    Math.floor(saved)
+                );
+            }
+        }
+    } catch (error) {
+        console.warn(
+            `[BINGO ${tier}] Could not restore round counter:`,
+            error.message
+        );
+    }
+}
 
 function startNewBingoRound(tier) {
     let entryFee;
@@ -3092,7 +3137,10 @@ function startNewBingoRound(tier) {
 
         houseRake: 0,
 
-        winnerPrize: 0
+        winnerPrize: 0,
+
+        roundNumber: (bingoRoundCounters[entryFee] =
+            Number(bingoRoundCounters[entryFee] || 0) + 1)
     };
 
     bingoRooms[entryFee] =
@@ -3665,6 +3713,9 @@ function getPublicBingoRound(
         id:
             room.id,
 
+        roundNumber:
+            Number(room.roundNumber || 1),
+
         game:
             "bingo",
 
@@ -3693,6 +3744,8 @@ function getPublicBingoRound(
 
         drawnNumbers:
             [...room.drawnNumbers],
+
+        totalDraws: 75,
 
         drawIndex:
             room.drawIndex,
@@ -4007,7 +4060,16 @@ async function saveRound(
                 round.multiplier,
 
             currentNumber:
-                round.currentNumber
+                round.currentNumber,
+
+            roundNumber:
+                Number(round.roundNumber || 1),
+
+            bets:
+                round.bets || [],
+
+            rouletteSettled:
+                Boolean(round.rouletteSettled)
         },
 
         updated_at:
@@ -4066,6 +4128,9 @@ function getPublicRound(
         id:
             round.id,
 
+        roundNumber:
+            Number(round.roundNumber || 1),
+
         game:
             round.game,
 
@@ -4107,6 +4172,9 @@ function getPublicRound(
                 ...(round.drawnNumbers ||
                     [])
             ],
+
+        totalDraws:
+            gameName === "keno" ? 20 : 0,
 
         drawIndex:
             round.drawIndex || 0,
@@ -4190,8 +4258,14 @@ function startHouseRound(
 
         crashPoint: null,
 
-        multiplier: 1.00
+        multiplier: 1.00,
+
+        roundNumber: ++roundCounters[gameName]
     };
+
+    if (gameName === "roulette") {
+        round.bets = [];
+    }
 
     /*
     |--------------------------------------------------------------
@@ -4397,10 +4471,67 @@ function revealNextKenoNumber(
 
 /*
 |--------------------------------------------------------------------------
-| ROULETTE
+| ROULETTE BET SETTLEMENT
 |--------------------------------------------------------------------------
 */
 
+async function settleRouletteRound(round) {
+    if (!round || round.rouletteSettled || !Array.isArray(round.bets)) return;
+
+    const result = Number(round.result);
+    if (!Number.isInteger(result) || result < 0 || result > 36) return;
+
+    const redNumbers = [
+        1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36
+    ];
+    const resultColor = result === 0
+        ? "green"
+        : (redNumbers.includes(result) ? "red" : "black");
+
+    for (const bet of round.bets) {
+        if (bet.settled) continue;
+
+        const amount = Number(bet.amount);
+        let payout = 0;
+
+        if (Number.isFinite(amount) && amount > 0) {
+            if (bet.betType === "number" && Number(bet.number) === result) {
+                payout = amount * 36;
+            } else if (bet.betType === "color" && String(bet.color).toLowerCase() === resultColor) {
+                payout = amount * 2;
+            }
+        }
+
+        if (payout > 0) {
+            await changeBalance({
+                playerId: bet.playerId,
+                amount: payout,
+                type: "roulette_win",
+                game: "roulette",
+                roundId: round.id,
+                description: "Roulette winning payout",
+                metadata: {
+                    betId: bet.betId,
+                    slot: bet.slot,
+                    result,
+                    resultColor,
+                    payout
+                }
+            });
+        }
+
+        bet.payout = payout;
+        bet.settled = true;
+    }
+
+    round.rouletteSettled = true;
+}
+
+/*
+|--------------------------------------------------------------------------
+| ROULETTE
+|--------------------------------------------------------------------------
+*/
 
 function startRouletteSpin(
     roundId
@@ -4408,17 +4539,14 @@ function startRouletteSpin(
     const round =
         rounds.roulette;
 
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
+    if (!round || round.id !== roundId ||
+        (round.status !== "BETTING" && round.status !== "SPINNING")) {
         return;
     }
 
-    round.status =
-        "SPINNING";
+    if (round.status === "BETTING") {
+        round.status = "SPINNING";
+    }
 
     saveRound(
         round
@@ -4461,6 +4589,8 @@ function startRouletteSpin(
                 current.result =
                     spinFn();
 
+                await settleRouletteRound(current);
+
                 current.status =
                     "FINISHED";
 
@@ -4471,6 +4601,10 @@ function startRouletteSpin(
                 await saveRound(
                     current
                 );
+
+                await settleRouletteRound(current);
+
+                await saveRound(current);
 
                 finishHouseRound(
                     "roulette",
@@ -4752,6 +4886,12 @@ async function restoreHouseRound(
             data.status ===
                 "CRASHED"
         ) {
+            const previousState = data.engine_state || {};
+            roundCounters[gameName] = Math.max(
+                Number(roundCounters[gameName] || 0),
+                Number(previousState.roundNumber || 0)
+            );
+
             startHouseRound(
                 gameName
             );
@@ -4848,8 +4988,21 @@ async function restoreHouseRound(
                     state.multiplier ??
                     data.multiplier ??
                     1
-                )
+                ),
+
+            roundNumber:
+                Math.max(1, Number(state.roundNumber || 1))
         };
+
+        roundCounters[gameName] = Math.max(
+            Number(roundCounters[gameName] || 0),
+            Number(round.roundNumber || 1)
+        );
+
+        if (gameName === "roulette") {
+            round.bets = Array.isArray(state.bets) ? state.bets : [];
+            round.rouletteSettled = Boolean(state.rouletteSettled);
+        }
 
         if (
             gameName ===
@@ -5176,6 +5329,110 @@ app.post(
                 success: false,
                 error: error.message || "Could not place Keno bet"
             });
+        }
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| EDITION 8 — SERVER-AUTHORITATIVE ROULETTE BET
+|--------------------------------------------------------------------------
+*/
+
+function rouletteBetIsValid(amount) {
+    return validateEngineBet(roulette, amount);
+}
+
+app.post(
+    "/api/roulette/bet",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const round = rounds.roulette;
+            const slot = Number(req.body.slot || 1);
+            const amount = Number(req.body.amount);
+            const betType = String(req.body.betType || "").toLowerCase();
+            const number = req.body.number == null ? null : Number(req.body.number);
+            const color = req.body.color == null ? null : String(req.body.color).toLowerCase();
+
+            if (!round || round.status !== "BETTING") {
+                return res.status(400).json({ success:false, error:"Roulette betting is closed" });
+            }
+            if (![1,2].includes(slot)) {
+                return res.status(400).json({ success:false, error:"Invalid roulette slot" });
+            }
+            try { rouletteBetIsValid(amount); }
+            catch (error) {
+                return res.status(400).json({ success:false, error:error.message || "Invalid Roulette bet amount" });
+            }
+            if (!Number.isFinite(amount) || amount < 10) {
+                return res.status(400).json({ success:false, error:"Minimum Roulette bet is 10 ETB" });
+            }
+
+            if (betType === "number") {
+                if (!Number.isInteger(number) || number < 0 || number > 36) {
+                    return res.status(400).json({ success:false, error:"Roulette number must be 0–36" });
+                }
+            } else if (betType === "color") {
+                if (!["red","black","green"].includes(color)) {
+                    return res.status(400).json({ success:false, error:"Choose red, black, or green" });
+                }
+            } else {
+                return res.status(400).json({ success:false, error:"Choose a roulette number or color" });
+            }
+
+            if (!Array.isArray(round.bets)) round.bets = [];
+            if (round.bets.some(b => b.playerId === req.player.id && Number(b.slot) === slot)) {
+                return res.status(400).json({ success:false, error:"This roulette slot already has a bet for this round" });
+            }
+
+            const currentBalance = Number(req.player.balance || 0);
+            if (amount > currentBalance) {
+                return res.status(400).json({ success:false, error:"Insufficient balance" });
+            }
+
+            const betId = makeId("ROUBET");
+            const balanceAfter = await changeBalance({
+                playerId:req.player.id,
+                amount:-amount,
+                type:"roulette_bet",
+                game:"roulette",
+                roundId:round.id,
+                description:"Roulette bet",
+                metadata:{ betId, slot, betType, number, color }
+            });
+
+            round.bets.push({
+                betId,
+                playerId:req.player.id,
+                slot,
+                amount,
+                betType,
+                number:betType === "number" ? number : null,
+                color:betType === "color" ? color : null,
+                placedAt:Date.now(),
+                settled:false,
+                payout:0
+            });
+
+            await saveRound(round);
+
+            return res.json({
+                success:true,
+                betId,
+                roundId:round.id,
+                slot,
+                amount,
+                betType,
+                number,
+                color,
+                balanceAfter,
+                bettingEndsAt:round.bettingEndsAt,
+                remainingMilliseconds:Math.max(0, round.bettingEndsAt - Date.now())
+            });
+        } catch (error) {
+            console.error("Roulette bet error:", error);
+            return res.status(500).json({ success:false, error:error.message || "Could not place Roulette bet" });
         }
     }
 );
@@ -5618,6 +5875,10 @@ app.listen(
             ) {
                 try {
                     bingoBetIsValid(
+                        tier
+                    );
+
+                    await seedBingoRoundCounter(
                         tier
                     );
 
