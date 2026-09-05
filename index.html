@@ -204,6 +204,10 @@
       font-weight:bold;
     }
 
+    .gameLanguageBox{display:flex;gap:3px;align-items:center;}
+    .gameLanguageBox button{min-width:30px;height:30px;padding:0 5px;border:1px solid #6d1717;border-radius:7px;background:#210909;color:#ddd;font-size:9px;font-weight:900;}
+    .gameLanguageBox button.active{border-color:#ffd43b;background:linear-gradient(180deg,var(--gold),#d58a00);color:#170900;box-shadow:0 0 10px rgba(255,212,59,.28);}
+
     .playerSummary{
       margin:0 10px 5px;
       padding:10px;
@@ -1176,8 +1180,25 @@
       100%{transform:translateY(0) scale(1);opacity:1}
     }
 
+    .aviatorFlight{
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(circle at 70% 25%,rgba(255,204,51,.08),transparent 28%),linear-gradient(180deg,#170808,#070707);
+    }
+
+    .aviatorFlight.flyingActive:after{
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:repeating-linear-gradient(-18deg,transparent 0 24px,rgba(255,255,255,.035) 25px 27px);
+      animation:flightSpeedLines .7s linear infinite;
+      pointer-events:none;
+    }
+
+    @keyframes flightSpeedLines{from{transform:translateX(0)}to{transform:translateX(-70px)}}
+
     .aviatorFlight.flyingActive .plane{
-      animation:planeFlight 1.55s cubic-bezier(.45,.05,.55,.95) infinite alternate;
+      animation:planeFlight 1.1s cubic-bezier(.45,.05,.55,.95) infinite alternate;
       filter:drop-shadow(0 0 8px rgba(255,212,59,.75));
       will-change:transform;
     }
@@ -1195,9 +1216,10 @@
     }
 
     @keyframes planeFlight{
-      0%{transform:translate(0,12px) rotate(-5deg) scale(.98)}
-      50%{transform:translate(24px,-10px) rotate(-10deg) scale(1.02)}
-      100%{transform:translate(62px,-42px) rotate(-14deg) scale(1.05)}
+      0%{transform:translate(0,14px) rotate(-4deg) scale(.97)}
+      35%{transform:translate(20px,-4px) rotate(-8deg) scale(1)}
+      70%{transform:translate(46px,-25px) rotate(-11deg) scale(1.035)}
+      100%{transform:translate(74px,-50px) rotate(-15deg) scale(1.07)}
     }
 
     @keyframes curveMove{
@@ -1295,8 +1317,34 @@
       box-shadow:0 0 12px rgba(255,212,59,.22);
     }
 
+    .drawPot{
+      transform:translateZ(0);
+      box-shadow:inset 0 0 28px rgba(255,180,30,.12),0 8px 22px rgba(0,0,0,.45);
+    }
+
+    .drawPot.spinning{
+      animation:potMachinePulse .36s ease-in-out infinite alternate;
+    }
+
+    .drawPot.spinning .potMixBall{
+      animation:potMixOrbit .30s cubic-bezier(.37,.02,.58,.99) infinite;
+    }
+
+    .drawPot.reveal{
+      animation:potRevealFlash .8s ease-out;
+    }
+
+    @keyframes potMachinePulse{from{transform:scale(1) rotate(-1deg)}to{transform:scale(1.025) rotate(1deg)}}
+    @keyframes potMixOrbit{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(8px,-7px) rotate(90deg)}50%{transform:translate(-6px,6px) rotate(180deg)}75%{transform:translate(7px,5px) rotate(270deg)}100%{transform:translate(0,0) rotate(360deg)}}
+    @keyframes potRevealFlash{0%{filter:brightness(1)}35%{filter:brightness(1.9)}100%{filter:brightness(1)}}
+
+    .rouletteWheel{
+      box-shadow:0 0 0 3px rgba(255,204,51,.12),0 0 28px rgba(255,170,0,.16),0 12px 30px rgba(0,0,0,.5);
+      transform-origin:50% 50%;
+    }
+
     .rouletteWheel.spinning{
-      animation:rouletteLiveSpin .72s linear infinite;
+      animation:rouletteLiveSpin .34s linear infinite;
       will-change:transform;
     }
 
@@ -1876,10 +1924,15 @@
         <button class="gameBackBtn" type="button" onclick="backToGames()">← GAMES</button>
 
         <div class="roundInfo">
-          ROUND <span id="roundNumber">0001</span>
+          ROUND <span id="roundNumber">----</span>
         </div>
 
         <div class="headerRight">
+
+          <div class="gameLanguageBox" aria-label="Language">
+            <button id="gameLangEN" type="button" data-lang-choice="en">EN</button>
+            <button id="gameLangAM" type="button" data-lang-choice="am">አማ</button>
+          </div>
 
           <div class="balance">
             💰 <span id="balance">0.00</span> ETB
@@ -2839,17 +2892,17 @@
       telegramName:"Player",
 
       rounds:{
-        keno:1,
-        bingo:1,
-        roulette:1,
-        aviator:1
+        keno:0,
+        bingo:0,
+        roulette:0,
+        aviator:0
       },
 
       displayRoundCounters:{
-        keno:1,
-        bingo:1,
-        roulette:1,
-        aviator:1
+        keno:0,
+        bingo:0,
+        roulette:0,
+        aviator:0
       },
 
       displayRoundSeen:{
@@ -3453,34 +3506,39 @@
     function applyLanguageToUI(){
       const lang=state.language||"en";
       document.documentElement.lang=lang;
+
       const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
       const nodes=[];
       while(walker.nextNode()) nodes.push(walker.currentNode);
+
       nodes.forEach(node=>{
-        if(!node.parentElement) return;
-        if(["SCRIPT","STYLE","NOSCRIPT"].includes(node.parentElement.tagName)) return;
+        const parent=node.parentElement;
+        if(!parent) return;
+        if(["SCRIPT","STYLE","NOSCRIPT"].includes(parent.tagName)) return;
+        if(parent.closest("#langEN,#langAM")) return;
+
         const raw=node.textContent||"";
         const trimmed=raw.trim();
         if(!trimmed) return;
-        if(!node.dataset) return;
-        if(!node.parentElement.closest("#langEN,#langAM")){
-          if(!node.parentElement.dataset.enText) node.parentElement.dataset.enText=trimmed;
-          const en=node.parentElement.dataset.enText;
-          const translated=lang==="am" ? translateDynamicText(en,"am") : en;
-          if(translated!==en){
-            const lead=raw.match(/^\s*/)?.[0]||"";
-            const trail=raw.match(/\s*$/)?.[0]||"";
-            node.textContent=lead+translated+trail;
-          }else if(lang==="en" && node.parentElement.dataset.enText){
-            const lead=raw.match(/^\s*/)?.[0]||"";
-            const trail=raw.match(/\s*$/)?.[0]||"";
-            node.textContent=lead+en+trail;
-          }
+
+        if(!node.__destaEnglishText){
+          const knownEnglish=Object.keys(AMHARIC_UI).find(key=>key===trimmed);
+          node.__destaEnglishText=knownEnglish || trimmed;
         }
+
+        const en=node.__destaEnglishText;
+        const translated=lang==="am" ? translateDynamicText(en,"am") : en;
+        const lead=raw.match(/^\s*/)?.[0]||"";
+        const trail=raw.match(/\s*$/)?.[0]||"";
+        const target=lead+translated+trail;
+        if(node.textContent!==target) node.textContent=target;
       });
+
       translateAttributes(lang);
       document.getElementById("langEN")?.classList.toggle("active",lang==="en");
       document.getElementById("langAM")?.classList.toggle("active",lang==="am");
+      document.getElementById("gameLangEN")?.classList.toggle("active",lang==="en");
+      document.getElementById("gameLangAM")?.classList.toggle("active",lang==="am");
     }
 
     function setLanguage(lang){
@@ -3490,10 +3548,52 @@
       applyLanguageToUI();
     }
 
+    document.addEventListener("click",function(event){
+      const button=event.target.closest("#langEN,#langAM");
+      if(!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLanguage(button.id === "langAM" ? "am" : "en");
+    },true);
+
     function initLanguage(){
       const saved=localStorage.getItem("destaLanguage");
       state.language=(saved==="am" ? "am" : "en");
       applyLanguageToUI();
+
+      const en=document.getElementById("langEN");
+      const am=document.getElementById("langAM");
+
+      if(en){
+        en.type="button";
+        en.onclick=function(event){
+          if(event) event.preventDefault();
+          setLanguage("en");
+          return false;
+        };
+      }
+
+      if(am){
+        am.type="button";
+        am.onclick=function(event){
+          if(event) event.preventDefault();
+          setLanguage("am");
+          return false;
+        };
+      }
+
+      [
+        [document.getElementById("gameLangEN"),"en"],
+        [document.getElementById("gameLangAM"),"am"]
+      ].forEach(([button,lang])=>{
+        if(button) button.onclick=function(event){
+          if(event) event.preventDefault();
+          setLanguage(lang);
+          return false;
+        };
+      });
+
+      window.setLanguage=setLanguage;
     }
 
     /* Re-translate newly rendered game/wallet elements as the UI changes. */
@@ -3697,15 +3797,16 @@
 
     function updateRound(){
 
-      const raw=Number(state.displayRoundCounters?.[state.game]);
-      const number=Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+      const raw=Number(state.rounds?.[state.game]);
+      const el=document.getElementById("roundNumber");
+      if(!el) return;
 
-      if(state.displayRoundCounters)
-        state.displayRoundCounters[state.game]=number;
+      if(!Number.isFinite(raw) || raw < 1){
+        el.textContent="----";
+        return;
+      }
 
-      document
-        .getElementById("roundNumber")
-        .textContent=String(number).padStart(4,"0");
+      el.textContent=String(Math.floor(raw)).padStart(4,"0");
 
     }
 
@@ -5938,20 +6039,13 @@
       state.roundIds[game]=round.id;
       state.serverRoundIds[game]=String(round.id || "");
 
-      if(!state.displayRoundSeen[game]){
-        state.displayRoundSeen[game]=String(round.id || "");
-        state.displayRoundCounters[game]=1;
-      }else if(isNewRound){
-        state.displayRoundCounters[game]=Number(state.displayRoundCounters[game] || 1)+1;
-        state.displayRoundSeen[game]=String(round.id || "");
-      }
-
+      /* Server-authoritative round number. Never count locally. */
       const serverRoundNumber=Number(round.roundNumber);
       if(Number.isFinite(serverRoundNumber) && serverRoundNumber>=1){
+        state.rounds[game]=Math.floor(serverRoundNumber);
         state.displayRoundCounters[game]=Math.floor(serverRoundNumber);
+        state.displayRoundSeen[game]=String(round.id || "");
       }
-
-      state.rounds[game]=state.displayRoundCounters[game];
       state.bettingOpenByGame[game]=round.status === "BETTING";
       if(state.game===game){
         state.bettingOpen=state.bettingOpenByGame[game];
@@ -6139,7 +6233,7 @@
       if(status){
         const nums = round.drawnNumbers || [];
         status.textContent = round.status === "DRAWING"
-          ? `CALLED ${nums.length} / ${round.totalDraws || 20}${nums.length ? " — " + nums[nums.length-1] : ""}`
+          ? `CALLED ${nums.length} / ${round.totalDraws || 75}${nums.length ? " — " + nums[nums.length-1] : ""}`
           : round.status === "FINISHED"
             ? "DRAW COMPLETE"
             : round.status === "BETTING"
