@@ -1079,6 +1079,146 @@
     }
 
     /* =========================================================
+       LIVE GAME ANIMATIONS
+    ========================================================= */
+
+    .drawPot{
+      position:relative;
+      width:150px;
+      height:82px;
+      margin:6px auto 2px;
+      border:3px solid #d69a00;
+      border-radius:50% 50% 44% 44%;
+      background:radial-gradient(circle at 50% 35%,#333,#090909 68%);
+      overflow:hidden;
+      box-shadow:0 0 16px rgba(255,210,50,.18);
+    }
+
+    .drawPot:before{
+      content:"";
+      position:absolute;
+      left:12px;
+      right:12px;
+      top:8px;
+      height:3px;
+      background:#ffd43b;
+      opacity:.7;
+    }
+
+    .drawPotBall{
+      position:absolute;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#fff,#aaa);
+      color:#111;
+      font-size:7px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      animation:potBounce .32s linear infinite alternate;
+    }
+
+    .drawPot.spinning .drawPotBall{
+      animation:potSpin .18s linear infinite;
+    }
+
+    .drawPot.reveal .drawPotBall{
+      animation:potDrop .55s cubic-bezier(.2,.8,.3,1) forwards;
+    }
+
+    .drawPot .drawnPotBall.dropOut{
+      z-index:8;
+      animation:potDropOut .8s cubic-bezier(.17,.89,.32,1.28) forwards;
+    }
+
+    @keyframes potBounce{
+      from{transform:translateY(2px) rotate(-6deg)}
+      to{transform:translateY(-9px) rotate(6deg)}
+    }
+
+    @keyframes potSpin{
+      from{transform:translate(0,0) rotate(0deg)}
+      to{transform:translate(72px,20px) rotate(360deg)}
+    }
+
+    @keyframes potDrop{
+      0%{transform:translateY(-35px) scale(.65);opacity:.35}
+      65%{transform:translateY(10px) scale(1.18);opacity:1}
+      100%{transform:translateY(0) scale(1);opacity:1}
+    }
+
+    @keyframes potDropOut{
+      0%{transform:translate(0,-5px) scale(.7);opacity:0}
+      35%{transform:translate(0,-22px) scale(1.15);opacity:1}
+      70%{transform:translate(0,18px) scale(1.22);opacity:1}
+      100%{transform:translate(0,48px) scale(1);opacity:0}
+    }
+
+    .newDrawBall{
+      animation:newBallPop .65s cubic-bezier(.17,.89,.32,1.28);
+      box-shadow:0 0 18px #ffd43b;
+    }
+
+    @keyframes newBallPop{
+      0%{transform:translateY(-30px) scale(.25);opacity:0}
+      65%{transform:translateY(5px) scale(1.25);opacity:1}
+      100%{transform:translateY(0) scale(1);opacity:1}
+    }
+
+    .aviatorFlight.flyingActive .plane{
+      animation:planeFlight 1.8s ease-in-out infinite alternate;
+    }
+
+    .aviatorFlight.flyingActive .flightCurve{
+      animation:curveMove 1.2s linear infinite;
+    }
+
+    .aviatorFlight.crashActive{
+      animation:crashShake .5s ease-in-out 2;
+    }
+
+    .aviatorFlight.crashActive .plane{
+      animation:planeCrash .75s cubic-bezier(.4,0,1,1) forwards;
+    }
+
+    @keyframes planeFlight{
+      from{transform:translate(0,4px) rotate(-7deg)}
+      to{transform:translate(38px,-28px) rotate(-13deg)}
+    }
+
+    @keyframes curveMove{
+      from{transform:rotate(-12deg) translateX(0)}
+      to{transform:rotate(-12deg) translateX(25px)}
+    }
+
+    @keyframes planeCrash{
+      0%{transform:translate(38px,-28px) rotate(-13deg);opacity:1}
+      100%{transform:translate(105px,90px) rotate(45deg);opacity:0}
+    }
+
+    @keyframes crashShake{
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-7px) rotate(-1deg)}
+      75%{transform:translateX(7px) rotate(1deg)}
+    }
+
+    .rouletteWheel.spinning{
+      animation:rouletteLiveSpin .8s linear infinite;
+    }
+
+    .rouletteWheel.resultSpin{
+      animation:none;
+      transition:transform 3.2s cubic-bezier(.08,.72,.18,1);
+    }
+
+    @keyframes rouletteLiveSpin{
+      from{transform:rotate(0deg)}
+      to{transform:rotate(360deg)}
+    }
+
+    /* =========================================================
        WALLET
     ========================================================= */
 
@@ -1709,6 +1849,13 @@
             id="kenoBoard">
           </div>
 
+          <div class="drawPot" id="kenoDrawPot" aria-label="Keno lottery draw machine">
+            <div class="drawPotBall" style="left:20px;top:42px">7</div>
+            <div class="drawPotBall" style="left:52px;top:27px">18</div>
+            <div class="drawPotBall" style="left:86px;top:45px">42</div>
+            <div class="drawPotBall" style="left:112px;top:25px">67</div>
+          </div>
+
           <div
             class="drawStatus"
             id="kenoDrawStatus">
@@ -1855,6 +2002,22 @@
 
         <div id="bingoGame" class="hidden">
 
+          <div id="bingoStakeScreen" class="bingoStakeScreen">
+
+            <div class="pageTitle" style="margin:12px 0 8px">BINGO STAKE</div>
+
+            <div style="text-align:center;color:#aaa;font-size:11px;margin-bottom:10px">Choose your stake before entering the live round.</div>
+
+            <div class="amountGrid" id="bingoStakeAmounts"></div>
+
+            <button class="placeBtn" id="bingoEnterButton" onclick="enterBingoWithStake()" disabled>
+              ENTER BINGO
+            </button>
+
+          </div>
+
+          <div id="bingoPlayArea" class="hidden">
+
           <div class="countdown" id="bingoCountdown">
             BETTING 45s
           </div>
@@ -1881,6 +2044,13 @@
               52
             </div>
 
+          </div>
+
+          <div class="drawPot" id="bingoDrawPot" aria-label="Bingo lottery draw machine">
+            <div class="drawPotBall" style="left:20px;top:42px">7</div>
+            <div class="drawPotBall" style="left:52px;top:27px">18</div>
+            <div class="drawPotBall" style="left:86px;top:45px">42</div>
+            <div class="drawPotBall" style="left:112px;top:25px">67</div>
           </div>
 
           <div
@@ -2022,6 +2192,8 @@
             </div>
 
             <div id="bingoHistory"></div>
+
+          </div>
 
           </div>
 
@@ -2559,6 +2731,22 @@
         roulette:1,
         aviator:1
       },
+
+      displayRoundCounters:{
+        keno:1,
+        bingo:1,
+        roulette:1,
+        aviator:1
+      },
+
+      displayRoundSeen:{
+        keno:"",
+        bingo:"",
+        roulette:"",
+        aviator:""
+      },
+
+      bingoSelectedStake:null,
 
       activeKenoSlot:1,
 
@@ -3141,6 +3329,13 @@
 
       buildGame();
 
+      if(game === "bingo"){
+        const stake=document.getElementById("bingoStakeScreen");
+        const play=document.getElementById("bingoPlayArea");
+        if(stake)stake.classList.remove("hidden");
+        if(play)play.classList.add("hidden");
+      }
+
     }
 
 
@@ -3193,12 +3388,15 @@
 
     function updateRound(){
 
+      const raw=Number(state.displayRoundCounters?.[state.game]);
+      const number=Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+
+      if(state.displayRoundCounters)
+        state.displayRoundCounters[state.game]=number;
+
       document
         .getElementById("roundNumber")
-        .textContent=
-          String(
-            state.rounds[state.game]
-          ).padStart(4,"0");
+        .textContent=String(number).padStart(4,"0");
 
     }
 
@@ -3681,56 +3879,56 @@
     function buildBingoAmounts(){
 
       const amounts=[
-        10,20,25,50,100,
-        150,200,250,300,400,500
+        10,20,30,50,100,150,200,250,300,350,400,450,500,600,700,800,1000
       ];
 
-      const box=
-        document.getElementById(
-          "bingoAmounts"
-        );
+      const box=document.getElementById("bingoAmounts");
+      const stakeBox=document.getElementById("bingoStakeAmounts");
 
-      box.innerHTML="";
+      const renderBox=(target)=>{
+        if(!target)return;
+        target.innerHTML="";
+        amounts.forEach(amount=>{
+          const b=document.createElement("button");
+          b.className="amountPreset";
+          b.textContent=amount+" ETB";
+          b.onclick=()=>selectBingoStake(amount);
+          target.appendChild(b);
+        });
+      };
 
-      amounts.forEach(amount=>{
+      renderBox(box);
+      renderBox(stakeBox);
 
-        const b=
-          document.createElement("button");
+      if(box) box.classList.add("hidden");
+    }
 
-        b.className="amountPreset";
+    function selectBingoStake(amount){
+      state.bingoSelectedStake=Number(amount);
+      state.bingoAmounts[1]=Number(amount);
+      state.bingoAmounts[2]=Number(amount);
 
-        b.textContent=
-          amount+" ETB";
-
-        b.onclick=()=>{
-
-          state.bingoAmounts[1]=amount;
-          state.bingoAmounts[2]=amount;
-
-          document
-            .getElementById("bingoAmount1")
-            .textContent=
-              amount+" ETB";
-
-          document
-            .getElementById("bingoAmount2")
-            .textContent=
-              amount+" ETB";
-
-          document
-            .querySelectorAll(".amountPreset")
-            .forEach(x=>
-              x.classList.remove("active")
-            );
-
-          b.classList.add("active");
-
-        };
-
-        box.appendChild(b);
-
+      ["bingoAmount1","bingoAmount2"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.textContent=amount+" ETB";
       });
 
+      document.querySelectorAll("#bingoStakeAmounts .amountPreset").forEach(b=>{
+        b.classList.toggle("active",Number.parseInt(b.textContent,10)===Number(amount));
+      });
+
+      const enter=document.getElementById("bingoEnterButton");
+      if(enter)enter.disabled=false;
+    }
+
+    function enterBingoWithStake(){
+      if(!state.bingoSelectedStake)return;
+      const stake=document.getElementById("bingoStakeScreen");
+      const play=document.getElementById("bingoPlayArea");
+      if(stake)stake.classList.add("hidden");
+      if(play)play.classList.remove("hidden");
+      buildBingo();
+      fetchLiveRound("bingo",state.bingoSelectedStake);
     }
 
 
@@ -5390,79 +5588,137 @@
     function applyServerRound(round){
       if(!round || !round.game) return;
 
-      const game = round.game;
-      const previousId = lastServerRoundId[game];
-      const isNewRound = previousId && previousId !== round.id;
-      lastServerRoundId[game] = round.id;
+      const game=round.game;
+      const previousId=lastServerRoundId[game];
+      const isNewRound=Boolean(previousId && previousId !== round.id);
+      lastServerRoundId[game]=round.id;
 
-      state.roundIds = state.roundIds || {};
-      state.roundIds[game] = round.id;
-      state.serverRoundIds[game] = String(round.id || "");
-      state.rounds[game] = String(round.id || state.rounds[game] || "");
-      state.bettingOpenByGame[game] = round.status === "BETTING";
-      if(state.game === game){ state.bettingOpen = state.bettingOpenByGame[game]; state.countdown = Number(round.remainingSeconds || 0); }
+      state.roundIds=state.roundIds || {};
+      state.roundIds[game]=round.id;
+      state.serverRoundIds[game]=String(round.id || "");
+
+      if(!state.displayRoundSeen[game]){
+        state.displayRoundSeen[game]=String(round.id || "");
+        state.displayRoundCounters[game]=1;
+      }else if(isNewRound){
+        state.displayRoundCounters[game]=Number(state.displayRoundCounters[game] || 1)+1;
+        state.displayRoundSeen[game]=String(round.id || "");
+      }
+
+      state.rounds[game]=state.displayRoundCounters[game];
+      state.bettingOpenByGame[game]=round.status === "BETTING";
+      if(state.game===game){
+        state.bettingOpen=state.bettingOpenByGame[game];
+        state.countdown=Number(round.remainingSeconds || 0);
+      }
 
       updateRound();
       updateCountdownFromServer(round);
 
       if(game === "keno"){
-        const drawn = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
-        const changed = JSON.stringify(state.kenoDraw) !== JSON.stringify(drawn);
-        state.kenoDraw = [...drawn];
-
+        const drawn=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const changed=JSON.stringify(state.kenoDraw)!==JSON.stringify(drawn);
+        state.kenoDraw=[...drawn];
         if(isNewRound){
-          state.kenoSelections = {1:[],2:[]};
-          state.kenoBets = {1:null,2:null};
-          const balls = document.getElementById("kenoDrawBalls");
-          if(balls) balls.innerHTML = "";
+          state.kenoSelections={1:[],2:[]};
+          state.kenoBets={1:null,2:null};
+          const balls=document.getElementById("kenoDrawBalls");
+          if(balls)balls.innerHTML="";
         }
-
-        if(changed || isNewRound) renderServerKeno(round);
+        animateDrawPot("keno",round,changed || isNewRound);
+        if(changed || isNewRound)renderServerKeno(round);
       }
 
       if(game === "bingo"){
-        const called = Array.isArray(round.drawnNumbers) ? round.drawnNumbers : [];
-        const changed = JSON.stringify(state.bingoDraw) !== JSON.stringify(called);
-        state.bingoDraw = [...called];
-
+        const called=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const changed=JSON.stringify(state.bingoDraw)!==JSON.stringify(called);
+        state.bingoDraw=[...called];
         if(isNewRound){
-          state.bingoDraw = [];
-          const display = document.getElementById("bingoDraw");
-          if(display) display.innerHTML = "";
-          const b1 = document.getElementById("bingoButton1");
-          const b2 = document.getElementById("bingoButton2");
-          if(b1) b1.disabled = true;
-          if(b2) b2.disabled = true;
+          state.bingoDraw=[];
+          const display=document.getElementById("bingoDraw");
+          if(display)display.innerHTML="";
+          const b1=document.getElementById("bingoButton1");
+          const b2=document.getElementById("bingoButton2");
+          if(b1)b1.disabled=true;
+          if(b2)b2.disabled=true;
         }
-
-        if(changed || isNewRound) renderServerBingo(round);
+        animateDrawPot("bingo",round,changed || isNewRound);
+        if(changed || isNewRound)renderServerBingo(round);
       }
 
       if(game === "roulette"){
-        if(round.result && round.status === "FINISHED"){
-          const winner = typeof round.result === "object"
-            ? Number(round.result.number ?? round.result.result ?? round.result.winner)
-            : Number(round.result);
-          if(Number.isFinite(winner)) renderServerRoulette(winner);
+        const wheel=document.getElementById("rouletteWheel");
+        if(wheel){
+          if(round.status === "SPINNING") wheel.classList.add("spinning");
+          else wheel.classList.remove("spinning");
+        }
+        if(round.result != null && round.status === "FINISHED"){
+          const winner=typeof round.result === "object"
+            ?Number(round.result.number ?? round.result.result ?? round.result.winner)
+            :Number(round.result);
+          if(Number.isFinite(winner))renderServerRoulette(winner);
         }
       }
 
       if(game === "aviator"){
-        const multiplier = Number(round.multiplier || 1);
-        const el = document.getElementById("aviatorMultiplier");
-        if(el) el.textContent = multiplier.toFixed(2) + "x";
-
-        if(round.status === "CRASHED" && round.crashPoint != null){
-          if(el) el.textContent = Number(round.crashPoint).toFixed(2) + "x CRASH";
+        const multiplier=Number(round.multiplier || 1);
+        const el=document.getElementById("aviatorMultiplier");
+        const flight=document.querySelector(".aviatorFlight");
+        if(el)el.textContent=multiplier.toFixed(2)+"x";
+        if(flight){
+          flight.classList.toggle("flyingActive",round.status === "FLYING");
+          flight.classList.toggle("crashActive",round.status === "CRASHED");
+          if(round.status !== "CRASHED")flight.classList.remove("crashActive");
         }
+        if(round.status === "CRASHED" && round.crashPoint != null){
+          if(el)el.textContent=Number(round.crashPoint).toFixed(2)+"x CRASH";
+        }
+      }
+    }
+
+    function animateDrawPot(game,round,changed){
+      const pot=document.getElementById(game+"DrawPot");
+      if(!pot)return;
+
+      if(round.status === "DRAWING" && changed){
+        const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const latest=nums.length ? nums[nums.length-1] : null;
+
+        pot.classList.remove("spinning","reveal");
+        pot.querySelectorAll(".drawnPotBall").forEach(el=>el.remove());
+
+        if(latest != null){
+          const ball=document.createElement("div");
+          ball.className="drawPotBall drawnPotBall";
+          ball.textContent=String(latest).padStart(2,"0");
+          ball.style.left="66px";
+          ball.style.top="25px";
+          pot.appendChild(ball);
+        }
+
+        void pot.offsetWidth;
+        pot.classList.add("spinning");
+
+        /* Fast lottery mixing, then one ball drops out and pops into view. */
+        setTimeout(()=>{
+          pot.classList.remove("spinning");
+          pot.classList.add("reveal");
+          const drawn=pot.querySelector(".drawnPotBall");
+          if(drawn)drawn.classList.add("dropOut");
+          setTimeout(()=>pot.classList.remove("reveal"),800);
+        },700);
+      }else if(round.status !== "DRAWING"){
+        pot.classList.remove("spinning","reveal");
+        pot.querySelectorAll(".drawnPotBall").forEach(el=>el.remove());
       }
     }
 
     function renderServerKeno(round){
       const balls = document.getElementById("kenoDrawBalls");
       if(balls){
-        balls.innerHTML = (round.drawnNumbers || []).map(n =>
-          `<div class="ball">${String(n).padStart(2,"0")}</div>`
+        const nums=round.drawnNumbers || [];
+        balls.innerHTML = nums.map((n,index) =>
+          `<div class="ball ${index===nums.length-1 && round.status === "DRAWING" ? "newDrawBall" : ""}">${String(n).padStart(2,"0")}</div>`
         ).join("");
       }
 
@@ -5491,8 +5747,9 @@
     function renderServerBingo(round){
       const display = document.getElementById("bingoDraw");
       if(display){
-        display.innerHTML = (round.drawnNumbers || []).map(n =>
-          `<div class="bingoCalled">${n}</div>`
+        const nums=round.drawnNumbers || [];
+        display.innerHTML = nums.map((n,index) =>
+          `<div class="bingoCalled ${index===nums.length-1 && round.status === "DRAWING" ? "newDrawBall" : ""}">${n}</div>`
         ).join("");
       }
 
@@ -5513,6 +5770,13 @@
 
     function renderServerRoulette(winner){
       state.rouletteWinner = winner;
+
+      const wheel=document.getElementById("rouletteWheel");
+      if(wheel){
+        wheel.classList.remove("spinning");
+        wheel.classList.add("resultSpin");
+        wheel.style.transform=`rotate(${1440 + winner*9.73}deg)`;
+      }
 
       const result = document.getElementById("rouletteResult");
       if(result) result.textContent = "RESULT: " + winner + " — " + rouletteColor(winner).toUpperCase();
