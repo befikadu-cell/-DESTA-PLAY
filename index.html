@@ -204,10 +204,6 @@
       font-weight:bold;
     }
 
-    .gameLanguageBox{display:flex;gap:3px;align-items:center;}
-    .gameLanguageBox button{min-width:30px;height:30px;padding:0 5px;border:1px solid #6d1717;border-radius:7px;background:#210909;color:#ddd;font-size:9px;font-weight:900;}
-    .gameLanguageBox button.active{border-color:#ffd43b;background:linear-gradient(180deg,var(--gold),#d58a00);color:#170900;box-shadow:0 0 10px rgba(255,212,59,.28);}
-
     .playerSummary{
       margin:0 10px 5px;
       padding:10px;
@@ -753,7 +749,33 @@
       left:50%;
       top:50%;
       transform:translate(-50%,-50%);
-      animation:bingoMachine 2s linear infinite;
+      animation:bingoMachine 1.25s linear infinite;
+      box-shadow:0 0 18px rgba(255,204,51,.28),inset 0 0 20px rgba(255,160,0,.12);
+    }
+
+    .bingoMachine:before,
+    .bingoMachine:after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      border-radius:50%;
+      pointer-events:none;
+    }
+
+    .bingoMachine:before{
+      width:72px;
+      height:72px;
+      border:3px dashed rgba(255,212,59,.8);
+      box-shadow:0 0 12px rgba(255,212,59,.22);
+    }
+
+    .bingoMachine:after{
+      width:5px;
+      height:82px;
+      background:linear-gradient(to bottom,transparent,#ffd43b 18%,#ffd43b 82%,transparent);
+      box-shadow:0 0 8px rgba(255,212,59,.55);
     }
 
     @keyframes bingoMachine{
@@ -1013,11 +1035,16 @@
 
     .aviatorHistory{
       display:flex;
-      gap:5px;
+      gap:6px;
       overflow-x:auto;
-      padding:7px;
+      padding:7px 8px 8px;
       scrollbar-width:none;
+      min-height:43px;
+      border-bottom:1px solid #4b1d1d;
+      background:#120606;
     }
+
+    .aviatorHistory::-webkit-scrollbar{display:none}
 
     .mult{
       flex:0 0 auto;
@@ -1103,13 +1130,36 @@
     .drawPot:before{
       content:"";
       position:absolute;
-      left:12px;
-      right:12px;
-      top:8px;
+      left:9px;
+      right:9px;
+      top:7px;
       height:3px;
       background:#ffd43b;
       opacity:.7;
     }
+
+    .drawPot:after{
+      content:"";
+      position:absolute;
+      width:44px;
+      height:44px;
+      left:50%;
+      top:50%;
+      margin:-22px;
+      border:3px solid transparent;
+      border-top-color:#ffd43b;
+      border-right-color:rgba(255,212,59,.35);
+      border-radius:50%;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .drawPot.spinning:after{
+      opacity:1;
+      animation:drawPotSpinner .42s linear infinite;
+    }
+
+    @keyframes drawPotSpinner{to{transform:rotate(360deg)}}
 
     .potMixBall{
       width:16px !important;
@@ -1216,10 +1266,9 @@
     }
 
     @keyframes planeFlight{
-      0%{transform:translate(0,14px) rotate(-4deg) scale(.97)}
-      35%{transform:translate(20px,-4px) rotate(-8deg) scale(1)}
-      70%{transform:translate(46px,-25px) rotate(-11deg) scale(1.035)}
-      100%{transform:translate(74px,-50px) rotate(-15deg) scale(1.07)}
+      0%{transform:translate(0,12px) rotate(-5deg) scale(.98)}
+      50%{transform:translate(24px,-10px) rotate(-10deg) scale(1.02)}
+      100%{transform:translate(62px,-42px) rotate(-14deg) scale(1.05)}
     }
 
     @keyframes curveMove{
@@ -1323,11 +1372,11 @@
     }
 
     .drawPot.spinning{
-      animation:potMachinePulse .36s ease-in-out infinite alternate;
+      animation:potMachinePulse .42s ease-in-out infinite alternate;
     }
 
     .drawPot.spinning .potMixBall{
-      animation:potMixOrbit .30s cubic-bezier(.37,.02,.58,.99) infinite;
+      animation:potMixOrbit .42s linear infinite;
     }
 
     .drawPot.reveal{
@@ -1344,7 +1393,7 @@
     }
 
     .rouletteWheel.spinning{
-      animation:rouletteLiveSpin .34s linear infinite;
+      animation:rouletteLiveSpin .48s linear infinite;
       will-change:transform;
     }
 
@@ -1924,15 +1973,10 @@
         <button class="gameBackBtn" type="button" onclick="backToGames()">← GAMES</button>
 
         <div class="roundInfo">
-          ROUND <span id="roundNumber">----</span>
+          ROUND <span id="roundNumber">0001</span>
         </div>
 
         <div class="headerRight">
-
-          <div class="gameLanguageBox" aria-label="Language">
-            <button id="gameLangEN" type="button" data-lang-choice="en">EN</button>
-            <button id="gameLangAM" type="button" data-lang-choice="am">አማ</button>
-          </div>
 
           <div class="balance">
             💰 <span id="balance">0.00</span> ETB
@@ -3537,8 +3581,6 @@
       translateAttributes(lang);
       document.getElementById("langEN")?.classList.toggle("active",lang==="en");
       document.getElementById("langAM")?.classList.toggle("active",lang==="am");
-      document.getElementById("gameLangEN")?.classList.toggle("active",lang==="en");
-      document.getElementById("gameLangAM")?.classList.toggle("active",lang==="am");
     }
 
     function setLanguage(lang){
@@ -3549,11 +3591,11 @@
     }
 
     document.addEventListener("click",function(event){
-      const button=event.target.closest("#langEN,#langAM");
+      const button=event.target.closest("#langEN,#langAM,#gameLangEN,#gameLangAM");
       if(!button) return;
       event.preventDefault();
       event.stopPropagation();
-      setLanguage(button.id === "langAM" ? "am" : "en");
+      setLanguage(button.id.endsWith("AM") ? "am" : "en");
     },true);
 
     function initLanguage(){
@@ -3581,17 +3623,6 @@
           return false;
         };
       }
-
-      [
-        [document.getElementById("gameLangEN"),"en"],
-        [document.getElementById("gameLangAM"),"am"]
-      ].forEach(([button,lang])=>{
-        if(button) button.onclick=function(event){
-          if(event) event.preventDefault();
-          setLanguage(lang);
-          return false;
-        };
-      });
 
       window.setLanguage=setLanguage;
     }
@@ -5419,18 +5450,14 @@
 
 
     function renderAviatorHistory(){
-
-      document
-        .getElementById(
-          "aviatorHistory"
-        )
-        .innerHTML=
-          state.aviatorHistory
-            .map(x=>
-              `<div class="mult">${x}</div>`
-            )
-            .join("");
-
+      const box=document.getElementById("aviatorHistory");
+      if(!box) return;
+      box.innerHTML=state.aviatorHistory.map(item=>{
+        const obj=(item && typeof item === "object") ? item : {round:null,multiplier:Number(item)};
+        const round=Number(obj.round);
+        const mult=Number(obj.multiplier);
+        return `<div class="mult">${Number.isFinite(round) ? "R"+String(Math.floor(round)).padStart(4,"0")+" " : ""}${Number.isFinite(mult) ? mult.toFixed(2)+"x" : ""}</div>`;
+      }).join("");
     }
 
 
@@ -6335,13 +6362,17 @@
         });
         if(!response.ok) return;
         const data = await safeJsonResponse(response);
-        if(!data.success || !Array.isArray(data.rounds)) return;
+        if(!data.success || !Array.isArray(data.history)) return;
 
-        const rows = data.rounds.slice(0,10);
+        const rows = data.history.slice(0,10);
+        const historyRoundNumber = r => {
+          const n=Number(r?.engine_state?.roundNumber ?? r?.round_number);
+          return Number.isFinite(n) && n>0 ? Math.floor(n) : null;
+        };
 
         if(game === "keno"){
           state.kenoHistory = rows.map(r => ({
-            round:r.round_id,
+            round:historyRoundNumber(r) ?? r.round_id,
             numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
           }));
           renderKenoHistory();
@@ -6349,7 +6380,7 @@
 
         if(game === "bingo"){
           state.bingoHistory = rows.map(r => ({
-            round:r.round_id,
+            round:historyRoundNumber(r) ?? r.round_id,
             numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
           }));
           renderBingoHistory();
@@ -6361,7 +6392,7 @@
               ? Number(r.result.number ?? r.result.result ?? r.result.winner)
               : Number(r.result);
             return {
-              round:r.round_id,
+              round:historyRoundNumber(r) ?? r.round_id,
               result:value,
               color:rouletteColor(value)
             };
@@ -6371,7 +6402,7 @@
 
         if(game === "aviator"){
           state.aviatorHistory = rows.map(r => ({
-            round:r.round_id,
+            round:historyRoundNumber(r) ?? r.round_id,
             multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
           }));
           renderAviatorHistory();
