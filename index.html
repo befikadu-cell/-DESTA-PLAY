@@ -3123,6 +3123,16 @@
         2:null
       },
 
+      bingoJoined:{
+        1:false,
+        2:false
+      },
+
+      bingoJoinRoundIds:{
+        1:"",
+        2:""
+      },
+
       activeCartela:1,
 
       bingoBoards:{
@@ -4815,207 +4825,183 @@
     }
 
 
-    function placeBingoBet(slot){
+    async function placeBingoBet(slot){
 
-      if(!state.bettingOpen){
+      if(!state.authToken){
+        alert("Please open your DESTA PLAY account first.");
+        return;
+      }
 
+      if(!state.bettingOpenByGame?.bingo){
         alert("Betting is closed.");
-
         return;
-
       }
 
-      if(
-        !state.bingoCartelas[slot]
-      ){
-
-        alert(
-          "Add a Cartela to Slot "+slot+"."
-        );
-
+      if(!state.bingoCartelas[slot]){
+        alert("Add a Cartela to Slot "+slot+".");
         return;
-
       }
 
-      const amount=
-        state.bingoAmounts[slot];
+      if(state.bingoJoined?.[slot]){
+        alert("This Cartela is already playing this round.");
+        return;
+      }
 
-      if(amount>state.balance){
+      const amount=Number(state.bingoAmounts[slot]);
+      if(!Number.isFinite(amount) || amount<10){
+        alert("Minimum Bingo bet is 10 ETB.");
+        return;
+      }
 
+      if(amount>Number(state.balance||0)){
         alert("Insufficient balance.");
-
         return;
-
       }
 
-      state.balance-=amount;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bingo/join",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json",
+            "Authorization":"Bearer "+state.authToken
+          },
+          body:JSON.stringify({
+            tier:amount,
+            cartelaNumber:Number(state.bingoCartelas[slot])
+          })
+        });
 
-      updateBalance();
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){
+          alert(data?.error || "Could not join Bingo.");
+          return;
+        }
 
+        state.balance=Number(data.balanceAfter ?? (Number(state.balance||0)-amount));
+        updateBalance();
+
+        state.bingoJoined[slot]=true;
+        state.bingoJoinRoundIds[slot]=String(data.roundId||"");
+
+        /* Always use the server's fixed Cartela layout. */
+        state.bingoBoards[slot]=Array.isArray(data.cartela)
+          ? [...data.cartela]
+          : state.bingoBoards[slot];
+
+        const btn=document.querySelectorAll("#bingoGame .betSlots .placeBtn")[slot-1];
+        if(btn){
+          btn.disabled=true;
+          btn.textContent="BET PLACED";
+        }
+
+        updateBingoClaimButtons();
+        renderCartela();
+      }catch(error){
+        console.error(error);
+        alert("Could not join Bingo.");
+      }
     }
 
 
-    function runBingoDraw(){
+    function updateBingoClaimButtons(){
+      [1,2].forEach(slot=>{
+        const button=document.getElementById("bingoButton"+slot);
+        if(!button) return;
 
-      state.bettingOpen=false;
-
-      state.bingoDraw=[];
-
-      const display=
-        document.getElementById(
-          "bingoDraw"
+        const canClaim=Boolean(
+          state.bingoJoined?.[slot] &&
+          state.bingoBoards?.[slot]?.length &&
+          isWinningBingoNumbers(state.bingoBoards[slot],state.bingoDraw)
         );
 
-      if(display) display.innerHTML="";
-
-      let count=0;
-
-      const timer=
-        setInterval(()=>{
-
-          if(count>=20){
-
-            clearInterval(timer);
-
-            finishBingo();
-
-            return;
-
-          }
-
-          let n=
-            Math.floor(
-              Math.random()*75
-            )+1;
-
-          while(
-            state.bingoDraw.includes(n)
-          ){
-
-            n=
-              Math.floor(
-                Math.random()*75
-              )+1;
-
-          }
-
-          state.bingoDraw.push(n);
-
-          const ball=
-            document.createElement("div");
-
-          ball.className=
-            "bingoCalled";
-
-          ball.textContent=n;
-
-          if(display) display.appendChild(ball);
-
-          document
-            .getElementById("bingoStatus")
-            .textContent=
-              "CALLED "+
-              (count+1)+
-              " / 20 — "+
-              n;
-
-          count++;
-
-        },800);
-
-    }
-
-
-    function finishBingo(){
-
-      [1,2].forEach(slot=>{
-
-        const board=
-          state.bingoBoards[slot];
-
-        if(!board.length)
-          return;
-
-        const win=checkBingo(board,slot);
-
-        document
-          .getElementById(
-            "bingoButton"+slot
-          )
-          .disabled=!win;
-
+        button.disabled=!canClaim;
+        button.textContent=canClaim
+          ? "BINGO — CARTELA "+slot+" — CLAIM NOW"
+          : "BINGO — CARTELA "+slot;
       });
-
     }
 
 
-    function checkBingo(board,slot=state.activeCartela){
-      const marks=state.bingoMarks[slot] || [];
-      const marked=i=>board[i]===0 || Boolean(marks[i]);
+    function isWinningBingoNumbers(board,drawnNumbers){
+      if(!Array.isArray(board) || board.length!==25) return false;
+      const called=new Set((drawnNumbers||[]).map(Number));
+      const marked=i=>Number(board[i])===0 || called.has(Number(board[i]));
 
       for(let r=0;r<5;r++){
-
-        if(
-          [0,1,2,3,4]
-            .map(c=>marked(r*5+c))
-            .every(Boolean)
-        )
-          return true;
-
+        if([0,1,2,3,4].every(c=>marked(r*5+c))) return true;
       }
 
       for(let c=0;c<5;c++){
-
-        if(
-          [0,1,2,3,4]
-            .map(r=>marked(r*5+c))
-            .every(Boolean)
-        )
-          return true;
-
+        if([0,1,2,3,4].every(r=>marked(r*5+c))) return true;
       }
 
-      if(
-        [0,1,2,3,4]
-          .map(i=>marked(i*5+i))
-          .every(Boolean)
-      )
-        return true;
-
-      if(
-        [0,1,2,3,4]
-          .map(i=>marked(i*5+(4-i)))
-          .every(Boolean)
-      )
-        return true;
+      if([0,1,2,3,4].every(i=>marked(i*5+i))) return true;
+      if([0,1,2,3,4].every(i=>marked(i*5+(4-i)))) return true;
 
       return false;
-
     }
 
 
-    function claimBingo(slot){
-
-      const board=
-        state.bingoBoards[slot];
-
-      if(
-        !board.length ||
-        !checkBingo(board,slot)
-      )
+    async function claimBingo(slot){
+      if(!state.authToken){
+        alert("Please open your DESTA PLAY account first.");
         return;
+      }
 
-      alert(
-        "BINGO — CARTELA "+
-        state.bingoCartelas[slot]
-      );
+      if(!state.bingoJoined?.[slot]){
+        alert("Place the Bingo bet first.");
+        return;
+      }
 
-      document
-        .getElementById(
-          "bingoButton"+slot
-        )
-        .disabled=true;
+      const board=state.bingoBoards[slot]||[];
+      if(!isWinningBingoNumbers(board,state.bingoDraw)){
+        alert("BINGO is not complete yet. You need a horizontal, vertical, or diagonal line.");
+        return;
+      }
 
+      const button=document.getElementById("bingoButton"+slot);
+      if(button) button.disabled=true;
+
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bingo/claim",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json",
+            "Authorization":"Bearer "+state.authToken
+          },
+          body:JSON.stringify({
+            tier:Number(state.bingoAmounts[slot]),
+            cartelaNumber:Number(state.bingoCartelas[slot]),
+            roundId:String(state.bingoJoinRoundIds?.[slot]||"")
+          })
+        });
+
+        const data=await safeJsonResponse(response);
+
+        if(!response.ok || !data?.success){
+          if(button) button.disabled=false;
+          alert(data?.error || "Could not claim BINGO.");
+          return;
+        }
+
+        if(button){
+          button.textContent="BINGO CLAIMED — WAITING FOR WINNERS";
+        }
+
+        const status=document.getElementById("bingoStatus");
+        if(status){
+          status.textContent="VALID BINGO! CLAIM REGISTERED — "+(data.winnersCount||1)+" CLAIMANT(S)";
+        }
+
+        /* The server closes the round after the short simultaneous-claim window. */
+        await fetchLiveRound("bingo",Number(state.bingoAmounts[slot]));
+      }catch(error){
+        console.error(error);
+        if(button) button.disabled=false;
+        alert("Could not claim BINGO.");
+      }
     }
 
 
@@ -6419,12 +6405,12 @@
           state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
           state.bingoMarks[1][12]=true;
           state.bingoMarks[2][12]=true;
-          const b1=document.getElementById("bingoButton1");
-          const b2=document.getElementById("bingoButton2");
-          if(b1)b1.disabled=true;
-          if(b2)b2.disabled=true;
+          state.bingoJoined={1:false,2:false};
+          state.bingoJoinRoundIds={1:"",2:""};
+          document.querySelectorAll("#bingoGame .betSlots .placeBtn").forEach(b=>{b.disabled=false;b.textContent="PLACE BET";});
         }
         if(changed || isNewRound)renderServerBingo(round);
+        updateBingoClaimButtons();
       }
 
       if(game === "roulette"){
@@ -6590,6 +6576,7 @@
               : round.status;
       }
       if(typeof renderCartela === "function") renderCartela();
+      updateBingoClaimButtons();
     }
 
     function renderServerRoulette(winner, roundId=""){
