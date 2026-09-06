@@ -192,6 +192,295 @@ const games = {
     aviator
 };
 
+/*
+|--------------------------------------------------------------------------
+| DESTA PLAY — PVP ARENA FOUNDATION
+|--------------------------------------------------------------------------
+|
+| This layer is additive. Existing payment, withdrawal, invitation,
+| authentication and voice systems remain unchanged. PVP results are
+| decided by the server only.
+|
+|--------------------------------------------------------------------------
+*/
+const PVP_GAMES = {
+    ludo:       { name: "Ludo PVP", maxPlayers: 4, minPlayers: 2 },
+    highcard:   { name: "High Card PVP", maxPlayers: 2, minPlayers: 2 },
+    penalty:    { name: "Penalty PVP", maxPlayers: 2, minPlayers: 2 },
+    dice:       { name: "Dice PVP", maxPlayers: 2, minPlayers: 2 },
+    target:     { name: "Target Rush PVP", maxPlayers: 4, minPlayers: 2 },
+    memory:     { name: "Memory Match PVP", maxPlayers: 2, minPlayers: 2 },
+    racing:     { name: "Mini Racing PVP", maxPlayers: 4, minPlayers: 2 },
+    speedcards: { name: "Speed Cards PVP", maxPlayers: 2, minPlayers: 2 },
+    numberrush: { name: "Number Rush PVP", maxPlayers: 4, minPlayers: 2 }
+};
+
+const pvpRooms = new Map();
+const pvpPlayerRooms = new Map();
+const PVP_HOUSE_RAKE_PERCENT = 10;
+const PVP_ROOM_TTL_MS = 30 * 60 * 1000;
+
+function pvpRoomKey(game, entryFee) {
+    return `${game}:${Number(entryFee).toFixed(2)}`;
+}
+
+function pvpPublicRoom(room) {
+    return {
+        roomId: room.roomId,
+        game: room.game,
+        gameName: PVP_GAMES[room.game]?.name || room.game,
+        entryFee: room.entryFee,
+        maxPlayers: room.maxPlayers,
+        minPlayers: room.minPlayers,
+        playersCount: room.players.size,
+        status: room.status,
+        roundId: room.roundId,
+        createdAt: room.createdAt,
+        startedAt: room.startedAt || null,
+        bettingEndsAt: room.bettingEndsAt,
+        remainingSeconds: Math.max(0, Math.ceil((room.bettingEndsAt - Date.now()) / 1000))
+    };
+}
+
+function pvpGetOrCreateRoom(game, entryFee) {
+    const key = pvpRoomKey(game, entryFee);
+    const existing = pvpRooms.get(key);
+    if (existing && existing.status === "BETTING" && existing.players.size < existing.maxPlayers && Date.now() < existing.bettingEndsAt) {
+        return existing;
+    }
+
+    const cfg = PVP_GAMES[game];
+    if (!cfg) throw new Error("Unsupported PVP game");
+
+    const now = Date.now();
+    const room = {
+        roomId: `pvp-${game}-${now}-${crypto.randomBytes(4).toString("hex")}`,
+        roundId: `pvp-round-${now}-${crypto.randomBytes(5).toString("hex")}`,
+        game,
+        entryFee: Number(entryFee),
+        maxPlayers: cfg.maxPlayers,
+        minPlayers: cfg.minPlayers,
+        players: new Map(),
+        status: "BETTING",
+        createdAt: now,
+        bettingEndsAt: now + 45000,
+        startedAt: null,
+        finishedAt: null,
+        state: {},
+        result: null,
+        settled: false,
+        winnerIds: []
+    };
+
+    pvpRooms.set(key, room);
+    setTimeout(() => pvpStartRoomIfReady(room), 45000);
+    return room;
+}
+
+function pvpEntryFee(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0 || n > 100000) throw new Error("Invalid PVP entry fee");
+    return Number(n.toFixed(2));
+}
+
+async function pvpDebitPlayer(playerId, room) {
+    return changeBalance({
+        playerId,
+        amount: -room.entryFee,
+        type: "pvp_entry",
+        game: room.game,
+        roundId: room.roundId,
+        description: `PVP entry — ${room.game}`,
+        metadata: { roomId: room.roomId, entryFee: room.entryFee }
+    });
+}
+
+async function pvpHasSettlement(playerId, referenceId) {
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("player_id", playerId)
+        .eq("reference_id", referenceId)
+        .in("type", ["pvp_win", "pvp_refund"])
+        .limit(1);
+    if (error) {
+        console.warn("[PVP] Settlement lookup failed:", error.message);
+        return false;
+    }
+    return Array.isArray(data) && data.length > 0;
+}
+
+async function pvpSettleRoom(room, winnerIds = [], metadata = {}) {
+    if (!room || room.settled) return room?.result || null;
+    room.settled = true;
+    room.status = "FINISHED";
+    room.finishedAt = Date.now();
+
+    const uniqueWinners = [...new Set((winnerIds || []).map(String))];
+    const grossPool = Number((room.players.size * room.entryFee).toFixed(2));
+    const houseRake = Number((grossPool * PVP_HOUSE_RAKE_PERCENT / 100).toFixed(2));
+    const winnerPool = Number((grossPool - houseRake).toFixed(2));
+    const baseShareCents = uniqueWinners.length ? Math.floor((winnerPool * 100) / uniqueWinners.length) : 0;
+    const baseShare = Number((baseShareCents / 100).toFixed(2));
+    const remainderCents = uniqueWinners.length ? Math.max(0, Math.round(winnerPool * 100) - baseShareCents * uniqueWinners.length) : 0;
+    const roundingRemainder = Number((remainderCents / 100).toFixed(2));
+
+    room.winnerIds = uniqueWinners;
+    for (const player of room.players.values()) pvpPlayerRooms.delete(player.playerId);
+    room.result = {
+        grossPool,
+        houseRake,
+        winnerPool,
+        winnerIds: uniqueWinners,
+        winnerShare: baseShare,
+        roundingRemainder,
+        ...metadata
+    };
+
+    for (let index = 0; index < uniqueWinners.length; index++) {
+        const winnerId = uniqueWinners[index];
+        const winnerCents = baseShareCents + (index < remainderCents ? 1 : 0);
+        const winnerAmount = Number((winnerCents / 100).toFixed(2));
+        if (winnerAmount <= 0) continue;
+        const alreadySettled = await pvpHasSettlement(winnerId, `${room.roundId}:win`);
+        if (alreadySettled) continue;
+        try {
+            await changeBalance({
+                playerId: winnerId,
+                amount: winnerAmount,
+                type: "pvp_win",
+                game: room.game,
+                roundId: `${room.roundId}:win`,
+                description: `PVP prize — ${room.game}`,
+                metadata: { roomId: room.roomId, ...room.result }
+            });
+        } catch (error) {
+            console.error(`[PVP] Winner settlement failed for ${winnerId}:`, error.message);
+        }
+    }
+
+    return room.result;
+}
+
+async function pvpRefundRoom(room, reason = "Round cancelled") {
+    if (!room || room.settled) return;
+    room.settled = true;
+    room.status = "FINISHED";
+    room.finishedAt = Date.now();
+    for (const player of room.players.values()) pvpPlayerRooms.delete(player.playerId);
+    for (const player of room.players.values()) {
+        const alreadyRefunded = await pvpHasSettlement(player.playerId, `${room.roundId}:refund`);
+        if (alreadyRefunded) continue;
+        try {
+            await changeBalance({
+                playerId: player.playerId,
+                amount: room.entryFee,
+                type: "pvp_refund",
+                game: room.game,
+                roundId: `${room.roundId}:refund`,
+                description: `PVP refund — ${reason}`,
+                metadata: { roomId: room.roomId, reason }
+            });
+        } catch (error) {
+            console.error(`[PVP] Refund failed for ${player.playerId}:`, error.message);
+        }
+    }
+}
+
+function pvpWinnerByScore(players) {
+    let best = -Infinity;
+    let winners = [];
+    for (const p of players) {
+        const score = Number(p.score || 0);
+        if (score > best) { best = score; winners = [p.playerId]; }
+        else if (score === best) winners.push(p.playerId);
+    }
+    return winners;
+}
+
+async function pvpResolveRoom(room) {
+    if (!room || room.status === "FINISHED" || room.status === "RESOLVING") return room?.result;
+    if (room.players.size < room.minPlayers) {
+        await pvpRefundRoom(room, "Not enough players");
+        return room.result;
+    }
+
+    room.status = "RESOLVING";
+    const players = [...room.players.values()];
+    let winners = [];
+    let metadata = {};
+
+    if (room.game === "dice") {
+        const roll = Number((crypto.randomInt(0, 10001) / 100).toFixed(2));
+        const qualified = players.filter(p => (p.prediction === "OVER" ? roll > p.target : roll < p.target));
+        winners = pvpWinnerByScore(qualified.length ? qualified : players.map(p => ({...p, score: 0})));
+        metadata = { roll, players: players.map(p => ({ playerId:p.playerId, prediction:p.prediction, target:p.target, won:winners.includes(p.playerId) })) };
+    } else if (room.game === "highcard") {
+        const cards = players.map(p => ({ playerId:p.playerId, value:crypto.randomInt(2,15), suit:["HEARTS","DIAMONDS","CLUBS","SPADES"][crypto.randomInt(0,4)] }));
+        const best = Math.max(...cards.map(c => c.value));
+        winners = cards.filter(c => c.value === best).map(c => c.playerId);
+        metadata = { cards };
+    } else if (room.game === "penalty") {
+        const scores = players.map(p => ({ playerId:p.playerId, score:0 }));
+        for (let r=0;r<5;r++) {
+            for (const p of scores) if (crypto.randomInt(0,100) < 50) p.score++;
+        }
+        winners = pvpWinnerByScore(scores);
+        metadata = { rounds:5, scores };
+    } else if (room.game === "ludo") {
+        const scores = players.map(p => ({ playerId:p.playerId, score:0 }));
+        for (const p of scores) {
+            let pos=0; for(let i=0;i<12;i++) pos += crypto.randomInt(1,7);
+            p.score=pos;
+        }
+        winners = pvpWinnerByScore(scores);
+        metadata = { scores };
+    } else if (room.game === "target") {
+        const target=crypto.randomInt(1,101);
+        const attempts=players.map(p=>({playerId:p.playerId,guess:Number(p.guess||50),distance:Math.abs(Number(p.guess||50)-target)}));
+        const best=Math.min(...attempts.map(a=>a.distance));
+        winners=attempts.filter(a=>a.distance===best).map(a=>a.playerId);
+        metadata={target,attempts};
+    } else if (room.game === "memory") {
+        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,7)}));
+        winners=pvpWinnerByScore(scores); metadata={scores};
+    } else if (room.game === "racing") {
+        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(50,101)}));
+        winners=pvpWinnerByScore(scores); metadata={scores};
+    } else if (room.game === "speedcards") {
+        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,21)}));
+        winners=pvpWinnerByScore(scores); metadata={scores};
+    } else if (room.game === "numberrush") {
+        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,51)}));
+        winners=pvpWinnerByScore(scores); metadata={scores};
+    } else {
+        winners = [players[0].playerId];
+    }
+
+    return pvpSettleRoom(room, winners, metadata);
+}
+
+function pvpStartRoomIfReady(room) {
+    if (!room || room.status !== "BETTING") return;
+    if (room.players.size < room.minPlayers) {
+        pvpRefundRoom(room, "Not enough players").catch(console.error);
+        return;
+    }
+    room.status = "READY";
+    room.startedAt = Date.now();
+    pvpResolveRoom(room).catch(console.error);
+}
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, room] of pvpRooms.entries()) {
+        if ((room.status === "BETTING" && now >= room.bettingEndsAt) || (room.status === "FINISHED" && now - Number(room.finishedAt || now) > PVP_ROOM_TTL_MS)) {
+            if (room.status === "BETTING") pvpStartRoomIfReady(room);
+            if (room.status === "FINISHED") pvpRooms.delete(key);
+        }
+    }
+}, 5000);
+
 const rounds = {};
 
 /* Persistent display sequence for each server-authoritative house game. */
@@ -3691,7 +3980,7 @@ async function resolveBingoWinner(
                     houseRake,
                     winnerPool,
                     winnersCount: validWinners.length,
-                    winnerShare: share,
+                    winnerShare: winnerAmount,
                     cartelaNumber: winningPlayer.cartelaNumber
                 }
             });
@@ -6338,6 +6627,110 @@ async function testDatabaseConnection() {
 
 /*
 |--------------------------------------------------------------------------
+| PVP ARENA API
+|--------------------------------------------------------------------------
+| Additive only. Existing account, payment, withdrawal, invitation and
+| voice endpoints above remain untouched.
+|--------------------------------------------------------------------------
+*/
+app.get("/api/pvp/games", requirePlayer, (req, res) => {
+    res.json({ success:true, games:Object.entries(PVP_GAMES).map(([id,cfg]) => ({ id, ...cfg })) });
+});
+
+app.get("/api/pvp/rooms", requirePlayer, (req, res) => {
+    try {
+        const game=String(req.query.game || "").trim().toLowerCase();
+        const fee=pvpEntryFee(req.query.entryFee || 10);
+        if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
+        const room=pvpGetOrCreateRoom(game,fee);
+        res.json({success:true,room:pvpPublicRoom(room)});
+    } catch(error) {
+        res.status(400).json({success:false,error:error.message});
+    }
+});
+
+app.post("/api/pvp/join", requirePlayer, async (req, res) => {
+    try {
+        const game=String(req.body.game || "").trim().toLowerCase();
+        const fee=pvpEntryFee(req.body.entryFee || 10);
+        if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
+        if (pvpPlayerRooms.has(req.player.id)) return res.status(409).json({success:false,error:"You are already in a PVP room"});
+
+        const room=pvpGetOrCreateRoom(game,fee);
+        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"Room is no longer accepting players"});
+        if (room.players.has(req.player.id)) return res.json({success:true,room:pvpPublicRoom(room),alreadyJoined:true});
+        if (room.players.size >= room.maxPlayers) return res.status(409).json({success:false,error:"Room is full"});
+
+        await pvpDebitPlayer(req.player.id,room);
+        room.players.set(req.player.id,{ playerId:String(req.player.id), telegramName:String(req.player.username || req.player.telegram_username || "Player"), joinedAt:Date.now(), score:0 });
+        pvpPlayerRooms.set(req.player.id,room.roomId);
+
+        if (room.players.size >= room.maxPlayers) pvpStartRoomIfReady(room);
+        res.json({success:true,room:pvpPublicRoom(room),balance:Number(req.player.balance || 0)-room.entryFee});
+    } catch(error) {
+        res.status(400).json({success:false,error:error.message});
+    }
+});
+
+app.post("/api/pvp/action", requirePlayer, async (req, res) => {
+    try {
+        const roomId=String(req.body.roomId || "");
+        const room=[...pvpRooms.values()].find(r=>r.roomId===roomId);
+        if (!room) return res.status(404).json({success:false,error:"PVP room not found"});
+        const player=room.players.get(req.player.id);
+        if (!player) return res.status(403).json({success:false,error:"You are not in this room"});
+        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
+
+        if (room.game === "dice") {
+            const prediction=String(req.body.prediction || "").toUpperCase();
+            const target=Number(req.body.target);
+            if (!['OVER','UNDER'].includes(prediction) || !Number.isFinite(target) || target<=0 || target>=100) throw new Error("Choose OVER or UNDER with a target between 0 and 100");
+            if (player.actionLocked) throw new Error("Action already submitted");
+            player.prediction=prediction; player.target=Number(target.toFixed(2)); player.actionLocked=true;
+        } else if (room.game === "target") {
+            const guess=Number(req.body.guess);
+            if (!Number.isInteger(guess) || guess<1 || guess>100) throw new Error("Target must be an integer from 1 to 100");
+            if (player.actionLocked) throw new Error("Action already submitted");
+            player.guess=guess; player.actionLocked=true;
+        } else {
+            if (player.actionLocked) throw new Error("Action already submitted");
+            player.action=String(req.body.action || "READY").slice(0,40); player.actionLocked=true;
+        }
+
+        const allSubmitted=[...room.players.values()].every(p=>p.actionLocked);
+        if (allSubmitted) await pvpResolveRoom(room);
+        res.json({success:true,room:pvpPublicRoom(room),result:room.result || null});
+    } catch(error) {
+        res.status(400).json({success:false,error:error.message});
+    }
+});
+
+app.post("/api/pvp/leave", requirePlayer, async (req, res) => {
+    try {
+        const roomId=String(req.body.roomId || "");
+        const room=[...pvpRooms.values()].find(r=>r.roomId===roomId);
+        if (!room) return res.json({success:true});
+        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"You cannot leave after the round starts"});
+        const player=room.players.get(req.player.id);
+        if (!player) return res.json({success:true});
+        room.players.delete(req.player.id);
+        pvpPlayerRooms.delete(req.player.id);
+        await changeBalance({ playerId:req.player.id, amount:room.entryFee, type:"pvp_refund", game:room.game, roundId:`${room.roundId}:leave`, description:"PVP leave refund", metadata:{roomId:room.roomId} });
+        res.json({success:true,room:pvpPublicRoom(room)});
+    } catch(error) {
+        res.status(400).json({success:false,error:error.message});
+    }
+});
+
+app.get("/api/pvp/room/:roomId", requirePlayer, (req,res)=>{
+    const room=[...pvpRooms.values()].find(r=>r.roomId===String(req.params.roomId));
+    if(!room) return res.status(404).json({success:false,error:"PVP room not found"});
+    const player=room.players.get(req.player.id);
+    res.json({success:true,room:pvpPublicRoom(room),joined:Boolean(player),result:room.result||null});
+});
+
+/*
+|--------------------------------------------------------------------------
 | BOOT
 |--------------------------------------------------------------------------
 */
@@ -6363,7 +6756,7 @@ app.listen(
         );
 
         console.log(
-            "Keno / Bingo / Roulette / Aviator"
+            "Keno / Bingo / Roulette / Aviator / PVP Arena"
         );
 
         console.log(
