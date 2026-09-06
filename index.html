@@ -362,6 +362,37 @@
       font-weight:bold;
     }
 
+
+    /* =========================================================
+       PVP LOBBY / ARENA ADDITIONS
+    ========================================================= */
+    #gameLobby{
+      position:fixed;inset:0;z-index:2500;display:flex;align-items:center;justify-content:center;
+      padding:18px;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);
+    }
+    #gameLobby.hidden{display:none}
+    .lobbyPanel{width:min(560px,96vw);max-height:90vh;overflow:auto;border:1px solid #8b5b00;border-radius:20px;
+      background:linear-gradient(160deg,#250909,#0b0b0b);box-shadow:0 18px 60px #000;padding:20px;}
+    .lobbyEyebrow{color:#aaa;font-size:10px;font-weight:900;letter-spacing:2px;text-align:center}
+    .lobbyTitle{text-align:center;color:#ffd447;font-size:28px;font-weight:1000;margin:7px 0}
+    .lobbySubtitle{text-align:center;color:#ddd;font-size:12px;margin-bottom:15px}
+    .lobbyStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+    .lobbyStat{padding:12px;border:1px solid #5b2525;border-radius:12px;background:#120d0d;text-align:center}
+    .lobbyStat small{display:block;color:#999;font-size:9px}.lobbyStat strong{color:#fff;font-size:15px}
+    .lobbyActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+    .lobbyBtn{border:0;border-radius:11px;padding:13px;font-weight:1000;background:linear-gradient(180deg,#ffcf3b,#b87400);color:#170900}
+    .lobbyBtn.secondary{background:#2a1111;color:#fff;border:1px solid #6d2929}
+    .lobbyHelp{margin-top:12px;padding:12px;border:1px solid #432020;border-radius:12px;color:#ccc;font-size:11px;line-height:1.55}
+    .pvpGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px}
+    .pvpCard{border:1px solid #6a2424;border-radius:13px;background:linear-gradient(145deg,#291010,#101010);padding:12px}
+    .pvpCard h3{margin:0 0 5px;color:#ffd447;font-size:14px}.pvpCard p{margin:0 0 9px;color:#aaa;font-size:10px}
+    .pvpCard button{width:100%;border:0;border-radius:8px;padding:9px;background:#a80c0c;color:#fff;font-weight:900}
+    .pvpArena{padding:12px}.pvpArena.hidden{display:none}
+    .pvpStatus{padding:12px;border:1px solid #5b2525;border-radius:12px;background:#120909;text-align:center;color:#ddd;font-size:12px}
+    .pvpActionGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .pvpActionGrid button{border:1px solid #8d6100;border-radius:10px;padding:12px;background:#2b1700;color:#ffd447;font-weight:900}
+    .pvpResult{margin-top:10px;padding:12px;border-radius:12px;background:#101010;border:1px solid #493030;color:#fff;white-space:pre-wrap;font-size:11px}
+
     /* =========================================================
        GAME
     ========================================================= */
@@ -2092,6 +2123,19 @@
 
       </div>
 
+      <div class="gameTitle" style="font-size:16px;margin-top:8px">PVP ARENA</div>
+      <div class="pvpGrid">
+        <div class="pvpCard"><h3>LUDO PVP</h3><p>Race • Dice • 2–4 players</p><button onclick="openGame('ludo')">PLAY</button></div>
+        <div class="pvpCard"><h3>HIGH CARD</h3><p>Cards • 1v1 • Highest wins</p><button onclick="openGame('highcard')">PLAY</button></div>
+        <div class="pvpCard"><h3>PENALTY PVP</h3><p>5 rounds • Skill challenge</p><button onclick="openGame('penalty')">PLAY</button></div>
+        <div class="pvpCard"><h3>DICE PVP</h3><p>Over / Under • 1v1</p><button onclick="openGame('dice')">PLAY</button></div>
+        <div class="pvpCard"><h3>TARGET RUSH</h3><p>Closest guess wins</p><button onclick="openGame('target')">PLAY</button></div>
+        <div class="pvpCard"><h3>MEMORY MATCH</h3><p>Match pairs • 1v1</p><button onclick="openGame('memory')">PLAY</button></div>
+        <div class="pvpCard"><h3>MINI RACING</h3><p>Fast race • 2–4 players</p><button onclick="openGame('racing')">PLAY</button></div>
+        <div class="pvpCard"><h3>SPEED CARDS</h3><p>Fastest player wins</p><button onclick="openGame('speedcards')">PLAY</button></div>
+        <div class="pvpCard"><h3>NUMBER RUSH</h3><p>Rapid number challenge</p><button onclick="openGame('numberrush')">PLAY</button></div>
+      </div>
+
     </section>
 
 
@@ -2100,6 +2144,26 @@
     ====================================================== -->
 
     <section id="gameScreen">
+
+      <div id="gameLobby" class="hidden">
+        <div class="lobbyPanel">
+          <div class="lobbyEyebrow">DESTA PLAY • GAME LOBBY</div>
+          <div class="lobbyTitle" id="lobbyGameTitle">GAME</div>
+          <div class="lobbySubtitle" id="lobbySubtitle">Review the rules and join the round.</div>
+          <div class="lobbyStats">
+            <div class="lobbyStat"><small>ENTRY FEE</small><strong id="lobbyEntryFee">—</strong></div>
+            <div class="lobbyStat"><small>PRIZE POOL</small><strong id="lobbyPrizePool">—</strong></div>
+            <div class="lobbyStat"><small>PLAYERS</small><strong id="lobbyPlayers">—</strong></div>
+            <div class="lobbyStat"><small>ROUND</small><strong id="lobbyRound">—</strong></div>
+          </div>
+          <div class="lobbyHelp" id="lobbyHelp">Choose HELP for the complete payout, playing and winning rules.</div>
+          <div class="lobbyActions">
+            <button class="lobbyBtn" type="button" onclick="joinSelectedGame()">JOIN GAME</button>
+            <button class="lobbyBtn secondary" type="button" onclick="openHelp()">HELP</button>
+            <button class="lobbyBtn secondary" type="button" onclick="backToGames()">← BACK</button>
+          </div>
+        </div>
+      </div>
 
       <header class="gameHeader">
 
@@ -2819,6 +2883,12 @@
 
         <div id="feedContent"></div>
 
+      </div>
+
+      <div id="pvpArena" class="pvpArena hidden">
+        <div class="pvpStatus" id="pvpStatus">Waiting for server…</div>
+        <div class="pvpActionGrid" id="pvpActionGrid"></div>
+        <div class="pvpResult hidden" id="pvpResult"></div>
       </div>
 
     </section>
@@ -4001,42 +4071,55 @@
        OPEN GAME
     ========================================================= */
 
-    function openGame(game){
+    async function openGame(game){
 
       /* Voice is strictly scoped to the game currently on screen. */
       if(voiceState && voiceState.enabled) clearVoiceQueue();
       state.game=game;
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
+      state.selectedGameLobby=game;
 
       showPage("game");
-
-      document
-        .getElementById("gameTitle")
-        .textContent=
-          game.toUpperCase();
-
       updateRound();
-
       hideAllGames();
+      document.getElementById("pvpArena")?.classList.add("hidden");
 
-      document
-        .getElementById(game+"Game")
-        .classList.remove("hidden");
+      const pvpGames=["ludo","highcard","penalty","dice","target","memory","racing","speedcards","numberrush"];
+      const isPvp=pvpGames.includes(game);
+      const lobby=document.getElementById("gameLobby");
+      if(lobby) lobby.classList.remove("hidden");
 
-      buildGame();
+      const title=document.getElementById("lobbyGameTitle");
+      const subtitle=document.getElementById("lobbySubtitle");
+      const help=document.getElementById("lobbyHelp");
+      if(title) title.textContent=isPvp ? (game.replace(/(^|_)(\w)/g,(_,a,b)=>b.toUpperCase())+" PVP") : game.toUpperCase();
+      if(subtitle) subtitle.textContent=isPvp ? "Server-authoritative player-versus-player round." : "Review the game before entering the active round.";
+      if(help) help.textContent=isPvp ? "Entry is deducted only when JOIN GAME is confirmed. The server validates the round and settles verified winners." : "Use HELP for how to play, how to win and payout information before joining.";
+      if(document.getElementById("lobbyEntryFee")) document.getElementById("lobbyEntryFee").textContent=isPvp ? "10 ETB" : "See round";
+      if(document.getElementById("lobbyPrizePool")) document.getElementById("lobbyPrizePool").textContent=isPvp ? "90% pool" : "See rules";
+      if(document.getElementById("lobbyPlayers")) document.getElementById("lobbyPlayers").textContent=isPvp ? "2–4" : "Live";
+      if(document.getElementById("lobbyRound")) document.getElementById("lobbyRound").textContent="—";
+
+      if(!isPvp){
+        document.getElementById("gameTitle").textContent=game.toUpperCase();
+        const gameEl=document.getElementById(game+"Game");
+        if(gameEl) gameEl.classList.remove("hidden");
+        buildGame();
+      }
 
       if(game === "bingo"){
         const stake=document.getElementById("bingoStakeScreen");
         const play=document.getElementById("bingoPlayArea");
-        if(stake)stake.classList.remove("hidden");
+        if(stake)stake.classList.add("hidden");
         if(play)play.classList.add("hidden");
       }
-
     }
 
 
     function backToGames(){
       if(voiceState && voiceState.enabled) clearVoiceQueue();
+      document.getElementById("gameLobby")?.classList.add("hidden");
+      document.getElementById("pvpArena")?.classList.add("hidden");
       hideAllGames();
       state.game="";
       state.bettingOpen=false;
@@ -4048,6 +4131,85 @@
       showPage("home");
     }
 
+
+    /* =========================================================
+       PVP LOBBY / ARENA
+    ========================================================= */
+    const PVP_GAME_IDS=["ludo","highcard","penalty","dice","target","memory","racing","speedcards","numberrush"];
+    let pvpRoomPollTimer=null;
+    let pvpRoomState=null;
+
+    function isPvpGame(game){ return PVP_GAME_IDS.includes(String(game||"")); }
+
+    function pvpAuthHeaders(){
+      return {"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")};
+    }
+
+    async function joinSelectedGame(){
+      const game=String(state.selectedGameLobby||state.game||"");
+      if(isPvpGame(game)){
+        try{
+          const fee=10;
+          const response=await fetch("https://desta-play.onrender.com/api/pvp/join",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({game,entryFee:fee}),cache:"no-store"});
+          const data=await safeJsonResponse(response);
+          if(!response.ok || !data.success) throw new Error(data.error||"Could not join PVP game");
+          pvpRoomState=data.room;
+          document.getElementById("gameLobby")?.classList.add("hidden");
+          document.getElementById("pvpArena")?.classList.remove("hidden");
+          document.getElementById("gameTitle").textContent=(game+" PVP").toUpperCase();
+          renderPvpArena();
+          startPvpRoomPolling();
+          loadServerAccount();
+        }catch(error){
+          alert(error.message||"Could not join PVP game");
+        }
+        return;
+      }
+      document.getElementById("gameLobby")?.classList.add("hidden");
+      if(game==="bingo"){
+        const stake=document.getElementById("bingoStakeScreen"); const play=document.getElementById("bingoPlayArea");
+        if(stake)stake.classList.remove("hidden"); if(play)play.classList.add("hidden");
+      }
+      const el=document.getElementById(game+"Game"); if(el) el.classList.remove("hidden");
+      buildGame();
+    }
+
+    function startPvpRoomPolling(){
+      clearInterval(pvpRoomPollTimer);
+      pvpRoomPollTimer=setInterval(async()=>{
+        if(!pvpRoomState?.roomId){ clearInterval(pvpRoomPollTimer); return; }
+        try{
+          const response=await fetch("https://desta-play.onrender.com/api/pvp/room/"+encodeURIComponent(pvpRoomState.roomId),{headers:{"Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")},cache:"no-store"});
+          const data=await safeJsonResponse(response);
+          if(response.ok&&data.success){ pvpRoomState=data.room; renderPvpArena(data.result||null); }
+        }catch(e){}
+      },1000);
+    }
+
+    function renderPvpArena(result=null){
+      const room=pvpRoomState; if(!room) return;
+      const status=document.getElementById("pvpStatus");
+      if(status) status.textContent=`${String(room.gameName||room.game).toUpperCase()} • ${room.playersCount}/${room.maxPlayers} PLAYERS • ${room.status} • ${room.remainingSeconds||0}s`;
+      const grid=document.getElementById("pvpActionGrid"); if(!grid)return;
+      let html=""; const g=String(room.game||"");
+      if(g==="dice") html=`<button onclick="submitPvpAction({prediction:'OVER',target:50})">OVER 50</button><button onclick="submitPvpAction({prediction:'UNDER',target:50})">UNDER 50</button>`;
+      else if(g==="target") html=`<input id="pvpGuess" type="number" min="1" max="100" value="50" style="grid-column:1/-1;padding:12px;border-radius:10px;background:#090909;color:#fff;border:1px solid #633"><button style="grid-column:1/-1" onclick="submitPvpAction({guess:Number(document.getElementById('pvpGuess').value)})">LOCK TARGET</button>`;
+      else html=`<button onclick="submitPvpAction({action:'READY'})">READY</button><button onclick="submitPvpAction({action:'PLAY'})">PLAY</button>`;
+      grid.innerHTML=html;
+      const resultEl=document.getElementById("pvpResult");
+      if(result && resultEl){ resultEl.classList.remove("hidden"); resultEl.textContent="RESULT\n"+JSON.stringify(result,null,2); }
+      else if(resultEl) resultEl.classList.add("hidden");
+    }
+
+    async function submitPvpAction(action){
+      if(!pvpRoomState?.roomId)return;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/pvp/action",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({roomId:pvpRoomState.roomId,...action}),cache:"no-store"});
+        const data=await safeJsonResponse(response);
+        if(!response.ok||!data.success)throw new Error(data.error||"Action rejected");
+        pvpRoomState=data.room; renderPvpArena(data.result||null); loadServerAccount();
+      }catch(error){ alert(error.message||"Action rejected"); }
+    }
 
     /* =========================================================
        HIDE GAMES
@@ -5730,6 +5892,16 @@
 
       const help={
 
+        ludo:{title:"How to Play Ludo PVP",html:`<h3>How to play</h3><p>Join the room and compete against other players. The server controls the dice and result.</p><h3>How to win</h3><p>The server calculates the strongest verified result. Ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool. 10% is the platform rake.</p>`},
+        highcard:{title:"How to Play High Card PVP",html:`<h3>How to play</h3><p>Join a 1v1 room. Cards are drawn by the server.</p><h3>How to win</h3><p>The highest verified card wins. Equal highest cards share the winner pool.</p><h3>Payout</h3><p>90% of the two-player pool is paid to verified winner(s).</p>`},
+        penalty:{title:"How to Play Penalty PVP",html:`<h3>How to play</h3><p>Join a 1v1 penalty match. The server resolves the five-round challenge.</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% of the entry pool is shared by verified winner(s).</p>`},
+        dice:{title:"How to Play Dice PVP",html:`<h3>How to play</h3><p>Choose OVER or UNDER 50. The server generates the roll.</p><h3>How to win</h3><p>Your prediction must match the server roll. Verified ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool; 10% is the platform rake.</p>`},
+        target:{title:"How to Play Target Rush PVP",html:`<h3>How to play</h3><p>Choose a number from 1–100 and lock it before resolution.</p><h3>How to win</h3><p>The closest verified guess to the server target wins.</p><h3>Payout</h3><p>90% of the entry pool is shared equally among verified winners.</p>`},
+        memory:{title:"How to Play Memory Match PVP",html:`<h3>How to play</h3><p>Compete in a server-controlled memory challenge.</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+        racing:{title:"How to Play Mini Racing PVP",html:`<h3>How to play</h3><p>Join a 2–4 player race.</p><h3>How to win</h3><p>The server determines the verified race result.</p><h3>Payout</h3><p>90% of the pool is shared by verified winner(s).</p>`},
+        speedcards:{title:"How to Play Speed Cards PVP",html:`<h3>How to play</h3><p>Join the 1v1 speed-card challenge and submit your action.</p><h3>How to win</h3><p>The server determines the verified score.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+        numberrush:{title:"How to Play Number Rush PVP",html:`<h3>How to play</h3><p>Join a 2–4 player number challenge.</p><h3>How to win</h3><p>The server determines the verified score and winner(s).</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+
         keno:{
           title:"How to Play Keno",
           html:`
@@ -5863,12 +6035,12 @@
       document
         .getElementById("helpTitle")
         .textContent=
-          help[state.game].title;
+          (help[state.game] || {title:"How to Play"}).title;
 
       document
         .getElementById("helpContent")
         .innerHTML=
-          help[state.game].html;
+          (help[state.game] || {html:"<p>Game rules will be shown here.</p>"}).html;
 
       document
         .getElementById("helpOverlay")
