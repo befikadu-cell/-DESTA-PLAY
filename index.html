@@ -1824,7 +1824,7 @@
     .transactionRow:last-child{border-bottom:0}
     .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
 
-    </style>
+    .voiceLangBox{display:flex;align-items:center;gap:2px}.voiceLangBtn{border:0;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:4px;opacity:.55;cursor:pointer}.voiceLangBtn.active{opacity:1;text-decoration:underline}</style>
     </head>
 
     <body>
@@ -2110,14 +2110,11 @@
             ?
           </button>
 
-          <button
-            class="helpBtn voiceBtn"
-            id="voiceToggle"
-            type="button"
-            onclick="activateGameVoice()"
-            aria-label="Activate game voice">
-            🔊
-          </button>
+          <div class="voiceLangBox" aria-label="Voice language">
+            <button id="voiceLangEN" class="voiceLangBtn" type="button" onclick="setVoiceLanguage('en')">EN</button>
+            <button id="voiceLangAM" class="voiceLangBtn" type="button" onclick="setVoiceLanguage('am')">አማ</button>
+          </div>
+          <button class="helpBtn voiceBtn" id="voiceToggle" type="button" onclick="activateGameVoice()" aria-label="Activate game voice">🔊</button>
 
         </div>
 
@@ -6126,6 +6123,7 @@
     const voiceState = {
       enabled: false,
       unlocked: false,
+      language: "en",
       supported: true,
       queue: [],
       playing: false,
@@ -6147,6 +6145,16 @@
       button.textContent=voiceState.enabled ? "🔊" : "🔇";
       button.title=voiceState.enabled ? "Game voice is ON — tap to turn OFF" : "Tap to turn game voice ON";
       button.setAttribute("aria-label", voiceState.enabled ? "Turn game voice off" : "Turn game voice on");
+      document.getElementById("voiceLangEN")?.classList.toggle("active",voiceState.language==="en");
+      document.getElementById("voiceLangAM")?.classList.toggle("active",voiceState.language==="am");
+    }
+
+    function setVoiceLanguage(lang){
+      voiceState.language=lang==="am" ? "am" : "en";
+      try{localStorage.setItem("desta_play_voice_language",voiceState.language);}catch(e){}
+      clearVoiceQueue();
+      updateVoiceButton();
+      if(voiceState.enabled) queueGameVoice(voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.",voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.",true);
     }
 
     function clearVoiceQueue(){
@@ -6161,10 +6169,12 @@
     }
 
     function queueGameVoice(en, am, priority=false){
-      const text=String(en||"");
-      if(!text.trim()) return;
-      if(priority) voiceState.queue.unshift({text,priority:true});
-      else voiceState.queue.push({text,priority:false});
+      const enText=String(en||"");
+      const amText=String(am||enText);
+      if(!enText.trim() && !amText.trim()) return;
+      const item={en:enText,am:amText,priority:!!priority};
+      if(priority) voiceState.queue.unshift(item);
+      else voiceState.queue.push(item);
       if(voiceState.queue.length>12) voiceState.queue.splice(0,voiceState.queue.length-12);
       playNextGameVoice();
     }
@@ -6175,9 +6185,10 @@
       const item=voiceState.queue.shift();
       const seq=voiceState.requestSeq;
       try{
-        const lang=String(state.language||"en").toLowerCase()==="am" ? "am" : "en";
+        const lang=voiceState.language==="am" ? "am" : "en";
+        const text=lang==="am" ? (item.am||item.en) : item.en;
         const VOICE_API_BASE="https://desta-play.onrender.com";
-        const url=VOICE_API_BASE+"/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(item.text);
+        const url=VOICE_API_BASE+"/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(text);
         const audio=new Audio(url);
         voiceState.currentAudio=audio;
         audio.preload="auto";
@@ -6203,7 +6214,7 @@
     }
 
     function voiceTestText(){
-      return String(state.language||"en").toLowerCase()==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
+      return voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
     }
 
     function activateGameVoice(){
@@ -6242,6 +6253,7 @@
     function announceRoundVoice(round){
       if(!round || !round.game) return;
       const game=round.game;
+      if(state.game!==game) return;
       const id=String(round.id || "");
       const status=String(round.status || "");
       const previousId=voiceState.lastRoundId[game];
@@ -6304,6 +6316,7 @@
       try{ saved=localStorage.getItem(voiceStorageKey())||"0"; }catch(e){}
       voiceState.enabled=saved==="1";
       voiceState.unlocked=voiceState.enabled;
+      try{ voiceState.language=localStorage.getItem("desta_play_voice_language")==="am" ? "am" : "en"; }catch(e){ voiceState.language="en"; }
       updateVoiceButton();
     })();
 
