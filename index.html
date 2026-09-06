@@ -419,6 +419,17 @@
       font-weight:900;
     }
 
+    .voiceBtn{
+      font-size:16px;
+      min-width:44px;
+      padding:0 10px;
+    }
+
+    .voiceBtn.voiceActive{
+      box-shadow:0 0 12px rgba(255,212,60,.55);
+    }
+
+
     .gameTitle{
       text-align:center;
       padding:8px 0;
@@ -2099,6 +2110,15 @@
             ?
           </button>
 
+          <button
+            class="helpBtn voiceBtn"
+            id="voiceToggle"
+            type="button"
+            onclick="activateGameVoice()"
+            aria-label="Activate game voice">
+            🔊
+          </button>
+
         </div>
 
       </header>
@@ -2452,16 +2472,6 @@
               disabled>
               BINGO — CARTELA 2
             </button>
-
-          </div>
-
-          <div class="historyBox">
-
-            <div class="historyHeader">
-              LAST 10 BINGO ROUNDS
-            </div>
-
-            <div id="bingoHistory"></div>
 
           </div>
 
@@ -6068,6 +6078,8 @@
     const voiceState = {
       enabled: true,
       unlocked: false,
+      supported: false,
+      voices: [],
       lastRoundId: {},
       lastStatus: {},
       lastDrawCount: {},
@@ -6075,66 +6087,116 @@
       lastAviatorMilestone: {}
     };
 
+    function refreshGameVoices(){
+      try{
+        voiceState.supported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+        voiceState.voices = voiceState.supported ? window.speechSynthesis.getVoices() : [];
+      }catch(e){
+        voiceState.supported = false;
+        voiceState.voices = [];
+      }
+      updateVoiceButton();
+    }
+
     function getVoiceLanguage(){
       return String(state.language || "en").toLowerCase() === "am" ? "am-ET" : "en-US";
-    }
-
-    let voiceReadyTimer=null;
-
-    function unlockVoice(){
-      voiceState.unlocked = true;
-      try{
-        if(!("speechSynthesis" in window)) return;
-        const synth=window.speechSynthesis;
-        synth.getVoices();
-        if(synth.paused) synth.resume();
-        if(!voiceReadyTimer){
-          voiceReadyTimer=setTimeout(()=>{
-            try{
-              const u=new SpeechSynthesisUtterance(" ");
-              u.volume=0;
-              u.rate=4;
-              synth.speak(u);
-            }catch(e){}
-          },0);
-        }
-      }catch(e){}
-    }
-
-    if("speechSynthesis" in window && "onvoiceschanged" in window){
-      window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
     }
 
     function voiceText(en, am){
       return String(state.language || "en").toLowerCase() === "am" ? am : en;
     }
 
-    function speakGameVoice(en, am, priority=false){
-      if(!voiceState.enabled || !voiceState.unlocked || !("speechSynthesis" in window)) return;
+    function updateVoiceButton(){
+      const button=document.getElementById("voiceToggle");
+      if(!button) return;
+      button.classList.toggle("voiceActive", !!voiceState.unlocked);
+      button.textContent=voiceState.unlocked ? "🔊" : "🔈";
+      button.title=voiceState.unlocked ? "Game voice is active" : "Tap to activate game voice";
+    }
+
+    function unlockVoice(){
+      if(!voiceState.supported) refreshGameVoices();
+      if(!voiceState.supported) return false;
+
+      voiceState.unlocked = true;
+      const synth=window.speechSynthesis;
       try{
-        const text=voiceText(en,am);
-        if(!text) return;
+        synth.resume();
+        refreshGameVoices();
+        /* Keep this call synchronous with the user's gesture. Android WebView
+           can reject speech that is started only from a later timer. */
+        const test=new SpeechSynthesisUtterance("Voice on.");
+        const english=voiceState.voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
+        if(english) test.voice=english;
+        test.lang=english ? String(english.lang) : "en-US";
+        test.rate=1;
+        test.pitch=1;
+        test.volume=1;
+        synth.cancel();
+        synth.speak(test);
+        updateVoiceButton();
+        return true;
+      }catch(e){
+        console.warn("Voice unlock error:",e);
+        updateVoiceButton();
+        return false;
+      }
+    }
+
+    function activateGameVoice(){
+      const ok=unlockVoice();
+      if(ok){
+        setTimeout(()=>{
+          /* If the test voice worked, normal server-driven announcements can
+             now use the same speech engine. */
+          try{ window.speechSynthesis.resume(); }catch(e){}
+        },100);
+      }
+    }
+
+    function speakGameVoice(en, am, priority=false){
+      if(!voiceState.enabled) return;
+      if(!voiceState.unlocked){
+        /* Do not silently discard announcements once the user has interacted.
+           The first actual gesture unlocks the engine. */
+        return;
+      }
+      if(!voiceState.supported) return;
+
+      try{
         const synth=window.speechSynthesis;
         const wanted=getVoiceLanguage();
-        const voices=synth.getVoices();
+        let voices=synth.getVoices();
+        voiceState.voices=voices;
+        if(!voices.length){
+          refreshGameVoices();
+          voices=voiceState.voices;
+        }
+
         const exact=voices.find(v=>String(v.lang||"").toLowerCase()===wanted.toLowerCase());
-        const sameFamily=voices.find(v=>String(v.lang||"").toLowerCase().startsWith(wanted.slice(0,2).toLowerCase()));
-        const selected=exact || sameFamily;
+        const family=voices.find(v=>String(v.lang||"").toLowerCase().startsWith(wanted.slice(0,2).toLowerCase()));
+        const english=voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
+        const selected=exact || family || (wanted==="am-ET" ? null : english);
+
+        /* If an Amharic TTS voice is unavailable, use the English wording so
+           the player still receives an audible announcement instead of a
+           silent/poorly synthesized Amharic utterance. */
+        const text=(wanted==="am-ET" && !selected) ? String(en) : voiceText(en,am);
+        if(!text) return;
+
         const utterance=new SpeechSynthesisUtterance(text);
         utterance.voice=selected || null;
-        utterance.lang=selected ? String(selected.lang) : (wanted==="am-ET" ? "en-US" : wanted);
+        utterance.lang=selected ? String(selected.lang) : "en-US";
         utterance.rate=priority ? 0.9 : 0.98;
-        utterance.pitch=1.0;
-        utterance.volume=1.0;
-        synth.cancel();
-        setTimeout(()=>{
-          try{
-            synth.resume();
-            synth.speak(utterance);
-          }catch(e){}
-        },20);
+        utterance.pitch=1;
+        utterance.volume=1;
+
+        synth.resume();
+        /* Do not use a delayed setTimeout before speak(). */
+        if(priority) synth.cancel();
+        synth.speak(utterance);
       }catch(error){
-        console.warn("Voice announcement error:", error);
+        console.warn("Voice announcement error:",error);
       }
     }
 
@@ -6199,6 +6261,10 @@
       }
     }
 
+    refreshGameVoices();
+    if("speechSynthesis" in window && "onvoiceschanged" in window){
+      window.speechSynthesis.onvoiceschanged=refreshGameVoices;
+    }
     document.addEventListener("pointerdown", unlockVoice, {once:false, passive:true});
     document.addEventListener("touchstart", unlockVoice, {once:false, passive:true});
 
