@@ -2095,7 +2095,7 @@
         <button class="gameBackBtn" type="button" onclick="backToGames()">← GAMES</button>
 
         <div class="roundInfo">
-          ROUND <span id="roundNumber">0001</span>
+          ROUND <span id="roundNumber">----</span>
         </div>
 
         <div class="headerRight">
@@ -2854,6 +2854,26 @@
 
 
     <!-- ======================================================
+         INVITE
+    ====================================================== -->
+
+    <section id="inviteScreen" style="display:none">
+      <div class="pageTitle">INVITE</div>
+      <div class="profileCard inviteCard">
+        <h3>Invite Bonus</h3>
+        <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
+        <div class="profileRow">
+          <span>Your Invite Code</span>
+          <span id="inviteCode">—</span>
+        </div>
+        <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
+        <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
+        <div id="inviteStatus" class="walletStatus"></div>
+      </div>
+    </section>
+
+
+    <!-- ======================================================
          PROFILE
     ====================================================== -->
 
@@ -2927,11 +2947,11 @@
       </button>
 
       <button
-        id="navProfile"
-        onclick="showPage('profile')">
+        id="navInvite"
+        onclick="showPage('invite')">
 
-        <span>👤</span>
-        PROFILE
+        <span>🎁</span>
+        INVITE
 
       </button>
 
@@ -3009,6 +3029,8 @@
 
       telegramName:"Player",
 
+      referralCode:(new URLSearchParams(location.search).get("ref") || "").trim(),
+
       rounds:{
         keno:0,
         bingo:0,
@@ -3072,7 +3094,6 @@
 
       bingoDraw:[],
 
-      bingoHistory:[],
 
       rouletteSelection:{
         1:{type:null,value:null},
@@ -3416,7 +3437,7 @@
       if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
       message.className="accountMessage"; message.textContent="Creating account...";
       try{
-        const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,telegramUsername:state.telegramUsername,password,phone:document.getElementById("registrationPhone").value.trim()})});
+        const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,telegramUsername:state.telegramUsername,password,phone:document.getElementById("registrationPhone").value.trim(),referralCode:state.referralCode || ""})});
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
         state.authToken=data.token || "";
@@ -3507,6 +3528,13 @@
       "GAME":"ጨዋታ",
       "WALLET":"ዋሌት",
       "PROFILE":"መገለጫ",
+      "INVITE":"ግብዣ",
+      "Invite Bonus":"የግብዣ ሽልማት",
+      "Invite 1 player and earn 10 bonus points.":"አንድ ተጫዋች ይጋብዙ እና 10 የቦነስ ነጥቦችን ያግኙ።",
+      "Your Invite Code":"የግብዣ ኮድዎ",
+      "Successful Invites":"የተሳካ ግብዣ",
+      "COPY INVITE LINK":"የግብዣ ሊንክ ቅዳ",
+      "SHARE INVITE":"ግብዣ አጋራ",
       "INVITE":"ግብዣ",
       "AVIATOR":"አቪዬተር",
       "BINGO":"ቢንጎ",
@@ -3749,6 +3777,10 @@
         .style.display="none";
 
       document
+        .getElementById("inviteScreen")
+        .style.display="none";
+
+      document
         .querySelectorAll(".bottomNav button")
         .forEach(b=>
           b.classList.remove("active")
@@ -3792,22 +3824,82 @@
 
       }
 
-      if(page==="profile"){
+      if(page==="invite"){
 
         document
-          .getElementById("profileScreen")
+          .getElementById("inviteScreen")
           .style.display="block";
 
         document
-          .getElementById("navProfile")
+          .getElementById("navInvite")
           .classList.add("active");
 
-        updatePlayerDisplays();
+        loadInviteData();
 
+      }
+
+      if(page==="profile"){
+        document
+          .getElementById("profileScreen")
+          .style.display="block";
+        updatePlayerDisplays();
       }
 
     }
 
+
+    async function loadInviteData(){
+      const codeEl=document.getElementById("inviteCode");
+      const countEl=document.getElementById("inviteCount");
+      if(!codeEl) return;
+      try{
+        const headers={"Accept":"application/json"};
+        if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch("https://desta-play.onrender.com/api/invite",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not load invite information.");
+        codeEl.textContent=data.inviteCode || "—";
+        state.inviteCode=data.inviteCode || "";
+        state.inviteLink=data.inviteLink || "";
+      }catch(error){
+        if(codeEl) codeEl.textContent="—";
+        const status=document.getElementById("inviteStatus");
+        if(status) status.textContent=error.message || "Could not load invite information.";
+      }
+    }
+
+    function getInviteLink(){
+      return state.inviteLink || (state.inviteCode ? `${location.origin}${location.pathname}?ref=${encodeURIComponent(state.inviteCode)}` : "");
+    }
+
+    async function copyInviteLink(){
+      const link=getInviteLink();
+      const status=document.getElementById("inviteStatus");
+      if(!link){ if(status)status.textContent="Invite link is not ready yet."; return; }
+      try{
+        await navigator.clipboard.writeText(link);
+        if(status)status.textContent="Invite link copied.";
+      }catch(e){
+        if(status)status.textContent=link;
+      }
+    }
+
+    async function shareInviteLink(){
+      const link=getInviteLink();
+      const status=document.getElementById("inviteStatus");
+      if(!link){ if(status)status.textContent="Invite link is not ready yet."; return; }
+      try{
+        if(navigator.share){
+          await navigator.share({title:"DESTA PLAY",text:"Join me on DESTA PLAY and earn bonus points.",url:link});
+        }else{
+          await copyInviteLink();
+        }
+      }catch(e){
+        if(e && e.name==="AbortError") return;
+        if(status)status.textContent="Could not open sharing. Invite link copied instead.";
+        try{ await navigator.clipboard.writeText(link); }catch(_e){}
+      }
+    }
 
     /* =========================================================
        OPEN GAME
@@ -4747,19 +4839,6 @@
 
     function finishBingo(){
 
-      state.bingoHistory.unshift({
-
-        round:state.rounds.bingo,
-
-        numbers:[...state.bingoDraw]
-
-      });
-
-      state.bingoHistory=
-        state.bingoHistory.slice(0,10);
-
-      renderBingoHistory();
-
       [1,2].forEach(slot=>{
 
         const board=
@@ -4847,37 +4926,6 @@
           "bingoButton"+slot
         )
         .disabled=true;
-
-    }
-
-
-    function renderBingoHistory(){
-
-      const box=
-        document.getElementById(
-          "bingoHistory"
-        );
-
-      box.innerHTML=
-        state.bingoHistory
-          .map(item=>`
-
-            <div class="historyRound">
-
-              <strong>
-                ROUND ${String(item.round).padStart(4,"0")}
-              </strong>
-
-              <br>
-
-              <span class="historyNums">
-                ${item.numbers.join(" • ")}
-              </span>
-
-            </div>
-
-          `)
-          .join("");
 
     }
 
@@ -6080,6 +6128,7 @@
       unlocked: false,
       supported: false,
       voices: [],
+      pending: [],
       lastRoundId: {},
       lastStatus: {},
       lastDrawCount: {},
@@ -6114,19 +6163,34 @@
       button.title=voiceState.unlocked ? "Game voice is active" : "Tap to activate game voice";
     }
 
+    function queueGameVoice(en, am, priority=false){
+      const text=voiceText(en,am);
+      if(!text) return;
+      const item={en:String(en||""),am:String(am||""),priority:!!priority};
+      /* Keep only a short queue so a player who opens the game after several
+         server polls does not get a long backlog of old announcements. */
+      voiceState.pending.push(item);
+      if(voiceState.pending.length>8) voiceState.pending.splice(0,voiceState.pending.length-8);
+    }
+
     function unlockVoice(){
-      if(!voiceState.supported) refreshGameVoices();
+      refreshGameVoices();
       if(!voiceState.supported) return false;
+      if(voiceState.unlocked){
+        try{ window.speechSynthesis.resume(); }catch(e){}
+        return true;
+      }
 
       voiceState.unlocked = true;
+      updateVoiceButton();
+
       const synth=window.speechSynthesis;
       try{
         synth.resume();
-        refreshGameVoices();
-        /* Keep this call synchronous with the user's gesture. Android WebView
-           can reject speech that is started only from a later timer. */
+        const voices=synth.getVoices();
+        voiceState.voices=voices;
+        const english=voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
         const test=new SpeechSynthesisUtterance("Voice on.");
-        const english=voiceState.voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
         if(english) test.voice=english;
         test.lang=english ? String(english.lang) : "en-US";
         test.rate=1;
@@ -6134,31 +6198,35 @@
         test.volume=1;
         synth.cancel();
         synth.speak(test);
-        updateVoiceButton();
+
+        /* Flush announcements that arrived before the player activated voice.
+           This is the key fix for Telegram/Android WebView, where the game can
+           receive server rounds before the first user gesture. */
+        const pending=voiceState.pending.splice(0);
+        let delay=250;
+        pending.forEach(item=>{
+          setTimeout(()=>speakGameVoice(item.en,item.am,item.priority),delay);
+          delay+=500;
+        });
         return true;
       }catch(e){
         console.warn("Voice unlock error:",e);
-        updateVoiceButton();
         return false;
       }
     }
 
     function activateGameVoice(){
       const ok=unlockVoice();
-      if(ok){
-        setTimeout(()=>{
-          /* If the test voice worked, normal server-driven announcements can
-             now use the same speech engine. */
-          try{ window.speechSynthesis.resume(); }catch(e){}
-        },100);
+      if(!ok){
+        const button=document.getElementById("voiceToggle");
+        if(button) button.title="Voice is not available in this Telegram WebView";
       }
     }
 
     function speakGameVoice(en, am, priority=false){
       if(!voiceState.enabled) return;
       if(!voiceState.unlocked){
-        /* Do not silently discard announcements once the user has interacted.
-           The first actual gesture unlocks the engine. */
+        queueGameVoice(en,am,priority);
         return;
       }
       if(!voiceState.supported) return;
@@ -6178,9 +6246,8 @@
         const english=voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
         const selected=exact || family || (wanted==="am-ET" ? null : english);
 
-        /* If an Amharic TTS voice is unavailable, use the English wording so
-           the player still receives an audible announcement instead of a
-           silent/poorly synthesized Amharic utterance. */
+        /* If Android has no Amharic TTS voice, use English rather than becoming
+           silent. The game still announces every server event. */
         const text=(wanted==="am-ET" && !selected) ? String(en) : voiceText(en,am);
         if(!text) return;
 
@@ -6192,7 +6259,6 @@
         utterance.volume=1;
 
         synth.resume();
-        /* Do not use a delayed setTimeout before speak(). */
         if(priority) synth.cancel();
         synth.speak(utterance);
       }catch(error){
@@ -6265,8 +6331,9 @@
     if("speechSynthesis" in window && "onvoiceschanged" in window){
       window.speechSynthesis.onvoiceschanged=refreshGameVoices;
     }
-    document.addEventListener("pointerdown", unlockVoice, {once:false, passive:true});
-    document.addEventListener("touchstart", unlockVoice, {once:false, passive:true});
+    /* Any tap can unlock speech on Android/Telegram WebView. */
+    document.addEventListener("pointerdown",function(){ unlockVoice(); }, {passive:true});
+    document.addEventListener("touchstart",function(){ unlockVoice(); }, {passive:true});
 
     function updateCountdownFromServer(round){
       const game = round.game;
@@ -6616,14 +6683,6 @@
             numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
           }));
           renderKenoHistory();
-        }
-
-        if(game === "bingo"){
-          state.bingoHistory = rows.map(r => ({
-            round:historyRoundNumber(r) ?? r.round_id,
-            numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
-          }));
-          renderBingoHistory();
         }
 
         if(game === "roulette"){
