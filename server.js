@@ -3133,7 +3133,9 @@ function isWinningBingoCard(
     const numberSet =
         drawnNumbers instanceof Set
             ? drawnNumbers
-            : new Set(drawnNumbers);
+            : new Set(
+                (drawnNumbers || []).map(Number)
+            );
 
     return Boolean(
         checkWinningPatterns(
@@ -3141,6 +3143,102 @@ function isWinningBingoCard(
             numberSet
         )
     );
+}
+
+/*
+|--------------------------------------------------------------------------
+| SERVER-SIDE BINGO CLAIM VERIFICATION
+|--------------------------------------------------------------------------
+| The client is never trusted for the Cartela combination or the winning
+| pattern.  At claim time the backend rebuilds the fixed Cartela from the
+| submitted Cartela number, compares it with the Cartela stored in the
+| current room, and then checks that the current server-drawn numbers
+| actually complete a horizontal, vertical, or diagonal line.
+|--------------------------------------------------------------------------
+*/
+function sameBingoCartela(first, second) {
+    if (!Array.isArray(first) || !Array.isArray(second)) {
+        return false;
+    }
+
+    if (first.length !== second.length) {
+        return false;
+    }
+
+    return first.every(
+        (value, index) =>
+            Number(value) === Number(second[index])
+    );
+}
+
+function verifyBingoClaim(room, player, submittedCartelaNumber) {
+    if (!room || !player) {
+        return {
+            valid: false,
+            error: "Bingo player was not found"
+        };
+    }
+
+    const cartelaNumber = Number(submittedCartelaNumber);
+
+    if (
+        !Number.isInteger(cartelaNumber) ||
+        cartelaNumber < 1 ||
+        cartelaNumber > 120
+    ) {
+        return {
+            valid: false,
+            error: "Invalid Cartela number"
+        };
+    }
+
+    if (
+        Number(player.cartelaNumber) !==
+        cartelaNumber
+    ) {
+        return {
+            valid: false,
+            error: "Cartela number does not match your entry"
+        };
+    }
+
+    let canonicalCartela;
+
+    try {
+        canonicalCartela = getBingoCartela(cartelaNumber);
+    } catch (error) {
+        return {
+            valid: false,
+            error: "Could not verify Cartela combination"
+        };
+    }
+
+    if (!sameBingoCartela(player.cartela, canonicalCartela)) {
+        return {
+            valid: false,
+            error: "Cartela combination does not match the server"
+        };
+    }
+
+    if (!Array.isArray(room.drawnNumbers) || room.drawnNumbers.length === 0) {
+        return {
+            valid: false,
+            error: "No Bingo numbers have been drawn yet"
+        };
+    }
+
+    if (!isWinningBingoCard(canonicalCartela, room.drawnNumbers)) {
+        return {
+            valid: false,
+            error: "BINGO is not valid for the current drawn numbers"
+        };
+    }
+
+    return {
+        valid: true,
+        cartela: canonicalCartela,
+        cartelaNumber
+    };
 }
 
 /*
@@ -3245,6 +3343,19 @@ async function saveBingoRound(tier) {
                             room.winner.cartelaNumber
                     }
                     : null,
+
+            winners:
+                (room.winners || []).map(player => ({
+                    playerId: player.playerId,
+                    telegramName: player.telegramName,
+                    cartelaNumber: player.cartelaNumber
+                })),
+
+            claimWindowOpen:
+                Boolean(room.claimWindowOpen),
+
+            claimWindowEndsAt:
+                Number(room.claimWindowEndsAt || 0),
 
             totalPool:
                 room.totalPool,
@@ -3459,7 +3570,8 @@ function revealNextBingoNumber(tier) {
 
     if (
         !room ||
-        room.status !== "DRAWING"
+        room.status !== "DRAWING" ||
+        room.claimWindowOpen
     ) {
         return;
     }
@@ -3468,9 +3580,7 @@ function revealNextBingoNumber(tier) {
         room.drawIndex >=
         room.secretDraw.length
     ) {
-        resolveBingoWinner(
-            tier
-        );
+        resolveBingoWinner(tier, []);
 
         return;
     }
@@ -3497,32 +3607,12 @@ function revealNextBingoNumber(tier) {
         tier
     ).catch(console.error);
 
-    let winningPlayer = null;
-
-    for (
-        const player of room.players
-    ) {
-        if (
-            isWinningBingoCard(
-                player.cartela,
-                room.drawnNumbers
-            )
-        ) {
-            winningPlayer =
-                player;
-
-            break;
-        }
-    }
-
-    if (winningPlayer) {
-        resolveBingoWinner(
-            tier,
-            winningPlayer
-        );
-
-        return;
-    }
+    /*
+    |--------------------------------------------------------------
+    | A completed pattern does NOT automatically win the round.
+    | The player must press the BINGO button.
+    |--------------------------------------------------------------
+    */
 
     setTimeout(
         () => {
@@ -3554,110 +3644,227 @@ function revealNextBingoNumber(tier) {
 
 async function resolveBingoWinner(
     tier,
-    winnerObj = null
+    winners = []
 ) {
-    const room =
-        bingoRooms[tier];
+    const room = bingoRooms[tier];
 
-    if (
-        !room ||
-        room.status === "FINISHED"
-    ) {
+    if (!room || room.status === "FINISHED") {
         return;
     }
 
     room.status = "FINISHED";
+    room.claimWindowOpen = false;
+    room.claimWindowEndsAt = 0;
+
+    const validWinners = Array.isArray(winners)
+        ? winners.filter(Boolean)
+        : [];
 
     const grossPool =
-        room.players.length *
-        room.entryFee;
+        room.players.length * room.entryFee;
 
-    /*
-    |--------------------------------------------------------------
-    | Existing rule:
-    | 90% player pool
-    | 10% platform rake
-    |--------------------------------------------------------------
-    */
+    /* 10% house edge, 90% shared by valid BINGO claimants. */
+    const houseRake = grossPool * 0.10;
+    const winnerPool = grossPool - houseRake;
+    const share = validWinners.length > 0
+        ? winnerPool / validWinners.length
+        : 0;
 
-    const houseRake =
-        grossPool * 0.10;
+    room.totalPool = grossPool;
+    room.houseRake = houseRake;
+    room.winnerPrize = share;
+    room.winners = validWinners;
+    room.winner = validWinners[0] || null;
 
-    const winnerPrize =
-        grossPool - houseRake;
-
-    room.totalPool =
-        grossPool;
-
-    room.houseRake =
-        houseRake;
-
-    room.winnerPrize =
-        winnerPrize;
-
-    const winningPlayer =
-        winnerObj;
-
-    if (winningPlayer) {
-        room.winner =
-            winningPlayer;
-
+    for (const winningPlayer of validWinners) {
         try {
             await changeBalance({
-                playerId:
-                    winningPlayer.playerId,
-
-                amount:
-                    winnerPrize,
-
-                type:
-                    "bingo_win",
-
-                game:
-                    "bingo",
-
-                roundId:
-                    room.id,
-
-                description:
-                    `Bingo prize - tier ${tier}`,
-
+                playerId: winningPlayer.playerId,
+                amount: share,
+                type: "bingo_win",
+                game: "bingo",
+                roundId: room.id,
+                description: `Bingo prize - tier ${tier}`,
                 metadata: {
                     tier,
                     grossPool,
                     houseRake,
-                    winnerPrize
+                    winnerPool,
+                    winnersCount: validWinners.length,
+                    winnerShare: share,
+                    cartelaNumber: winningPlayer.cartelaNumber
                 }
             });
 
             console.log(
-                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${winnerPrize} ETB`
+                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${share} ETB (${validWinners.length} winner(s))`
             );
         } catch (error) {
             console.error(
-                `[BINGO ${tier}] PAYOUT ERROR:`,
+                `[BINGO ${tier}] PAYOUT ERROR for ${winningPlayer.playerId}:`,
                 error
             );
         }
-    } else {
-        console.log(
-            `[BINGO ${tier}] No winning card`
-        );
     }
 
-    await saveBingoRound(
-        tier
-    ).catch(console.error);
+    if (!validWinners.length) {
+        console.log(`[BINGO ${tier}] No BINGO claim - round complete`);
+    }
 
-    setTimeout(
-        () => {
-            startNewBingoRound(
-                tier
-            );
-        },
-        NEXT_ROUND_DELAY
-    );
+    await saveBingoRound(tier).catch(console.error);
+
+    setTimeout(() => {
+        startNewBingoRound(tier);
+    }, NEXT_ROUND_DELAY);
 }
+
+/*
+|--------------------------------------------------------------------------
+| BINGO CLAIM
+|--------------------------------------------------------------------------
+| A valid horizontal, vertical, or diagonal pattern is required.
+| The first valid claim opens a very short server-side claim window so
+| simultaneous valid BINGO claims share the 90% winner pool equally.
+|--------------------------------------------------------------------------
+*/
+app.post(
+    "/api/bingo/claim",
+    requirePlayer,
+    async (req, res) => {
+        try {
+            const tier = Number(req.body?.tier);
+            const cartelaNumber = Number(req.body?.cartelaNumber);
+            const submittedRoundId = String(req.body?.roundId || "").trim();
+
+            if (!Number.isInteger(tier)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Invalid bingo tier"
+                });
+            }
+
+            const room = bingoRooms[tier];
+            if (!room) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Bingo room not found"
+                });
+            }
+
+            if (!submittedRoundId || submittedRoundId !== String(room.id)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "This Bingo round is no longer active"
+                });
+            }
+
+            if (room.status !== "DRAWING" && !room.claimWindowOpen) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Bingo claiming is closed"
+                });
+            }
+
+            const player = room.players.find(
+                p => p.playerId === req.player.id &&
+                     Number(p.cartelaNumber) === cartelaNumber
+            );
+
+            if (!player) {
+                return res.status(400).json({
+                    success: false,
+                    error: "You are not playing this cartela in the current round"
+                });
+            }
+
+            /*
+            |----------------------------------------------------------
+            | NEVER TRUST THE CLIENT
+            |----------------------------------------------------------
+            | The backend verifies all three pieces independently:
+            |   1. Cartela number belongs to this player/round.
+            |   2. Cartela combination exactly matches the fixed server
+            |      combination for that Cartela number.
+            |   3. The server's drawn numbers currently produce a real
+            |      horizontal, vertical, or diagonal winning pattern.
+            |----------------------------------------------------------
+            */
+            const verification = verifyBingoClaim(
+                room,
+                player,
+                cartelaNumber
+            );
+
+            if (!verification.valid) {
+                return res.status(400).json({
+                    success: false,
+                    winner: false,
+                    error: verification.error
+                });
+            }
+
+            room.claimedPlayers = room.claimedPlayers || [];
+            const alreadyClaimed = room.claimedPlayers.some(
+                p => p.playerId === player.playerId &&
+                     Number(p.cartelaNumber) === Number(player.cartelaNumber)
+            );
+
+            if (alreadyClaimed) {
+                return res.status(400).json({
+                    success: false,
+                    error: "BINGO already claimed"
+                });
+            }
+
+            room.claimedPlayers.push({
+                ...player,
+                cartela: verification.cartela,
+                cartelaNumber: verification.cartelaNumber
+            });
+
+            /* Keep the round open briefly to collect simultaneous valid claims. */
+            if (!room.claimWindowOpen) {
+                room.claimWindowOpen = true;
+                room.claimWindowEndsAt = Date.now() + 1500;
+
+                setTimeout(async () => {
+                    const current = bingoRooms[tier];
+                    if (!current || current.id !== room.id || !current.claimWindowOpen) {
+                        return;
+                    }
+                    await resolveBingoWinner(
+                        tier,
+                        current.claimedPlayers || []
+                    );
+                }, 1500);
+            }
+
+            await saveBingoRound(tier).catch(console.error);
+
+            const grossPool = room.players.length * room.entryFee;
+            const winnerPool = grossPool * 0.90;
+            const count = room.claimedPlayers.length;
+            const estimatedShare = winnerPool / count;
+
+            return res.json({
+                success: true,
+                winner: true,
+                pending: true,
+                roundId: room.id,
+                winnersCount: count,
+                estimatedPrize: estimatedShare,
+                claimWindowEndsAt: room.claimWindowEndsAt,
+                message: "Valid BINGO! Your claim is registered."
+            });
+        } catch (error) {
+            console.error("Bingo claim error:", error);
+            return res.status(400).json({
+                success: false,
+                error: error.message || "Could not claim BINGO"
+            });
+        }
+    }
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -4007,6 +4214,15 @@ function getPublicBingoRound(
                 room.entryFee *
                 0.90
             ),
+
+        winnersCount:
+            (room.winners || []).length,
+
+        claimWindowOpen:
+            Boolean(room.claimWindowOpen),
+
+        claimWindowEndsAt:
+            Number(room.claimWindowEndsAt || 0),
 
         winner:
             room.winner
