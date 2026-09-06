@@ -6124,103 +6124,108 @@
        server-driven and are emitted only when something changes.
        ========================================================= */
     const voiceState = {
-      enabled: true,
+      enabled: false,
       unlocked: false,
-      supported: false,
-      voices: [],
-      pending: [],
+      supported: true,
+      queue: [],
+      playing: false,
       lastRoundId: {},
       lastStatus: {},
       lastDrawCount: {},
       lastResult: {},
-      lastAviatorMilestone: {}
+      lastAviatorMilestone: {},
+      currentAudio: null,
+      requestSeq: 0
     };
 
-    function refreshGameVoices(){
-      try{
-        voiceState.supported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
-        voiceState.voices = voiceState.supported ? window.speechSynthesis.getVoices() : [];
-      }catch(e){
-        voiceState.supported = false;
-        voiceState.voices = [];
-      }
-      updateVoiceButton();
-    }
-
-    function getVoiceLanguage(){
-      return String(state.language || "en").toLowerCase() === "am" ? "am-ET" : "en-US";
-    }
-
-    function voiceText(en, am){
-      return String(state.language || "en").toLowerCase() === "am" ? am : en;
-    }
+    function voiceStorageKey(){ return "desta_play_voice_enabled"; }
 
     function updateVoiceButton(){
       const button=document.getElementById("voiceToggle");
       if(!button) return;
-      button.classList.toggle("voiceActive", !!voiceState.unlocked);
-      button.textContent=voiceState.unlocked ? "🔊" : "🔈";
-      button.title=voiceState.unlocked ? "Game voice is active" : "Tap to activate game voice";
+      button.classList.toggle("voiceActive", !!voiceState.enabled);
+      button.textContent=voiceState.enabled ? "🔊" : "🔇";
+      button.title=voiceState.enabled ? "Game voice is ON — tap to turn OFF" : "Tap to turn game voice ON";
+      button.setAttribute("aria-label", voiceState.enabled ? "Turn game voice off" : "Turn game voice on");
+    }
+
+    function clearVoiceQueue(){
+      voiceState.queue=[];
+      voiceState.requestSeq++;
+      if(voiceState.currentAudio){
+        try{ voiceState.currentAudio.pause(); }catch(e){}
+        try{ voiceState.currentAudio.currentTime=0; }catch(e){}
+        voiceState.currentAudio=null;
+      }
+      voiceState.playing=false;
     }
 
     function queueGameVoice(en, am, priority=false){
-      const text=voiceText(en,am);
-      if(!text) return;
-      const item={en:String(en||""),am:String(am||""),priority:!!priority};
-      /* Keep only a short queue so a player who opens the game after several
-         server polls does not get a long backlog of old announcements. */
-      voiceState.pending.push(item);
-      if(voiceState.pending.length>8) voiceState.pending.splice(0,voiceState.pending.length-8);
+      const text=String(en||"");
+      if(!text.trim()) return;
+      if(priority) voiceState.queue.unshift({text,priority:true});
+      else voiceState.queue.push({text,priority:false});
+      if(voiceState.queue.length>12) voiceState.queue.splice(0,voiceState.queue.length-12);
+      playNextGameVoice();
     }
 
-    function unlockVoice(){
-      refreshGameVoices();
-      if(!voiceState.supported) return false;
-      if(voiceState.unlocked){
-        try{ window.speechSynthesis.resume(); }catch(e){}
-        return true;
-      }
-
-      voiceState.unlocked = true;
-      updateVoiceButton();
-
-      const synth=window.speechSynthesis;
+    async function playNextGameVoice(){
+      if(!voiceState.enabled || voiceState.playing || !voiceState.queue.length) return;
+      voiceState.playing=true;
+      const item=voiceState.queue.shift();
+      const seq=voiceState.requestSeq;
       try{
-        synth.resume();
-        const voices=synth.getVoices();
-        voiceState.voices=voices;
-        const english=voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
-        const test=new SpeechSynthesisUtterance("Voice on.");
-        if(english) test.voice=english;
-        test.lang=english ? String(english.lang) : "en-US";
-        test.rate=1;
-        test.pitch=1;
-        test.volume=1;
-        synth.cancel();
-        synth.speak(test);
-
-        /* Flush announcements that arrived before the player activated voice.
-           This is the key fix for Telegram/Android WebView, where the game can
-           receive server rounds before the first user gesture. */
-        const pending=voiceState.pending.splice(0);
-        let delay=250;
-        pending.forEach(item=>{
-          setTimeout(()=>speakGameVoice(item.en,item.am,item.priority),delay);
-          delay+=500;
+        const lang=String(state.language||"en").toLowerCase()==="am" ? "am" : "en";
+        const url="/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(item.text);
+        const audio=new Audio(url);
+        voiceState.currentAudio=audio;
+        audio.preload="auto";
+        audio.volume=1;
+        await new Promise((resolve,reject)=>{
+          let done=false;
+          const finish=(err)=>{ if(done)return; done=true; err?reject(err):resolve(); };
+          audio.onended=()=>finish();
+          audio.onerror=()=>finish(new Error("voice audio failed"));
+          audio.onabort=()=>finish();
+          const timer=setTimeout(()=>finish(new Error("voice timeout")),8000);
+          audio.onended=()=>{ clearTimeout(timer); finish(); };
+          audio.onerror=()=>{ clearTimeout(timer); finish(new Error("voice audio failed")); };
+          audio.play().catch(err=>{ clearTimeout(timer); finish(err); });
         });
-        return true;
-      }catch(e){
-        console.warn("Voice unlock error:",e);
-        return false;
+      }catch(error){
+        console.warn("Server voice playback failed:",error);
+      }finally{
+        if(seq===voiceState.requestSeq) voiceState.currentAudio=null;
+        voiceState.playing=false;
+        if(seq===voiceState.requestSeq) playNextGameVoice();
       }
+    }
+
+    function voiceTestText(){
+      return String(state.language||"en").toLowerCase()==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
     }
 
     function activateGameVoice(){
-      const ok=unlockVoice();
-      if(!ok){
-        const button=document.getElementById("voiceToggle");
-        if(button) button.title="Voice is not available in this Telegram WebView";
+      if(voiceState.enabled){
+        voiceState.enabled=false;
+        clearVoiceQueue();
+        try{ localStorage.setItem(voiceStorageKey(),"0"); }catch(e){}
+        updateVoiceButton();
+        return;
       }
+
+      voiceState.enabled=true;
+      voiceState.unlocked=true;
+      try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      updateVoiceButton();
+
+      /* The button gesture starts a real server-hosted audio file. */
+      queueGameVoice(voiceTestText(),voiceTestText(),true);
+    }
+
+    function speakGameVoice(en, am, priority=false){
+      if(!voiceState.enabled) return;
+      queueGameVoice(en,am,priority);
     }
 
     function bingoVoiceCall(n){
@@ -6233,56 +6238,12 @@
       return `Bingo-${num}`;
     }
 
-    function speakGameVoice(en, am, priority=false){
-      if(!voiceState.enabled) return;
-      if(!voiceState.unlocked){
-        queueGameVoice(en,am,priority);
-        return;
-      }
-      if(!voiceState.supported) return;
-
-      try{
-        const synth=window.speechSynthesis;
-        const wanted=getVoiceLanguage();
-        let voices=synth.getVoices();
-        voiceState.voices=voices;
-        if(!voices.length){
-          refreshGameVoices();
-          voices=voiceState.voices;
-        }
-
-        const exact=voices.find(v=>String(v.lang||"").toLowerCase()===wanted.toLowerCase());
-        const family=voices.find(v=>String(v.lang||"").toLowerCase().startsWith(wanted.slice(0,2).toLowerCase()));
-        const english=voices.find(v=>String(v.lang||"").toLowerCase().startsWith("en"));
-        const selected=exact || family || (wanted==="am-ET" ? null : english);
-
-        /* If Android has no Amharic TTS voice, use English rather than becoming
-           silent. The game still announces every server event. */
-        const text=(wanted==="am-ET" && !selected) ? String(en) : voiceText(en,am);
-        if(!text) return;
-
-        const utterance=new SpeechSynthesisUtterance(text);
-        utterance.voice=selected || null;
-        utterance.lang=selected ? String(selected.lang) : "en-US";
-        utterance.rate=priority ? 0.9 : 0.98;
-        utterance.pitch=1;
-        utterance.volume=1;
-
-        synth.resume();
-        if(priority) synth.cancel();
-        synth.speak(utterance);
-      }catch(error){
-        console.warn("Voice announcement error:",error);
-      }
-    }
-
     function announceRoundVoice(round){
       if(!round || !round.game) return;
       const game=round.game;
       const id=String(round.id || "");
       const status=String(round.status || "");
       const previousId=voiceState.lastRoundId[game];
-      const previousStatus=voiceState.lastStatus[game];
       const isNewRound=Boolean(id && previousId && previousId!==id);
 
       if(id && previousId!==id){
@@ -6293,19 +6254,12 @@
         if(isNewRound){
           if(game==="keno") speakGameVoice("New Keno round. Betting is open.","አዲስ የኬኖ ዙር። ውርርድ ተከፍቷል።",true);
           else if(game==="bingo") speakGameVoice("New Bingo round. Betting is open.","አዲስ የቢንጎ ዙር። ውርርድ ተከፍቷል።",true);
-          else if(game==="roulette") speakGameVoice("New Roulette round. Betting is open.","አዲስ የሩሌት ዙር። ውርርድ ተከፍቷል።",true);
+          else if(game==="roulette") speakGameVoice("New Spin round. Betting is open.","አዲስ የስፒን ዙር። ውርርድ ተከፍቷል።",true);
           else if(game==="aviator") speakGameVoice("New Aviator round. Betting is open.","አዲስ የአቪዬተር ዙር። ውርርድ ተከፍቷል።",true);
         }
       }
 
-      if(status!==previousStatus){
-        voiceState.lastStatus[game]=status;
-        if(status==="DRAWING") speakGameVoice(game==="bingo"?"Bingo drawing has started.":"Keno drawing has started.",game==="bingo"?"የቢንጎ ስዕል ጀምሯል።":"የኬኖ ስዕል ጀምሯል።");
-        else if(status==="SPINNING") speakGameVoice("Roulette is spinning.","ሩሌት እየተሽከረከረ ነው።");
-        else if(status==="FLYING") speakGameVoice("Aviator is flying. Cash out before the crash.","አቪዬተር በረራ ጀምሯል። ከመውደቁ በፊት ገንዘብዎን ያውጡ።");
-        else if(status==="CRASHED") speakGameVoice("Aviator crashed.","አቪዬተር ወድቋል።",true);
-        else if(status==="FINISHED") speakGameVoice(game==="roulette"?"Roulette result is ready.":game==="bingo"?"Bingo round finished.":"Keno round finished.",game==="roulette"?"የሩሌት ውጤት ዝግጁ ነው።":game==="bingo"?"የቢንጎ ዙር ተጠናቋል።":"የኬኖ ዙር ተጠናቋል።");
-      }
+      voiceState.lastStatus[game]=status;
 
       if((game==="keno" || game==="bingo") && Array.isArray(round.drawnNumbers)){
         const count=round.drawnNumbers.length;
@@ -6323,27 +6277,34 @@
         if(Number.isFinite(winner) && String(winner)!==String(voiceState.lastResult[game])){
           voiceState.lastResult[game]=String(winner);
           const color=rouletteColor(winner);
-          speakGameVoice(`Roulette result ${winner}, ${color}.`,`የሩሌት ውጤት ${winner}፣ ${color}።`,true);
+          speakGameVoice(`Spin result ${winner}, ${color}.`,`የስፒን ውጤት ${winner}፣ ${color}።`,true);
         }
       }
 
       if(game==="aviator" && status==="FLYING"){
-        const multiplier=Number(round.multiplier||1);
-        const milestone=multiplier>=10?10:multiplier>=5?5:multiplier>=3?3:multiplier>=2?2:0;
-        if(milestone>Number(voiceState.lastAviatorMilestone[game]||0)){
+        const milestone=Math.floor(Number(round.multiplier||0));
+        if(milestone>=2 && milestone>Number(voiceState.lastAviatorMilestone[game]||0)){
           voiceState.lastAviatorMilestone[game]=milestone;
-          speakGameVoice(`Aviator ${milestone.toFixed(2)} times.`,`አቪዬተር ${milestone.toFixed(2)} ጊዜ።`);
+          speakGameVoice(`Aviator ${milestone} times.`,`አቪዬተር ${milestone} ጊዜ።`);
+        }
+      }
+
+      if(game==="aviator" && status==="CRASHED"){
+        const crash=Number(round.crashPoint ?? round.multiplier ?? round.result);
+        if(Number.isFinite(crash) && String(crash)!==String(voiceState.lastResult[game])){
+          voiceState.lastResult[game]=String(crash);
+          speakGameVoice(`Flight crashed at ${crash.toFixed(2)} times.`,`በ${crash.toFixed(2)} ጊዜ በረራው ተሰበረ።`,true);
         }
       }
     }
 
-    refreshGameVoices();
-    if("speechSynthesis" in window && "onvoiceschanged" in window){
-      window.speechSynthesis.onvoiceschanged=refreshGameVoices;
-    }
-    /* Any tap can unlock speech on Android/Telegram WebView. */
-    document.addEventListener("pointerdown",function(){ unlockVoice(); }, {passive:true});
-    document.addEventListener("touchstart",function(){ unlockVoice(); }, {passive:true});
+    (function initServerVoice(){
+      let saved="0";
+      try{ saved=localStorage.getItem(voiceStorageKey())||"0"; }catch(e){}
+      voiceState.enabled=saved==="1";
+      voiceState.unlocked=voiceState.enabled;
+      updateVoiceButton();
+    })();
 
     function updateCountdownFromServer(round){
       const game = round.game;
