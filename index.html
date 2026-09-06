@@ -6176,7 +6176,8 @@
       const seq=voiceState.requestSeq;
       try{
         const lang=String(state.language||"en").toLowerCase()==="am" ? "am" : "en";
-        const url="/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(item.text);
+        const VOICE_API_BASE="https://desta-play.onrender.com";
+        const url=VOICE_API_BASE+"/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(item.text);
         const audio=new Audio(url);
         voiceState.currentAudio=audio;
         audio.preload="auto";
