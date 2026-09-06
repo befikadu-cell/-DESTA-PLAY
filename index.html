@@ -3904,6 +3904,8 @@
 
     function openGame(game){
 
+      /* Voice is strictly scoped to the game currently on screen. */
+      if(voiceState && voiceState.enabled) clearVoiceQueue();
       state.game=game;
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
 
@@ -3935,6 +3937,7 @@
 
 
     function backToGames(){
+      if(voiceState && voiceState.enabled) clearVoiceQueue();
       hideAllGames();
       state.game="";
       state.bettingOpen=false;
@@ -6154,7 +6157,7 @@
       try{localStorage.setItem("desta_play_voice_language",voiceState.language);}catch(e){}
       clearVoiceQueue();
       updateVoiceButton();
-      if(voiceState.enabled) queueGameVoice(voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.",voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.",true);
+      if(voiceState.enabled && state.game) queueGameVoice(voiceTestText(),voiceTestText(),true);
     }
 
     function clearVoiceQueue(){
@@ -6172,7 +6175,7 @@
       const enText=String(en||"");
       const amText=String(am||enText);
       if(!enText.trim() && !amText.trim()) return;
-      const item={en:enText,am:amText,priority:!!priority};
+      const item={en:enText,am:amText,game:String(state.game||""),priority:!!priority};
       if(priority) voiceState.queue.unshift(item);
       else voiceState.queue.push(item);
       if(voiceState.queue.length>12) voiceState.queue.splice(0,voiceState.queue.length-12);
@@ -6183,6 +6186,12 @@
       if(!voiceState.enabled || voiceState.playing || !voiceState.queue.length) return;
       voiceState.playing=true;
       const item=voiceState.queue.shift();
+      /* Never play a queued announcement after the player changed games. */
+      if(String(item.game||"")!==String(state.game||"")){
+        voiceState.playing=false;
+        playNextGameVoice();
+        return;
+      }
       const seq=voiceState.requestSeq;
       try{
         const lang=voiceState.language==="am" ? "am" : "en";
@@ -6214,7 +6223,10 @@
     }
 
     function voiceTestText(){
-      return voiceState.language==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
+      const game=String(state.game||"");
+      const names={keno:"Keno",bingo:"Bingo",roulette:"Spin",aviator:"Aviator"};
+      const name=names[game]||"Game";
+      return voiceState.language==="am" ? `${name} ድምጽ ንቁ ነው።` : `${name} voice on.`;
     }
 
     function activateGameVoice(){
@@ -6251,9 +6263,11 @@
     }
 
     function announceRoundVoice(round){
+      if(!voiceState.enabled) return;
       if(!round || !round.game) return;
-      const game=round.game;
-      if(state.game!==game) return;
+      const game=String(round.game);
+      /* Only the game visible on screen is allowed to enqueue voice. */
+      if(String(state.game||"")!==game) return;
       const id=String(round.id || "");
       const status=String(round.status || "");
       const previousId=voiceState.lastRoundId[game];
