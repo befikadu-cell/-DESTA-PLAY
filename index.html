@@ -6223,6 +6223,16 @@
       }
     }
 
+    function bingoVoiceCall(n){
+      const num=Number(n);
+      if(num>=1 && num<=15) return `B-${num}`;
+      if(num>=16 && num<=30) return `I-${num}`;
+      if(num>=31 && num<=45) return `N-${num}`;
+      if(num>=46 && num<=60) return `G-${num}`;
+      if(num>=61 && num<=75) return `O-${num}`;
+      return `Bingo-${num}`;
+    }
+
     function speakGameVoice(en, am, priority=false){
       if(!voiceState.enabled) return;
       if(!voiceState.unlocked){
@@ -6302,7 +6312,7 @@
         if(count>Number(voiceState.lastDrawCount[game]||0)){
           const n=round.drawnNumbers[count-1];
           voiceState.lastDrawCount[game]=count;
-          if(game==="bingo") speakGameVoice(`Bingo number ${n}.`,`የቢንጎ ቁጥር ${n}።`);
+          if(game==="bingo") speakGameVoice(bingoVoiceCall(n),bingoVoiceCall(n));
           else speakGameVoice(`Keno number ${n}.`,`የኬኖ ቁጥር ${n}።`);
         }
       }
