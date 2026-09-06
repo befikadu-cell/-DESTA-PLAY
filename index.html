@@ -1824,7 +1824,7 @@
     .transactionRow:last-child{border-bottom:0}
     .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
 
-    .voiceLangBox{display:flex;align-items:center;gap:2px}.voiceLangBtn{border:0;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:4px;opacity:.55;cursor:pointer}.voiceLangBtn.active{opacity:1;text-decoration:underline}</style>
+    .bonusToggle{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;font-weight:800;opacity:.85;margin:5px 0}.bonusToggle input{accent-color:currentColor}.voiceLangBox{display:flex;align-items:center;gap:2px}.voiceLangBtn{border:0;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:4px;opacity:.55;cursor:pointer}.voiceLangBtn.active{opacity:1;text-decoration:underline}</style>
     </head>
 
     <body>
@@ -2568,6 +2568,7 @@
                 </button>
 
               </div>
+              <label class="bonusToggle"><input id="rouletteBonus1" type="checkbox"> USE BONUS POINTS</label>
 
               <div
                 class="livePayout"
@@ -2606,6 +2607,7 @@
                 </button>
 
               </div>
+              <label class="bonusToggle"><input id="rouletteBonus2" type="checkbox"> USE BONUS POINTS</label>
 
               <div
                 class="livePayout"
@@ -2703,6 +2705,7 @@
                 </button>
 
               </div>
+              <label class="bonusToggle"><input id="aviatorBonus1" type="checkbox"> USE BONUS POINTS</label>
 
               <div
                 class="livePayout"
@@ -2742,6 +2745,7 @@
                 </button>
 
               </div>
+              <label class="bonusToggle"><input id="aviatorBonus2" type="checkbox"> USE BONUS POINTS</label>
 
               <div
                 class="livePayout"
@@ -2874,6 +2878,10 @@
           <span>Your Invite Code</span>
           <span id="inviteCode">—</span>
         </div>
+        <div class="profileRow"><span>Players Invited</span><strong id="inviteCount">0</strong></div>
+        <div class="profileRow"><span>Points Earned</span><strong id="inviteEarnedPoints">0.00</strong></div>
+        <div class="profileRow"><span>Bonus Play Value</span><strong><span id="invitePlayValue">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="inviteWithdrawalValue">0.00</span> ETB</strong></div>
         <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
         <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
         <div id="inviteStatus" class="walletStatus"></div>
@@ -2917,6 +2925,14 @@
 
       </div>
 
+      <div class="profileCard" style="margin-top:12px">
+        <h3>BONUS POINTS</h3>
+        <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
+        <div class="profileRow"><span>Play Value</span><strong><span id="bonusPlayValueDisplay">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="bonusWithdrawalValueDisplay">0.00</span> ETB</strong></div>
+        <p>Bonus points are active only in Aviator and Spin. 1 point = 1 ETB play value. 10 points = 1 ETB withdrawal value.</p>
+      </div>
+
       <div class="profileCard inviteCard" style="margin-top:12px">
         <h3>INVITATION</h3>
         <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
@@ -2924,6 +2940,10 @@
           <span>Your Invite Code</span>
           <span id="profileInviteCode">—</span>
         </div>
+        <div class="profileRow"><span>Players Invited</span><strong id="profileInviteCount">0</strong></div>
+        <div class="profileRow"><span>Points Earned</span><strong id="profileInviteEarnedPoints">0.00</strong></div>
+        <div class="profileRow"><span>Bonus Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
         <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
         <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
         <div id="inviteStatus" class="walletStatus"></div>
@@ -3038,6 +3058,9 @@
       game:"keno",
 
       balance:0,
+      bonusPoints:0,
+      bonusPlayValue:0,
+      bonusWithdrawalValue:0,
 
       accountCreated:false,
 
@@ -3879,7 +3902,6 @@
 
     async function loadInviteData(){
       const codeEl=document.getElementById("inviteCode");
-      const countEl=document.getElementById("inviteCount");
       if(!codeEl) return;
       try{
         const headers={"Accept":"application/json"};
@@ -3887,18 +3909,49 @@
         const response=await fetch("https://desta-play.onrender.com/api/invite",{cache:"no-store",headers});
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "Could not load invite information.");
+        const count=Number(data.invitedPlayers||0);
+        const earned=Number(data.earnedPoints||0);
+        const play=Number(data.playValue||0);
+        const withdrawal=Number(data.withdrawalValue||0);
         codeEl.textContent=data.inviteCode || "—";
         const profileCodeEl=document.getElementById("profileInviteCode");
         if(profileCodeEl) profileCodeEl.textContent=data.inviteCode || "—";
+        ["inviteCount","profileInviteCount"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=String(count);});
+        ["inviteEarnedPoints","profileInviteEarnedPoints"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=earned.toFixed(2);});
+        ["invitePlayValue","profileInvitePlayValue"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=play.toFixed(2);});
+        ["inviteWithdrawalValue","profileInviteWithdrawalValue"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=withdrawal.toFixed(2);});
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
+        state.bonusPoints=Number(data.bonusPoints||0);
+        state.bonusPlayValue=Number(data.playValue||0);
+        state.bonusWithdrawalValue=Number(data.withdrawalValue||0);
+        updateBonusDisplays();
       }catch(error){
         if(codeEl) codeEl.textContent="—";
-        const profileCodeEl=document.getElementById("profileInviteCode");
-        if(profileCodeEl) profileCodeEl.textContent="—";
         const status=document.getElementById("inviteStatus");
         if(status) status.textContent=error.message || "Could not load invite information.";
       }
+    }
+
+    async function loadBonusData(){
+      if(!state.authToken) return;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bonus",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) return;
+        state.bonusPoints=Number(data.bonusPoints||0);
+        state.bonusPlayValue=Number(data.playValue||0);
+        state.bonusWithdrawalValue=Number(data.withdrawalValue||0);
+        updateBonusDisplays();
+      }catch(e){}
+    }
+
+    function updateBonusDisplays(){
+      const points=Number(state.bonusPoints||0);
+      ["bonusPointsDisplay","profileBonusPoints"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=points.toFixed(2);});
+      ["bonusPlayValueDisplay"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Number(state.bonusPlayValue||points).toFixed(2);});
+      ["bonusWithdrawalValueDisplay"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=Number(state.bonusWithdrawalValue||points/10).toFixed(2);});
+      ["rouletteBonus1","rouletteBonus2","aviatorBonus1","aviatorBonus2"].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=points<=0;});
     }
 
     function getInviteLink(){
@@ -5275,121 +5328,48 @@
     }
 
 
-    function placeAviatorBet(slot){
-
-      if(!state.bettingOpen){
-
-        alert(
-          "The flight has already started."
-        );
-
-        return;
-
-      }
-
-      if(
-        state.aviatorBets[slot]
-      ){
-
-        return;
-
-      }
-
-      const amount=
-        Number(
-          document.getElementById(
-            "a"+slot
-          ).value
-        );
-
-      if(
-        amount<=0 ||
-        amount>state.balance
-      ){
-
-        alert("Invalid amount.");
-
-        return;
-
-      }
-
-      state.balance-=amount;
-
-      state.aviatorBets[slot]={
-        amount,
-        cashed:false,
-        cashout:null
-      };
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASH OUT";
-
+    async function placeAviatorBet(slot){
+      if(!state.bettingOpen){ alert("The flight has already started."); return; }
+      if(state.aviatorBets[slot]) return;
+      const amount=Number(document.getElementById("a"+slot)?.value);
+      const useBonus=!!document.getElementById("aviatorBonus"+slot)?.checked;
+      const currency=useBonus ? "bonus" : "cash";
+      if(!Number.isFinite(amount) || amount<=0){ alert("Invalid amount."); return; }
+      if(currency==="bonus" && amount>Number(state.bonusPoints||0)){ alert("Insufficient bonus points."); return; }
+      if(currency==="cash" && amount>Number(state.balance||0)){ alert("Insufficient balance."); return; }
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/aviator/bet",{
+          method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},
+          body:JSON.stringify({slot,amount,currency})
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){ alert(data?.error || "Could not place Aviator bet."); return; }
+        state.balance=Number(data.balanceAfter ?? state.balance);
+        state.bonusPoints=Number(data.bonusPointsAfter ?? state.bonusPoints);
+        state.bonusPlayValue=state.bonusPoints; state.bonusWithdrawalValue=state.bonusPoints/10;
+        state.aviatorBets[slot]={amount,currency,cashed:false,cashout:null};
+        updateBalance(); updateBonusDisplays();
+        const btn=document.getElementById("aviatorBtn"+slot); if(btn)btn.textContent="CASH OUT";
+      }catch(error){ console.error(error); alert("Could not place Aviator bet."); }
     }
 
-
-    function cashOutAviator(slot){
-
-      const bet=
-        state.aviatorBets[slot];
-
-      if(
-        !bet ||
-        bet.cashed ||
-        state.aviatorMultiplier<1
-      )
-        return;
-
-      const multiplier=
-        state.aviatorMultiplier;
-
-      const payout=
-        Number(
-          (
-            bet.amount*
-            multiplier
-          ).toFixed(2)
-        );
-
-      bet.cashed=true;
-      bet.cashout=multiplier;
-
-      state.balance+=payout;
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorPayout"+slot
-        )
-        .textContent=
-          payout.toFixed(2)+
-          " ETB CASHED OUT";
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASHED OUT";
-
-      setTimeout(()=>{
-
-        document
-          .getElementById(
-            "aviatorPayout"+slot
-          )
-          .textContent="";
-
-      },2000);
-
+    async function cashOutAviator(slot){
+      const bet=state.aviatorBets[slot];
+      if(!bet || bet.cashed || state.aviatorMultiplier<1) return;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/aviator/cashout",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({slot})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){ alert(data?.error || "Could not cash out."); return; }
+        const payout=Number(data.payout||0);
+        bet.cashed=true; bet.cashout=Number(data.multiplier||state.aviatorMultiplier);
+        state.balance=Number(data.balanceAfter ?? state.balance);
+        state.bonusPoints=Number(data.bonusPointsAfter ?? state.bonusPoints);
+        state.bonusPlayValue=state.bonusPoints; state.bonusWithdrawalValue=state.bonusPoints/10;
+        updateBalance(); updateBonusDisplays();
+        const out=document.getElementById("aviatorPayout"+slot); if(out)out.textContent=payout.toFixed(2)+(bet.currency==="bonus"?" BONUS POINTS CASHED OUT":" ETB CASHED OUT");
+        const btn=document.getElementById("aviatorBtn"+slot); if(btn)btn.textContent="CASHED OUT";
+      }catch(error){ console.error(error); alert("Could not cash out."); }
     }
-
 
     function runAviator(){
 
