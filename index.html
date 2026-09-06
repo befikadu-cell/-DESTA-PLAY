@@ -1880,6 +1880,17 @@
           <div id="registrationPhoneStatus" class="accountMessage"></div>
 
           <label class="accountLabel">
+            INVITATION CODE
+          </label>
+
+          <input
+            id="registrationReferralCode"
+            class="accountInput"
+            type="text"
+            autocomplete="off"
+            placeholder="Enter invitation code if you were invited">
+
+          <label class="accountLabel">
             DESTA PLAY PASSWORD
           </label>
 
@@ -2906,6 +2917,18 @@
 
       </div>
 
+      <div class="profileCard inviteCard" style="margin-top:12px">
+        <h3>INVITATION</h3>
+        <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
+        <div class="profileRow">
+          <span>Your Invite Code</span>
+          <span id="profileInviteCode">—</span>
+        </div>
+        <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
+        <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
+        <div id="inviteStatus" class="walletStatus"></div>
+      </div>
+
     </section>
 
 
@@ -2944,11 +2967,11 @@
       </button>
 
       <button
-        id="navInvite"
-        onclick="showPage('invite')">
+        id="navProfile"
+        onclick="showPage('profile')">
 
-        <span>🎁</span>
-        INVITE
+        <span>👤</span>
+        PROFILE
 
       </button>
 
@@ -3400,6 +3423,11 @@
       }catch(error){ console.error("Password reset completion error:",error); resetMessage(error.message || "Could not reset password.","error"); }
     }
 
+    function syncRegistrationReferralCode(){
+      const input=document.getElementById("registrationReferralCode");
+      if(input && !input.value) input.value=state.referralCode || "";
+    }
+
     async function loginAccount(){
       const password=document.getElementById("loginPassword").value;
       const message=document.getElementById("accountMessage");
@@ -3432,6 +3460,8 @@
       const registrationPhone=document.getElementById("registrationPhone").value.trim();
       if(!registrationPhone){ message.className="accountMessage error"; message.textContent="Share your phone number through Telegram first."; return; }
       if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
+      const referralInput=document.getElementById("registrationReferralCode");
+      state.referralCode=(referralInput?.value || state.referralCode || "").trim().toUpperCase();
       message.className="accountMessage"; message.textContent="Creating account...";
       try{
         const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,telegramUsername:state.telegramUsername,password,phone:document.getElementById("registrationPhone").value.trim(),referralCode:state.referralCode || ""})});
@@ -3447,6 +3477,8 @@
         setTimeout(showHome,300);
       }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
     }
+
+    syncRegistrationReferralCode();
 
     function showHome(){
 
@@ -3506,6 +3538,9 @@
 
     const AMHARIC_UI = {
       "Telegram name":"የቴሌግራም ስም",
+      "INVITATION CODE":"የግብዣ ኮድ",
+      "INVITATION":"ግብዣ",
+      "Enter invitation code if you were invited":"ከተጋበዙ የግብዣ ኮዱን ያስገቡ",
       "Player ID":"የተጫዋች መለያ",
       "Generating...":"በመፍጠር ላይ...",
       "Loading...":"በመጫን ላይ...",
@@ -3822,24 +3857,21 @@
       }
 
       if(page==="invite"){
-
         document
           .getElementById("inviteScreen")
           .style.display="block";
-
-        document
-          .getElementById("navInvite")
-          .classList.add("active");
-
         loadInviteData();
-
       }
 
       if(page==="profile"){
         document
           .getElementById("profileScreen")
           .style.display="block";
+        document
+          .getElementById("navProfile")
+          .classList.add("active");
         updatePlayerDisplays();
+        loadInviteData();
       }
 
     }
@@ -3856,10 +3888,14 @@
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "Could not load invite information.");
         codeEl.textContent=data.inviteCode || "—";
+        const profileCodeEl=document.getElementById("profileInviteCode");
+        if(profileCodeEl) profileCodeEl.textContent=data.inviteCode || "—";
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
       }catch(error){
         if(codeEl) codeEl.textContent="—";
+        const profileCodeEl=document.getElementById("profileInviteCode");
+        if(profileCodeEl) profileCodeEl.textContent="—";
         const status=document.getElementById("inviteStatus");
         if(status) status.textContent=error.message || "Could not load invite information.";
       }
@@ -6157,7 +6193,6 @@
       try{localStorage.setItem("desta_play_voice_language",voiceState.language);}catch(e){}
       clearVoiceQueue();
       updateVoiceButton();
-      if(voiceState.enabled && state.game) queueGameVoice(voiceTestText(),voiceTestText(),true);
     }
 
     function clearVoiceQueue(){
@@ -6224,9 +6259,14 @@
 
     function voiceTestText(){
       const game=String(state.game||"");
-      const names={keno:"Keno",bingo:"Bingo",roulette:"Spin",aviator:"Aviator"};
-      const name=names[game]||"Game";
-      return voiceState.language==="am" ? `${name} ድምጽ ንቁ ነው።` : `${name} voice on.`;
+      const names={
+        keno:{en:"Keno",am:"ኬኖ"},
+        bingo:{en:"Bingo",am:"ቢንጎ"},
+        roulette:{en:"Spin",am:"ስፒን"},
+        aviator:{en:"Aviator",am:"አቪዬተር"}
+      };
+      const name=names[game]||{en:"Game",am:"ጨዋታ"};
+      return voiceState.language==="am" ? `${name.am} ድምጽ ንቁ ነው።` : `${name.en} voice on.`;
     }
 
     function activateGameVoice(){
@@ -6278,12 +6318,7 @@
         voiceState.lastDrawCount[game]=0;
         voiceState.lastResult[game]="";
         voiceState.lastAviatorMilestone[game]=0;
-        if(isNewRound){
-          if(game==="keno") speakGameVoice("New Keno round. Betting is open.","አዲስ የኬኖ ዙር። ውርርድ ተከፍቷል።",true);
-          else if(game==="bingo") speakGameVoice("New Bingo round. Betting is open.","አዲስ የቢንጎ ዙር። ውርርድ ተከፍቷል።",true);
-          else if(game==="roulette") speakGameVoice("New Spin round. Betting is open.","አዲስ የስፒን ዙር። ውርርድ ተከፍቷል።",true);
-          else if(game==="aviator") speakGameVoice("New Aviator round. Betting is open.","አዲስ የአቪዬተር ዙር። ውርርድ ተከፍቷል።",true);
-        }
+
       }
 
       voiceState.lastStatus[game]=status;
@@ -6294,7 +6329,7 @@
           const n=round.drawnNumbers[count-1];
           voiceState.lastDrawCount[game]=count;
           if(game==="bingo") speakGameVoice(bingoVoiceCall(n),bingoVoiceCall(n));
-          else speakGameVoice(`Keno number ${n}.`,`የኬኖ ቁጥር ${n}።`);
+          else speakGameVoice(String(n),String(n));
         }
       }
 
@@ -6312,7 +6347,7 @@
         const milestone=Math.floor(Number(round.multiplier||0));
         if(milestone>=2 && milestone>Number(voiceState.lastAviatorMilestone[game]||0)){
           voiceState.lastAviatorMilestone[game]=milestone;
-          speakGameVoice(`Aviator ${milestone} times.`,`አቪዬተር ${milestone} ጊዜ።`);
+          speakGameVoice(`Flight ${milestone} times.`,`በረራ ${milestone} ጊዜ።`);
         }
       }
 
@@ -6320,7 +6355,7 @@
         const crash=Number(round.crashPoint ?? round.multiplier ?? round.result);
         if(Number.isFinite(crash) && String(crash)!==String(voiceState.lastResult[game])){
           voiceState.lastResult[game]=String(crash);
-          speakGameVoice(`Flight crashed at ${crash.toFixed(2)} times.`,`በ${crash.toFixed(2)} ጊዜ በረራው ተሰበረ።`,true);
+          speakGameVoice(`Crash at ${crash.toFixed(2)} times.`,`በ${crash.toFixed(2)} ጊዜ አደጋ ተከሰተ።`,true);
         }
       }
     }
