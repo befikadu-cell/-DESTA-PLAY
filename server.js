@@ -624,6 +624,41 @@ async function approveDepositTransaction(transaction, verification) {
             }
         });
 
+        /* FIRST DEPOSIT BONUS: 300% as bonus points.
+         * Bonus points are separate from cash balance.
+         * Play value: 1 point = 1 ETB. Withdrawal value: 10 points = 1 ETB.
+         */
+        try {
+            const { data: priorCredits, error: priorCreditError } = await supabase
+                .from("transactions")
+                .select("id")
+                .eq("player_id", pending.player_id)
+                .eq("type", "deposit_credit")
+                .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
+                .limit(2);
+
+            if (priorCreditError) throw priorCreditError;
+
+            if (!Array.isArray(priorCredits) || priorCredits.length <= 1) {
+                const bonusPoints = Number((expectedAmount * 3).toFixed(2));
+                if (bonusPoints > 0) {
+                    await writeBonusTransaction({
+                        playerId: pending.player_id,
+                        points: bonusPoints,
+                        type: "first_deposit_bonus",
+                        description: JSON.stringify({
+                            reason: "300% first deposit bonus",
+                            depositAmount: expectedAmount,
+                            bonusPoints
+                        }),
+                        referenceId
+                    });
+                }
+            }
+        } catch (bonusError) {
+            console.error("[BONUS] First deposit bonus could not be recorded:", bonusError);
+        }
+
         await sendAdminGroupAudit(
             `DEPOSIT VERIFIED\nPlayer: ${pending.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`
         );
@@ -830,6 +865,61 @@ async function writeTransaction({
 
         throw new Error("Transaction ledger error");
     }
+}
+
+/*
+|--------------------------------------------------------------------------
+| BONUS POINT LEDGER
+|--------------------------------------------------------------------------
+|
+| Uses the existing transactions table so no new database column is needed.
+| Bonus points never change the cash balance.
+| 1 point = 1 ETB play value.
+| 10 points = 1 ETB withdrawal value.
+|--------------------------------------------------------------------------
+*/
+async function writeBonusTransaction({ playerId, points, type, description = null, referenceId = null }) {
+    const value = Number(points);
+    if (!Number.isFinite(value) || value === 0) return;
+    const player = await findPlayerById(playerId);
+    if (!player) throw new Error("Player not found");
+    await writeTransaction({
+        playerId,
+        type,
+        amount: value,
+        balanceBefore: Number(player.balance || 0),
+        balanceAfter: Number(player.balance || 0),
+        status: "SUCCESS",
+        description,
+        referenceId
+    });
+}
+
+async function getBonusLedger(playerId) {
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("id,type,amount,description,reference_id,created_at")
+        .eq("player_id", playerId)
+        .in("type", [
+            "invite_bonus_points",
+            "first_deposit_bonus",
+            "bonus_play",
+            "bonus_win",
+            "bonus_adjustment"
+        ])
+        .eq("status", "SUCCESS")
+        .order("created_at", { ascending: true })
+        .limit(500);
+    if (error) {
+        await dbError("getBonusLedger", error);
+        throw new Error("Could not load bonus points");
+    }
+    return data || [];
+}
+
+async function getBonusPoints(playerId) {
+    const rows = await getBonusLedger(playerId);
+    return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
 }
 
 /*
@@ -1191,6 +1281,25 @@ async function registerHandler(req, res) {
                 error:
                     "Failed to create player account"
             });
+        }
+
+        if (validReferrer) {
+            try {
+                await writeBonusTransaction({
+                    playerId: validReferrer.id,
+                    points: 10,
+                    type: "invite_bonus_points",
+                    description: JSON.stringify({
+                        reason: "Successful invitation",
+                        invitedPlayerId: insertedPlayer.id,
+                        referralCode: normalizedReferralCode,
+                        rewardPoints: 10
+                    }),
+                    referenceId: insertedPlayer.id
+                });
+            } catch (bonusError) {
+                console.error("[BONUS] Invite reward could not be recorded:", bonusError);
+            }
         }
 
         const token =
@@ -1833,6 +1942,28 @@ app.get(
 
 /*
 |--------------------------------------------------------------------------
+| BONUS POINTS
+|--------------------------------------------------------------------------
+*/
+app.get("/api/bonus", requirePlayer, async (req, res) => {
+    try {
+        const points = await getBonusPoints(req.player.id);
+        return res.json({
+            success:true,
+            bonusPoints:Math.max(0, points),
+            playValue:Number(Math.max(0, points).toFixed(2)),
+            withdrawalValue:Number((Math.max(0, points) / 10).toFixed(2)),
+            playRate:"1 point = 1 ETB play value",
+            withdrawalRate:"10 points = 1 ETB withdrawal value",
+            eligibleGames:["aviator","roulette"]
+        });
+    } catch (error) {
+        return res.status(500).json({success:false,error:error.message || "Could not load bonus points"});
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
 | PLAYER INVITE
 |--------------------------------------------------------------------------
 |
@@ -1845,14 +1976,39 @@ app.get(
 app.get(
     "/api/invite",
     requirePlayer,
-    (req, res) => {
-        const inviteCode = makeInviteCode(req.player.id);
-
-        return res.json({
-            success: true,
-            inviteCode,
-            inviteLink: makeInviteLink(req.player.id)
-        });
+    async (req, res) => {
+        try {
+            const inviteCode = makeInviteCode(req.player.id);
+            const ledger = await getBonusLedger(req.player.id);
+            let invitedPlayers = 0;
+            for (const row of ledger) {
+                if (row.type !== "invite_bonus_points") continue;
+                try {
+                    const meta = JSON.parse(row.description || "{}");
+                    if (meta.invitedPlayerId) invitedPlayers += 1;
+                } catch (_) {}
+            }
+            const earnedPoints = Number(ledger
+                .filter(r => ["invite_bonus_points", "first_deposit_bonus", "bonus_win", "bonus_adjustment"].includes(r.type))
+                .reduce((sum, r) => sum + Number(r.amount || 0), 0).toFixed(2));
+            const usedPoints = Number(ledger
+                .filter(r => r.type === "bonus_play")
+                .reduce((sum, r) => sum + Math.abs(Number(r.amount || 0)), 0).toFixed(2));
+            const bonusPoints = Number((earnedPoints - usedPoints).toFixed(2));
+            return res.json({
+                success: true,
+                inviteCode,
+                inviteLink: makeInviteLink(req.player.id),
+                invitedPlayers,
+                earnedPoints,
+                usedPoints,
+                bonusPoints: Math.max(0, bonusPoints),
+                playValue: Math.max(0, bonusPoints),
+                withdrawalValue: Number((Math.max(0, bonusPoints) / 10).toFixed(2))
+            });
+        } catch (error) {
+            return res.status(500).json({ success:false, error:error.message || "Could not load invite information" });
+        }
     }
 );
 
@@ -4586,21 +4742,37 @@ async function settleRouletteRound(round) {
         }
 
         if (payout > 0) {
-            await changeBalance({
-                playerId: bet.playerId,
-                amount: payout,
-                type: "roulette_win",
-                game: "roulette",
-                roundId: round.id,
-                description: "Roulette winning payout",
-                metadata: {
-                    betId: bet.betId,
-                    slot: bet.slot,
-                    result,
-                    resultColor,
-                    payout
-                }
-            });
+            if (String(bet.currency || "cash") === "bonus") {
+                await writeBonusTransaction({
+                    playerId: bet.playerId,
+                    points: payout,
+                    type: "bonus_win",
+                    description: JSON.stringify({
+                        game:"roulette",
+                        betId:bet.betId,
+                        result,
+                        resultColor,
+                        payout
+                    }),
+                    referenceId: round.id
+                });
+            } else {
+                await changeBalance({
+                    playerId: bet.playerId,
+                    amount: payout,
+                    type: "roulette_win",
+                    game: "roulette",
+                    roundId: round.id,
+                    description: "Roulette winning payout",
+                    metadata: {
+                        betId: bet.betId,
+                        slot: bet.slot,
+                        result,
+                        resultColor,
+                        payout
+                    }
+                });
+            }
         }
 
         bet.payout = payout;
@@ -5469,27 +5641,47 @@ app.post(
                 return res.status(400).json({ success:false, error:"This roulette slot already has a bet for this round" });
             }
 
-            const currentBalance = Number(req.player.balance || 0);
-            if (amount > currentBalance) {
-                return res.status(400).json({ success:false, error:"Insufficient balance" });
+            const currency = String(req.body.currency || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+            let balanceAfter = Number(req.player.balance || 0);
+            let bonusPointsAfter = await getBonusPoints(req.player.id);
+
+            if (currency === "bonus") {
+                if (amount > bonusPointsAfter) {
+                    return res.status(400).json({ success:false, error:"Insufficient bonus points" });
+                }
+                await writeBonusTransaction({
+                    playerId:req.player.id,
+                    points:-amount,
+                    type:"bonus_play",
+                    game:"roulette",
+                    roundId:round.id,
+                    description:"Roulette bonus-point bet"
+                });
+                bonusPointsAfter = Number((bonusPointsAfter - amount).toFixed(2));
+            } else {
+                const currentBalance = Number(req.player.balance || 0);
+                if (amount > currentBalance) {
+                    return res.status(400).json({ success:false, error:"Insufficient balance" });
+                }
+                balanceAfter = await changeBalance({
+                    playerId:req.player.id,
+                    amount:-amount,
+                    type:"roulette_bet",
+                    game:"roulette",
+                    roundId:round.id,
+                    description:"Roulette bet",
+                    metadata:{ betId:"pending", slot, betType, number, color, currency }
+                });
             }
 
             const betId = makeId("ROUBET");
-            const balanceAfter = await changeBalance({
-                playerId:req.player.id,
-                amount:-amount,
-                type:"roulette_bet",
-                game:"roulette",
-                roundId:round.id,
-                description:"Roulette bet",
-                metadata:{ betId, slot, betType, number, color }
-            });
 
             round.bets.push({
                 betId,
                 playerId:req.player.id,
                 slot,
                 amount,
+                currency,
                 betType,
                 number:betType === "number" ? number : null,
                 color:betType === "color" ? color : null,
@@ -5506,10 +5698,12 @@ app.post(
                 roundId:round.id,
                 slot,
                 amount,
+                currency,
                 betType,
                 number,
                 color,
                 balanceAfter,
+                bonusPointsAfter,
                 bettingEndsAt:round.bettingEndsAt,
                 remainingMilliseconds:Math.max(0, round.bettingEndsAt - Date.now())
             });
@@ -5679,6 +5873,71 @@ app.get(
 | GENERIC ROUND API
 |--------------------------------------------------------------------------
 */
+
+/*
+|--------------------------------------------------------------------------
+| AVIATOR BETS WITH OPTIONAL BONUS POINTS
+|--------------------------------------------------------------------------
+*/
+app.post("/api/aviator/bet", requirePlayer, async (req, res) => {
+    try {
+        const round = rounds.aviator;
+        const slot = Number(req.body.slot || 1);
+        const amount = Number(req.body.amount);
+        const currency = String(req.body.currency || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+        if (!round || round.status !== "BETTING") return res.status(400).json({success:false,error:"Aviator betting is closed"});
+        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator slot"});
+        if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({success:false,error:"Invalid Aviator amount"});
+        if (!Array.isArray(round.bets)) round.bets=[];
+        if (round.bets.some(b => b.playerId === req.player.id && Number(b.slot) === slot)) return res.status(400).json({success:false,error:"This Aviator slot already has a bet for this round"});
+
+        let balanceAfter = Number(req.player.balance || 0);
+        let bonusPointsAfter = await getBonusPoints(req.player.id);
+        if (currency === "bonus") {
+            if (amount > bonusPointsAfter) return res.status(400).json({success:false,error:"Insufficient bonus points"});
+            await writeBonusTransaction({playerId:req.player.id,points:-amount,type:"bonus_play",description:JSON.stringify({game:"aviator",slot,amount}),referenceId:round.id});
+            bonusPointsAfter=Number((bonusPointsAfter-amount).toFixed(2));
+        } else {
+            if (amount > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
+            balanceAfter=await changeBalance({playerId:req.player.id,amount:-amount,type:"aviator_bet",game:"aviator",roundId:round.id,description:"Aviator bet",metadata:{slot,amount,currency}});
+        }
+
+        const betId=makeId("AVIBET");
+        round.bets.push({betId,playerId:req.player.id,slot,amount,currency,placedAt:Date.now(),cashedOut:false,cashout:null,payout:0});
+        await saveRound(round);
+        return res.json({success:true,betId,roundId:round.id,slot,amount,currency,balanceAfter,bonusPointsAfter});
+    } catch(error) {
+        console.error("Aviator bet error:",error);
+        return res.status(500).json({success:false,error:error.message || "Could not place Aviator bet"});
+    }
+});
+
+app.post("/api/aviator/cashout", requirePlayer, async (req, res) => {
+    try {
+        const round=rounds.aviator;
+        const slot=Number(req.body.slot || 1);
+        if (!round || !["FLYING"].includes(round.status)) return res.status(400).json({success:false,error:"Aviator flight is not active"});
+        const bet=Array.isArray(round.bets) ? round.bets.find(b => b.playerId===req.player.id && Number(b.slot)===slot && !b.cashedOut) : null;
+        if (!bet) return res.status(400).json({success:false,error:"No active Aviator bet"});
+        const multiplier=Number(round.multiplier);
+        if (!Number.isFinite(multiplier) || multiplier < 1) return res.status(400).json({success:false,error:"Invalid flight multiplier"});
+        const payout=Number((Number(bet.amount)*multiplier).toFixed(2));
+        bet.cashedOut=true; bet.cashout=multiplier; bet.payout=payout;
+        let balanceAfter=Number(req.player.balance || 0);
+        let bonusPointsAfter=await getBonusPoints(req.player.id);
+        if (String(bet.currency)==="bonus") {
+            await writeBonusTransaction({playerId:req.player.id,points:payout,type:"bonus_win",description:JSON.stringify({game:"aviator",betId:bet.betId,slot,multiplier,payout}),referenceId:round.id});
+            bonusPointsAfter=Number((bonusPointsAfter+payout).toFixed(2));
+        } else {
+            balanceAfter=await changeBalance({playerId:req.player.id,amount:payout,type:"aviator_win",game:"aviator",roundId:round.id,description:"Aviator cash-out",metadata:{betId:bet.betId,slot,multiplier,payout}});
+        }
+        await saveRound(round);
+        return res.json({success:true,payout,multiplier,currency:bet.currency,balanceAfter,bonusPointsAfter});
+    } catch(error) {
+        console.error("Aviator cashout error:",error);
+        return res.status(500).json({success:false,error:error.message || "Could not cash out Aviator bet"});
+    }
+});
 
 app.get(
     "/api/game/:game/round",
