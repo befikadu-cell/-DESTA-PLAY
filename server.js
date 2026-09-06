@@ -72,6 +72,9 @@ const TELEGRAM_BOT_TOKEN =
 const TELEGRAM_WEBHOOK_SECRET =
     String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
 
+const PUBLIC_APP_URL =
+    String(process.env.PUBLIC_APP_URL || "https://desta-play.onrender.com/").trim().replace(/\/$/, "");
+
 const SMS_WEBHOOK_SECRET =
     String(process.env.SMS_WEBHOOK_SECRET || "").trim();
 
@@ -257,6 +260,36 @@ function makePlayerId() {
         "DP-" +
         crypto.randomBytes(4).toString("hex").toUpperCase()
     );
+}
+
+/*
+|--------------------------------------------------------------------------
+| UNIQUE PLAYER INVITE CODE
+|--------------------------------------------------------------------------
+|
+| Every player ID is generated from cryptographically random bytes. The
+| invite code is a stable, unique server-generated representation of that
+| player ID, so it survives browser refreshes and server restarts without
+| requiring another database column.
+|--------------------------------------------------------------------------
+*/
+
+function makeInviteCode(playerId) {
+    const raw = String(playerId || "").trim();
+    if (!raw) return "";
+    return "DP" + raw.replace(/^DP-/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+}
+
+function inviteCodeToPlayerId(inviteCode) {
+    const code = String(inviteCode || "").trim().toUpperCase();
+    const suffix = code.replace(/^DP/, "");
+    if (!/^[A-F0-9]{8}$/.test(suffix)) return null;
+    return "DP-" + suffix;
+}
+
+function makeInviteLink(playerId) {
+    const code = makeInviteCode(playerId);
+    return code ? `${PUBLIC_APP_URL}/?ref=${encodeURIComponent(code)}` : "";
 }
 
 function normalizeTelegramName(name) {
@@ -741,7 +774,9 @@ function publicPlayer(player) {
         telegramId: player.telegram_id,
         telegramName: player.username || "Player",
         balance: Number(player.balance || 0),
-        createdAt: player.created_at
+        createdAt: player.created_at,
+        inviteCode: makeInviteCode(player.id),
+        inviteLink: makeInviteLink(player.id)
     };
 }
 
@@ -1037,7 +1072,8 @@ async function registerHandler(req, res) {
             telegramName,
             telegramUsername,
             password,
-            phone
+            phone,
+            referralCode
         } = req.body;
 
         if (
@@ -1048,6 +1084,21 @@ async function registerHandler(req, res) {
             return res.status(400).json({
                 success: false,
                 error: "Missing Telegram ID"
+            });
+        }
+
+        const normalizedReferralCode = String(referralCode || "").trim().toUpperCase();
+        const referrerPlayerId = inviteCodeToPlayerId(normalizedReferralCode);
+        let validReferrer = null;
+
+        if (referrerPlayerId) {
+            validReferrer = await findPlayerById(referrerPlayerId);
+        }
+
+        if (normalizedReferralCode && !validReferrer) {
+            return res.status(400).json({
+                success: false,
+                error: "Invalid invite code"
             });
         }
 
@@ -1144,7 +1195,10 @@ async function registerHandler(req, res) {
         return res.json({
             success: true,
             token,
-            player: publicPlayer(insertedPlayer)
+            player: publicPlayer(insertedPlayer),
+            inviteCode: makeInviteCode(insertedPlayer.id),
+            inviteLink: makeInviteLink(insertedPlayer.id),
+            referredBy: validReferrer ? validReferrer.id : null
         });
     } catch (error) {
         console.error("Registration error:", error);
@@ -1771,6 +1825,31 @@ app.get(
     "/api/account/me",
     requirePlayer,
     meHandler
+);
+
+/*
+|--------------------------------------------------------------------------
+| PLAYER INVITE
+|--------------------------------------------------------------------------
+|
+| Returns the unique invite code/link for the authenticated player. The
+| code is derived from the server-generated player ID, so every player has
+| a different code and the code does not change after refresh/restart.
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+    "/api/invite",
+    requirePlayer,
+    (req, res) => {
+        const inviteCode = makeInviteCode(req.player.id);
+
+        return res.json({
+            success: true,
+            inviteCode,
+            inviteLink: makeInviteLink(req.player.id)
+        });
+    }
 );
 
 /*
