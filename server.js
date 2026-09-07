@@ -27,6 +27,9 @@ import crypto from "crypto";
 import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import { createVoiceRouter } from "./voice.js";
+import PVP_ENGINES from "./pvp/engines/index.js";
+import PVPManager, { PVP_ENTRY_FEES as MANAGER_ENTRY_FEES } from "./pvp/PVPManager.js";
+import PoolEngine from "./pvp/PoolEngine.js";
 
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
@@ -203,17 +206,15 @@ const games = {
 |
 |--------------------------------------------------------------------------
 */
-const PVP_GAMES = {
-    ludo:       { name: "Ludo PVP", maxPlayers: 4, minPlayers: 2 },
-    highcard:   { name: "High Card PVP", maxPlayers: 2, minPlayers: 2 },
-    penalty:    { name: "Penalty PVP", maxPlayers: 2, minPlayers: 2 },
-    dice:       { name: "Dice PVP", maxPlayers: 2, minPlayers: 2 },
-    target:     { name: "Target Rush PVP", maxPlayers: 4, minPlayers: 2 },
-    memory:     { name: "Memory Match PVP", maxPlayers: 2, minPlayers: 2 },
-    racing:     { name: "Mini Racing PVP", maxPlayers: 4, minPlayers: 2 },
-    speedcards: { name: "Speed Cards PVP", maxPlayers: 2, minPlayers: 2 },
-    numberrush: { name: "Number Rush PVP", maxPlayers: 4, minPlayers: 2 }
-};
+const PVP_GAMES = Object.fromEntries(Object.entries(PVP_ENGINES).map(([id, engine]) => [id, {
+    name: engine.name,
+    maxPlayers: Number(engine.maxPlayers || 4),
+    minPlayers: Number(engine.minPlayers || 2)
+}]));
+
+const PVP_ENTRY_FEES = [...MANAGER_ENTRY_FEES];
+const pvpManager = new PVPManager();
+const pvpPoolEngine = new PoolEngine(PVP_HOUSE_RAKE_PERCENT);
 
 const pvpRooms = new Map();
 const pvpPlayerRooms = new Map();
@@ -230,6 +231,9 @@ function pvpPublicRoom(room) {
         game: room.game,
         gameName: PVP_GAMES[room.game]?.name || room.game,
         entryFee: room.entryFee,
+        entryFees: PVP_ENTRY_FEES,
+        grossPool: Number((room.players.size * room.entryFee).toFixed(2)),
+        prizePool: Number((room.players.size * room.entryFee * 0.90).toFixed(2)),
         maxPlayers: room.maxPlayers,
         minPlayers: room.minPlayers,
         playersCount: room.players.size,
@@ -251,6 +255,7 @@ function pvpGetOrCreateRoom(game, entryFee) {
 
     const cfg = PVP_GAMES[game];
     if (!cfg) throw new Error("Unsupported PVP game");
+    if (!MANAGER_ENTRY_FEES.includes(Number(entryFee))) throw new Error("Invalid PVP entry fee");
 
     const now = Date.now();
     const room = {
@@ -272,15 +277,78 @@ function pvpGetOrCreateRoom(game, entryFee) {
         winnerIds: []
     };
 
+    room.state = PVP_ENGINES[game]?.createState ? PVP_ENGINES[game].createState(room) : {};
     pvpRooms.set(key, room);
+    pvpPersistRoom(room).catch(console.error);
     setTimeout(() => pvpStartRoomIfReady(room), 45000);
     return room;
 }
 
 function pvpEntryFee(value) {
     const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0 || n > 100000) throw new Error("Invalid PVP entry fee");
-    return Number(n.toFixed(2));
+    if (!Number.isFinite(n) || !PVP_ENTRY_FEES.includes(n)) throw new Error("Invalid PVP entry fee");
+    return n;
+}
+
+async function pvpPersistRoom(room) {
+    try {
+        if (!room.dbRoomId) {
+            const { data, error } = await supabase.from("pvp_rooms").insert({
+                game_id: room.game,
+                entry_fee_etb: room.entryFee,
+                round_id: room.roundId,
+                status: room.status,
+                max_players: room.maxPlayers,
+                min_players: room.minPlayers,
+                total_pool_etb: 0,
+                rake_etb: 0,
+                prize_pool_etb: 0,
+                engine_state: room.state || {}
+            }).select("id").single();
+            if (error) throw error;
+            room.dbRoomId = data.id;
+        } else {
+            const pool = pvpPoolEngine.calculatePool(room.entryFee, room.players.size);
+            const { error } = await supabase.from("pvp_rooms").update({
+                status: room.status,
+                total_pool_etb: pool.totalPool,
+                rake_etb: pool.houseFee,
+                prize_pool_etb: pool.prizePool,
+                engine_state: room.state || {},
+                updated_at: nowIso()
+            }).eq("id", room.dbRoomId);
+            if (error) throw error;
+        }
+    } catch (error) { console.error("[PVP] Room persistence warning:", error.message); }
+}
+
+async function pvpPersistPlayer(room, player) {
+    try {
+        if (!room.dbRoomId) await pvpPersistRoom(room);
+        if (!room.dbRoomId) return;
+        await supabase.from("pvp_room_players").insert({
+            room_id: room.dbRoomId,
+            player_id: player.playerId,
+            entry_fee_etb: room.entryFee,
+            action_data: player.actionData || {},
+            status: "JOINED"
+        });
+    } catch (error) { console.error("[PVP] Player persistence warning:", error.message); }
+}
+
+async function pvpPersistSettlement(room, result) {
+    try {
+        if (!room.dbRoomId) await pvpPersistRoom(room);
+        if (!room.dbRoomId) return;
+        await supabase.from("pvp_rounds").insert({ room_id: room.dbRoomId, game_id: room.game, round_id: room.roundId, status: room.status, state: room.state || {}, result: result || {} });
+        await supabase.from("pvp_results").insert({ room_id: room.dbRoomId, game_id: room.game, round_id: room.roundId, result: result || {} });
+        const pool = pvpPoolEngine.calculatePool(room.entryFee, room.players.size);
+        await supabase.from("pvp_pool_ledger").insert({ room_id: room.dbRoomId, round_id: room.roundId, entry_fee_etb: room.entryFee, player_count: room.players.size, gross_pool_etb: pool.totalPool, rake_etb: pool.houseFee, prize_pool_etb: pool.prizePool });
+        for (const winnerId of room.winnerIds || []) {
+            await supabase.from("pvp_winners").insert({ room_id: room.dbRoomId, round_id: room.roundId, player_id: winnerId, prize_etb: result?.winnerShare || 0 });
+            await supabase.from("pvp_settlements").upsert({ room_id: room.dbRoomId, round_id: room.roundId, player_id: winnerId, settlement_type: "WIN", amount_etb: result?.winnerShare || 0, reference_id: `${room.roundId}:win:${winnerId}`, metadata: result || {} }, { onConflict: "reference_id" });
+        }
+    } catch (error) { console.error("[PVP] Settlement persistence warning:", error.message); }
 }
 
 async function pvpDebitPlayer(playerId, room) {
@@ -336,6 +404,8 @@ async function pvpSettleRoom(room, winnerIds = [], metadata = {}) {
         roundingRemainder,
         ...metadata
     };
+    await pvpPersistRoom(room);
+    await pvpPersistSettlement(room, room.result);
 
     for (let index = 0; index < uniqueWinners.length; index++) {
         const winnerId = uniqueWinners[index];
@@ -407,57 +477,23 @@ async function pvpResolveRoom(room) {
 
     room.status = "RESOLVING";
     const players = [...room.players.values()];
-    let winners = [];
-    let metadata = {};
-
-    if (room.game === "dice") {
-        const roll = Number((crypto.randomInt(0, 10001) / 100).toFixed(2));
-        const qualified = players.filter(p => (p.prediction === "OVER" ? roll > p.target : roll < p.target));
-        winners = pvpWinnerByScore(qualified.length ? qualified : players.map(p => ({...p, score: 0})));
-        metadata = { roll, players: players.map(p => ({ playerId:p.playerId, prediction:p.prediction, target:p.target, won:winners.includes(p.playerId) })) };
-    } else if (room.game === "highcard") {
-        const cards = players.map(p => ({ playerId:p.playerId, value:crypto.randomInt(2,15), suit:["HEARTS","DIAMONDS","CLUBS","SPADES"][crypto.randomInt(0,4)] }));
-        const best = Math.max(...cards.map(c => c.value));
-        winners = cards.filter(c => c.value === best).map(c => c.playerId);
-        metadata = { cards };
-    } else if (room.game === "penalty") {
-        const scores = players.map(p => ({ playerId:p.playerId, score:0 }));
-        for (let r=0;r<5;r++) {
-            for (const p of scores) if (crypto.randomInt(0,100) < 50) p.score++;
-        }
-        winners = pvpWinnerByScore(scores);
-        metadata = { rounds:5, scores };
-    } else if (room.game === "ludo") {
-        const scores = players.map(p => ({ playerId:p.playerId, score:0 }));
-        for (const p of scores) {
-            let pos=0; for(let i=0;i<12;i++) pos += crypto.randomInt(1,7);
-            p.score=pos;
-        }
-        winners = pvpWinnerByScore(scores);
-        metadata = { scores };
-    } else if (room.game === "target") {
-        const target=crypto.randomInt(1,101);
-        const attempts=players.map(p=>({playerId:p.playerId,guess:Number(p.guess||50),distance:Math.abs(Number(p.guess||50)-target)}));
-        const best=Math.min(...attempts.map(a=>a.distance));
-        winners=attempts.filter(a=>a.distance===best).map(a=>a.playerId);
-        metadata={target,attempts};
-    } else if (room.game === "memory") {
-        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,7)}));
-        winners=pvpWinnerByScore(scores); metadata={scores};
-    } else if (room.game === "racing") {
-        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(50,101)}));
-        winners=pvpWinnerByScore(scores); metadata={scores};
-    } else if (room.game === "speedcards") {
-        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,21)}));
-        winners=pvpWinnerByScore(scores); metadata={scores};
-    } else if (room.game === "numberrush") {
-        const scores=players.map(p=>({playerId:p.playerId,score:crypto.randomInt(0,51)}));
-        winners=pvpWinnerByScore(scores); metadata={scores};
-    } else {
-        winners = [players[0].playerId];
+    const engine = PVP_ENGINES[room.game];
+    if (!engine || typeof engine.resolve !== "function") {
+        await pvpRefundRoom(room, "PVP engine unavailable");
+        return room.result;
     }
 
-    return pvpSettleRoom(room, winners, metadata);
+    let resolved;
+    try {
+        resolved = await engine.resolve(room.state, players);
+    } catch (error) {
+        console.error(`[PVP] ${room.game} engine error:`, error);
+        await pvpRefundRoom(room, "Game engine error");
+        return room.result;
+    }
+
+    const winnerIds = Array.isArray(resolved?.winners) ? resolved.winners.map(String) : [];
+    return pvpSettleRoom(room, winnerIds, resolved || {});
 }
 
 function pvpStartRoomIfReady(room) {
@@ -468,7 +504,16 @@ function pvpStartRoomIfReady(room) {
     }
     room.status = "READY";
     room.startedAt = Date.now();
-    pvpResolveRoom(room).catch(console.error);
+    room.bettingEndsAt = Date.now() + 15000;
+    setTimeout(() => {
+        if (room.status !== "READY") return;
+        const allSubmitted = [...room.players.values()].every(p => p.actionLocked);
+        if (!allSubmitted) {
+            pvpRefundRoom(room, "Action timeout").catch(console.error);
+            return;
+        }
+        pvpResolveRoom(room).catch(console.error);
+    }, 15000);
 }
 
 setInterval(() => {
@@ -6625,6 +6670,10 @@ async function testDatabaseConnection() {
     }
 }
 
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+
 /*
 |--------------------------------------------------------------------------
 | PVP ARENA API
@@ -6664,6 +6713,8 @@ app.post("/api/pvp/join", requirePlayer, async (req, res) => {
         await pvpDebitPlayer(req.player.id,room);
         room.players.set(req.player.id,{ playerId:String(req.player.id), telegramName:String(req.player.username || req.player.telegram_username || "Player"), joinedAt:Date.now(), score:0 });
         pvpPlayerRooms.set(req.player.id,room.roomId);
+        await pvpPersistPlayer(room, room.players.get(req.player.id));
+        await pvpPersistRoom(room);
 
         if (room.players.size >= room.maxPlayers) pvpStartRoomIfReady(room);
         res.json({success:true,room:pvpPublicRoom(room),balance:Number(req.player.balance || 0)-room.entryFee});
@@ -6674,34 +6725,38 @@ app.post("/api/pvp/join", requirePlayer, async (req, res) => {
 
 app.post("/api/pvp/action", requirePlayer, async (req, res) => {
     try {
-        const roomId=String(req.body.roomId || "");
-        const room=[...pvpRooms.values()].find(r=>r.roomId===roomId);
+        const roomId = String(req.body.roomId || "");
+        const room = [...pvpRooms.values()].find(r => r.roomId === roomId);
         if (!room) return res.status(404).json({success:false,error:"PVP room not found"});
-        const player=room.players.get(req.player.id);
+        const player = room.players.get(req.player.id);
         if (!player) return res.status(403).json({success:false,error:"You are not in this room"});
-        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
+        if (!['BETTING','READY'].includes(room.status)) return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
+        if (player.actionLocked) return res.status(409).json({success:false,error:"Action already submitted"});
 
-        if (room.game === "dice") {
-            const prediction=String(req.body.prediction || "").toUpperCase();
-            const target=Number(req.body.target);
-            if (!['OVER','UNDER'].includes(prediction) || !Number.isFinite(target) || target<=0 || target>=100) throw new Error("Choose OVER or UNDER with a target between 0 and 100");
-            if (player.actionLocked) throw new Error("Action already submitted");
-            player.prediction=prediction; player.target=Number(target.toFixed(2)); player.actionLocked=true;
-        } else if (room.game === "target") {
-            const guess=Number(req.body.guess);
-            if (!Number.isInteger(guess) || guess<1 || guess>100) throw new Error("Target must be an integer from 1 to 100");
-            if (player.actionLocked) throw new Error("Action already submitted");
-            player.guess=guess; player.actionLocked=true;
+        const engine = PVP_ENGINES[room.game];
+        if (!engine || typeof engine.validateAction !== "function") throw new Error("PVP engine unavailable");
+        const action = engine.validateAction(req.body.actionData || req.body, room.state);
+        if (["bingo","bingo75"].includes(room.game) && action.type === "card") {
+            player.actionData = { ...(player.actionData || {}), ...action };
+            player.actionLocked = false;
+        } else if (["tambola","bingo90"].includes(room.game) && action.type === "ticket") {
+            player.actionData = { ...(player.actionData || {}), ...action };
+            player.actionLocked = false;
+        } else if (["bingo","bingo75","tambola","bingo90"].includes(room.game) && action.type === "claim") {
+            if (!player.actionData?.numbers || !Array.isArray(player.actionData.numbers)) throw new Error("Submit your card or ticket first");
+            player.actionData = { ...(player.actionData || {}), ...action };
+            player.actionLocked = true;
         } else {
-            if (player.actionLocked) throw new Error("Action already submitted");
-            player.action=String(req.body.action || "READY").slice(0,40); player.actionLocked=true;
+            player.actionData = action;
+            player.actionLocked = true;
         }
+        try { if (room.dbRoomId) await supabase.from("pvp_actions").insert({room_id:room.dbRoomId,round_id:room.roundId,player_id:String(req.player.id),action_type:String(action.type||"action"),action_data:action}); } catch (error) { console.error("[PVP] Action persistence warning:", error.message); }
 
-        const allSubmitted=[...room.players.values()].every(p=>p.actionLocked);
+        const allSubmitted = [...room.players.values()].every(p => p.actionLocked);
         if (allSubmitted) await pvpResolveRoom(room);
         res.json({success:true,room:pvpPublicRoom(room),result:room.result || null});
     } catch(error) {
-        res.status(400).json({success:false,error:error.message});
+        res.status(400).json({success:false,error:error.message || "Action rejected"});
     }
 });
 
