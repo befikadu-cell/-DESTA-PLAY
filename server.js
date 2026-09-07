@@ -30,6 +30,7 @@ import { createVoiceRouter } from "./voice.js";
 import PVP_ENGINES from "./pvp/engines/index.js";
 import PVPManager, { PVP_ENTRY_FEES as MANAGER_ENTRY_FEES } from "./pvp/PVPManager.js";
 import PoolEngine from "./pvp/PoolEngine.js";
+import PVP_AUTHORITY from "./pvp/PVPAuthority.js";
 
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
@@ -188,12 +189,7 @@ function getRegistrationContact(telegramId) {
 |--------------------------------------------------------------------------
 */
 
-const games = {
-    keno,
-    bingo,
-    roulette,
-    aviator
-};
+const games = {}; // Legacy house games disabled. PVP engines are the active game system.
 
 /*
 |--------------------------------------------------------------------------
@@ -214,11 +210,11 @@ const PVP_GAMES = Object.fromEntries(Object.entries(PVP_ENGINES).map(([id, engin
 
 const PVP_ENTRY_FEES = [...MANAGER_ENTRY_FEES];
 const pvpManager = new PVPManager();
+const PVP_HOUSE_RAKE_PERCENT = 10;
 const pvpPoolEngine = new PoolEngine(PVP_HOUSE_RAKE_PERCENT);
 
 const pvpRooms = new Map();
 const pvpPlayerRooms = new Map();
-const PVP_HOUSE_RAKE_PERCENT = 10;
 const PVP_ROOM_TTL_MS = 30 * 60 * 1000;
 
 function pvpRoomKey(game, entryFee) {
@@ -277,7 +273,7 @@ function pvpGetOrCreateRoom(game, entryFee) {
         winnerIds: []
     };
 
-    room.state = PVP_ENGINES[game]?.createState ? PVP_ENGINES[game].createState(room) : {};
+    room.state = PVP_AUTHORITY.createAuthorityState(room, PVP_ENGINES[game]?.createState ? PVP_ENGINES[game].createState(room) : {});
     pvpRooms.set(key, room);
     pvpPersistRoom(room).catch(console.error);
     setTimeout(() => pvpStartRoomIfReady(room), 45000);
@@ -485,7 +481,7 @@ async function pvpResolveRoom(room) {
 
     let resolved;
     try {
-        resolved = await engine.resolve(room.state, players);
+        resolved = await engine.resolve(room.state?.engineState || room.state, players);
     } catch (error) {
         console.error(`[PVP] ${room.game} engine error:`, error);
         await pvpRefundRoom(room, "Game engine error");
@@ -502,18 +498,17 @@ function pvpStartRoomIfReady(room) {
         pvpRefundRoom(room, "Not enough players").catch(console.error);
         return;
     }
-    room.status = "READY";
+    room.status = "PLAYING";
     room.startedAt = Date.now();
-    room.bettingEndsAt = Date.now() + 15000;
-    setTimeout(() => {
-        if (room.status !== "READY") return;
-        const allSubmitted = [...room.players.values()].every(p => p.actionLocked);
-        if (!allSubmitted) {
-            pvpRefundRoom(room, "Action timeout").catch(console.error);
-            return;
-        }
-        pvpResolveRoom(room).catch(console.error);
-    }, 15000);
+    room.bettingEndsAt = Date.now();
+    for (const player of room.players.values()) { player.actionLocked = false; player.actionData = {}; }
+    if (room.state?.version === 2) {
+        const auth = room.state.authority;
+        auth.phase = auth.phase === "WAITING" ? "ACTION" : auth.phase;
+        const ids = [...room.players.keys()].map(String);
+        if (!auth.currentPlayerId && ids.length) auth.currentPlayerId = ids[0];
+    }
+    pvpPersistRoom(room).catch(console.error);
 }
 
 setInterval(() => {
@@ -6711,13 +6706,18 @@ app.post("/api/pvp/join", requirePlayer, async (req, res) => {
         if (room.players.size >= room.maxPlayers) return res.status(409).json({success:false,error:"Room is full"});
 
         await pvpDebitPlayer(req.player.id,room);
-        room.players.set(req.player.id,{ playerId:String(req.player.id), telegramName:String(req.player.username || req.player.telegram_username || "Player"), joinedAt:Date.now(), score:0 });
+        room.players.set(req.player.id,{ playerId:String(req.player.id), telegramName:String(req.player.username || req.player.telegram_username || "Player"), joinedAt:Date.now(), score:0, actionLocked:false, actionData:{} });
+        // Rebuild the authoritative state whenever a participant joins so the server
+        // assigns turns/roles/chances from the actual participant list.
+        const previousAuthority = room.state?.authority;
+        room.state = PVP_AUTHORITY.createAuthorityState(room, room.state?.engineState || {});
+        if (previousAuthority?.serverSeed) room.state.authority.serverSeed = previousAuthority.serverSeed;
         pvpPlayerRooms.set(req.player.id,room.roomId);
         await pvpPersistPlayer(room, room.players.get(req.player.id));
         await pvpPersistRoom(room);
 
         if (room.players.size >= room.maxPlayers) pvpStartRoomIfReady(room);
-        res.json({success:true,room:pvpPublicRoom(room),balance:Number(req.player.balance || 0)-room.entryFee});
+        res.json({success:true,room:{...pvpPublicRoom(room),authority:PVP_AUTHORITY.publicAuthorityState(room, req.player.id)},balance:Number(req.player.balance || 0)-room.entryFee});
     } catch(error) {
         res.status(400).json({success:false,error:error.message});
     }
@@ -6730,31 +6730,64 @@ app.post("/api/pvp/action", requirePlayer, async (req, res) => {
         if (!room) return res.status(404).json({success:false,error:"PVP room not found"});
         const player = room.players.get(req.player.id);
         if (!player) return res.status(403).json({success:false,error:"You are not in this room"});
-        if (!['BETTING','READY'].includes(room.status)) return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
-        if (player.actionLocked) return res.status(409).json({success:false,error:"Action already submitted"});
+        if (!["BETTING","READY","PLAYING"].includes(room.status)) return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
 
         const engine = PVP_ENGINES[room.game];
         if (!engine || typeof engine.validateAction !== "function") throw new Error("PVP engine unavailable");
-        const action = engine.validateAction(req.body.actionData || req.body, room.state);
-        if (["bingo","bingo75"].includes(room.game) && action.type === "card") {
-            player.actionData = { ...(player.actionData || {}), ...action };
-            player.actionLocked = false;
-        } else if (["tambola","bingo90"].includes(room.game) && action.type === "ticket") {
-            player.actionData = { ...(player.actionData || {}), ...action };
-            player.actionLocked = false;
-        } else if (["bingo","bingo75","tambola","bingo90"].includes(room.game) && action.type === "claim") {
-            if (!player.actionData?.numbers || !Array.isArray(player.actionData.numbers)) throw new Error("Submit your card or ticket first");
-            player.actionData = { ...(player.actionData || {}), ...action };
-            player.actionLocked = true;
-        } else {
-            player.actionData = action;
-            player.actionLocked = true;
-        }
-        try { if (room.dbRoomId) await supabase.from("pvp_actions").insert({room_id:room.dbRoomId,round_id:room.roundId,player_id:String(req.player.id),action_type:String(action.type||"action"),action_data:action}); } catch (error) { console.error("[PVP] Action persistence warning:", error.message); }
+        const rawAction = req.body.actionData || {};
+        let authorityResult = null;
 
+        if (room.state?.version === 2) {
+            authorityResult = PVP_AUTHORITY.applyAction(room, req.player.id, rawAction);
+        }
+
+        if (authorityResult?.engineAction) {
+            const action = engine.validateAction(rawAction, room.state?.engineState || room.state);
+            if (["bingo","bingo75"].includes(room.game) && action.type === "card") {
+                player.actionData = { ...(player.actionData || {}), ...action };
+                player.actionLocked = false;
+            } else if (["tambola","bingo90"].includes(room.game) && action.type === "ticket") {
+                player.actionData = { ...(player.actionData || {}), ...action };
+                player.actionLocked = false;
+            } else if (["bingo","bingo75","tambola","bingo90"].includes(room.game) && action.type === "claim") {
+                if (!player.actionData?.numbers || !Array.isArray(player.actionData.numbers)) throw new Error("Submit your card or ticket first");
+                player.actionData = { ...(player.actionData || {}), ...action };
+                player.actionLocked = true;
+            } else {
+                player.actionData = action;
+                player.actionLocked = true;
+            }
+        }
+
+        try {
+            if (room.dbRoomId) await supabase.from("pvp_actions").insert({
+                room_id:room.dbRoomId,
+                round_id:room.roundId,
+                player_id:String(req.player.id),
+                action_type:String(rawAction.type||"action"),
+                action_payload:rawAction,
+                accepted:true
+            });
+        } catch (error) { console.error("[PVP] Action persistence warning:", error.message); }
+
+        const authorityFinished = room.state?.authority?.phase === "FINISHED";
         const allSubmitted = [...room.players.values()].every(p => p.actionLocked);
-        if (allSubmitted) await pvpResolveRoom(room);
-        res.json({success:true,room:pvpPublicRoom(room),result:room.result || null});
+        if (authorityFinished) {
+            const winnerIds = room.state.authority.winners || [];
+            await pvpSettleRoom(room, winnerIds, {
+                scores:room.state.authority.scores,
+                authoritativeHistory:room.state.authority.history,
+                authorityVersion:2
+            });
+        } else if (allSubmitted && ["bingo","bingo75","tambola","bingo90","numberdraw","wheel","highcard","dice","target"].includes(room.game)) {
+            await pvpResolveRoom(room);
+        } else {
+            room.status = "PLAYING";
+            await pvpPersistRoom(room);
+        }
+
+        const publicAuthority = room.state?.version === 2 ? PVP_AUTHORITY.publicAuthorityState(room, req.player.id) : null;
+        res.json({success:true,room:{...pvpPublicRoom(room),authority:publicAuthority},result:room.result||null});
     } catch(error) {
         res.status(400).json({success:false,error:error.message || "Action rejected"});
     }
@@ -6781,7 +6814,7 @@ app.get("/api/pvp/room/:roomId", requirePlayer, (req,res)=>{
     const room=[...pvpRooms.values()].find(r=>r.roomId===String(req.params.roomId));
     if(!room) return res.status(404).json({success:false,error:"PVP room not found"});
     const player=room.players.get(req.player.id);
-    res.json({success:true,room:pvpPublicRoom(room),joined:Boolean(player),result:room.result||null});
+    res.json({success:true,room:{...pvpPublicRoom(room),authority:PVP_AUTHORITY.publicAuthorityState(room, req.player.id)},joined:Boolean(player),result:room.result||null});
 });
 
 /*
@@ -6847,72 +6880,7 @@ app.listen(
             */
         }
 
-        /*
-        |--------------------------------------------------------------
-        | START BINGO ROOMS
-        |--------------------------------------------------------------
-        |
-        | IMPORTANT:
-        | We ask the Bingo engine for its fixed bet amounts.
-        | No old hard-coded [10,20,30...] list is used here.
-        |
-        |--------------------------------------------------------------
-        */
-
-        const engineBingoAmounts =
-            bingo.FIXED_BET_AMOUNTS ||
-                        bingo.default
-                ?.FIXED_BET_AMOUNTS;
-
-        if (
-            Array.isArray(
-                engineBingoAmounts
-            ) &&
-            engineBingoAmounts.length
-        ) {
-            console.log(
-                "[BINGO] Engine bet amounts:",
-                engineBingoAmounts
-            );
-
-            for (
-                const tier
-                of engineBingoAmounts
-            ) {
-                try {
-                    bingoBetIsValid(
-                        tier
-                    );
-
-                    await seedBingoRoundCounter(
-                        tier
-                    );
-
-                    startNewBingoRound(
-                        tier
-                    );
-                } catch (error) {
-                    console.error(
-                        `[BINGO] Skipping invalid engine tier ${tier}:`,
-                        error.message
-                    );
-                }
-            }
-        } else {
-            /*
-            |----------------------------------------------------------
-            | Compatibility fallback.
-            |----------------------------------------------------------
-            | The currently audited Bingo engine is expected to expose
-            | FIXED_BET_AMOUNTS. If it does not, no invented tiers are
-            | created.
-            |----------------------------------------------------------
-            */
-
-            console.error(
-                "[BINGO] FIXED_BET_AMOUNTS not exported by bingo engine. No Bingo rooms started."
-            );
-        }
+        /* Legacy house Bingo boot disabled: Bingo PVP is handled by /api/pvp/* and PVPAuthority. */
 
         /*
         |--------------------------------------------------------------
