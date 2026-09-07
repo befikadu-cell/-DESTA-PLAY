@@ -28,7 +28,10 @@ function cleanText(value) {
 
 function safeLanguage(value) {
     const lang = String(value || "en").trim().toLowerCase();
-    return lang === "am" ? "am" : "en";
+    /* Google Translate speech does not provide a dependable Amharic voice
+       for this application, so Amharic UI currently uses English game-call
+       audio rather than becoming silent. */
+    return lang === "am" ? "en" : "en";
 }
 
 function cacheKey(lang, text) {
