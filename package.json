@@ -1,15 +1,14 @@
 {
-  "name": "desta-play-backend",
-  "version": "2.0.0",
+  "name": "desta-play",
+  "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "engines": {"node": ">=18"},
+  "scripts": {"start": "node server.js"},
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "argon2": "^0.31.2",
+    "@supabase/supabase-js": "^2.57.0",
+    "argon2": "^0.41.1",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^5.1.0"
   }
 }
