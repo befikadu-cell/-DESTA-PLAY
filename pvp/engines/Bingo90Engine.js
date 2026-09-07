@@ -1,0 +1,6 @@
+import { shuffle, winnersByScore, validateCommonAction } from './_BaseEngine.js';
+export const id='bingo90', name='90-Ball Bingo PVP', maxPlayers=8, minPlayers=2;
+export function createState(room){return {draw:shuffle(Array.from({length:90},(_,i)=>i+1),room.roundId).slice(0,70)};}
+export function validateAction(action){const a=validateCommonAction(action);if(a.type==='ticket'){if(!Array.isArray(a.numbers)||a.numbers.length!==15)throw new Error('90-ball ticket requires 15 numbers');const n=[...new Set(a.numbers.map(Number))];if(n.length!==15||n.some(x=>!Number.isInteger(x)||x<1||x>90))throw new Error('Ticket numbers must be unique values from 1 to 90');return {type:'ticket',numbers:n};}if(a.type==='claim')return {type:'claim',claim:String(a.claim||'line').toLowerCase()};throw new Error('Unsupported 90-ball action');}
+export function resolve(state,players){const scores=players.map(p=>{const nums=p.actionData?.numbers||[];const hits=nums.filter(n=>state.draw.includes(n)).length;const claim=p.actionData?.type==='claim';return {playerId:String(p.playerId),hits,score:claim&&hits>=5?hits:0};});return {draw:state.draw,scores,winners:winnersByScore(scores)};}
+export default {id,name,maxPlayers,minPlayers,createState,validateAction,resolve};
