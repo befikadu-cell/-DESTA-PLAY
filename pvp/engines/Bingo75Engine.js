@@ -1,0 +1,6 @@
+import { shuffle, winnersByScore, validateCommonAction } from './_BaseEngine.js';
+export const id='bingo75', name='75-Ball Bingo PVP', maxPlayers=8, minPlayers=2;
+export function createState(room){return {draw:shuffle(Array.from({length:75},(_,i)=>i+1),room.roundId).slice(0,55)};}
+export function validateAction(action){const a=validateCommonAction(action);if(a.type==='card'){if(!Array.isArray(a.numbers)||a.numbers.length!==25)throw new Error('75-ball card requires 25 numbers');const n=[...new Set(a.numbers.map(Number))];if(n.length!==25||n.some(x=>!Number.isInteger(x)||x<1||x>75))throw new Error('Card numbers must be unique values from 1 to 75');return {type:'card',numbers:n};}if(a.type==='claim')return {type:'claim'};throw new Error('Unsupported 75-ball action');}
+export function resolve(state,players){const scores=players.map(p=>{const nums=p.actionData?.numbers||[];const hits=nums.filter(n=>state.draw.includes(n)).length;const claim=p.actionData?.type==='claim';return {playerId:String(p.playerId),hits,score:claim&&hits>=12?hits:0};});return {draw:state.draw,scores,winners:winnersByScore(scores)};}
+export default {id,name,maxPlayers,minPlayers,createState,validateAction,resolve};
