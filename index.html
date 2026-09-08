@@ -373,6 +373,12 @@
     #gameLobby.hidden{display:none}
     .lobbyPanel{width:min(560px,96vw);max-height:90vh;overflow:auto;border:1px solid #8b5b00;border-radius:20px;
       background:linear-gradient(160deg,#250909,#0b0b0b);box-shadow:0 18px 60px #000;padding:20px;}
+    .lobbyTopbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin:-4px -4px 12px;padding:0 0 10px;border-bottom:1px solid #432020;color:#ddd;font-size:10px;font-weight:1000;letter-spacing:1.5px;text-align:center;position:sticky;top:0;background:linear-gradient(180deg,#250909 78%,rgba(37,9,9,0));z-index:5}
+    .lobbyBackTop,.lobbyHelpTop,.pvpArenaBack,.pvpArenaHelp{border:1px solid #7d4f00;border-radius:10px;padding:9px 11px;background:#211000;color:#ffd447;font-weight:1000;min-width:72px}
+    .lobbyHelpTop,.pvpArenaHelp{min-width:40px;padding:9px}
+    .lobbyBackTop:active,.lobbyHelpTop:active,.pvpArenaBack:active,.pvpArenaHelp:active{transform:scale(.97)}
+    .pvpArenaTopbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin-bottom:10px;padding:2px 0 10px;border-bottom:1px solid #432020;color:#ffd447;text-align:center;position:sticky;top:0;background:#090707;z-index:10}
+    .pvpArenaTopbar strong{font-size:13px;letter-spacing:1px}
     .lobbyEyebrow{color:#aaa;font-size:10px;font-weight:900;letter-spacing:2px;text-align:center}
     .lobbyTitle{text-align:center;color:#ffd447;font-size:28px;font-weight:1000;margin:7px 0}
     .lobbySubtitle{text-align:center;color:#ddd;font-size:12px;margin-bottom:15px}
@@ -383,50 +389,37 @@
     .lobbyBtn{border:0;border-radius:11px;padding:13px;font-weight:1000;background:linear-gradient(180deg,#ffcf3b,#b87400);color:#170900}
     .lobbyBtn.secondary{background:#2a1111;color:#fff;border:1px solid #6d2929}
     .lobbyHelp{margin-top:12px;padding:12px;border:1px solid #432020;border-radius:12px;color:#ccc;font-size:11px;line-height:1.55}
-    .pvpGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px}
-    .pvpCard{position:relative;overflow:hidden;border:1px solid #6a2424;border-radius:15px;background:linear-gradient(145deg,#291010,#101010);padding:14px;min-height:132px;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .18s,box-shadow .18s,border-color .18s}
-    .pvpCard:before{content:"";position:absolute;inset:-60%;background:conic-gradient(from 0deg,transparent,#ffd44722,transparent 30%);animation:pvpCardGlow 5s linear infinite;pointer-events:none}
-    .pvpCard:active{transform:scale(.98)}
-    .pvpCard h3,.pvpCard p,.pvpCard button{position:relative;z-index:2}
-    .pvpCard h3{margin:0 0 6px;color:#ffd447;font-size:14px}.pvpCard p{margin:0 0 12px;color:#aaa;font-size:10px;line-height:1.4}
-    .pvpCard button{width:100%;border:0;border-radius:9px;padding:10px;background:linear-gradient(180deg,#e51b1b,#8f0000);color:#fff;font-weight:900}
-    @keyframes pvpCardGlow{to{transform:rotate(360deg)}}
-    .pvpArena{padding:10px}.pvpArena.hidden{display:none}
-    .pvpArenaTop{display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:center;margin-bottom:9px}
-    .pvpBackBtn{border:1px solid #6d2929;border-radius:9px;background:#241010;color:#fff;padding:9px 10px;font-weight:900}
-    .pvpGameBadge{padding:9px;border:1px solid #8b6100;border-radius:9px;background:#17100a;color:#ffd447;text-align:center;font-size:11px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .pvpLiveBadge{display:inline-block;margin-top:5px;padding:4px 7px;border-radius:999px;background:#201010;border:1px solid #653030;color:#ffd447;font-size:9px;font-weight:1000}
-    .pvpStatus{padding:12px;border:1px solid #5b2525;border-radius:12px;background:linear-gradient(145deg,#170909,#090909);text-align:center;color:#ddd;font-size:11px;line-height:1.55;box-shadow:inset 0 0 20px #000}
-    .pvpStage{position:relative;min-height:150px;margin-top:9px;padding:10px;border:1px solid #432020;border-radius:14px;background:radial-gradient(circle at 50% 20%,#321111,#090909 70%);overflow:hidden}
-    .pvpStage:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 46%,#ffd44710 50%,transparent 54%);transform:translateX(-120%);animation:pvpSweep 3.2s linear infinite;pointer-events:none}
-    @keyframes pvpSweep{to{transform:translateX(120%)}}
-    .pvpStageTitle{text-align:center;color:#ffd447;font-size:10px;font-weight:1000;letter-spacing:1px;margin-bottom:8px}
-    .pvpPlayers{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px}
-    .pvpPlayerChip{padding:7px 3px;border-radius:8px;border:1px solid #3c2525;background:#151010;text-align:center;font-size:8px;color:#bbb;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .pvpPlayerChip.me{border-color:#ffd447;color:#ffd447;box-shadow:0 0 10px #8d610044}
+    .pvpGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px}
+    .pvpGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .pvpCard{position:relative;overflow:hidden;min-height:170px;display:flex;flex-direction:column;justify-content:flex-end}
+    .homePreview{height:82px;margin:-2px -2px 9px;border-radius:10px;background:radial-gradient(circle at 50% 50%,#241616,#090909 72%);border:1px solid #3a2222;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+    .homePreview:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent,rgba(255,255,255,.07),transparent);transform:translateX(-120%);animation:pvSweep 3.4s linear infinite;pointer-events:none}
+    @keyframes pvSweep{to{transform:translateX(120%)}}
+    .pvBingo{display:grid;grid-template-columns:repeat(5,18px);gap:3px;padding-top:8px}.pvBingo i{width:18px;height:18px;border-radius:4px;background:#4a1a1a;box-shadow:inset 0 0 0 1px #7c2b2b;animation:pvBlink 1.6s infinite}.pvBingo i:nth-child(2){animation-delay:.2s}.pvBingo i:nth-child(3){animation-delay:.4s}.pvBingo i:nth-child(4){animation-delay:.6s}.pvBingo i:nth-child(5){animation-delay:.8s}.pvBingo .pvBall{position:absolute;right:9px;top:7px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#ffd447;color:#171000;font-weight:1000;font-size:9px;animation:pvBall 2.2s ease-in-out infinite}.pvKeno span,.pvB90 span{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#151515;border:1px solid #6b4b00;color:#ffd447;font-size:8px;font-weight:900;animation:pvPop 1.7s infinite}.pvKeno span:nth-child(2),.pvB90 span:nth-child(2){animation-delay:.25s}.pvKeno span:nth-child(3),.pvB90 span:nth-child(3){animation-delay:.5s}.pvKeno span:nth-child(4),.pvB90 span:nth-child(4){animation-delay:.75s}.pvKeno b,.pvB90 b{position:absolute;bottom:5px;font-size:7px;letter-spacing:2px;color:#aaa}.pvTambola i{width:22px;height:36px;border-radius:4px;background:repeating-linear-gradient(0deg,#241010 0 7px,#ffd447 8px 9px);margin:2px;animation:pvSlide 2.2s ease-in-out infinite}.pvTambola i:nth-child(2){animation-delay:.2s}.pvTambola i:nth-child(3){animation-delay:.4s}.pvTambola i:nth-child(4){animation-delay:.6s}.pvTambola i:nth-child(5){animation-delay:.8s}.pvTambola b{position:absolute;right:10px;top:8px;color:#ffd447;font-size:16px;animation:pvBall 1.5s infinite}.pv75grid{display:grid;grid-template-columns:repeat(5,14px);gap:2px}.pv75grid span{font-size:6px;width:14px;height:14px;display:grid;place-items:center;background:#201212;border:1px solid #613131;border-radius:3px;color:#ddd;animation:pvBlink 2s infinite}.pv75grid span:nth-child(4n){animation-delay:.4s}.pvNumber b{font-size:29px;color:#ffd447;animation:pvPulse 1.2s infinite}.pvNumber span{position:absolute;border:1px solid #5b3e00;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;color:#ffd447;font-size:7px;animation:pvOrbit 3s linear infinite}.pvNumber span:nth-child(2){left:12px;top:12px}.pvNumber span:nth-child(3){right:13px;top:18px;animation-delay:-1s}.pvNumber span:nth-child(4){right:27px;bottom:8px;animation-delay:-2s}.pvTrivia strong{font-size:30px;color:#ffd447;animation:pvPulse 1.4s infinite}.pvTrivia i{position:absolute;width:9px;height:9px;border-radius:2px;background:#672525;animation:pvFloat 2.4s ease-in-out infinite}.pvTrivia i:nth-child(2){left:18px;top:18px}.pvTrivia i:nth-child(3){right:20px;top:25px;animation-delay:.4s}.pvTrivia i:nth-child(4){left:35px;bottom:13px;animation-delay:.8s}.pvWheel div{width:58px;height:58px;border-radius:50%;border:7px dotted #ffd447;animation:pvSpin 2.8s linear infinite}.pvWheel b{position:absolute;color:#fff;font-size:18px}.pvLudo{background:conic-gradient(#6b1c1c 0 25%,#4b3a05 0 50%,#153f2b 0 75%,#1b2c57 0);}.pvLudo span{position:absolute;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px #fff2;animation:pvToken 2s ease-in-out infinite}.pvLudo .ld1{left:14px;top:14px;background:#ff5353}.pvLudo .ld2{right:14px;top:14px;background:#ffd447;animation-delay:.2s}.pvLudo .ld3{left:14px;bottom:14px;background:#59d98b;animation-delay:.4s}.pvLudo .ld4{right:14px;bottom:14px;background:#5aa8ff;animation-delay:.6s}.pvLudo b{font-size:18px;animation:pvRoll 1.8s infinite}.pvHigh span{width:38px;height:52px;background:#eee;color:#111;border-radius:5px;display:grid;place-items:center;font-weight:1000;font-size:20px;box-shadow:0 5px 0 #555;animation:pvCardFlip 2.5s infinite}.pvHigh span:nth-child(2){transform:translate(12px,-5px) rotate(8deg);animation-delay:.8s}.pvPenalty span{font-size:22px;position:absolute;left:18px;animation:pvKick 2.2s infinite}.pvPenalty i{position:absolute;width:42px;height:52px;border:3px solid #ddd;border-bottom:0;right:17px;top:18px}.pvPenalty b{position:absolute;right:24px;top:27px;font-size:22px}.pvDice b{font-size:38px;animation:pvRoll 1.7s infinite}.pvDice span{position:absolute;bottom:7px;font-size:7px;color:#aaa;letter-spacing:2px}.pvTarget i{width:55px;height:55px;border-radius:50%;border:4px solid #9c2424;box-shadow:0 0 0 7px #ffd44744,0 0 24px #ffd44755;animation:pvTarget 1.4s infinite}.pvTarget b{position:absolute;font-size:24px;color:#ffd447;animation:pvPulse 1.1s infinite}.pvMemory{display:grid;grid-template-columns:repeat(3,25px);gap:5px}.pvMemory span{height:25px;border-radius:4px;background:#102033;border:1px solid #31516b;display:grid;place-items:center;color:#ffd447;font-size:10px;animation:pvFlip 2.6s infinite}.pvMemory span:nth-child(2n){animation-delay:.5s}.pvRace:before{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#777;box-shadow:0 -18px #777,0 18px #777}.pvRace i{position:absolute;width:14px;height:8px;border-radius:3px;background:#e33;left:-20px;animation:pvDrive 2.4s linear infinite}.pvRace i:nth-child(2){top:25px;animation-delay:.4s}.pvRace i:nth-child(3){top:60px;animation-delay:.8s}.pvRace i:first-child{top:43px}.pvRace b{position:absolute;right:8px;font-size:18px}.pvSpeed span{width:30px;height:40px;background:#eee;color:#111;border-radius:4px;display:grid;place-items:center;font-weight:900;animation:pvCardFlip 1.8s infinite}.pvSpeed span:nth-child(2){transform:translateY(-7px);animation-delay:.3s}.pvSpeed span:nth-child(3){transform:translateY(5px);animation-delay:.6s}.pvSpeed b{position:absolute;right:8px;color:#ffd447;animation:pvPulse .8s infinite}.pvRush span{width:24px;height:24px;border-radius:5px;background:#1d1610;border:1px solid #6b4b00;display:grid;place-items:center;color:#ffd447;font-size:8px;animation:pvJump 1.1s infinite}.pvRush span:nth-child(2){animation-delay:.15s}.pvRush span:nth-child(3){animation-delay:.3s}.pvRush span:nth-child(4){animation-delay:.45s}.pvRush b{position:absolute;bottom:6px;font-size:7px;color:#fff;letter-spacing:2px}
+    @keyframes pvBlink{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.08);background:#ffd447;color:#111}}
+    @keyframes pvBall{0%,100%{transform:translate(0,0)}50%{transform:translate(-18px,15px)}}
+    @keyframes pvPop{0%,100%{transform:scale(.8);opacity:.55}50%{transform:scale(1.18);opacity:1}}
+    @keyframes pvSlide{0%,100%{transform:translateY(4px)}50%{transform:translateY(-7px)}}
+    @keyframes pvPulse{50%{transform:scale(1.16)}}
+    @keyframes pvOrbit{to{transform:rotate(360deg) translateX(18px) rotate(-360deg)}}
+    @keyframes pvSpin{to{transform:rotate(360deg)}}
+    @keyframes pvToken{50%{transform:translate(8px,-5px)}}
+    @keyframes pvRoll{0%{transform:rotate(0)}50%{transform:rotate(180deg) scale(1.1)}100%{transform:rotate(360deg)}}
+    @keyframes pvCardFlip{0%,100%{transform:rotateY(0)}50%{transform:rotateY(180deg)}}
+    @keyframes pvKick{0%{transform:translate(0,0)}60%{transform:translate(50px,-10px) rotate(220deg)}100%{transform:translate(0,0)}}
+    @keyframes pvTarget{50%{transform:scale(.82);box-shadow:0 0 0 11px #ffd44766,0 0 32px #ffd44788}}
+    @keyframes pvFlip{0%,100%{transform:rotateY(0)}45%,60%{transform:rotateY(180deg)}}
+    @keyframes pvDrive{from{left:-22px}to{left:105%}}
+    @keyframes pvJump{50%{transform:translateY(-10px) scale(1.1)}}
+    @media(min-width:700px){.pvpGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .pvpCard{border:1px solid #6a2424;border-radius:13px;background:linear-gradient(145deg,#291010,#101010);padding:12px}
+    .pvpCard h3{margin:0 0 5px;color:#ffd447;font-size:14px}.pvpCard p{margin:0 0 9px;color:#aaa;font-size:10px}
+    .pvpCard button{width:100%;border:0;border-radius:8px;padding:9px;background:#a80c0c;color:#fff;font-weight:900}
+    .pvpArena{padding:12px}.pvpArena.hidden{display:none}
+    .pvpStatus{padding:12px;border:1px solid #5b2525;border-radius:12px;background:#120909;text-align:center;color:#ddd;font-size:12px}
     .pvpActionGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-    .pvpActionGrid button{border:1px solid #8d6100;border-radius:10px;padding:12px;background:linear-gradient(145deg,#321900,#1a0d00);color:#ffd447;font-weight:900;min-height:44px;transition:transform .12s,box-shadow .12s}
-    .pvpActionGrid button:active{transform:scale(.96);box-shadow:0 0 16px #ffd44744}
-    .pvpActionGrid input{width:100%;border:1px solid #5b3333;border-radius:9px;background:#080808;color:#fff;padding:11px;text-align:center}
-    .pvpTurnBox,.pvpSpectator{grid-column:1/-1;padding:14px;border-radius:11px;border:1px solid #4a2525;background:#120b0b;text-align:center;color:#ddd;font-size:11px;line-height:1.5}
-    .pvpTurnBox strong{color:#ffd447}.pvpSpectator{color:#ffd447}
-    .pvpVisualGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-    .pvpVisualCell{aspect-ratio:1;border-radius:9px;border:1px solid #4b3030;background:linear-gradient(145deg,#251414,#0e0e0e);display:flex;align-items:center;justify-content:center;color:#ffd447;font-weight:1000;font-size:16px;transition:.2s}
-    .pvpVisualCell.revealed,.pvpVisualCell.matched{background:linear-gradient(145deg,#ffd447,#b87500);color:#160900;box-shadow:0 0 12px #ffd44766}
-    .pvpDice{width:64px;height:64px;margin:5px auto 10px;border-radius:13px;background:#eee;color:#111;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:1000;box-shadow:0 7px 20px #000;animation:pvpDiceFloat 1.4s ease-in-out infinite}
-    @keyframes pvpDiceFloat{50%{transform:translateY(-5px) rotate(4deg)}}
-    .pvpRaceTrack{height:90px;position:relative;margin:8px 0;border:1px solid #432020;border-radius:10px;background:repeating-linear-gradient(90deg,#161616 0 28px,#202020 28px 56px);overflow:hidden}
-    .pvpRacer{position:absolute;left:0;transform:translateX(-50%);font-size:25px;transition:left .45s cubic-bezier(.2,.8,.2,1)}
-    .pvpRacer:nth-child(1){top:8px}.pvpRacer:nth-child(2){top:39px}.pvpRacer:nth-child(3){top:8px}.pvpRacer:nth-child(4){top:39px}
-    .pvpTarget{font-size:42px;text-align:center;color:#ffd447;font-weight:1000;text-shadow:0 0 18px #ffd44755;animation:pvpTargetPulse 1.2s ease-in-out infinite}
-    @keyframes pvpTargetPulse{50%{transform:scale(1.08)}}
-    .pvpWheelVisual{width:120px;height:120px;margin:2px auto 10px;border-radius:50%;border:7px solid #d69a00;background:repeating-conic-gradient(#a80000 0 30deg,#101010 30deg 60deg);animation:pvpWheelSpin 4s linear infinite;box-shadow:0 0 22px #ffd44733}
-    @keyframes pvpWheelSpin{to{transform:rotate(360deg)}}
-    .pvpCardVisual{width:82px;height:108px;margin:3px auto 10px;border-radius:10px;background:linear-gradient(145deg,#fff,#cfcfcf);color:#111;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:1000;box-shadow:0 8px 20px #000;animation:pvpCardFlip .55s ease}
-    @keyframes pvpCardFlip{0%{transform:rotateY(90deg)}100%{transform:rotateY(0)}}
-    .pvpResult{margin-top:10px;padding:12px;border-radius:12px;background:linear-gradient(145deg,#101010,#171010);border:1px solid #493030;color:#fff;white-space:pre-wrap;font-size:10px;line-height:1.5;animation:pvpResultIn .45s ease}
-    @keyframes pvpResultIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-    @media(max-width:420px){.pvpGrid{gap:7px}.pvpCard{min-height:120px;padding:11px}.pvpCard h3{font-size:12px}.pvpArenaTop{grid-template-columns:auto 1fr}.pvpArenaTop .pvpLeaveTop{grid-column:1/-1;width:100%}.pvpPlayers{grid-template-columns:repeat(2,1fr)}}
+    .pvpActionGrid button{border:1px solid #8d6100;border-radius:10px;padding:12px;background:#2b1700;color:#ffd447;font-weight:900}
+    .pvpResult{margin-top:10px;padding:12px;border-radius:12px;background:#101010;border:1px solid #493030;color:#fff;white-space:pre-wrap;font-size:11px}
 
     /* =========================================================
        GAME
@@ -1890,7 +1883,30 @@
     .transactionRow:last-child{border-bottom:0}
     .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
 
-    .bonusToggle{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;font-weight:800;opacity:.85;margin:5px 0}.bonusToggle input{accent-color:currentColor}.voiceLangBox{display:flex;align-items:center;gap:2px}.voiceLangBtn{border:0;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:4px;opacity:.55;cursor:pointer}.voiceLangBtn.active{opacity:1;text-decoration:underline}.pvpFeeSelector{margin:12px 0}.feeSelectorTitle{font-size:10px;font-weight:900;letter-spacing:1px;color:#ffd43c;margin-bottom:8px;text-align:center}.pvpFeeGrid{display:grid;grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto}.pvpFeeBtn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #472020;border-radius:9px;background:#101010;color:#fff;font-weight:800}.pvpFeeBtn b{font-size:9px;color:#ffd43c}.pvpFeeBtn.active{border-color:#ffd43c;box-shadow:0 0 0 1px #ffd43c inset;background:#241506}.pvpFeeBtn span{font-size:11px} .lobbyPanel{position:relative;overflow:hidden}.lobbyPanel:before,.lobbyPanel:after{content:"";position:absolute;border-radius:50%;filter:blur(2px);opacity:.35;pointer-events:none;animation:pvpFloat 5s ease-in-out infinite}.lobbyPanel:before{width:90px;height:90px;background:#ffd43c;right:-30px;top:-25px}.lobbyPanel:after{width:60px;height:60px;background:#8b5cf6;left:-20px;bottom:-20px;animation-delay:1.5s}@keyframes pvpFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(14px) scale(1.12)}}.pvpFeeRow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:6px;border:1px solid #332222;border-radius:10px;background:rgba(10,10,10,.92);animation:pvpRowIn .28s ease both}.pvpFeeRow:nth-child(n+9){animation-delay:.04s}.pvpFeeRow .feeAmount{font-size:12px;font-weight:900;color:#fff}.pvpMiniBtn{border:1px solid #6b4b00;border-radius:8px;padding:8px 9px;background:#211500;color:#ffd43c;font-size:9px;font-weight:900}.pvpMiniBtn.watch{border-color:#31516b;background:#071521;color:#8ed8ff}@keyframes pvpRowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}.pvpLiveBadge{display:inline-block;padding:3px 6px;border-radius:8px;background:#163b24;color:#71e39a;font-size:8px;font-weight:900}.pvpBoard{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.pvpBoard button{min-height:48px;border:1px solid #654b00;border-radius:9px;background:#17110a;color:#ffd43c;font-weight:900}.pvpBoard button.hiddenCard{color:#fff;background:#101820;border-color:#244b62}.pvpTurnBox{grid-column:1/-1;padding:9px;border-radius:9px;background:#0e0e0e;border:1px solid #333;text-align:center;font-weight:900}.pvpSpectator{grid-column:1/-1;padding:12px;border:1px solid #31516b;border-radius:10px;background:#071521;color:#8ed8ff;text-align:center;font-weight:900}</style>
+    .bonusToggle{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10px;font-weight:800;opacity:.85;margin:5px 0}.bonusToggle input{accent-color:currentColor}.voiceLangBox{display:flex;align-items:center;gap:2px}.voiceLangBtn{border:0;background:transparent;color:inherit;font-size:11px;font-weight:800;padding:4px;opacity:.55;cursor:pointer}.voiceLangBtn.active{opacity:1;text-decoration:underline}.pvpFeeSelector{margin:12px 0}.feeSelectorTitle{font-size:10px;font-weight:900;letter-spacing:1px;color:#ffd43c;margin-bottom:8px;text-align:center}.pvpFeeGrid{display:grid;grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto}.pvpFeeBtn{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #472020;border-radius:9px;background:#101010;color:#fff;font-weight:800}.pvpFeeBtn b{font-size:9px;color:#ffd43c}.pvpFeeBtn.active{border-color:#ffd43c;box-shadow:0 0 0 1px #ffd43c inset;background:#241506}.pvpFeeBtn span{font-size:11px} .lobbyPanel{position:relative;overflow:hidden}.lobbyPanel:before,.lobbyPanel:after{content:"";position:absolute;border-radius:50%;filter:blur(2px);opacity:.35;pointer-events:none;animation:pvpFloat 5s ease-in-out infinite}.lobbyPanel:before{width:90px;height:90px;background:#ffd43c;right:-30px;top:-25px}.lobbyPanel:after{width:60px;height:60px;background:#8b5cf6;left:-20px;bottom:-20px;animation-delay:1.5s}@keyframes pvpFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(14px) scale(1.12)}}.pvpFeeRow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:6px;border:1px solid #332222;border-radius:10px;background:rgba(10,10,10,.92);animation:pvpRowIn .28s ease both}.pvpFeeRow:nth-child(n+9){animation-delay:.04s}.pvpFeeRow .feeAmount{font-size:12px;font-weight:900;color:#fff}.pvpMiniBtn{border:1px solid #6b4b00;border-radius:8px;padding:8px 9px;background:#211500;color:#ffd43c;font-size:9px;font-weight:900}.pvpMiniBtn.watch{border-color:#31516b;background:#071521;color:#8ed8ff}@keyframes pvpRowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}.pvpLiveBadge{display:inline-block;padding:3px 6px;border-radius:8px;background:#163b24;color:#71e39a;font-size:8px;font-weight:900}.pvpBoard{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.pvpBoard button{min-height:48px;border:1px solid #654b00;border-radius:9px;background:#17110a;color:#ffd43c;font-weight:900}.pvpBoard button.hiddenCard{color:#fff;background:#101820;border-color:#244b62}.pvpTurnBox{grid-column:1/-1;padding:9px;border-radius:9px;background:#0e0e0e;border:1px solid #333;text-align:center;font-weight:900}.pvpSpectator{grid-column:1/-1;padding:12px;border:1px solid #31516b;border-radius:10px;background:#071521;color:#8ed8ff;text-align:center;font-weight:900}
+    /* =========================================================
+       PROFESSIONAL 17-GAME PVP VISUAL GAMEPLAY LAYER
+       ========================================================= */
+    .pvpGameHUD{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.pvpGameHUD>div{background:#0e0b0b;border:1px solid #3b2424;border-radius:10px;padding:7px;text-align:center}.pvpGameHUD small{display:block;color:#8e8585;font-size:8px;letter-spacing:.8px}.pvpGameHUD b{display:block;color:#ffd43c;font-size:11px;margin-top:2px}
+    .pvpStage{min-height:250px;margin-top:10px;border:1px solid #3d2828;border-radius:16px;background:radial-gradient(circle at 50% 10%,#281616,#090707 65%);position:relative;overflow:hidden;padding:14px;box-shadow:inset 0 0 35px rgba(255,210,60,.04)}
+    .pvpStage:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 35%,rgba(255,255,255,.025) 50%,transparent 65%);animation:stageShine 4s linear infinite;pointer-events:none}@keyframes stageShine{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+    .stageTitle{text-align:center;color:#ffd43c;font-weight:1000;font-size:15px;letter-spacing:1px;margin-bottom:8px}.stageSub{text-align:center;color:#a99f9f;font-size:10px;margin-bottom:10px}.stagePlayers{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-bottom:10px}.playerChip{border:1px solid #5b3939;background:#171010;border-radius:999px;padding:5px 8px;color:#eee;font-size:9px;font-weight:900}.playerChip.you{border-color:#ffd43c;color:#ffd43c;box-shadow:0 0 12px rgba(255,212,60,.14)}
+    .bingoVisual{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;max-width:290px;margin:0 auto}.bingoVisual span{aspect-ratio:1;border:1px solid #5b4500;border-radius:7px;background:#16120b;display:flex;align-items:center;justify-content:center;color:#ffd43c;font-weight:1000;font-size:11px;animation:tilePulse 2.4s ease-in-out infinite}.bingoVisual span:nth-child(3n){animation-delay:.3s}@keyframes tilePulse{0%,100%{transform:scale(1);box-shadow:none}50%{transform:scale(1.05);box-shadow:0 0 12px rgba(255,212,60,.18)}}
+    .drawMachine{width:150px;height:150px;border:5px solid #8c6900;border-radius:50%;margin:20px auto;position:relative;box-shadow:0 0 25px rgba(255,212,60,.12);animation:machineSpin 8s linear infinite}.drawMachine:before{content:"";position:absolute;width:52px;height:52px;border-radius:50%;background:#ffd43c;left:44px;top:44px;box-shadow:0 0 22px rgba(255,212,60,.45)}@keyframes machineSpin{to{transform:rotate(360deg)}}
+    .drawBall{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 25%,#fff,#d6d6d6 18%,#333 19%,#111 70%);color:#ffd43c;font-size:19px;font-weight:1000;margin:14px auto;animation:ballDrop .7s cubic-bezier(.2,.9,.2,1)}@keyframes ballDrop{0%{transform:translateY(-90px) scale(.5);opacity:0}70%{transform:translateY(8px) scale(1.08)}100%{transform:translateY(0) scale(1);opacity:1}}
+    .ticket{max-width:300px;margin:auto;border:1px solid #624900;border-radius:12px;padding:8px;background:#111}.ticketGrid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}.ticketGrid span{height:24px;background:#1b1710;border:1px solid #392d15;border-radius:4px;font-size:8px;display:flex;align-items:center;justify-content:center;color:#ffd43c}
+    .raceTrack{position:relative;height:170px;border-radius:12px;background:repeating-linear-gradient(90deg,#171717 0,#171717 28px,#202020 28px,#202020 56px);border:1px solid #4a3b3b;overflow:hidden}.finishLine{position:absolute;right:8px;top:0;height:100%;width:8px;background:repeating-linear-gradient(0deg,#fff 0,#fff 8px,#111 8px,#111 16px)}.raceCar{position:absolute;left:8px;width:54px;height:25px;border-radius:12px 5px 5px 12px;background:#d71920;box-shadow:0 0 15px rgba(255,255,255,.15);animation:carBob .35s ease-in-out infinite alternate}.raceCar:after{content:"";position:absolute;right:-6px;top:6px;width:12px;height:12px;border-radius:50%;background:#111;box-shadow:-42px 0 #111}.raceCar.you{background:#ffd43c}.raceCar:nth-child(2){top:38px}.raceCar:nth-child(3){top:82px}.raceCar:nth-child(4){top:126px}@keyframes carBob{to{transform:translateY(-2px)}}
+    .wheelVisual{width:170px;height:170px;border-radius:50%;margin:8px auto;border:8px solid #6d5100;display:grid;place-items:center;background:conic-gradient(#6d5100 0 10%,#201606 10% 20%,#6d5100 20% 30%,#201606 30% 40%,#6d5100 40% 50%,#201606 50% 60%,#6d5100 60% 70%,#201606 70% 80%,#6d5100 80% 90%,#201606 90%);animation:wheelIdle 6s linear infinite}.wheelCore{width:58px;height:58px;border-radius:50%;background:#111;border:2px solid #ffd43c;display:grid;place-items:center;color:#ffd43c;font-weight:1000}@keyframes wheelIdle{to{transform:rotate(360deg)}}
+    .cardVisual{display:flex;justify-content:center;gap:18px;margin:18px auto}.playingCard{width:82px;height:112px;border-radius:10px;border:2px solid #ddd;background:linear-gradient(135deg,#7a0d0d,#160909);display:grid;place-items:center;color:#fff;font-size:34px;font-weight:1000;box-shadow:0 10px 20px rgba(0,0,0,.35);animation:cardFloat 1.7s ease-in-out infinite}.playingCard:nth-child(2){animation-delay:.25s}@keyframes cardFloat{50%{transform:translateY(-7px) rotate(2deg)}}
+    .goalVisual{position:relative;height:150px;max-width:310px;margin:auto;border:2px solid #eee;border-bottom:7px solid #eee;background:repeating-linear-gradient(90deg,transparent 0 28px,rgba(255,255,255,.12) 28px 30px),repeating-linear-gradient(0deg,transparent 0 28px,rgba(255,255,255,.12) 28px 30px);box-shadow:inset 0 0 25px rgba(255,255,255,.06)}.keeper{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-size:45px;animation:keeperMove 1.8s ease-in-out infinite alternate}.ball{position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff;left:50%;bottom:14px;animation:ballShot 1.8s ease-in-out infinite}@keyframes keeperMove{to{transform:translate(-80%,-50%)}}@keyframes ballShot{50%{left:78%;bottom:85px}100%{left:20%;bottom:115px}}
+    .targetVisual{width:170px;height:170px;border-radius:50%;margin:10px auto;background:repeating-radial-gradient(circle,#fff 0 13px,#d71920 13px 26px);border:4px solid #ffd43c;animation:targetPulse 1.3s ease-in-out infinite}.targetCenter{position:absolute}.targetDot{width:18px;height:18px;border-radius:50%;background:#111;margin:76px auto}@keyframes targetPulse{50%{transform:scale(1.04);box-shadow:0 0 30px rgba(255,212,60,.2)}}
+    .memoryGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;max-width:300px;margin:auto}.memoryCard{height:55px;border:1px solid #35546a;border-radius:8px;background:#10202a;color:#8ed8ff;font-size:20px;font-weight:1000;transform-style:preserve-3d;transition:transform .35s}.memoryCard.open{transform:rotateY(180deg);background:#ffd43c;color:#111}.memoryCard.matched{border-color:#71e39a;box-shadow:0 0 12px rgba(113,227,154,.25);background:#163b24;color:#71e39a}
+    .ludoBoard{width:250px;height:250px;margin:auto;border:5px solid #ffd43c;border-radius:16px;background:conic-gradient(#a20d0d 0 25%,#1c631e 25% 50%,#1c4080 50% 75%,#8c6500 75%);position:relative}.ludoCenter{position:absolute;inset:70px;border-radius:50%;background:#111;border:3px solid #fff;display:grid;place-items:center;color:#ffd43c;font-weight:1000}.token{position:absolute;width:25px;height:25px;border-radius:50%;border:2px solid #fff;animation:tokenBounce 1.1s ease-in-out infinite}.token.t1{left:20px;top:20px;background:#e33}.token.t2{right:20px;top:20px;background:#3d9}.token.t3{right:20px;bottom:20px;background:#39f}.token.t4{left:20px;bottom:20px;background:#fc3}@keyframes tokenBounce{50%{transform:translateY(-5px)}}
+    .triviaCard{max-width:330px;margin:auto;border:1px solid #4a3939;border-radius:14px;padding:18px;background:#111;text-align:center}.questionMark{font-size:42px;color:#ffd43c;animation:questionPulse 1.4s ease-in-out infinite}@keyframes questionPulse{50%{transform:scale(1.12)}}
+    .numberRushVisual{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;max-width:300px;margin:20px auto}.numberRushVisual span{width:43px;height:43px;border-radius:10px;display:grid;place-items:center;border:1px solid #5e4500;color:#ffd43c;background:#17120a;font-weight:1000;animation:numberPop .8s ease both}.numberRushVisual span:nth-child(2){animation-delay:.08s}.numberRushVisual span:nth-child(3){animation-delay:.16s}.numberRushVisual span:nth-child(4){animation-delay:.24s}.numberRushVisual span:nth-child(5){animation-delay:.32s}@keyframes numberPop{from{transform:scale(.3) rotate(-15deg);opacity:0}to{transform:none;opacity:1}}
+    .pvpActionGrid{position:relative;z-index:2}.pvpActionGrid button{min-height:44px;transition:transform .15s,box-shadow .15s}.pvpActionGrid button:hover{box-shadow:0 0 14px rgba(255,212,60,.12)}
+    @media(max-width:420px){.pvpStage{min-height:235px}.ludoBoard{width:220px;height:220px}.ludoCenter{inset:60px}.playingCard{width:70px;height:98px}.pvpGameHUD b{font-size:10px}}
+</style>
     </head>
 
     <body>
@@ -2076,23 +2092,23 @@
 
       <div class="gameTitle" style="font-size:16px;margin-top:8px">PVP ARENA</div>
       <div class="pvpGrid">
-        <div class="pvpCard"><h3>BINGO PVP</h3><p>Verified cards • 2–8 players</p><button onclick="openGame('pvp_bingo')">PLAY</button></div>
-        <div class="pvpCard"><h3>KENO PVP</h3><p>Pick numbers • 2–8 players</p><button onclick="openGame('pvp_keno')">PLAY</button></div>
-        <div class="pvpCard"><h3>TAMBOLA / HOUSIE</h3><p>Tickets • 2–8 players</p><button onclick="openGame('pvp_tambola')">PLAY</button></div>
-        <div class="pvpCard"><h3>90-BALL BINGO</h3><p>Lines • 2–8 players</p><button onclick="openGame('pvp_bingo90')">PLAY</button></div>
-        <div class="pvpCard"><h3>75-BALL BINGO</h3><p>Cards • 2–8 players</p><button onclick="openGame('pvp_bingo75')">PLAY</button></div>
-        <div class="pvpCard"><h3>NUMBER DRAW</h3><p>Lottery race • 2–8 players</p><button onclick="openGame('pvp_numberdraw')">PLAY</button></div>
-        <div class="pvpCard"><h3>TRIVIA QUIZ</h3><p>Knowledge battle • 2–8 players</p><button onclick="openGame('pvp_trivia')">PLAY</button></div>
-        <div class="pvpCard"><h3>MULTIPLAYER WHEEL</h3><p>Prediction • 2–8 players</p><button onclick="openGame('pvp_wheel')">PLAY</button></div>
-        <div class="pvpCard"><h3>LUDO PVP</h3><p>Race • 2–4 players</p><button onclick="openGame('pvp_ludo')">PLAY</button></div>
-        <div class="pvpCard"><h3>HIGH CARD</h3><p>1v1 • Highest card wins</p><button onclick="openGame('pvp_highcard')">PLAY</button></div>
-        <div class="pvpCard"><h3>PENALTY PVP</h3><p>5-shot challenge • 1v1</p><button onclick="openGame('pvp_penalty')">PLAY</button></div>
-        <div class="pvpCard"><h3>DICE PVP</h3><p>Over / Under • 1v1</p><button onclick="openGame('pvp_dice')">PLAY</button></div>
-        <div class="pvpCard"><h3>TARGET RUSH</h3><p>Closest target • 2–4 players</p><button onclick="openGame('pvp_target')">PLAY</button></div>
-        <div class="pvpCard"><h3>MEMORY MATCH</h3><p>Pairs • 1v1</p><button onclick="openGame('pvp_memory')">PLAY</button></div>
-        <div class="pvpCard"><h3>MINI RACING</h3><p>Speed race • 2–4 players</p><button onclick="openGame('pvp_racing')">PLAY</button></div>
-        <div class="pvpCard"><h3>SPEED CARDS</h3><p>Fast score • 1v1</p><button onclick="openGame('pvp_speedcards')">PLAY</button></div>
-        <div class="pvpCard"><h3>NUMBER RUSH</h3><p>Rapid challenge • 2–4 players</p><button onclick="openGame('pvp_numberrush')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvBingo"><span class="pvBall">12</span><i></i><i></i><i></i><i></i><i></i></div><h3>BINGO</h3><p>Live number draw</p><button onclick="openGame('pvp_bingo')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvKeno"><span>7</span><span>18</span><span>32</span><span>41</span><b>DRAW</b></div><h3>KENO</h3><p>Pick and watch the draw</p><button onclick="openGame('pvp_keno')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvTambola"><i></i><i></i><i></i><i></i><i></i><b>90</b></div><h3>TAMBOLA / HOUSIE</h3><p>Ticket and live calls</p><button onclick="openGame('pvp_tambola')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvB90"><span>11</span><span>27</span><span>54</span><span>72</span><b>90</b></div><h3>90-BALL BINGO</h3><p>Classic 90-ball action</p><button onclick="openGame('pvp_bingo90')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvB75"><div class="pv75grid">${Array.from({length:25},(_,i)=>`<span>${i===12?'★':i+1}</span>`).join('')}</div></div><h3>75-BALL BINGO</h3><p>Fast card marking</p><button onclick="openGame('pvp_bingo75')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvNumber"><b>?</b><span>24</span><span>67</span><span>83</span></div><h3>NUMBER DRAW</h3><p>Predict the result</p><button onclick="openGame('pvp_numberdraw')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvTrivia"><strong>?</strong><i></i><i></i><i></i><i></i></div><h3>TRIVIA QUIZ</h3><p>Answer under pressure</p><button onclick="openGame('pvp_trivia')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvWheel"><div></div><b>↻</b></div><h3>MULTIPLAYER WHEEL</h3><p>Predict the wheel</p><button onclick="openGame('pvp_wheel')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvLudo"><span class="ld1"></span><span class="ld2"></span><span class="ld3"></span><span class="ld4"></span><b>⚄</b></div><h3>LUDO</h3><p>Roll, move, race</p><button onclick="openGame('pvp_ludo')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvHigh"><span>A</span><span>K</span></div><h3>HIGH CARD</h3><p>Reveal the winning card</p><button onclick="openGame('pvp_highcard')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvPenalty"><span>⚽</span><i></i><b>🥅</b></div><h3>PENALTY</h3><p>Choose your shot</p><button onclick="openGame('pvp_penalty')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvDice"><b>🎲</b><span>ROLL</span></div><h3>DICE</h3><p>Predict the roll</p><button onclick="openGame('pvp_dice')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvTarget"><i></i><b>+</b></div><h3>TARGET RUSH</h3><p>Hit the moving target</p><button onclick="openGame('pvp_target')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvMemory">${Array.from({length:6},(_,i)=>`<span>${i%2?'★':'?'}</span>`).join('')}</div><h3>MEMORY MATCH</h3><p>Find matching cards</p><button onclick="openGame('pvp_memory')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvRace"><i></i><i></i><i></i><b>🏁</b></div><h3>MINI RACING</h3><p>Race against the field</p><button onclick="openGame('pvp_racing')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvSpeed"><span>A</span><span>7</span><span>Q</span><b>⚡</b></div><h3>SPEED CARDS</h3><p>React to the target</p><button onclick="openGame('pvp_speedcards')">PLAY</button></div>
+        <div class="pvpCard"><div class="homePreview pvRush"><span>1</span><span>2</span><span>3</span><span>4</span><b>GO!</b></div><h3>NUMBER RUSH</h3><p>Find the target fast</p><button onclick="openGame('pvp_numberrush')">PLAY</button></div>
       </div>
 
     </section>
@@ -2106,6 +2122,11 @@
 
       <div id="gameLobby" class="hidden">
         <div class="lobbyPanel">
+          <div class="lobbyTopbar">
+            <button class="lobbyBackTop" type="button" onclick="backToGames()">← BACK</button>
+            <span>GAME LOBBY</span>
+            <button class="lobbyHelpTop" type="button" onclick="openHelp()">?</button>
+          </div>
           <div class="lobbyEyebrow">DESTA PLAY • GAME LOBBY</div>
           <div class="lobbyTitle" id="lobbyGameTitle">GAME</div>
           <div class="lobbySubtitle" id="lobbySubtitle">Review the rules and join the round.</div>
@@ -2849,10 +2870,15 @@
       </div>
 
       <div id="pvpArena" class="pvpArena hidden">
-        <div class="pvpArenaTop">
-          <button class="pvpBackBtn" type="button" onclick="leavePvpArena()">← BACK</button>
-          <div class="pvpGameBadge" id="pvpGameBadge">PVP GAME</div>
-          <button class="pvpBackBtn" type="button" onclick="openHelp()">?</button>
+        <div class="pvpArenaTopbar">
+          <button class="pvpArenaBack" type="button" onclick="leavePvpArena()">← BACK</button>
+          <strong id="pvpArenaGameName">GAME</strong>
+          <button class="pvpArenaHelp" type="button" onclick="openHelp()">?</button>
+        </div>
+        <div class="pvpGameHUD">
+          <div><small>ENTRY</small><b id="arenaEntryFee">—</b></div>
+          <div><small>PLAYERS JOINED</small><b id="arenaPlayers">0</b></div>
+          <div><small>TIME</small><b id="arenaTime">—</b></div>
         </div>
         <div class="pvpStatus" id="pvpStatus">Waiting for server…</div>
         <div class="pvpStage" id="pvpStage"></div>
@@ -3721,10 +3747,7 @@
       "Paste transaction message link":"የግብይት መልዕክት ሊንክ ያስገቡ",
       "Your payment phone number":"የክፍያ ስልክ ቁጥርዎ",
       "Phone number receiving the money":"ገንዘቡን የሚቀበለው ስልክ ቁጥር",
-      "Enter your password":"የይለፍ ቃልዎን ያስገቡ",
-      "← BACK":"← ተመለስ",
-      "WATCH LIVE":"በቀጥታ ይመልከቱ",
-      "JOIN GAME":"ጨዋታ ይቀላቀሉ"
+      "Enter your password":"የይለፍ ቃልዎን ያስገቡ"
     };
 
     function translateDynamicText(text, lang){
@@ -4064,12 +4087,12 @@
       const title=document.getElementById("lobbyGameTitle");
       const subtitle=document.getElementById("lobbySubtitle");
       const help=document.getElementById("lobbyHelp");
-      if(title) title.textContent=isPvp ? (pvpBackendGame(game).replace(/(^|_)(\w)/g,(_,a,b)=>b.toUpperCase())+" PVP") : game.toUpperCase();
+      if(title) title.textContent=isPvp ? (pvpBackendGame(game).replace(/(^|_)(\w)/g,(_,a,b)=>b.toUpperCase())) : game.toUpperCase();
       if(subtitle) subtitle.textContent=isPvp ? "Server-authoritative player-versus-player round." : "Review the game before entering the active round.";
       if(help) help.textContent=isPvp ? "Entry is deducted only when JOIN GAME is confirmed. The server validates the round and settles verified winners." : "Use HELP for how to play, how to win and payout information before joining.";
       if(document.getElementById("lobbyEntryFee")) document.getElementById("lobbyEntryFee").textContent=isPvp ? ((state.selectedPvpFee||10)+" ETB") : "See round";
       if(document.getElementById("lobbyPrizePool")) document.getElementById("lobbyPrizePool").textContent=isPvp ? "90% pool" : "See rules";
-      if(document.getElementById("lobbyPlayers")) document.getElementById("lobbyPlayers").textContent=isPvp ? "2–4" : "Live";
+      if(document.getElementById("lobbyPlayers")) document.getElementById("lobbyPlayers").textContent=isPvp ? "Waiting" : "Live";
       if(document.getElementById("lobbyRound")) document.getElementById("lobbyRound").textContent="—";
 
       if(!isPvp){
@@ -4089,7 +4112,6 @@
 
 
     function backToGames(){
-      clearInterval(pvpRoomPollTimer);pvpRoomPollTimer=null;pvpRoomState=null;pvpSpectator=false;
       if(voiceState && voiceState.enabled) clearVoiceQueue();
       document.getElementById("gameLobby")?.classList.add("hidden");
       document.getElementById("pvpArena")?.classList.add("hidden");
@@ -4117,117 +4139,108 @@
     function pvpAuthHeaders(){return {"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")};}
     function pvpFeeSelected(fee){state.selectedPvpFee=Number(fee);document.querySelectorAll("#pvpFeeGrid .feePick").forEach(b=>b.classList.toggle("active",Number(b.dataset.fee)===state.selectedPvpFee));const el=document.getElementById("lobbyEntryFee");if(el)el.textContent=state.selectedPvpFee+" ETB";}
     function renderPvpFeeSelector(){const box=document.getElementById("pvpFeeGrid");if(!box)return;const fee=Number(state.selectedPvpFee||10);box.innerHTML=PVP_ENTRY_FEES.map(v=>`<div class="pvpFeeRow"><span class="feeAmount">${v} ETB</span><button type="button" class="pvpMiniBtn feePick ${v===fee?"active":""}" data-fee="${v}" onclick="pvpFeeSelected(${v})">SELECT</button><button type="button" class="pvpMiniBtn" onclick="joinPvpFee(${v})">JOIN</button><button type="button" class="pvpMiniBtn watch" onclick="watchPvpFee(${v})">WATCH LIVE</button></div>`).join("");}
-    async function openPvpRoom(fee,watchOnly){const game=String(state.selectedGameLobby||state.game||"");const backendGame=pvpBackendGame(game);clearInterval(pvpRoomPollTimer);pvpRoomPollTimer=null;try{const response=await fetch("https://desta-play.onrender.com/api/pvp/rooms?game="+encodeURIComponent(backendGame)+"&entryFee="+encodeURIComponent(fee),{headers:{"Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")},cache:"no-store"});const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Could not open PVP room");pvpSpectator=!!watchOnly;pvpRoomState=data.room;document.getElementById("gameLobby")?.classList.add("hidden");document.getElementById("pvpFeeSelector")?.classList.add("hidden");document.getElementById("pvpArena")?.classList.remove("hidden");document.getElementById("gameTitle").textContent=(backendGame+" PVP").toUpperCase();renderPvpArena();startPvpRoomPolling();}catch(error){alert(error.message||"Could not open PVP room");}}
+    async function openPvpRoom(fee,watchOnly){const game=String(state.selectedGameLobby||state.game||"");const backendGame=pvpBackendGame(game);try{const response=await fetch("https://desta-play.onrender.com/api/pvp/rooms?game="+encodeURIComponent(backendGame)+"&entryFee="+encodeURIComponent(fee),{headers:{"Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")},cache:"no-store"});const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Could not open PVP room");pvpSpectator=!!watchOnly;pvpRoomState=data.room;document.getElementById("gameLobby")?.classList.add("hidden");document.getElementById("pvpFeeSelector")?.classList.add("hidden");document.getElementById("pvpArena")?.classList.remove("hidden");document.getElementById("gameTitle").textContent=backendGame.toUpperCase();renderPvpArena();startPvpRoomPolling();}catch(error){alert(error.message||"Could not open PVP room");}}
     function joinPvpFee(fee){state.selectedPvpFee=Number(fee);return joinSelectedGame();}
     function watchPvpFee(fee){state.selectedPvpFee=Number(fee);return openPvpRoom(fee,true);}
-    async function joinSelectedGame(){const game=String(state.selectedGameLobby||state.game||"");if(isPvpGame(game)){try{const fee=Number(state.selectedPvpFee||10),backendGame=pvpBackendGame(game);const response=await fetch("https://desta-play.onrender.com/api/pvp/join",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({game:backendGame,entryFee:fee}),cache:"no-store"});const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Could not join PVP game");pvpSpectator=false;pvpRoomState=data.room;document.getElementById("gameLobby")?.classList.add("hidden");document.getElementById("pvpFeeSelector")?.classList.add("hidden");document.getElementById("pvpArena")?.classList.remove("hidden");document.getElementById("gameTitle").textContent=(backendGame+" PVP").toUpperCase();renderPvpArena();startPvpRoomPolling();loadServerAccount();}catch(error){alert(error.message||"Could not join PVP game");}return;}document.getElementById("gameLobby")?.classList.add("hidden");if(game==="bingo"){const stake=document.getElementById("bingoStakeScreen"),play=document.getElementById("bingoPlayArea");if(stake)stake.classList.remove("hidden");if(play)play.classList.add("hidden");}const el=document.getElementById(game+"Game");if(el)el.classList.remove("hidden");buildGame();}
+    async function joinSelectedGame(){const game=String(state.selectedGameLobby||state.game||"");if(isPvpGame(game)){try{const fee=Number(state.selectedPvpFee||10),backendGame=pvpBackendGame(game);const response=await fetch("https://desta-play.onrender.com/api/pvp/join",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({game:backendGame,entryFee:fee}),cache:"no-store"});const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Could not join PVP game");pvpSpectator=false;pvpRoomState=data.room;document.getElementById("gameLobby")?.classList.add("hidden");document.getElementById("pvpFeeSelector")?.classList.add("hidden");document.getElementById("pvpArena")?.classList.remove("hidden");document.getElementById("gameTitle").textContent=backendGame.toUpperCase();renderPvpArena();startPvpRoomPolling();loadServerAccount();}catch(error){alert(error.message||"Could not join PVP game");}return;}document.getElementById("gameLobby")?.classList.add("hidden");if(game==="bingo"){const stake=document.getElementById("bingoStakeScreen"),play=document.getElementById("bingoPlayArea");if(stake)stake.classList.remove("hidden");if(play)play.classList.add("hidden");}const el=document.getElementById(game+"Game");if(el)el.classList.remove("hidden");buildGame();}
+    async function leavePvpArena(){
+      clearInterval(pvpRoomPollTimer);
+      const room=pvpRoomState;
+      if(!room){ backToGames(); return; }
+      if(pvpSpectator){
+        pvpRoomState=null;
+        document.getElementById("pvpArena")?.classList.add("hidden");
+        document.getElementById("gameLobby")?.classList.remove("hidden");
+        return;
+      }
+      if(room.status === "BETTING"){
+        try{
+          await fetch("https://desta-play.onrender.com/api/pvp/leave",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({roomId:room.roomId}),cache:"no-store"});
+          pvpRoomState=null;
+          loadServerAccount();
+          document.getElementById("pvpArena")?.classList.add("hidden");
+          document.getElementById("gameLobby")?.classList.remove("hidden");
+          renderPvpFeeSelector();
+        }catch(error){
+          alert(error.message||"Could not leave the room.");
+        }
+        return;
+      }
+      // Once a round has started, the player cannot withdraw from the room.
+      // The Back button still lets the player leave the visual screen; the server
+      // continues the authoritative round and settlement in the background.
+      pvpRoomState=null;
+      document.getElementById("pvpArena")?.classList.add("hidden");
+      backToGames();
+    }
+
     function startPvpRoomPolling(){clearInterval(pvpRoomPollTimer);pvpRoomPollTimer=setInterval(async()=>{if(!pvpRoomState?.roomId){clearInterval(pvpRoomPollTimer);return;}try{const response=await fetch("https://desta-play.onrender.com/api/pvp/room/"+encodeURIComponent(pvpRoomState.roomId),{headers:{"Accept":"application/json","Authorization":"Bearer "+String(state.authToken||"")},cache:"no-store"});const data=await safeJsonResponse(response);if(response.ok&&data.success){pvpRoomState=data.room;renderPvpArena(data.result||null);}}catch(e){}},700);}
     function pvpInput(html){return `<div style="grid-column:1/-1;display:grid;gap:8px">${html}</div>`;}
-    function pvpTurnText(a){if(!a)return "Waiting for server…";if(a.phase==="FINISHED")return "ROUND FINISHED";return a.yourTurn?"YOUR SERVER-ASSIGNED TURN":"WAITING FOR OPPONENT TURN";}
-    function pvpGameName(g){
-      const names={bingo:"Bingo PVP",keno:"Keno PVP",tambola:"Tambola / Housie PVP",bingo90:"90-Ball Bingo PVP",bingo75:"75-Ball Bingo PVP",numberdraw:"Number Draw / Lottery Race PVP",trivia:"Trivia / Quiz PVP",wheel:"Multiplayer Wheel / Prediction PVP",ludo:"Ludo PVP",highcard:"High Card PVP",penalty:"Penalty PVP",dice:"Dice PVP",target:"Target Rush PVP",memory:"Memory Match PVP",racing:"Mini Racing PVP",speedcards:"Speed Cards PVP",numberrush:"Number Rush PVP"};
-      return names[String(g||"")]||String(g||"PVP").toUpperCase();
+    function pvpTurnText(a){if(!a)return "WAITING FOR SERVER";if(a.phase==="FINISHED")return "ROUND FINISHED";return a.yourTurn?"YOUR TURN":"WAITING FOR OTHER PLAYERS";}
+    function escPvp(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+    function pvpPlayerChips(room){const n=Math.max(0,Number(room.playersCount||0));let html="";for(let i=0;i<n;i++)html+=`<span class="playerChip ${i===0?'you':''}">${i===0?'YOU':'PLAYER '+(i+1)}</span>`;return html||'<span class="playerChip">WAITING FOR PLAYERS</span>';}
+    function pvpStageFor(g,a,room){
+      const name=String(room.gameName||room.game||g).replace(/\s*PVP\s*$/i,"").toUpperCase();
+      const players=pvpPlayerChips(room);
+      let visual="";
+      if(g==="bingo"||g==="bingo75") visual=`<div class="bingoVisual">${Array.from({length:25},(_,i)=>`<button class="${pvpLocal.marks.has(i)?'marked':''}" onclick="pvpMark('marks',${i})">${i===12?'FREE':(i+1)}</button>`).join("")}</div>`;
+      else if(g==="keno") visual=`<div class="drawMachine"></div><div class="drawBall">${a.draw||a.number||'?'}</div>`;
+      else if(g==="tambola"||g==="bingo90") visual=`<div class="ticket"><div class="ticketGrid">${Array.from({length:27},(_,i)=>`<button class="${pvpLocal.ticket.has(i)?'marked':''}" onclick="pvpMark('ticket',${i})">${i%3===0?'':(i+1)}</button>`).join("")}</div></div><div class="drawBall">${a.draw||a.number||'?'}</div>`;
+      else if(g==="numberdraw") visual=`<div class="stageTitle">TARGET NUMBER</div><div class="drawBall">${a.target||a.number||'?'}</div><div class="stageSub">Server draw in progress</div>`;
+      else if(g==="trivia") visual=`<div class="triviaCard"><div class="questionMark">?</div><div class="stageSub">QUESTION FROM SERVER</div><strong>${escPvp(a.question?.question||'Get ready for the next question')}</strong></div>`;
+      else if(g==="wheel") visual=`<div class="wheelVisual"><div class="wheelCore">${a.result||'?'}</div></div>`;
+      else if(g==="ludo") visual=`<div class="ludoBoard"><div class="ludoCenter">DICE ${a.dice||'?'}</div><i class="token t1"></i><i class="token t2"></i><i class="token t3"></i><i class="token t4"></i></div>`;
+      else if(g==="highcard") visual=`<div class="cardVisual"><div class="playingCard">?</div><div class="playingCard">?</div></div>`;
+      else if(g==="penalty") visual=`<div class="goalVisual"><div class="keeper">🧤</div><div class="ball">⚽</div></div>`;
+      else if(g==="dice") visual=`<div class="drawBall" style="width:92px;height:92px;font-size:34px">${a.roll||'🎲'}</div>`;
+      else if(g==="target") visual=`<div class="targetVisual"><div class="targetDot"></div></div>`;
+      else if(g==="memory") visual=`<div class="memoryGrid">${Array.from({length:16},(_,i)=>`<button class="memoryCard ${(a.matched||[]).includes(i)?'matched':''} ${(a.revealed||[]).includes(i)?'open':''}" onclick="submitPvpAction({type:'memory',index:${i}})">${(a.matched||[]).includes(i)?'✓':((a.revealed||[]).includes(i)?'★':'?')}</button>`).join("")}</div>`;
+      else if(g==="racing") visual=`<div class="raceTrack"><div class="finishLine"></div><div class="raceCar you" style="top:8px;left:${Math.min(82,Number(a.progress||0))}%"></div><div class="raceCar" style="left:${Math.min(82,Number(a.opponentProgress||28))}%"></div><div class="raceCar" style="left:${Math.min(82,Number(a.opponent2Progress||48))}%"></div></div>`;
+      else if(g==="speedcards") visual=`<div class="cardVisual"><div class="playingCard">${a.target||'?'}</div></div>`;
+      else if(g==="numberrush") visual=`<div class="numberRushVisual">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<span>${n}</span>`).join("")}</div>`;
+      return `<div class="stageTitle">${name}</div><div class="stagePlayers">${players}</div>${visual}<div class="stageSub">${pvpSpectator?'WATCHING LIVE':'SERVER-AUTHORITATIVE GAMEPLAY'}</div>`;
     }
-
-    function pvpEsc(value){return String(value??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));}
-
-    function pvpStageFor(g,a){
-      g=String(g||"");
-      const scores=a?.scores&&typeof a.scores==="object"?a.scores:{};
-      const ids=Object.keys(scores);
-      if(g==="ludo"){
-        const dice=Number(a?.dice||0);
-        const positions=Array.isArray(a?.positions)?a.positions:[];
-        return `<div class="pvpStageTitle">LUDO • SERVER BOARD</div><div class="pvpDice">${dice||"🎲"}</div><div class="pvpPlayers">${(a?.players||ids).slice(0,4).map((id,i)=>`<div class="pvpPlayerChip ${String(id)===String(state.playerId)?"me":""}">P${i+1} • ${Number(positions[i]||0)}</div>`).join("")}</div>`;
-      }
-      if(g==="memory"){
-        const revealed=new Set(Array.isArray(a?.revealed)?a.revealed:[]);
-        const matched=new Set(Array.isArray(a?.matched)?a.matched:[]);
-        const values=Array.isArray(a?.visibleCards)?a.visibleCards:[];
-        return `<div class="pvpStageTitle">MEMORY • SERVER-OWNED BOARD</div><div class="pvpVisualGrid">${Array.from({length:16},(_,i)=>{const show=revealed.has(i)||matched.has(i);return `<button class="pvpVisualCell ${matched.has(i)?"matched":""} ${show?"revealed":""}" onclick="submitPvpAction({type:'memory',index:${i}})" ${!a?.yourTurn||matched.has(i)?"disabled":""}>${show?pvpEsc(values[i]??"?"):"?"}</button>`}).join("")}</div>`;
-      }
-      if(g==="racing"){
-        const progress=Array.isArray(a?.progress)?a.progress:Object.values(scores);
-        return `<div class="pvpStageTitle">MINI RACING • SERVER PROGRESS</div><div class="pvpRaceTrack">${progress.slice(0,4).map((v,i)=>`<div class="pvpRacer" style="left:${Math.max(4,Math.min(96,Number(v)||0))}%">🏎️</div>`).join("")}</div>`;
-      }
-      if(g==="wheel")return `<div class="pvpStageTitle">SERVER WHEEL</div><div class="pvpWheelVisual"></div>`;
-      if(g==="highcard")return `<div class="pvpStageTitle">SERVER SHUFFLE • DRAW</div><div class="pvpCardVisual">🂠</div>`;
-      if(g==="dice")return `<div class="pvpStageTitle">SERVER DICE</div><div class="pvpDice">${Number(a?.roll)||"🎲"}</div>`;
-      if(g==="target"||g==="numberdraw")return `<div class="pvpStageTitle">SERVER TARGET</div><div class="pvpTarget">${pvpEsc(a?.target??"—")}</div>`;
-      if(g==="penalty")return `<div class="pvpStageTitle">PENALTY SHOOTOUT • ROUND ${pvpEsc(a?.round??"—")}</div><div style="font-size:48px;text-align:center;animation:pvpTargetPulse 1s infinite">🥅</div>`;
-      if(g==="trivia")return `<div class="pvpStageTitle">SERVER QUESTION</div><div style="text-align:center;font-size:12px;color:#fff;padding:8px">${pvpEsc(a?.question?.question||"Waiting for server question…")}</div>`;
-      if(g==="speedcards"||g==="numberrush")return `<div class="pvpStageTitle">SERVER CHALLENGE</div><div class="pvpTarget">${pvpEsc(a?.target??"—")}</div>`;
-      return `<div class="pvpStageTitle">SERVER-AUTHORITATIVE GAME</div><div style="text-align:center;font-size:44px;animation:pvpTargetPulse 1.3s infinite">🎮</div>`;
-    }
-
     function renderPvpArena(result=null){
-      const room=pvpRoomState;if(!room)return;
-      const a=room.authority||{};const g=String(room.game||"");
-      const badge=document.getElementById("pvpGameBadge");if(badge)badge.textContent=pvpGameName(g);
-      const status=document.getElementById("pvpStatus");
-      if(status)status.innerHTML=`${pvpEsc(pvpGameName(g))} • ${room.playersCount}/${room.maxPlayers} PLAYERS • ${pvpEsc(room.status)} • ${Number(room.remainingSeconds||0)}s • PRIZE ${Number(room.prizePool||0).toFixed(2)} ETB<br><span class="pvpLiveBadge">${pvpSpectator?"WATCHING LIVE — NOT IN POOL":pvpTurnText(a)}</span>`;
-      const stage=document.getElementById("pvpStage");if(stage)stage.innerHTML=pvpStageFor(g,a);
+      const room=pvpRoomState;if(!room)return;const a=room.authority||{};const g=String(room.game||"");const displayName=String(room.gameName||g).replace(/\s*PVP\s*$/i,"");
+      const arenaName=document.getElementById("pvpArenaGameName");if(arenaName)arenaName.textContent=displayName.toUpperCase();
+      const ef=document.getElementById("arenaEntryFee");if(ef)ef.textContent=Number(room.entryFee||0).toFixed(0)+" ETB";
+      const ap=document.getElementById("arenaPlayers");if(ap)ap.textContent=String(room.playersCount||0);
+      const at=document.getElementById("arenaTime");if(at)at.textContent=String(room.remainingSeconds||0)+"s";
+      const status=document.getElementById("pvpStatus");if(status)status.innerHTML=`<b>${pvpSpectator?'LIVE GAME':'LIVE ROUND'}</b> • ${room.status} • ${pvpTurnText(a)}`;
+      const stage=document.getElementById("pvpStage");if(stage)stage.innerHTML=pvpStageFor(g,a,room);
       const grid=document.getElementById("pvpActionGrid");if(!grid)return;
-      if(pvpSpectator){grid.innerHTML=`<div class="pvpSpectator">LIVE SPECTATOR MODE<br><small>You are watching only. You are not a player and your balance is untouched.</small></div>`;}
-      else if(room.status!=="PLAYING"&&room.status!=="READY"&&room.status!=="BETTING"){grid.innerHTML=`<div class="pvpTurnBox">ROUND ${pvpEsc(room.status)}</div>`;}
-      else {grid.innerHTML=pvpControls(g,a);}
+      if(pvpSpectator){grid.innerHTML=pvpInput(`<div class="pvpSpectator">SPECTATOR MODE<br><small>Watching only. Balance and player pool are untouched.</small></div>`);}
+      else if(room.status!=="PLAYING"&&room.status!=="READY"&&room.status!=="BETTING"){grid.innerHTML=pvpInput(`<div class="pvpTurnBox">ROUND ${escPvp(room.status)}</div>`);}
+      else if(["penalty","ludo","memory","racing","speedcards","numberrush","trivia"].includes(g)){grid.innerHTML=pvpInteractiveControls(g,a);}
+      else grid.innerHTML=pvpOneShotControls(g);
       const resultEl=document.getElementById("pvpResult");
-      if(result&&resultEl){resultEl.classList.remove("hidden");resultEl.textContent="VERIFIED SERVER RESULT\n"+JSON.stringify(result,null,2);}
-      else if(resultEl)resultEl.classList.add("hidden");
+      if(result&&resultEl){resultEl.classList.remove("hidden");resultEl.innerHTML=`<strong>VERIFIED RESULT</strong><br>${escPvp(result.message||result.status||'Round complete')}`;}else if(resultEl)resultEl.classList.add("hidden");
     }
-
-    function pvpControls(g,a){
-      if(!a?.yourTurn&&a?.phase!=="FINISHED")return `<div class="pvpTurnBox">${pvpTurnText(a)}<br><small>The server controls turns and gives each participant equal opportunities.</small></div>`;
-      if(g==="penalty"){
-        const phase=String(a.phase||"SHOOT");
-        const label=phase==="KEEP"||phase==="GOALKEEP"?"DIVE":"SHOOT";
-        return pvpInput(`<div class="pvpTurnBox">ROUND ${pvpEsc(a.round??"—")} — ${label}</div><button onclick="submitPvpAction({choice:'left'})">${label} LEFT</button><button onclick="submitPvpAction({choice:'center'})">${label} CENTER</button><button onclick="submitPvpAction({choice:'right'})">${label} RIGHT</button>`);
-      }
-      if(g==="ludo"){
-        if(String(a.phase||"")==="ROLL"||a.dice==null)return pvpInput(`<div class="pvpTurnBox">YOUR TURN — SERVER WILL ROLL</div><button onclick="submitPvpAction({type:'roll'})">🎲 ROLL DICE</button>`);
-        return pvpInput(`<div class="pvpTurnBox">SERVER DICE: ${pvpEsc(a.dice)} — SELECT A LEGAL TOKEN</div>${[0,1,2,3].map(i=>`<button onclick="submitPvpAction({type:'move',token:${i}})">TOKEN ${i+1}</button>`).join("")}`);
-      }
-      if(g==="memory")return `<div class="pvpTurnBox">YOUR TURN — TAP TWO HIDDEN CARDS ON THE SERVER BOARD</div>`;
-      if(g==="racing")return pvpInput(`<div class="pvpTurnBox">YOUR TURN — CHOOSE YOUR BOOST</div><input id="pvpBoost" type="number" min="0" max="10" value="5"><button onclick="submitPvpAction({boost:Number(document.getElementById('pvpBoost').value)})">🏎️ BOOST & RACE</button>`);
-      if(g==="speedcards"||g==="numberrush")return pvpInput(`<div class="pvpTurnBox">SERVER TARGET: ${pvpEsc(a.target??"—")}</div>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="submitPvpAction({answer:${n}})">${n}</button>`).join("")}`);
-      if(g==="trivia"){
-        const q=a.question;if(!q)return `<div class="pvpTurnBox">Waiting for the server question…</div>`;
-        return pvpInput(`${q.options.map((x,i)=>`<button onclick="submitPvpAction({answer:${i}})">${i+1}. ${pvpEsc(x)}</button>`).join("")}`);
-      }
-      if(g==="bingo")return pvpInput(`<input id="pvpBingoCard" placeholder="24 unique card numbers"><button onclick="submitPvpAction({type:'card',numbers:document.getElementById('pvpBingoCard').value.split(',').map(Number)})">SAVE CARD</button><button onclick="submitPvpAction({type:'claim'})">CLAIM BINGO</button>`);
-      if(g==="bingo75")return pvpInput(`<input id="pvpBingo75" placeholder="25 unique card numbers"><button onclick="submitPvpAction({type:'card',numbers:document.getElementById('pvpBingo75').value.split(',').map(Number)})">SAVE CARD</button><button onclick="submitPvpAction({type:'claim'})">CLAIM BINGO</button>`);
-      if(g==="keno")return pvpInput(`<input id="pvpKenoNumbers" placeholder="5–10 numbers, comma-separated"><button onclick="submitPvpAction({type:'pick',numbers:document.getElementById('pvpKenoNumbers').value.split(',').map(Number)})">LOCK NUMBERS</button>`);
-      if(g==="tambola"||g==="bingo90")return pvpInput(`<input id="pvpTicket" placeholder="15 unique ticket numbers"><button onclick="submitPvpAction({type:'ticket',numbers:document.getElementById('pvpTicket').value.split(',').map(Number)})">SAVE TICKET</button><button onclick="submitPvpAction({type:'claim',claim:'line'})">CLAIM</button>`);
-      if(g==="numberdraw")return pvpInput(`<input id="pvpNumberDraw" type="number" min="1" max="100" value="50"><button onclick="submitPvpAction({type:'number',number:Number(document.getElementById('pvpNumberDraw').value)})">LOCK NUMBER</button>`);
-      if(g==="wheel")return pvpInput(`<input id="pvpWheel" type="number" min="1" max="10" value="5"><button onclick="submitPvpAction({type:'prediction',prediction:Number(document.getElementById('pvpWheel').value)})">PREDICT 1–10</button>`);
-      if(g==="dice")return `<button onclick="submitPvpAction({type:'prediction',prediction:'OVER',target:50})">OVER 50</button><button onclick="submitPvpAction({type:'prediction',prediction:'UNDER',target:50})">UNDER 50</button>`;
-      if(g==="target")return pvpInput(`<input id="pvpGuess" type="number" min="1" max="100" value="50"><button onclick="submitPvpAction({type:'guess',guess:Number(document.getElementById('pvpGuess').value)})">LOCK TARGET</button>`);
-      if(g==="highcard")return `<button onclick="submitPvpAction({type:'draw'})">🂠 DRAW CARD</button>`;
-      return `<div class="pvpTurnBox">YOUR SERVER-ASSIGNED TURN<br><small>Choose an action. The server validates and resolves the result.</small></div>`;
+    const pvpLocal={marks:new Set(),ticket:new Set(),keno:new Set(),memory:new Set(),speed:null,rush:null,selectedToken:null};
+    function pvpMark(kind,value){const set=pvpLocal[kind];if(!set)return;const n=Number(value);if(set.has(n))set.delete(n);else set.add(n);renderPvpArena();}
+    function pvpInteractiveControls(g,a){
+      if(!a.yourTurn&&a.phase!=="FINISHED")return `<div class="pvpTurnBox">${pvpTurnText(a)}<br><small>Watch the live board while the server controls the round.</small></div>`;
+      if(g==="penalty")return pvpInput(`<div class="pvpTurnBox">ROUND ${a.round||1} — ${a.phase==='SHOOT'?'CHOOSE YOUR SHOT':'CHOOSE YOUR DIVE'}</div><button onclick="submitPvpAction({choice:'left'})">${a.phase==='SHOOT'?'⚽ SHOOT':'🧤 DIVE'} LEFT</button><button onclick="submitPvpAction({choice:'center'})">${a.phase==='SHOOT'?'⚽ SHOOT':'🧤 DIVE'} CENTER</button><button onclick="submitPvpAction({choice:'right'})">${a.phase==='SHOOT'?'⚽ SHOOT':'🧤 DIVE'} RIGHT</button>`);
+      if(g==="ludo"){if(a.phase==="ROLL")return pvpInput(`<div class="pvpTurnBox">YOUR TURN — ROLL THE DICE</div><button onclick="submitPvpAction({type:'roll'})">🎲 ROLL DICE</button>`);return pvpInput(`<div class="pvpTurnBox">DICE: ${escPvp(a.dice||'—')} — CHOOSE A TOKEN</div><div class="pvpBoard">${[0,1,2,3].map(i=>`<button class="${pvpLocal.selectedToken===i?'active':''}" onclick="pvpLocal.selectedToken=${i};submitPvpAction({type:'move',token:${i}})">TOKEN ${i+1}</button>`).join('')}</div>`);}
+      if(g==="memory")return pvpInput(`<div class="pvpTurnBox">FLIP TWO CARDS — THE SERVER CHECKS THE MATCH</div><div class="memoryHint">Choose a card on the board above.</div>`);
+      if(g==="racing")return pvpInput(`<div class="pvpTurnBox">DRIVE YOUR CAR — EACH MOVE IS VERIFIED BY THE SERVER</div><button onclick="submitPvpAction({boost:1})">🏎️ ACCELERATE</button><button onclick="submitPvpAction({boost:3})">⚡ BOOST</button><button onclick="submitPvpAction({boost:5})">🔥 TURBO</button>`);
+      if(g==="speedcards"){const t=a.target||'?';return pvpInput(`<div class="pvpTurnBox">TARGET CARD: <b>${escPvp(t)}</b></div>${['A','2','3','4','5','6','7','8','9','10','J','Q','K'].map(n=>`<button class="${pvpLocal.speed===n?'active':''}" onclick="pvpLocal.speed='${n}';submitPvpAction({answer:'${n}'})">${n}</button>`).join('')}`);}
+      if(g==="numberrush"){const t=a.target||'?';return pvpInput(`<div class="pvpTurnBox">FIND NUMBER <b>${escPvp(t)}</b></div><div class="pvpBoard">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button class="${pvpLocal.rush===n?'active':''}" onclick="pvpLocal.rush=${n};submitPvpAction({answer:${n}})">${n}</button>`).join('')}</div>`);}
+      if(g==="trivia"){const q=a.question;if(!q)return `<div class="pvpTurnBox">WAITING FOR QUESTION</div>`;return pvpInput(`<div class="triviaCard"><small>QUESTION</small><strong>${escPvp(q.question)}</strong></div>${(q.options||[]).map((x,i)=>`<button onclick="submitPvpAction({answer:${i}})">${String.fromCharCode(65+i)} · ${escPvp(x)}</button>`).join('')}`);}
+      return '';
     }
-
-    async function submitPvpAction(action){
-      if(!pvpRoomState?.roomId||pvpSpectator)return;
-      try{
-        const response=await fetch("https://desta-play.onrender.com/api/pvp/action",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({roomId:pvpRoomState.roomId,actionData:action}),cache:"no-store"});
-        const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Action rejected");
-        pvpRoomState=data.room;renderPvpArena(data.result||null);loadServerAccount();
-      }catch(error){alert(error.message||"Action rejected");}
+    function pvpOneShotControls(g){
+      if(g==="bingo"||g==="bingo75")return pvpInput(`<div class="pvpTurnBox">MARK YOUR CALLED NUMBERS. CLAIM ONLY WHEN YOUR CARD HAS A VERIFIED LINE.</div><button onclick="submitPvpAction({type:'claim'})">🎉 CLAIM BINGO</button>`);
+      if(g==="keno")return pvpInput(`<div class="pvpTurnBox">SELECT YOUR NUMBERS</div><div class="pvpBoard">${Array.from({length:20},(_,i)=>i+1).map(n=>`<button class="${pvpLocal.keno.has(n)?'active':''}" onclick="pvpMark('keno',${n})">${n}</button>`).join('')}</div><button onclick="submitPvpAction({type:'pick',numbers:[...pvpLocal.keno]})">🎯 LOCK PICKS</button>`);
+      if(["tambola","bingo90"].includes(g))return pvpInput(`<div class="pvpTurnBox">MARK CALLED TICKET NUMBERS</div><button onclick="submitPvpAction({type:'claim',claim:'line'})">CLAIM LINE</button><button onclick="submitPvpAction({type:'claim',claim:'full'})">CLAIM FULL HOUSE</button>`);
+      if(g==="numberdraw")return pvpInput(`<div class="pvpTurnBox">PREDICT ONE NUMBER</div>${[10,20,30,40,50,60,70,80,90].map(n=>`<button onclick="submitPvpAction({type:'number',number:${n}})">${n}</button>`).join('')}`);
+      if(g==="wheel")return pvpInput(`<div class="pvpTurnBox">CHOOSE YOUR PREDICTION</div>${[1,2,3,4,5,6,7,8,9,10].map(n=>`<button onclick="submitPvpAction({type:'prediction',prediction:${n}})">${n}</button>`).join('')}`);
+      if(g==="dice")return pvpInput(`<div class="pvpTurnBox">PREDICT THE RESULT RANGE</div><button onclick="submitPvpAction({type:'prediction',prediction:'LOW',target:50})">LOW</button><button onclick="submitPvpAction({type:'prediction',prediction:'HIGH',target:50})">HIGH</button>`);
+      if(g==="target")return pvpInput(`<div class="pvpTurnBox">CHOOSE THE TARGET ZONE</div>${[25,40,50,60,75].map(n=>`<button onclick="submitPvpAction({type:'guess',guess:${n}})">${n}</button>`).join('')}`);
+      if(g==="highcard")return pvpInput(`<div class="pvpTurnBox">READY TO REVEAL YOUR CARD?</div><button onclick="submitPvpAction({type:'draw'})">🃏 REVEAL CARD</button>`);
+      return pvpInput(`<div class="pvpTurnBox">WAITING FOR SERVER GAME STATE</div>`);
     }
-
-    async function leavePvpArena(){
-      clearInterval(pvpRoomPollTimer);pvpRoomPollTimer=null;
-      const room=pvpRoomState;
-      if(room?.roomId&&!pvpSpectator){
-        try{await fetch("https://desta-play.onrender.com/api/pvp/leave",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({roomId:room.roomId}),cache:"no-store"});}catch(e){}
-      }
-      pvpRoomState=null;pvpSpectator=false;
-      document.getElementById("pvpArena")?.classList.add("hidden");
-      document.getElementById("gameLobby")?.classList.remove("hidden");
-      document.getElementById("pvpFeeSelector")?.classList.remove("hidden");
-      if(state.selectedGameLobby){state.game=state.selectedGameLobby;}
-      renderPvpFeeSelector();
-    }
+    async function submitPvpAction(action){if(!pvpRoomState?.roomId||pvpSpectator)return;try{const response=await fetch("https://desta-play.onrender.com/api/pvp/action",{method:"POST",headers:pvpAuthHeaders(),body:JSON.stringify({roomId:pvpRoomState.roomId,actionData:action}),cache:"no-store"});const data=await safeJsonResponse(response);if(!response.ok||!data.success)throw new Error(data.error||"Action rejected");pvpRoomState=data.room;renderPvpArena(data.result||null);loadServerAccount();}catch(error){alert(error.message||"Action rejected");}}
 
     /* =========================================================
        HIDE GAMES
@@ -5909,9 +5922,9 @@
     function openHelp(){
       if(typeof isPvpGame === "function" && isPvpGame(state.game)){
         const g=pvpBackendGame(state.game);
-        const names={bingo:"Bingo PVP",keno:"Keno PVP",tambola:"Tambola / Housie PVP",bingo90:"90-Ball Bingo PVP",bingo75:"75-Ball Bingo PVP",numberdraw:"Number Draw / Lottery Race PVP",trivia:"Trivia / Quiz PVP",wheel:"Multiplayer Wheel / Prediction PVP",ludo:"Ludo PVP",highcard:"High Card PVP",penalty:"Penalty PVP",dice:"Dice PVP",target:"Target Rush PVP",memory:"Memory Match PVP",racing:"Mini Racing PVP",speedcards:"Speed Cards PVP",numberrush:"Number Rush PVP"};
+        const names={bingo:"Bingo",keno:"Keno",tambola:"Tambola / Housie",bingo90:"90-Ball Bingo",bingo75:"75-Ball Bingo",numberdraw:"Number Draw / Lottery Race",trivia:"Trivia / Quiz",wheel:"Multiplayer Wheel / Prediction",ludo:"Ludo",highcard:"High Card",penalty:"Penalty",dice:"Dice",target:"Target Rush",memory:"Memory Match",racing:"Mini Racing",speedcards:"Speed Cards",numberrush:"Number Rush"};
         const title=document.getElementById("helpTitle"); const text=document.getElementById("helpContent");
-        if(title)title.textContent="How to Play "+(names[g]||"PVP Game");
+        if(title)title.textContent="How to Play "+(names[g]||"Game");
         if(text)text.innerHTML=`<h3>How to play</h3><p>${PVP_GAME_COPY[g]||"Join the room and follow the server instructions."}</p><h3>Entry fee</h3><p>Select one of the fixed entry fees from 10 ETB to 1000 ETB. Rooms never mix entry fees.</p><h3>How to win</h3><p>The server validates every player action and determines the verified winner(s). Client-side results are never trusted.</p><h3>Payout</h3><p>10% of the room pool is the platform rake. 90% is the verified winner pool. If there are multiple verified winners, the winner pool is divided equally with deterministic cent rounding.</p>`;
         document.getElementById("helpOverlay")?.classList.remove("hidden");
         document.getElementById("helpModal")?.classList.remove("hidden");
@@ -5920,15 +5933,15 @@
 
       const help={
 
-        ludo:{title:"How to Play Ludo PVP",html:`<h3>How to play</h3><p>Join the room and compete against other players. The server controls the dice and result.</p><h3>How to win</h3><p>The server calculates the strongest verified result. Ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool. 10% is the platform rake.</p>`},
-        highcard:{title:"How to Play High Card PVP",html:`<h3>How to play</h3><p>Join a 1v1 room. Cards are drawn by the server.</p><h3>How to win</h3><p>The highest verified card wins. Equal highest cards share the winner pool.</p><h3>Payout</h3><p>90% of the two-player pool is paid to verified winner(s).</p>`},
-        penalty:{title:"How to Play Penalty PVP",html:`<h3>How to play</h3><p>Join a 1v1 penalty match. The server resolves the five-round challenge.</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% of the entry pool is shared by verified winner(s).</p>`},
-        dice:{title:"How to Play Dice PVP",html:`<h3>How to play</h3><p>Choose OVER or UNDER 50. The server generates the roll.</p><h3>How to win</h3><p>Your prediction must match the server roll. Verified ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool; 10% is the platform rake.</p>`},
-        target:{title:"How to Play Target Rush PVP",html:`<h3>How to play</h3><p>Choose a number from 1–100 and lock it before resolution.</p><h3>How to win</h3><p>The closest verified guess to the server target wins.</p><h3>Payout</h3><p>90% of the entry pool is shared equally among verified winners.</p>`},
-        memory:{title:"How to Play Memory Match PVP",html:`<h3>How to play</h3><p>Compete in a server-controlled memory challenge.</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
-        racing:{title:"How to Play Mini Racing PVP",html:`<h3>How to play</h3><p>Join a 2–4 player race.</p><h3>How to win</h3><p>The server determines the verified race result.</p><h3>Payout</h3><p>90% of the pool is shared by verified winner(s).</p>`},
-        speedcards:{title:"How to Play Speed Cards PVP",html:`<h3>How to play</h3><p>Join the 1v1 speed-card challenge and submit your action.</p><h3>How to win</h3><p>The server determines the verified score.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
-        numberrush:{title:"How to Play Number Rush PVP",html:`<h3>How to play</h3><p>Join a 2–4 player number challenge.</p><h3>How to win</h3><p>The server determines the verified score and winner(s).</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+        ludo:{title:"How to Play Ludo",html:`<h3>How to play</h3><p>Tap to enter</p><h3>How to win</h3><p>The server calculates the strongest verified result. Ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool. 10% is the platform rake.</p>`},
+        highcard:{title:"How to Play High Card",html:`<h3>How to play</h3><p>Tap to enter</p><h3>How to win</h3><p>The highest verified card wins. Equal highest cards share the winner pool.</p><h3>Payout</h3><p>90% of the two-player pool is paid to verified winner(s).</p>`},
+        penalty:{title:"How to Play Penalty",html:`<h3>How to play</h3><p>Tap to enter</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% of the entry pool is shared by verified winner(s).</p>`},
+        dice:{title:"How to Play Dice",html:`<h3>How to play</h3><p>Choose OVER or UNDER 50. The server generates the roll.</p><h3>How to win</h3><p>Your prediction must match the server roll. Verified ties share the winner pool.</p><h3>Payout</h3><p>90% of the entry pool is the winner pool; 10% is the platform rake.</p>`},
+        target:{title:"How to Play Target Rush",html:`<h3>How to play</h3><p>Choose a number from 1–100 and lock it before resolution.</p><h3>How to win</h3><p>The closest verified guess to the server target wins.</p><h3>Payout</h3><p>90% of the entry pool is shared equally among verified winners.</p>`},
+        memory:{title:"How to Play Memory Match",html:`<h3>How to play</h3><p>Compete in a server-controlled memory challenge.</p><h3>How to win</h3><p>The highest verified score wins.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+        racing:{title:"How to Play Mini Racing",html:`<h3>How to play</h3><p>Join a 2–4 player race.</p><h3>How to win</h3><p>The server determines the verified race result.</p><h3>Payout</h3><p>90% of the pool is shared by verified winner(s).</p>`},
+        speedcards:{title:"How to Play Speed Cards",html:`<h3>How to play</h3><p>Tap to enter</p><h3>How to win</h3><p>The server determines the verified score.</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
+        numberrush:{title:"How to Play Number Rush",html:`<h3>How to play</h3><p>Join a 2–4 player number challenge.</p><h3>How to win</h3><p>The server determines the verified score and winner(s).</p><h3>Payout</h3><p>90% winner pool, 10% platform rake.</p>`},
 
         keno:{
           title:"How to Play Keno",
