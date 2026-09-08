@@ -202,34 +202,11 @@ const games = {}; // Legacy house games disabled. PVP engines are the active gam
 |
 |--------------------------------------------------------------------------
 */
-/* Normalize engine IDs so the server accepts both "bingo" and "pvp_bingo"
-   exports from the existing repository. This prevents false "Unsupported PVP
-   game" errors without changing the engine files themselves. */
-const PVP_ENGINE_REGISTRY = Object.fromEntries(
-    Object.entries(PVP_ENGINES || {}).map(([rawId, engine]) => [
-        String(rawId).replace(/^pvp_/i, "").toLowerCase(),
-        engine
-    ])
-);
-
-const PVP_GAME_ORDER = [
-    "bingo","keno","tambola","bingo90","bingo75","numberdraw","trivia",
-    "wheel","ludo","highcard","penalty","dice","target","memory",
-    "racing","speedcards","numberrush"
-];
-
-const PVP_GAMES = Object.fromEntries(
-    PVP_GAME_ORDER
-        .filter(id => PVP_ENGINE_REGISTRY[id])
-        .map(id => {
-            const engine = PVP_ENGINE_REGISTRY[id];
-            return [id, {
-                name: engine.name || id,
-                maxPlayers: Number(engine.maxPlayers || 4),
-                minPlayers: Number(engine.minPlayers || 2)
-            }];
-        })
-);
+const PVP_GAMES = Object.fromEntries(Object.entries(PVP_ENGINES).map(([id, engine]) => [id, {
+    name: engine.name,
+    maxPlayers: Number(engine.maxPlayers || 4),
+    minPlayers: Number(engine.minPlayers || 2)
+}]));
 
 const PVP_ENTRY_FEES = [...MANAGER_ENTRY_FEES];
 const pvpManager = new PVPManager();
@@ -240,15 +217,35 @@ const pvpRooms = new Map();
 const pvpPlayerRooms = new Map();
 const PVP_ROOM_TTL_MS = 30 * 60 * 1000;
 
+function normalizePvpGameId(value) {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (!raw) return "";
+    const id = raw.replace(/^pvp_/, "");
+    const aliases = {
+        housie: "tambola",
+        housie_pvp: "tambola",
+        lottery: "numberdraw",
+        lottery_race: "numberdraw",
+        multiplayer_wheel: "wheel",
+        wheelprediction: "wheel",
+        mini_racing: "racing",
+        targetrush: "target",
+        memorymatch: "memory",
+        speed_cards: "speedcards",
+        number_rush: "numberrush"
+    };
+    return aliases[id] || id;
+}
+
 function pvpRoomKey(game, entryFee) {
-    return `${game}:${Number(entryFee).toFixed(2)}`;
+    return `${normalizePvpGameId(game)}:${Number(entryFee).toFixed(2)}`;
 }
 
 function pvpPublicRoom(room) {
     return {
         roomId: room.roomId,
         game: room.game,
-        gameName: PVP_GAMES[room.game]?.name || room.game,
+        gameName: String(PVP_GAMES[room.game]?.name || room.game).replace(/\s*PVP\s*$/i, ""),
         entryFee: room.entryFee,
         entryFees: PVP_ENTRY_FEES,
         grossPool: Number((room.players.size * room.entryFee).toFixed(2)),
@@ -266,6 +263,7 @@ function pvpPublicRoom(room) {
 }
 
 function pvpGetOrCreateRoom(game, entryFee) {
+    game = normalizePvpGameId(game);
     const key = pvpRoomKey(game, entryFee);
     const existing = pvpRooms.get(key);
     if (existing && existing.status === "BETTING" && existing.players.size < existing.maxPlayers && Date.now() < existing.bettingEndsAt) {
@@ -296,7 +294,7 @@ function pvpGetOrCreateRoom(game, entryFee) {
         winnerIds: []
     };
 
-    room.state = PVP_AUTHORITY.createAuthorityState(room, PVP_ENGINE_REGISTRY[game]?.createState ? PVP_ENGINE_REGISTRY[game].createState(room, [...room.players.values()]) : {});
+    room.state = PVP_AUTHORITY.createAuthorityState(room, PVP_ENGINES[game]?.createState ? PVP_ENGINES[game].createState(room) : {});
     pvpRooms.set(key, room);
     pvpPersistRoom(room).catch(console.error);
     setTimeout(() => pvpStartRoomIfReady(room), 45000);
@@ -496,7 +494,7 @@ async function pvpResolveRoom(room) {
 
     room.status = "RESOLVING";
     const players = [...room.players.values()];
-    const engine = PVP_ENGINE_REGISTRY[room.game];
+    const engine = PVP_ENGINES[room.game];
     if (!engine || typeof engine.resolve !== "function") {
         await pvpRefundRoom(room, "PVP engine unavailable");
         return room.result;
@@ -6701,22 +6699,12 @@ app.get("/", (req, res) => {
 |--------------------------------------------------------------------------
 */
 app.get("/api/pvp/games", requirePlayer, (req, res) => {
-    const games = PVP_GAME_ORDER.map(id => {
-        const cfg = PVP_GAMES[id];
-        return cfg ? { id, ...cfg, available:true } : {
-            id,
-            name:id,
-            minPlayers:2,
-            maxPlayers:4,
-            available:false
-        };
-    });
-    res.json({ success:true, games });
+    res.json({ success:true, games:Object.entries(PVP_GAMES).map(([id,cfg]) => ({ id, ...cfg })) });
 });
 
 app.get("/api/pvp/rooms", requirePlayer, (req, res) => {
     try {
-        const game=String(req.query.game || "").trim().toLowerCase();
+        const game=normalizePvpGameId(req.query.game);
         const fee=pvpEntryFee(req.query.entryFee || 10);
         if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
         const room=pvpGetOrCreateRoom(game,fee);
@@ -6728,7 +6716,7 @@ app.get("/api/pvp/rooms", requirePlayer, (req, res) => {
 
 app.post("/api/pvp/join", requirePlayer, async (req, res) => {
     try {
-        const game=String(req.body.game || "").trim().toLowerCase();
+        const game=normalizePvpGameId(req.body.game);
         const fee=pvpEntryFee(req.body.entryFee || 10);
         if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
         if (pvpPlayerRooms.has(req.player.id)) return res.status(409).json({success:false,error:"You are already in a PVP room"});
@@ -6743,8 +6731,7 @@ app.post("/api/pvp/join", requirePlayer, async (req, res) => {
         // Rebuild the authoritative state whenever a participant joins so the server
         // assigns turns/roles/chances from the actual participant list.
         const previousAuthority = room.state?.authority;
-        const existingEngineState = room.state?.engineState || {};
-        room.state = PVP_AUTHORITY.createAuthorityState(room, existingEngineState);
+        room.state = PVP_AUTHORITY.createAuthorityState(room, room.state?.engineState || {});
         if (previousAuthority?.serverSeed) room.state.authority.serverSeed = previousAuthority.serverSeed;
         pvpPlayerRooms.set(req.player.id,room.roomId);
         await pvpPersistPlayer(room, room.players.get(req.player.id));
@@ -6766,12 +6753,9 @@ app.post("/api/pvp/action", requirePlayer, async (req, res) => {
         if (!player) return res.status(403).json({success:false,error:"You are not in this room"});
         if (!["BETTING","READY","PLAYING"].includes(room.status)) return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
 
-        const engine = PVP_ENGINE_REGISTRY[room.game];
+        const engine = PVP_ENGINES[room.game];
         if (!engine || typeof engine.validateAction !== "function") throw new Error("PVP engine unavailable");
         const rawAction = req.body.actionData || {};
-        if (!rawAction || typeof rawAction !== "object" || Array.isArray(rawAction)) {
-            throw new Error("Invalid PVP action");
-        }
         let authorityResult = null;
 
         if (room.state?.version === 2) {
