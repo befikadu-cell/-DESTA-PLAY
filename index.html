@@ -4039,5 +4039,245 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 </script>
 
+
+<!-- =========================================================
+     DESTA PLAY — APPROVED PLAYER FLOW OVERRIDE
+     This layer preserves the existing file above while
+     replacing the legacy player navigation/game flow.
+     ========================================================= -->
+<style>
+#dpLegacyApp{display:none!important}
+#dpFinalApp{min-height:100vh;background:#090909;color:#fff}
+#dpFinalApp *{box-sizing:border-box}
+#dpFinalApp .dp-wrap{width:100%;max-width:480px;margin:auto;min-height:100vh;padding-bottom:24px}
+#dpFinalApp .dp-head{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:10px 10px;background:rgba(9,9,9,.97);border-bottom:1px solid #641313}
+#dpFinalApp .dp-brand{display:flex;align-items:center;gap:8px;font-weight:950}
+#dpFinalApp .dp-logo{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ffcc33,#ff9f00);color:#111;font-weight:1000}
+#dpFinalApp .dp-lang{display:flex;gap:4px}
+#dpFinalApp button{font:inherit;cursor:pointer}
+#dpFinalApp .dp-btn{border:1px solid #4b2020;background:#171717;color:#fff;border-radius:9px;padding:9px 11px;font-size:11px;font-weight:900}
+#dpFinalApp .dp-btn.gold{background:linear-gradient(135deg,#ffcc33,#ff9f00);color:#111;border-color:#ffcc33}
+#dpFinalApp .dp-btn.red{background:linear-gradient(135deg,#ef1b1b,#b40000);color:#fff;border-color:#ef1b1b}
+#dpFinalApp .dp-btn:disabled{opacity:.38;cursor:not-allowed}
+#dpFinalApp .dp-page{padding:10px}
+#dpFinalApp .dp-title{font-size:22px;font-weight:1000;margin:4px 0 12px}
+#dpFinalApp .dp-sub{font-size:10px;color:#aaa;line-height:1.5}
+#dpFinalApp .dp-lang button{padding:7px 9px;font-size:9px}
+#dpFinalApp .dp-lang button.active{background:#ffcc33;color:#111;border-color:#ffcc33}
+#dpFinalApp .dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#dpFinalApp .dp-game{min-height:132px;text-align:left;padding:13px;border:1px solid #641313;border-radius:14px;background:linear-gradient(145deg,#191010,#151515);color:#fff}
+#dpFinalApp .dp-game:active{transform:scale(.985)}
+#dpFinalApp .dp-icon{font-size:30px}
+#dpFinalApp .dp-game-name{margin-top:9px;font-size:14px;font-weight:1000}
+#dpFinalApp .dp-game-sub{margin-top:3px;font-size:9px;color:#aaa}
+#dpFinalApp .dp-panel{border:1px solid #5e1515;border-radius:14px;background:#151515;padding:12px;margin-bottom:10px}
+#dpFinalApp .dp-topbar{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+#dpFinalApp .dp-topbar .dp-heading{flex:1;font-size:17px;font-weight:1000}
+#dpFinalApp .dp-stakes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+#dpFinalApp .dp-stake{min-height:44px;border-radius:9px;background:#1d1d1d;border:1px solid #402020;color:#fff;font-weight:950;font-size:11px}
+#dpFinalApp .dp-stake.active{background:#ffcc33;color:#111;border-color:#ffcc33}
+#dpFinalApp .dp-join{width:100%;margin-top:11px;min-height:46px}
+#dpFinalApp .dp-game-head{display:flex;align-items:center;gap:7px}
+#dpFinalApp .dp-game-head .dp-heading{flex:1}
+#dpFinalApp .dp-stake-badge{padding:6px 8px;border-radius:8px;background:#301010;color:#ffcc33;border:1px solid #681616;font-size:10px;font-weight:950}
+#dpFinalApp .dp-live{padding:8px 0 10px;display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+#dpFinalApp .dp-last{display:flex;gap:4px;flex-wrap:wrap}
+#dpFinalApp .dp-ball{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#202020;border:1px solid #652020;font-size:9px;font-weight:950}
+#dpFinalApp .dp-current{text-align:center}
+#dpFinalApp .dp-current-label{font-size:8px;color:#aaa}
+#dpFinalApp .dp-current-ball{width:82px;height:82px;margin:4px auto 0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 25%,#fff,#ddd 58%,#999);color:#111;border:4px solid #ffcc33;box-shadow:0 0 22px rgba(255,204,51,.28);font-size:29px;font-weight:1000}
+#dpFinalApp .dp-stats{text-align:right;font-size:9px;color:#aaa}
+#dpFinalApp .dp-stats b{display:block;color:#fff;font-size:12px}
+#dpFinalApp .dp-recent{display:flex;gap:4px;overflow:hidden;padding-bottom:8px}
+#dpFinalApp .dp-section-title{display:flex;justify-content:space-between;align-items:center;margin:5px 0 7px;font-size:12px;font-weight:1000}
+#dpFinalApp .dp-mode{display:flex;gap:3px;padding:3px;background:#101010;border:1px solid #3a2222;border-radius:8px}
+#dpFinalApp .dp-mode button{border:0;background:transparent;color:#888;border-radius:6px;padding:5px 7px;font-size:8px;font-weight:950}
+#dpFinalApp .dp-mode button.active{background:#ef1b1b;color:#fff}
+#dpFinalApp .dp-cards{display:grid;gap:9px}
+#dpFinalApp .dp-card{padding:8px;border-radius:12px;background:#0f0f0f;border:1px solid #661313}
+#dpFinalApp .dp-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#dpFinalApp .dp-card-name{font-size:10px;font-weight:950}
+#dpFinalApp .dp-state{font-size:8px;padding:4px 6px;border-radius:10px;background:#222;color:#aaa;font-weight:950}
+#dpFinalApp .dp-state.accepted{background:#152d1e;color:#18d66b}
+#dpFinalApp .dp-board{display:grid;grid-template-columns:repeat(5,1fr);gap:3px}
+#dpFinalApp .dp-bingo90{grid-template-columns:repeat(9,1fr)}
+#dpFinalApp .dp-bhead,#dpFinalApp .dp-cell{min-height:35px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:950}
+#dpFinalApp .dp-bhead{min-height:21px;background:#ef1b1b;color:#fff;font-size:9px}
+#dpFinalApp .dp-cell{background:#1a1a1a;border:1px solid #2d2d2d}
+#dpFinalApp .dp-cell.called{background:#18d66b;color:#111;border-color:#18d66b}
+#dpFinalApp .dp-cell.manual{outline:2px solid #ffcc33;outline-offset:-2px}
+#dpFinalApp .dp-cell.free{background:#351d00;color:#ffcc33;border-color:#9c6500;font-size:8px}
+#dpFinalApp .dp-card-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+#dpFinalApp .dp-card-actions button{min-height:38px}
+#dpFinalApp .dp-help{margin-top:9px;width:100%}
+#dpFinalApp .dp-keno-head{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+#dpFinalApp .dp-keno-last{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 25%,#fff,#ddd 58%,#999);color:#111;border:4px solid #ffcc33;font-size:28px;font-weight:1000}
+#dpFinalApp .dp-keno-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+#dpFinalApp .dp-keno-num{aspect-ratio:1;border-radius:5px;background:#181818;border:1px solid #302020;color:#ddd;font-size:9px;font-weight:850}
+#dpFinalApp .dp-keno-num.selected{background:#ffcc33;color:#111;border-color:#ff9f00}
+#dpFinalApp .dp-keno-num.drawn{background:#b40000;color:#fff;border-color:#ef1b1b}
+#dpFinalApp .dp-slot{padding:8px;border-radius:10px;background:#101010;border:1px solid #3d2020;margin-top:7px}
+#dpFinalApp .dp-slot-top{display:flex;justify-content:space-between;font-size:10px;font-weight:950}
+#dpFinalApp .dp-slot-numbers{margin-top:6px;color:#ffcc33;font-size:10px;line-height:1.5}
+#dpFinalApp .dp-empty{padding:20px 8px;text-align:center;color:#777;font-size:10px;border:1px dashed #402020;border-radius:9px}
+#dpFinalApp .dp-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center;padding:10px}
+#dpFinalApp .dp-modal{width:100%;max-width:480px;max-height:82vh;overflow:auto;background:#111;border:1px solid #681616;border-radius:16px;padding:14px}
+#dpFinalApp .dp-modal-head{display:flex;justify-content:space-between;align-items:center}
+#dpFinalApp .dp-modal-title{font-size:16px;font-weight:1000}
+#dpFinalApp .dp-modal-text{margin-top:10px;color:#c2c2c2;font-size:11px;line-height:1.65}
+#dpFinalApp .dp-toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,15px);z-index:200;max-width:90%;padding:9px 13px;border-radius:9px;background:#222;border:1px solid #5d2020;color:#fff;font-size:10px;text-align:center;opacity:0;pointer-events:none;transition:.2s}
+#dpFinalApp .dp-toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:360px){#dpFinalApp .dp-stakes{grid-template-columns:repeat(3,1fr)}#dpFinalApp .dp-cell{min-height:31px;font-size:9px}}
+</style>
+
+<div id="dpFinalApp">
+  <div class="dp-wrap">
+    <header class="dp-head">
+      <div class="dp-brand"><div class="dp-logo">D</div><span>DESTA PLAY</span></div>
+      <div class="dp-lang">
+        <button id="dpLangEn" class="dp-btn active" onclick="dpSetLanguage('en')">English</button>
+        <button id="dpLangAm" class="dp-btn" onclick="dpSetLanguage('am')">አማርኛ</button>
+      </div>
+    </header>
+
+    <main id="dpHome" class="dp-page">
+      <div class="dp-title" data-i18n="chooseGame">Choose a Game</div>
+      <div class="dp-sub" data-i18n="homeSub">Select a game to continue.</div>
+      <div class="dp-grid" style="margin-top:11px">
+        <button class="dp-game" onclick="dpChooseGame('bingo')"><div class="dp-icon">🎱</div><div class="dp-game-name" data-i18n="bingo">Bingo</div><div class="dp-game-sub" data-i18n="bingoSub">Live bingo</div></button>
+        <button class="dp-game" onclick="dpChooseGame('bingo75')"><div class="dp-icon">🔴</div><div class="dp-game-name" data-i18n="bingo75">Bingo 75</div><div class="dp-game-sub" data-i18n="bingo75Sub">75-ball bingo</div></button>
+        <button class="dp-game" onclick="dpChooseGame('bingo90')"><div class="dp-icon">🟡</div><div class="dp-game-name" data-i18n="bingo90">Bingo 90</div><div class="dp-game-sub" data-i18n="bingo90Sub">90-ball bingo</div></button>
+        <button class="dp-game" onclick="dpChooseGame('keno')"><div class="dp-icon">🔢</div><div class="dp-game-name" data-i18n="keno">Keno</div><div class="dp-game-sub" data-i18n="kenoSub">Pick your numbers</div></button>
+      </div>
+    </main>
+
+    <main id="dpStake" class="dp-page" style="display:none">
+      <div class="dp-topbar"><button class="dp-btn" onclick="dpBack()">← <span data-i18n="back">BACK</span></button><div class="dp-heading" id="dpStakeTitle"></div></div>
+      <div class="dp-panel">
+        <div class="dp-sub" data-i18n="chooseStake">Choose your stake</div>
+        <div id="dpStakes" class="dp-stakes" style="margin-top:9px"></div>
+        <button id="dpJoin" class="dp-btn gold dp-join" disabled onclick="dpJoinGame()" data-i18n="join">JOIN</button>
+      </div>
+    </main>
+
+    <main id="dpGame" class="dp-page" style="display:none">
+      <div class="dp-topbar">
+        <button class="dp-btn" onclick="dpBack()">← <span data-i18n="back">BACK</span></button>
+        <div class="dp-heading" id="dpGameTitle"></div>
+        <button class="dp-btn" onclick="dpShowHelp()">? <span data-i18n="help">HELP</span></button>
+      </div>
+      <div class="dp-panel">
+        <div class="dp-game-head">
+          <div class="dp-heading" id="dpLiveTitle"></div>
+          <div class="dp-stake-badge" id="dpStakeBadge"></div>
+        </div>
+        <div class="dp-sub" id="dpRoundStatus" style="margin-top:3px"></div>
+      </div>
+
+      <section id="dpBingoArea" class="dp-panel" style="display:none">
+        <div class="dp-live">
+          <div><div class="dp-sub" data-i18n="recentCalls">RECENT CALLS</div><div id="dpBingoRecent" class="dp-last" style="margin-top:5px"></div></div>
+          <div class="dp-current"><div class="dp-current-label" data-i18n="currentNumber">CURRENT NUMBER</div><div id="dpBingoCurrent" class="dp-current-ball">—</div></div>
+          <div class="dp-stats"><b id="dpBingoCalls">0</b><span data-i18n="calls">CALLS</span><br><b id="dpBingoPlayers">0</b><span data-i18n="players">PLAYERS</span></div>
+        </div>
+        <div class="dp-section-title"><span data-i18n="yourCards">Your Bingo Cards</span><div class="dp-mode"><button id="dpAuto" class="active" onclick="dpSetMode('auto')" data-i18n="auto">AUTO</button><button id="dpManual" onclick="dpSetMode('manual')" data-i18n="manual">MANUAL</button></div></div>
+        <div id="dpBingoCards" class="dp-cards"></div>
+      </section>
+
+      <section id="dpKenoArea" class="dp-panel" style="display:none">
+        <div class="dp-keno-head">
+          <div><div class="dp-sub" data-i18n="lastDrawn">LAST DRAWN NUMBER</div><div id="dpKenoLast" class="dp-keno-last">—</div></div>
+          <div><div class="dp-sub" data-i18n="recentCalls">RECENT CALLS</div><div id="dpKenoRecent" class="dp-last" style="margin-top:5px"></div></div>
+        </div>
+        <div class="dp-section-title"><span data-i18n="selectNumbers">Select 3–10 numbers per slot</span></div>
+        <div id="dpKenoGrid" class="dp-keno-grid"></div>
+        <div id="dpKenoSlots"></div>
+        <button class="dp-btn gold dp-join" onclick="dpPlaceKenoBet()" data-i18n="placeBet">PLACE BET</button>
+      </section>
+    </main>
+  </div>
+  <div id="dpHelpOverlay" class="dp-overlay" style="display:none" onclick="dpCloseHelp(event)">
+    <div class="dp-modal">
+      <div class="dp-modal-head"><div class="dp-modal-title" id="dpHelpTitle">HELP</div><button class="dp-btn" onclick="dpHideHelp()">×</button></div>
+      <div class="dp-modal-text" id="dpHelpText"></div>
+    </div>
+  </div>
+  <div id="dpToast" class="dp-toast"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const DP_API="";
+const DP_STAKES=[10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000];
+const DP_T={
+ en:{
+  chooseGame:"Choose a Game",homeSub:"Select a game to continue.",bingo:"Bingo",bingo75:"Bingo 75",bingo90:"Bingo 90",keno:"Keno",
+  bingoSub:"Live bingo",bingo75Sub:"75-ball bingo",bingo90Sub:"90-ball bingo",kenoSub:"Pick your numbers",back:"BACK",join:"JOIN",
+  chooseStake:"Choose your stake",help:"HELP",placeBet:"PLACE BET",bingoClaim:"BINGO",auto:"AUTO",manual:"MANUAL",
+  recentCalls:"RECENT CALLS",currentNumber:"CURRENT NUMBER",calls:"CALLS",players:"PLAYERS",yourCards:"Your Bingo Cards",
+  lastDrawn:"LAST DRAWN NUMBER",selectNumbers:"Select 3–10 numbers per slot",accepted:"BET ACCEPTED",place:"PLACE BET",
+  waiting:"Waiting for server round...",betting:"BETTING IS OPEN",closed:"BETTING IS CLOSED",
+  noCard:"Waiting for server-generated card",invalid:"Invalid server data",notCalled:"Number has not been called",
+  bingoHelp:"Choose your stake, then JOIN. For each cartella, press PLACE BET to commit that card. After the server accepts it, the button becomes BINGO. AUTO marks called numbers automatically; MANUAL lets you tap called cells. The server verifies every BINGO claim using the official round and draw history.",
+  kenoHelp:"Choose your stake, then JOIN. Select 3–10 unique numbers in each slot, with up to 2 slots. PLACE BET is the only action that commits the selection. The server draws 20 unique numbers and calculates your result."
+ },
+ am:{
+  chooseGame:"ጨዋታ ይምረጡ",homeSub:"ለመቀጠል ጨዋታ ይምረጡ።",bingo:"ቢንጎ",bingo75:"ቢንጎ 75",bingo90:"ቢንጎ 90",keno:"ኪኖ",
+  bingoSub:"ቀጥታ ቢንጎ",bingo75Sub:"75 ኳስ ቢንጎ",bingo90Sub:"90 ኳስ ቢንጎ",kenoSub:"ቁጥሮችን ይምረጡ",back:"ተመለስ",join:"ይቀላቀሉ",
+  chooseStake:"የውርርድ መጠን ይምረጡ",help:"እገዛ",placeBet:"ውርርድ ያስገቡ",bingoClaim:"ቢንጎ",auto:"ራስ-ሰር",manual:"በእጅ",
+  recentCalls:"የቅርብ ጥሪዎች",currentNumber:"የአሁኑ ቁጥር",calls:"ጥሪዎች",players:"ተጫዋቾች",yourCards:"የእርስዎ ቢንጎ ካርዶች",
+  lastDrawn:"የመጨረሻ የወጣ ቁጥር",selectNumbers:"በእያንዳንዱ ስሎት 3–10 ቁጥሮች ይምረጡ",accepted:"ውርርድ ተቀባይነት አግኝቷል",place:"ውርርድ ያስገቡ",
+  waiting:"የሰርቨር ዙር በመጠባበቅ ላይ...",betting:"ውርርድ ክፍት ነው",closed:"ውርርድ ተዘግቷል",
+  noCard:"ከሰርቨር የሚመጣ ካርድ በመጠባበቅ ላይ",invalid:"የሰርቨር መረጃ ልክ አይደለም",notCalled:"ቁጥሩ አልተጠራም",
+  bingoHelp:"የውርርድ መጠን ይምረጡ እና JOIN ይጫኑ። ለእያንዳንዱ ካርድ PLACE BET በመጫን ካርዱን ያስገቡ። ሰርቨሩ ከተቀበለ በኋላ ቁልፉ BINGO ይሆናል። AUTO የተጠሩ ቁጥሮችን በራስ-ሰር ያመላክታል፤ MANUAL በእጅ እንዲመርጡ ያደርጋል። የBINGO ጥያቄ ሁሉ በሰርቨሩ ይረጋገጣል።",
+  kenoHelp:"የውርርድ መጠን ይምረጡ እና JOIN ይጫኑ። በእያንዳንዱ ስሎት 3–10 ልዩ ቁጥሮችን ይምረጡ፣ እስከ 2 ስሎት። PLACE BET ብቻ ምርጫዎን ያስገባል። ሰርቨሩ 20 ልዩ ቁጥሮችን ይመርጣል እና ውጤቱን ያሰላል።"
+ }
+};
+
+let dpLang=localStorage.getItem("desta_language")||"en";
+let dpScreen="home",dpGame=null,dpStake=null,dpMode="auto",dpRound=null,dpCards=[],dpCalled=[],dpKenoSlots=[[],[]],dpHistory=[];
+let dpPrevScreen="home";
+
+function t(k){return (DP_T[dpLang]&&DP_T[dpLang][k])||DP_T.en[k]||k}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function dpToast(m){const e=document.getElementById("dpToast");e.textContent=m;e.classList.add("show");clearTimeout(dpToast.timer);dpToast.timer=setTimeout(()=>e.classList.remove("show"),2200)}
+function dpSetLanguage(l){dpLang=l==="am"?"am":"en";localStorage.setItem("desta_language",dpLang);document.getElementById("dpLangEn").classList.toggle("active",dpLang==="en");document.getElementById("dpLangAm").classList.toggle("active",dpLang==="am");document.querySelectorAll("#dpFinalApp [data-i18n]").forEach(e=>e.textContent=t(e.dataset.i18n));if(dpScreen==="stake")dpRenderStakes();if(dpScreen==="game")dpRenderGame();if(document.getElementById("dpHelpOverlay").style.display!=="none")dpShowHelp()}
+function dpShowScreen(id){["dpHome","dpStake","dpGame"].forEach(x=>document.getElementById(x).style.display=x===id?"":"none")}
+function dpBack(){if(dpScreen==="stake"){dpScreen="home";dpGame=null;dpStake=null;dpShowScreen("dpHome")}else if(dpScreen==="game"){dpScreen="stake";dpShowScreen("dpStake");dpRenderStakes()}}
+function dpChooseGame(g){dpPrevScreen="home";dpGame=g;dpStake=null;dpScreen="stake";dpShowScreen("dpStake");document.getElementById("dpStakeTitle").textContent=dpGameName(g);dpRenderStakes()}
+function dpGameName(g){return t(g)}
+function dpRenderStakes(){const box=document.getElementById("dpStakes");box.innerHTML=DP_STAKES.map(v=>`<button class="dp-stake ${dpStake===v?"active":""}" onclick="dpSelectStake(${v})">${v} ETB</button>`).join("");document.getElementById("dpJoin").disabled=!dpStake;document.getElementById("dpStakeTitle").textContent=dpGameName(dpGame||"bingo")}
+function dpSelectStake(v){dpStake=v;dpRenderStakes()}
+async function dpJoinGame(){if(!dpStake||!dpGame)return;dpPrevScreen="stake";dpScreen="game";dpShowScreen("dpGame");document.getElementById("dpGameTitle").textContent=dpGameName(dpGame);document.getElementById("dpLiveTitle").textContent=dpGameName(dpGame);document.getElementById("dpStakeBadge").textContent=`STAKE: ${dpStake} ETB`;dpCalled=[];dpHistory=[];dpCards=[];dpKenoSlots=[[],[]];dpRenderGame();await dpFetchRound()}
+async function dpFetchRound(){if(!dpGame)return;const apiGame=dpGame==="bingo75"||dpGame==="bingo90"?"bingo":dpGame;try{const r=await fetch(`${DP_API}/api/game/${apiGame}/round`,{cache:"no-store"});if(!r.ok)throw new Error("round");const data=await r.json();if(!data.success||!data.round)throw new Error("round");dpRound=data.round;dpApplyRound(data.round)}catch(e){dpRound=null;document.getElementById("dpRoundStatus").textContent=t("waiting");dpToast(t("waiting"))}}
+function dpApplyRound(r){const status=String(r.status||r.state||"").toLowerCase();document.getElementById("dpRoundStatus").textContent=status==="betting"||status==="open"?t("betting"):status?status.toUpperCase():t("betting");const calls=r.drawnNumbers||r.calledNumbers||r.drawHistory||[];if(Array.isArray(calls)){dpCalled=calls.map(Number).filter(Number.isFinite);dpHistory=dpCalled.slice(-12)}const cards=r.cards||r.cartelas||r.playerCards||[];if(Array.isArray(cards)&&cards.length)dpCards=cards.slice(0,2);if(dpGame==="keno")dpRenderKeno();else dpRenderBingo();const last=dpCalled.length?dpCalled[dpCalled.length-1]:null;if(last!==null){if(dpGame==="keno"){document.getElementById("dpKenoLast").textContent=last;dpSpeakNumber(last)}else{document.getElementById("dpBingoCurrent").textContent=dpBingoVoiceLabel(last)}}}
+function dpRenderGame(){if(dpGame==="keno"){document.getElementById("dpBingoArea").style.display="none";document.getElementById("dpKenoArea").style.display="";dpRenderKeno()}else{document.getElementById("dpBingoArea").style.display="";document.getElementById("dpKenoArea").style.display="none";dpRenderBingo()}}
+function dpSetMode(m){dpMode=m==="manual"?"manual":"auto";document.getElementById("dpAuto").classList.toggle("active",dpMode==="auto");document.getElementById("dpManual").classList.toggle("active",dpMode==="manual");dpRenderBingo()}
+function dpNormalizeCard(card,variant){if(!Array.isArray(card))return null;if(variant==="bingo90"){if(card.length===3&&card.every(r=>Array.isArray(r)&&r.length===9))return card;return null}if(card.length===5&&card.every(r=>Array.isArray(r)&&r.length===5))return card;return null}
+function dpRenderBingo(){const box=document.getElementById("dpBingoCards");document.getElementById("dpBingoCalls").textContent=dpCalled.length;document.getElementById("dpBingoPlayers").textContent=dpRound?.players??dpRound?.playerCount??0;document.getElementById("dpBingoRecent").innerHTML=dpHistory.slice().reverse().map(n=>`<span class="dp-ball">${esc(n)}</span>`).join("");document.getElementById("dpBingoCurrent").textContent=dpCalled.length?dpBingoVoiceLabel(dpCalled[dpCalled.length-1]):"—";if(!dpCards.length){box.innerHTML=`<div class="dp-empty">${t("noCard")}</div>`;return}const variant=dpGame==="bingo90"?"bingo90":"bingo75";box.innerHTML=dpCards.map((card,i)=>dpRenderCard(card,i,variant)).join("")}
+function dpRenderCard(card,i,variant){const c=dpNormalizeCard(card,variant);if(!c)return `<div class="dp-card"><div class="dp-empty">${t("invalid")}</div></div>`;let html=`<div class="dp-card"><div class="dp-card-top"><span class="dp-card-name">Cartela #${i+1}</span><span id="dpState${i}" class="dp-state">${t("place")}</span></div>`;if(variant==="bingo90"){html+=`<div class="dp-board dp-bingo90">`;for(let col=0;col<9;col++)html+=`<div class="dp-bhead">${col+1}</div>`;c.forEach((row,r)=>row.forEach((v,col)=>{const n=Number(v);const called=Number.isFinite(n)&&dpCalled.includes(n);const marked=called&&dpMode==="manual"&&window.dpManualMarks?.[i+"-"+r+"-"+col];html+=`<button class="dp-cell ${called?"called":""} ${marked?"manual":""}" ${v===""||v===null?"disabled":`onclick="dpManualMark(${i},${r},${col})"`}>${v??""}</button>`}));html+="</div>"}else{html+=`<div class="dp-board"><div class="dp-bhead">B</div><div class="dp-bhead">I</div><div class="dp-bhead">N</div><div class="dp-bhead">G</div><div class="dp-bhead">O</div>`;c.forEach((row,r)=>row.forEach((v,col)=>{const free=String(v).toUpperCase()==="FREE";const n=Number(v);const called=free||dpCalled.includes(n);const marked=called&&dpMode==="manual"&&window.dpManualMarks?.[i+"-"+r+"-"+col];html+=`<button class="dp-cell ${free?"free":""} ${called?"called":""} ${marked?"manual":""}" ${free?"disabled":`onclick="dpManualMark(${i},${r},${col})"`}>${esc(v)}</button>`}));html+="</div>"}html+=`<div class="dp-card-actions"><button id="dpBet${i}" class="dp-btn gold" onclick="dpPlaceBingoBet(${i})">${t("placeBet")}</button><button id="dpClaim${i}" class="dp-btn red" disabled onclick="dpClaimBingo(${i})">${t("bingoClaim")}</button></div></div>`;return html}
+window.dpManualMarks={};
+function dpManualMark(i,r,c){if(dpMode!=="manual")return;const key=i+"-"+r+"-"+c;const card=dpCards[i];const v=card?.[r]?.[c];if(v===undefined||v===null||v==="")return;if(!dpCalled.includes(Number(v))&&String(v).toUpperCase()!=="FREE"){dpToast(t("notCalled"));return}window.dpManualMarks[key]=!window.dpManualMarks[key];dpRenderBingo()}
+function dpBingoVoiceLabel(n){if(dpLang==="am")return "ቢንጎ "+n;const letter=n<=15?"B":n<=30?"I":n<=45?"N":n<=60?"G":"O";return `${letter}-${n}`}
+function dpSpeakNumber(n){try{if(window.DestaVoice&&typeof window.DestaVoice.announce==="function")window.DestaVoice.announce(String(n),dpLang)}catch(e){}}
+async function dpPlaceBingoBet(i){const btn=document.getElementById("dpBet"+i);if(!btn||!dpRound||!dpStake)return;btn.disabled=true;try{const res=await fetch(`${DP_API}/api/game/${dpGame}/bet`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({roundId:dpRound.id||dpRound.roundId,stake:dpStake,cardIndex:i,cardId:dpCards[i]?.id||dpCards[i]?.cardId})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.message||"Bet rejected");btn.textContent=t("accepted");btn.disabled=true;document.getElementById("dpClaim"+i).disabled=false;const st=document.getElementById("dpState"+i);if(st){st.textContent=t("accepted");st.classList.add("accepted")}dpToast(t("accepted"))}catch(e){btn.disabled=false;dpToast(e.message||t("invalid"))}}
+async function dpClaimBingo(i){if(!dpRound)return;try{const res=await fetch(`${DP_API}/api/game/${dpGame}/bingo-claim`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({roundId:dpRound.id||dpRound.roundId,cardId:dpCards[i]?.id||dpCards[i]?.cardId,cardIndex:i})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.message||"BINGO rejected");dpToast(data.message||t("bingoClaim"))}catch(e){dpToast(e.message||t("invalid"))}}
+function dpRenderKeno(){const grid=document.getElementById("dpKenoGrid");grid.innerHTML="";for(let n=1;n<=80;n++){const b=document.createElement("button");b.className="dp-keno-num";b.textContent=n;const s=dpKenoSlots[0].includes(n)||dpKenoSlots[1].includes(n);if(s)b.classList.add("selected");if(dpCalled.includes(n))b.classList.add("drawn");b.onclick=()=>dpToggleKeno(n);grid.appendChild(b)}document.getElementById("dpKenoRecent").innerHTML=dpHistory.slice().reverse().map(n=>`<span class="dp-ball">${esc(n)}</span>`).join("");document.getElementById("dpKenoLast").textContent=dpCalled.length?dpCalled[dpCalled.length-1]:"—";document.getElementById("dpKenoSlots").innerHTML=dpKenoSlots.map((s,i)=>`<div class="dp-slot"><div class="dp-slot-top"><span>SLOT ${i+1}</span><span>${s.length}/10</span></div><div class="dp-slot-numbers">${s.length?s.join(", "):"—"}</div></div>`).join("")}
+function dpToggleKeno(n){let slot=dpKenoSlots.find(s=>s.length<10);if(dpKenoSlots[0].includes(n)||dpKenoSlots[1].includes(n)){for(const s of dpKenoSlots){const j=s.indexOf(n);if(j>=0)s.splice(j,1)}dpRenderKeno();return}if(!slot){dpToast("Maximum 2 slots × 10 numbers");return}slot.push(n);dpRenderKeno()}
+async function dpPlaceKenoBet(){const valid=dpKenoSlots.filter(s=>s.length>=3&&s.length<=10);if(!dpRound||!dpStake){dpToast(t("waiting"));return}if(!valid.length){dpToast(t("selectNumbers"));return}try{const res=await fetch(`${DP_API}/api/game/keno/bet`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({roundId:dpRound.id||dpRound.roundId,stake:dpStake,slots:valid})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.success)throw new Error(data.message||"Bet rejected");dpToast(t("accepted"))}catch(e){dpToast(e.message||t("invalid"))}}
+function dpShowHelp(){const title=dpGame==="keno"?t("keno"):dpGameName(dpGame||"bingo");document.getElementById("dpHelpTitle").textContent=title+" — "+t("help");document.getElementById("dpHelpText").textContent=dpGame==="keno"?t("kenoHelp"):t("bingoHelp");document.getElementById("dpHelpOverlay").style.display="flex"}
+function dpHideHelp(){document.getElementById("dpHelpOverlay").style.display="none"}
+function dpCloseHelp(e){if(e.target===e.currentTarget)dpHideHelp()}
+window.dpSetLanguage=dpSetLanguage;window.dpChooseGame=dpChooseGame;window.dpSelectStake=dpSelectStake;window.dpJoinGame=dpJoinGame;window.dpBack=dpBack;window.dpSetMode=dpSetMode;window.dpManualMark=dpManualMark;window.dpPlaceBingoBet=dpPlaceBingoBet;window.dpClaimBingo=dpClaimBingo;window.dpPlaceKenoBet=dpPlaceKenoBet;window.dpShowHelp=dpShowHelp;window.dpHideHelp=dpHideHelp;window.dpCloseHelp=dpCloseHelp;
+
+document.addEventListener("DOMContentLoaded",()=>{
+ const legacy=document.querySelector("body > .app");if(legacy)legacy.id="dpLegacyApp";
+ dpSetLanguage(dpLang);dpShowScreen("dpHome");
+});
+})();
+</script>
+
 </body>
 </html>
