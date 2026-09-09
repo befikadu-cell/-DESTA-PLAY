@@ -1,73 +1,425 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>DESTA PLAY</title>
 
 <style>
+:root{
+  --red:#b40000;
+  --red2:#ef1b1b;
+  --gold:#ffcc33;
+  --gold2:#ff9f00;
+  --dark:#090909;
+  --dark2:#151515;
+  --panel:#1d1d1d;
+  --panel2:#252525;
+  --text:#fff;
+  --muted:#aaa;
+  --green:#18d66b;
+  --blue:#3498ff
+}
+
+*{box-sizing:border-box}
+
 html,body{
   margin:0;
   padding:0;
   width:100%;
   min-height:100%;
-  background:#090909;
-  color:#fff;
-  font-family:Arial,sans-serif;
 }
 
 body{
-  display:block;
+  background:radial-gradient(circle at top,#2a0b0b 0,#090909 42%);
+  color:var(--text);
+  font-family:Arial,sans-serif;
+  min-height:100vh;
 }
 
 .app{
-  width:100%;
+  width:min(480px,100%);
+  margin:auto;
   min-height:100vh;
-  box-sizing:border-box;
-  padding:30px 16px;
-  text-align:center;
+  background:var(--dark);
+  box-shadow:0 0 40px #000;
 }
 
-.logo{
-  font-size:32px;
+.top{
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:linear-gradient(135deg,var(--red),#650000);
+  padding:12px 14px;
+  border-bottom:2px solid var(--gold);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.brand{
   font-weight:900;
-  color:#ffcc33;
-  margin:30px 0 10px;
+  font-size:21px;
+  letter-spacing:1px
 }
 
-.subtitle{
-  color:#aaa;
-  margin-bottom:30px;
+.lang{
+  display:flex;
+  gap:5px
+}
+
+.lang button,.topbtn{
+  border:1px solid #ffffff55;
+  background:#0005;
+  color:#fff;
+  border-radius:18px;
+  padding:7px 10px;
+  font-weight:700
+}
+
+.lang button.active{
+  background:var(--gold);
+  color:#111;
+  border-color:var(--gold)
+}
+
+main{
+  padding:14px
+}
+
+.screen{
+  display:none
+}
+
+.screen.active{
+  display:block
+}
+
+.backrow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:12px
+}
+
+.back{
+  background:#333;
+  color:#fff;
+  border:1px solid #555;
+  border-radius:10px;
+  padding:9px 13px;
+  font-weight:800
+}
+
+.title{
+  font-size:22px;
+  font-weight:900
+}
+
+.sub{
+  color:var(--muted);
+  font-size:13px
+}
+
+.games{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px
 }
 
 .game{
-  background:#1d1d1d;
-  border:1px solid #333;
-  border-radius:14px;
-  padding:20px;
-  margin:12px auto;
-  max-width:400px;
+  min-height:145px;
+  border:1px solid #444;
+  border-radius:16px;
+  background:linear-gradient(145deg,var(--panel2),#111);
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  box-shadow:inset 0 0 0 1px #ffffff08
 }
 
-.game h2{
-  margin:0 0 8px;
-  color:#ffcc33;
+.game h3{
+  margin:0;
+  font-size:20px
 }
 
 .game p{
-  color:#aaa;
-  margin:0 0 15px;
+  color:var(--muted);
+  margin:5px 0;
+  font-size:12px
 }
 
-button{
+.game .play{
+  align-self:flex-end;
+  background:linear-gradient(135deg,var(--red2),var(--red));
+  border:1px solid #ff5b5b;
+  color:#fff;
+  border-radius:10px;
+  padding:9px 15px;
+  font-weight:900
+}
+
+.stakes{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  max-height:62vh;
+  overflow:auto;
+  padding:2px
+}
+
+.stake{
+  background:var(--panel);
+  border:1px solid #444;
+  color:#fff;
+  border-radius:10px;
+  padding:12px 4px;
+  font-weight:900
+}
+
+.stake.selected{
+  background:var(--gold);
+  color:#111;
+  border-color:#fff
+}
+
+.join{
+  position:sticky;
+  bottom:8px;
   width:100%;
+  margin-top:14px;
   padding:14px;
   border:0;
-  border-radius:10px;
-  background:#b40000;
+  border-radius:12px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  font-weight:1000;
+  font-size:17px
+}
+
+.help{
+  background:#222;
+  border:1px solid var(--gold);
+  color:var(--gold);
+  border-radius:9px;
+  padding:8px 12px;
+  font-weight:800
+}
+
+.info{
+  background:var(--panel);
+  border-radius:12px;
+  padding:11px;
+  margin-bottom:12px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px
+}
+
+.live{
+  color:var(--green);
+  font-weight:900
+}
+
+.ball{
+  width:100px;
+  height:100px;
+  border-radius:50%;
+  margin:15px auto;
+  background:radial-gradient(circle at 32% 25%,#fff,#eee 12%,#d7d7d7 28%,#555 70%,#111);
+  color:#111;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:36px;
+  font-weight:1000;
+  box-shadow:0 7px 25px #000
+}
+
+.recent{
+  display:flex;
+  gap:6px;
+  overflow:auto;
+  margin:10px 0
+}
+
+.recent span{
+  min-width:36px;
+  height:36px;
+  border-radius:50%;
+  background:#333;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900
+}
+
+.mode{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px
+}
+
+.mode button{
+  flex:1;
+  padding:9px;
+  border-radius:9px;
+  border:1px solid #555;
+  background:#222;
   color:#fff;
-  font-size:16px;
+  font-weight:800
+}
+
+.mode button.active{
+  background:var(--blue);
+  border-color:#fff
+}
+
+.boards{
+  display:grid;
+  gap:12px
+}
+
+.card{
+  background:var(--panel);
+  padding:8px;
+  border-radius:12px;
+  border:1px solid #444
+}
+
+.cardhead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:5px
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:4px
+}
+
+.cell{
+  aspect-ratio:1;
+  background:#303030;
+  border:1px solid #555;
+  border-radius:5px;
+  color:#fff;
   font-weight:900;
+  font-size:15px
+}
+
+.cell.marked{
+  background:var(--gold);
+  color:#111
+}
+
+.cell.free{
+  background:var(--red);
+  color:#fff
+}
+
+.betbtn{
+  width:100%;
+  margin-top:7px;
+  padding:10px;
+  border-radius:9px;
+  border:1px solid #ff6767;
+  background:linear-gradient(135deg,var(--red2),var(--red));
+  color:#fff;
+  font-weight:1000
+}
+
+.betbtn.accepted{
+  background:linear-gradient(135deg,var(--green),#079b49);
+  border-color:#8dffc0;
+  color:#04130b
+}
+
+.numbers{
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:5px
+}
+
+.num{
+  aspect-ratio:1;
+  border-radius:7px;
+  border:1px solid #444;
+  background:#252525;
+  color:#fff;
+  font-weight:800
+}
+
+.num.selected{
+  background:var(--gold);
+  color:#111
+}
+
+.primary{
+  width:100%;
+  padding:13px;
+  border:0;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  font-weight:1000;
+  margin-top:12px
+}
+
+.msg{
+  padding:10px;
+  border-radius:9px;
+  background:#241010;
+  border:1px solid #633;
+  color:#ffbaba;
+  margin:8px 0
+}
+
+.status{
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  min-height:18px
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:#000b;
+  z-index:50;
+  display:none;
+  align-items:flex-end
+}
+
+.modal.show{
+  display:flex
+}
+
+.modalbox{
+  width:min(480px,100%);
+  margin:auto;
+  background:#181818;
+  border:1px solid #555;
+  border-radius:18px 18px 0 0;
+  padding:18px;
+  max-height:80vh;
+  overflow:auto
+}
+
+.modalbox h3{
+  margin-top:0;
+  color:var(--gold)
+}
+
+.close{
+  width:100%;
+  padding:11px;
+  border:0;
+  border-radius:9px;
+  background:#333;
+  color:#fff;
+  font-weight:900
 }
 </style>
 </head>
@@ -76,37 +428,1852 @@ button{
 
 <div class="app">
 
-  <div class="logo">DESTA PLAY</div>
+<header class="top">
+  <div class="brand">DESTA PLAY</div>
 
-  <div class="subtitle">
-    Choose your game
+  <div class="lang">
+    <button id="enBtn" type="button" onclick="setLanguage('en')">ENGLISH</button>
+    <button id="amBtn" type="button" onclick="setLanguage('am')">አማርኛ</button>
+  </div>
+</header>
+
+<main>
+
+<section id="home" class="screen active">
+
+  <div class="backrow">
+    <div>
+      <div class="title" data-i="chooseGame">Choose Game</div>
+      <div class="sub" data-i="homeSub">Select a game to continue</div>
+    </div>
   </div>
 
-  <div class="game">
-    <h2>BINGO</h2>
-    <p>75-ball Bingo</p>
-    <button>PLAY</button>
+  <div class="games">
+
+    <div class="game">
+      <div>
+        <h3>Bingo</h3>
+        <p data-i="bingoDesc">Live bingo with B-I-N-G-O calls.</p>
+      </div>
+      <button class="play" type="button" onclick="chooseGame('bingo')" data-i="play">PLAY</button>
+    </div>
+
+    <div class="game">
+      <div>
+        <h3>Bingo 75</h3>
+        <p data-i="bingo75Desc">75-ball bingo with FREE center.</p>
+      </div>
+      <button class="play" type="button" onclick="chooseGame('bingo75')" data-i="play">PLAY</button>
+    </div>
+
+    <div class="game">
+      <div>
+        <h3>Bingo 90</h3>
+        <p data-i="bingo90Desc">90-ball live ticket game.</p>
+      </div>
+      <button class="play" type="button" onclick="chooseGame('bingo90')" data-i="play">PLAY</button>
+    </div>
+
+    <div class="game">
+      <div>
+        <h3>Keno</h3>
+        <p data-i="kenoDesc">Pick numbers and watch the draw.</p>
+      </div>
+      <button class="play" type="button" onclick="chooseGame('keno')" data-i="play">PLAY</button>
+    </div>
+
   </div>
 
-  <div class="game">
-    <h2>BINGO 75</h2>
-    <p>Standard 75-ball Bingo</p>
-    <button>PLAY</button>
+</section>
+
+
+<section id="stake" class="screen">
+
+  <div class="backrow">
+    <button class="back" type="button" onclick="goBack()" data-i="back">← BACK</button>
+    <div class="title" data-i="chooseStake">Choose Stake</div>
+    <span></span>
   </div>
 
-  <div class="game">
-    <h2>BINGO 90</h2>
-    <p>Standard 90-ball Bingo</p>
-    <button>PLAY</button>
+  <div class="sub" id="stakeGame"></div>
+
+  <div class="stakes" id="stakes"></div>
+
+  <button class="join" type="button" onclick="joinGame()" data-i="join">
+    JOIN
+  </button>
+
+  <div class="status" id="stakeStatus"></div>
+
+</section>
+
+
+<section id="arena" class="screen">
+
+  <div class="backrow">
+
+    <button class="back" type="button" onclick="goBack()" data-i="back">
+      ← BACK
+    </button>
+
+    <div class="title" id="arenaTitle">GAME</div>
+
+    <button class="help" type="button" onclick="showHelp()" data-i="help">
+      HELP
+    </button>
+
   </div>
 
-  <div class="game">
-    <h2>KENO</h2>
-    <p>Pick your numbers</p>
-    <button>PLAY</button>
+  <div class="info">
+    <span>
+      <b data-i="stake">STAKE</b>:
+      <span id="stakeValue">0</span> ETB
+    </span>
+
+    <span class="live">
+      ● <span data-i="live">LIVE</span>
+    </span>
+  </div>
+
+  <div id="arenaBody"></div>
+
+</section>
+
+</main>
+</div>
+
+
+<div id="modal" class="modal">
+
+  <div class="modalbox">
+
+    <h3 id="modalTitle"></h3>
+
+    <div id="modalText"></div>
+
+    <button class="close" type="button" onclick="closeHelp()" data-i="close">
+      CLOSE
+    </button>
+
   </div>
 
 </div>
+
+
+<noscript>
+  <div style="padding:30px;color:white;background:#090909;text-align:center">
+    DESTA PLAY requires JavaScript to run.
+  </div>
+</noscript>
+
+
+<script>
+/* =========================================================
+   DESTA PLAY
+   BLACK-SCREEN-SAFE FRONTEND
+   ========================================================= */
+
+(function(){
+
+"use strict";
+
+
+/* ---------------------------------------------------------
+   GLOBAL ERROR PROTECTION
+   --------------------------------------------------------- */
+
+window.addEventListener("error",function(event){
+  console.error("DESTA PLAY error:",event.error || event.message);
+});
+
+window.addEventListener("unhandledrejection",function(event){
+  console.error("DESTA PLAY promise error:",event.reason);
+});
+
+
+/* ---------------------------------------------------------
+   TRANSLATIONS
+   --------------------------------------------------------- */
+
+const T={
+
+  en:{
+    chooseGame:"Choose Game",
+    homeSub:"Select a game to continue",
+    play:"PLAY",
+    bingoDesc:"Live bingo with B-I-N-G-O calls.",
+    bingo75Desc:"75-ball bingo with FREE center.",
+    bingo90Desc:"90-ball live ticket game.",
+    kenoDesc:"Pick numbers and watch the draw.",
+    chooseStake:"Choose Stake",
+    back:"← BACK",
+    join:"JOIN",
+    help:"HELP",
+    stake:"STAKE",
+    live:"LIVE",
+    close:"CLOSE",
+    placeBet:"PLACE BET",
+    bingo:"BINGO",
+    auto:"AUTO",
+    manual:"MANUAL",
+    recent:"RECENT CALLS",
+    waiting:"Waiting for round…",
+    accepted:"BET ACCEPTED",
+    selectNumbers:"Select 3–10 numbers per slot.",
+    slot:"SLOT",
+    how:"HOW TO PLAY",
+
+    bingoHelp:
+      "Choose your stake, join the round, select up to 2 cartellas, then PLACE BET. When your bet is accepted, the button changes to BINGO. Watch the official draw. When you have a qualifying pattern, press BINGO. The server verifies every claim.",
+
+    kenoHelp:
+      "Choose your stake, join the round, select 3–10 numbers in each slot, then PLACE BET. The server draws 20 unique numbers and calculates your result automatically.",
+
+    bingo90Help:
+      "Choose your stake, join the round, select your ticket, then PLACE BET. Watch the official 90-ball draw and press BINGO when your qualifying pattern is complete.",
+
+    error:"Something went wrong. Please try again."
+  },
+
+  am:{
+    chooseGame:"ጨዋታ ይምረጡ",
+    homeSub:"ለመቀጠል ጨዋታ ይምረጡ",
+    play:"ተጫወት",
+    bingoDesc:"የቀጥታ ቢንጎ ከ B-I-N-G-O ጥሪዎች ጋር።",
+    bingo75Desc:"75 ኳስ ቢንጎ ከነጻ መሃል ጋር።",
+    bingo90Desc:"90 ኳስ የቀጥታ ቲኬት ጨዋታ።",
+    kenoDesc:"ቁጥሮችን ይምረጡ እና ድራውን ይመልከቱ።",
+    chooseStake:"የውርርድ መጠን ይምረጡ",
+    back:"← ተመለስ",
+    join:"ተቀላቀል",
+    help:"እርዳታ",
+    stake:"ውርርድ",
+    live:"ቀጥታ",
+    close:"ዝጋ",
+    placeBet:"ውርርድ አስገባ",
+    bingo:"ቢንጎ",
+    auto:"ራስ-ሰር",
+    manual:"በእጅ",
+    recent:"የቅርብ ጥሪዎች",
+    waiting:"ዙሩን በመጠበቅ ላይ…",
+    accepted:"ውርርዱ ተቀብሏል",
+    selectNumbers:"በእያንዳንዱ ስሎት 3–10 ቁጥሮችን ይምረጡ።",
+    slot:"ስሎት",
+    how:"እንዴት ይጫወታሉ",
+
+    bingoHelp:
+      "የውርርድ መጠን ይምረጡ፣ ዙሩን ይቀላቀሉ፣ እስከ 2 ካርድ ይምረጡ እና ውርርድ ያስገቡ። ውርርዱ ሲቀበል አዝራሩ ወደ ቢንጎ ይቀየራል። የቀጥታ ድራውን ይመልከቱ። የሚያሸንፍ ንድፍ ሲሟላ ቢንጎን ይጫኑ። አገልጋዩ ውጤቱን ያረጋግጣል።",
+
+    kenoHelp:
+      "የውርርድ መጠን ይምረጡ፣ ዙሩን ይቀላቀሉ፣ በእያንዳንዱ ስሎት 3–10 ቁጥሮችን ይምረጡ እና ውርርድ ያስገቡ። አገልጋዩ 20 ልዩ ቁጥሮችን ይወጣል እና ውጤትዎን በራስ-ሰር ያሰላል።",
+
+    bingo90Help:
+      "የውርርድ መጠን ይምረጡ፣ ዙሩን ይቀላቀሉ፣ ቲኬትዎን ይምረጡ እና ውርርድ ያስገቡ። የ90 ኳስ ድራውን ይመልከቱ እና የሚያሸንፍ ንድፍ ሲሟላ ቢንጎን ይጫኑ።",
+
+    error:"ችግር ተፈጥሯል። እንደገና ይሞክሩ።"
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   SAFE DOM HELPERS
+   --------------------------------------------------------- */
+
+const $=function(id){
+  return document.getElementById(id);
+};
+
+const enBtn=$("enBtn");
+const amBtn=$("amBtn");
+const home=$("home");
+const stakeScreen=$("stake");
+const arena=$("arena");
+const stakeGame=$("stakeGame");
+const stakesBox=$("stakes");
+const stakeStatus=$("stakeStatus");
+const stakeValue=$("stakeValue");
+const arenaTitle=$("arenaTitle");
+const arenaBody=$("arenaBody");
+const modal=$("modal");
+const modalTitle=$("modalTitle");
+const modalText=$("modalText");
+
+
+/* ---------------------------------------------------------
+   SAFE STORAGE
+   --------------------------------------------------------- */
+
+function getSavedLanguage(){
+
+  try{
+
+    const value=window.localStorage.getItem("destaLang");
+
+    if(value==="am") return "am";
+
+  }catch(error){
+
+    console.warn("localStorage unavailable:",error);
+
+  }
+
+  return "en";
+}
+
+function saveLanguage(value){
+
+  try{
+
+    window.localStorage.setItem("destaLang",value);
+
+  }catch(error){
+
+    console.warn("Could not save language:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   STATE
+   --------------------------------------------------------- */
+
+let lang=getSavedLanguage();
+
+let currentGame="";
+
+let stake=0;
+
+let history=["home"];
+
+let round=null;
+
+let boards=[];
+
+let mode="auto";
+
+let activeKenoSlot=0;
+
+let kenoSlots=[
+  new Set(),
+  new Set()
+];
+
+
+const stakes=[
+  10,
+  20,
+  30,
+  40,
+  50,
+  60,
+  70,
+  80,
+  90,
+  100,
+  150,
+  200,
+  250,
+  300,
+  350,
+  400,
+  450,
+  500,
+  550,
+  600,
+  650,
+  700,
+  750,
+  800,
+  850,
+  900,
+  950,
+  1000
+];
+
+
+/* ---------------------------------------------------------
+   TRANSLATION
+   --------------------------------------------------------- */
+
+function tr(key){
+
+  try{
+
+    return T[lang][key] || T.en[key] || key;
+
+  }catch(error){
+
+    return T.en[key] || key;
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   LANGUAGE
+   --------------------------------------------------------- */
+
+window.setLanguage=function(value){
+
+  if(value!=="en" && value!=="am"){
+    value="en";
+  }
+
+  lang=value;
+
+  saveLanguage(lang);
+
+  applyLanguage();
+
+  if(arena && arena.classList.contains("active")){
+
+    renderArena();
+
+  }
+
+};
+
+
+function applyLanguage(){
+
+  try{
+
+    document.documentElement.lang=lang==="am" ? "am" : "en";
+
+    document.querySelectorAll("[data-i]").forEach(function(element){
+
+      const key=element.getAttribute("data-i");
+
+      element.textContent=tr(key);
+
+    });
+
+    if(enBtn){
+
+      enBtn.classList.toggle("active",lang==="en");
+
+    }
+
+    if(amBtn){
+
+      amBtn.classList.toggle("active",lang==="am");
+
+    }
+
+  }catch(error){
+
+    console.error("Language rendering error:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   SCREEN NAVIGATION
+   --------------------------------------------------------- */
+
+function show(id){
+
+  try{
+
+    const target=$(id);
+
+    if(!target){
+
+      console.warn("Screen not found:",id);
+
+      return;
+
+    }
+
+    document.querySelectorAll(".screen").forEach(function(screen){
+
+      screen.classList.remove("active");
+
+    });
+
+    target.classList.add("active");
+
+  }catch(error){
+
+    console.error("Screen navigation error:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   CHOOSE GAME
+   --------------------------------------------------------- */
+
+window.chooseGame=function(game){
+
+  try{
+
+    currentGame=game;
+
+    stake=0;
+
+    round=null;
+
+    boards=[];
+
+    mode="auto";
+
+    kenoSlots=[
+      new Set(),
+      new Set()
+    ];
+
+    activeKenoSlot=0;
+
+    history.push("stake");
+
+    let gameName="";
+
+    if(game==="bingo75"){
+
+      gameName="Bingo 75";
+
+    }else if(game==="bingo90"){
+
+      gameName="Bingo 90";
+
+    }else if(game==="keno"){
+
+      gameName="Keno";
+
+    }else{
+
+      gameName="Bingo";
+
+    }
+
+    if(stakeGame){
+
+      stakeGame.textContent=gameName;
+
+    }
+
+    if(stakesBox){
+
+      stakesBox.innerHTML=stakes.map(function(value){
+
+        return `
+          <button
+            type="button"
+            class="stake"
+            onclick="selectStake(${value})">
+            ${value}
+          </button>
+        `;
+
+      }).join("");
+
+    }
+
+    if(stakeStatus){
+
+      stakeStatus.textContent="";
+
+    }
+
+    show("stake");
+
+  }catch(error){
+
+    console.error("chooseGame error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   STAKE
+   --------------------------------------------------------- */
+
+window.selectStake=function(value){
+
+  stake=Number(value);
+
+  if(!stakesBox) return;
+
+  stakesBox.querySelectorAll(".stake").forEach(function(button){
+
+    button.classList.toggle(
+      "selected",
+      Number(button.textContent.trim())===stake
+    );
+
+  });
+
+};
+
+
+/* ---------------------------------------------------------
+   JOIN
+   --------------------------------------------------------- */
+
+window.joinGame=function(){
+
+  try{
+
+    if(!stake){
+
+      if(stakeStatus){
+
+        stakeStatus.textContent=
+          lang==="am"
+          ? "መጀመሪያ የውርርድ መጠን ይምረጡ።"
+          : "Select a stake first.";
+
+      }
+
+      return;
+
+    }
+
+    history.push("arena");
+
+    if(stakeValue){
+
+      stakeValue.textContent=stake;
+
+    }
+
+    renderArena();
+
+    show("arena");
+
+    enterVoice();
+
+  }catch(error){
+
+    console.error("joinGame error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   BACK
+   --------------------------------------------------------- */
+
+window.goBack=function(){
+
+  try{
+
+    if(history.length>1){
+
+      history.pop();
+
+      const previous=history[history.length-1];
+
+      show(previous);
+
+    }else{
+
+      show("home");
+
+    }
+
+    leaveVoice();
+
+  }catch(error){
+
+    console.error("goBack error:",error);
+
+    show("home");
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   HELP
+   --------------------------------------------------------- */
+
+window.showHelp=function(){
+
+  try{
+
+    if(!modal || !modalTitle || !modalText) return;
+
+    modalTitle.textContent=tr("how");
+
+    if(currentGame==="keno"){
+
+      modalText.textContent=tr("kenoHelp");
+
+    }else if(currentGame==="bingo90"){
+
+      modalText.textContent=tr("bingo90Help");
+
+    }else{
+
+      modalText.textContent=tr("bingoHelp");
+
+    }
+
+    modal.classList.add("show");
+
+  }catch(error){
+
+    console.error("Help error:",error);
+
+  }
+
+};
+
+
+window.closeHelp=function(){
+
+  try{
+
+    if(modal){
+
+      modal.classList.remove("show");
+
+    }
+
+  }catch(error){
+
+    console.error("Close help error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   ARENA
+   --------------------------------------------------------- */
+
+function renderArena(){
+
+  try{
+
+    if(!arenaTitle || !arenaBody) return;
+
+    if(currentGame==="bingo75"){
+
+      arenaTitle.textContent="BINGO 75";
+
+    }else if(currentGame==="bingo90"){
+
+      arenaTitle.textContent="BINGO 90";
+
+    }else if(currentGame==="keno"){
+
+      arenaTitle.textContent="KENO";
+
+    }else{
+
+      arenaTitle.textContent="BINGO";
+
+    }
+
+    if(stakeValue){
+
+      stakeValue.textContent=stake;
+
+    }
+
+    if(currentGame==="keno"){
+
+      renderKeno();
+
+    }else{
+
+      renderBingo();
+
+    }
+
+    applyLanguage();
+
+  }catch(error){
+
+    console.error("Arena rendering error:",error);
+
+    if(arenaBody){
+
+      arenaBody.innerHTML=`
+        <div class="msg">
+          ${tr("error")}
+        </div>
+      `;
+
+    }
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   BINGO
+   --------------------------------------------------------- */
+
+function renderBingo(){
+
+  if(!arenaBody) return;
+
+  try{
+
+    if(!boards.length){
+
+      const version=currentGame==="bingo90" ? 90 : 75;
+
+      boards=[
+        makeCard(version),
+        makeCard(version)
+      ];
+
+    }
+
+    arenaBody.innerHTML=`
+
+      <div class="ball" id="ball">—</div>
+
+      <div
+        class="sub"
+        style="text-align:center">
+        ${tr("recent")}
+      </div>
+
+      <div
+        class="recent"
+        id="recent">
+      </div>
+
+      <div class="mode">
+
+        <button
+          type="button"
+          class="${mode==="auto"?"active":""}"
+          onclick="setMode('auto')">
+          ${tr("auto")}
+        </button>
+
+        <button
+          type="button"
+          class="${mode==="manual"?"active":""}"
+          onclick="setMode('manual')">
+          ${tr("manual")}
+        </button>
+
+      </div>
+
+      <div class="boards">
+
+        ${boards.map(function(board,index){
+
+          return renderBoard(board,index);
+
+        }).join("")}
+
+      </div>
+
+    `;
+
+  }catch(error){
+
+    console.error("Bingo render error:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   CREATE BINGO CARD
+   --------------------------------------------------------- */
+
+function makeCard(version){
+
+  if(version===90){
+
+    const rows=[];
+
+    for(let r=0;r<3;r++){
+
+      const row=[];
+
+      for(let c=0;c<9;c++){
+
+        row.push(
+          Math.random()<0.45
+          ? null
+          : Math.floor(Math.random()*90)+1
+        );
+
+      }
+
+      while(row.filter(Boolean).length<5){
+
+        const index=Math.floor(Math.random()*9);
+
+        if(!row[index]){
+
+          row[index]=Math.floor(Math.random()*90)+1;
+
+        }
+
+      }
+
+      rows.push(row);
+
+    }
+
+    return rows;
+
+  }
+
+
+  const nums=[
+    ...Array(75)
+  ].map(function(_,index){
+
+    return index+1;
+
+  });
+
+
+  const rows=[];
+
+
+  for(let r=0;r<5;r++){
+
+    rows.push(
+      nums.slice(
+        r*5,
+        r*5+5
+      )
+    );
+
+  }
+
+
+  rows[2][2]=0;
+
+  return rows;
+
+}
+
+
+/* ---------------------------------------------------------
+   RENDER BOARD
+   --------------------------------------------------------- */
+
+function renderBoard(board,index){
+
+  if(currentGame==="bingo90"){
+
+    return `
+
+      <div class="card">
+
+        <div class="cardhead">
+
+          <b>
+            ${tr("slot")} ${index+1}
+          </b>
+
+          <span></span>
+
+        </div>
+
+        <div
+          class="grid"
+          style="grid-template-columns:repeat(9,1fr)">
+
+          ${board.flat().map(function(number,cellIndex){
+
+            return `
+
+              <button
+                type="button"
+                class="cell ${number===0?"free":""}"
+                ${!number?"disabled":""}
+                onclick="markCell(${index},${cellIndex})">
+
+                ${number||""}
+
+              </button>
+
+            `;
+
+          }).join("")}
+
+        </div>
+
+        <button
+          type="button"
+          class="betbtn"
+          id="bet-${index}"
+          onclick="placeBingoBet(${index})">
+
+          ${tr("placeBet")}
+
+        </button>
+
+      </div>
+
+    `;
+
+  }
+
+
+  return `
+
+    <div class="card">
+
+      <div class="cardhead">
+
+        <b>
+          Cartella ${index+1}
+        </b>
+
+      </div>
+
+      <div class="grid">
+
+        ${board.flat().map(function(number,cellIndex){
+
+          return `
+
+            <button
+              type="button"
+              class="cell ${number===0?"free":""}"
+              onclick="markCell(${index},${cellIndex})">
+
+              ${number===0?"FREE":number}
+
+            </button>
+
+          `;
+
+        }).join("")}
+
+      </div>
+
+      <button
+        type="button"
+        class="betbtn"
+        id="bet-${index}"
+        onclick="placeBingoBet(${index})">
+
+        ${tr("placeBet")}
+
+      </button>
+
+    </div>
+
+  `;
+
+}
+
+
+/* ---------------------------------------------------------
+   BINGO MODE
+   --------------------------------------------------------- */
+
+window.setMode=function(value){
+
+  mode=value;
+
+  renderArena();
+
+};
+
+
+window.markCell=function(boardIndex,cellIndex){
+
+  if(mode!=="manual") return;
+
+  try{
+
+    const cards=document.querySelectorAll(".boards .card");
+
+    if(!cards[boardIndex]) return;
+
+    const cells=cards[boardIndex].querySelectorAll(".cell");
+
+    if(!cells[cellIndex]) return;
+
+    cells[cellIndex].classList.toggle("marked");
+
+  }catch(error){
+
+    console.error("markCell error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   API
+   --------------------------------------------------------- */
+
+async function api(url,method="GET",body){
+
+  try{
+
+    const options={
+      method:method,
+      headers:{
+        "Content-Type":"application/json"
+      }
+    };
+
+    if(body!==undefined && body!==null){
+
+      options.body=JSON.stringify(body);
+
+    }
+
+
+    const controller=
+      typeof AbortController!=="undefined"
+      ? new AbortController()
+      : null;
+
+
+    let timer=null;
+
+
+    if(controller){
+
+      options.signal=controller.signal;
+
+      timer=setTimeout(function(){
+
+        controller.abort();
+
+      },10000);
+
+    }
+
+
+    let response;
+
+
+    try{
+
+      response=await fetch(url,options);
+
+    }finally{
+
+      if(timer){
+
+        clearTimeout(timer);
+
+      }
+
+    }
+
+
+    let data={};
+
+
+    try{
+
+      data=await response.json();
+
+    }catch(error){
+
+      data={};
+
+    }
+
+
+    return {
+      ...data,
+      ok:response.ok && data.ok!==false
+    };
+
+
+  }catch(error){
+
+    console.warn("API unavailable:",url,error);
+
+    return {
+      ok:false,
+      message:"Server unavailable."
+    };
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   BINGO BET
+   --------------------------------------------------------- */
+
+window.placeBingoBet=async function(index){
+
+  const button=$("bet-"+index);
+
+  if(!button) return;
+
+
+  if(button.dataset.accepted==="1"){
+
+    return;
+
+  }
+
+
+  button.disabled=true;
+
+
+  try{
+
+    const body={
+
+      roundId:
+        round?.roundId ||
+        round?.id ||
+        null,
+
+      stake:stake,
+
+      card:boards[index],
+
+      cardIndex:index
+
+    };
+
+
+    const result=await api(
+      "/api/game/"+currentGame+"/bet",
+      "POST",
+      body
+    );
+
+
+    if(!result.ok){
+
+      throw new Error(
+        result.message ||
+        tr("error")
+      );
+
+    }
+
+
+    button.dataset.accepted="1";
+
+    button.classList.add("accepted");
+
+    button.textContent=tr("bingo");
+
+
+    /*
+      Important:
+      Once accepted, the button remains
+      accepted and cannot submit twice.
+    */
+
+  }catch(error){
+
+    button.disabled=false;
+
+    button.textContent=tr("placeBet");
+
+    alert(
+      error.message ||
+      tr("error")
+    );
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   KENO
+   --------------------------------------------------------- */
+
+function renderKeno(){
+
+  if(!arenaBody) return;
+
+
+  try{
+
+    const slot1Active=activeKenoSlot===0;
+    const slot2Active=activeKenoSlot===1;
+
+
+    arenaBody.innerHTML=`
+
+      <div
+        class="sub"
+        style="margin-bottom:8px">
+
+        ${tr("selectNumbers")}
+
+      </div>
+
+
+      <div class="mode">
+
+        <button
+          type="button"
+          class="${slot1Active?"active":""}"
+          onclick="switchKenoSlot(0)">
+
+          ${tr("slot")} 1
+
+        </button>
+
+
+        <button
+          type="button"
+          class="${slot2Active?"active":""}"
+          onclick="switchKenoSlot(1)">
+
+          ${tr("slot")} 2
+
+        </button>
+
+      </div>
+
+
+      <div class="numbers">
+
+        ${Array.from(
+          {length:80},
+          function(_,index){
+
+            const number=index+1;
+
+            return `
+
+              <button
+                type="button"
+                class="num ${
+                  kenoSlots[activeKenoSlot].has(number)
+                  ?"selected"
+                  :""
+                }"
+                onclick="toggleKeno(${activeKenoSlot},${number})">
+
+                ${number}
+
+              </button>
+
+            `;
+
+          }
+        ).join("")}
+
+      </div>
+
+
+      <button
+        type="button"
+        class="primary"
+        onclick="placeKenoBet()">
+
+        ${tr("placeBet")}
+
+      </button>
+
+    `;
+
+  }catch(error){
+
+    console.error("Keno render error:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   KENO SLOT SWITCH
+   --------------------------------------------------------- */
+
+window.switchKenoSlot=function(slotIndex){
+
+  if(slotIndex!==0 && slotIndex!==1){
+
+    return;
+
+  }
+
+  activeKenoSlot=slotIndex;
+
+  renderKeno();
+
+};
+
+
+/* ---------------------------------------------------------
+   KENO NUMBER
+   --------------------------------------------------------- */
+
+window.toggleKeno=function(slotIndex,number){
+
+  try{
+
+    if(slotIndex!==0 && slotIndex!==1){
+
+      return;
+
+    }
+
+    if(number<1 || number>80){
+
+      return;
+
+    }
+
+
+    const set=kenoSlots[slotIndex];
+
+
+    if(set.has(number)){
+
+      set.delete(number);
+
+    }else if(set.size<10){
+
+      set.add(number);
+
+    }
+
+
+    activeKenoSlot=slotIndex;
+
+    renderKeno();
+
+  }catch(error){
+
+    console.error("Keno selection error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   KENO BET
+   --------------------------------------------------------- */
+
+window.placeKenoBet=async function(){
+
+  try{
+
+    const slots=kenoSlots.map(function(set){
+
+      return [...set];
+
+    });
+
+
+    if(
+      slots[0].length<3 &&
+      slots[1].length<3
+    ){
+
+      alert(tr("selectNumbers"));
+
+      return;
+
+    }
+
+
+    /*
+      Empty slot is allowed.
+      Any selected slot must contain 3–10 numbers.
+    */
+
+    for(let i=0;i<slots.length;i++){
+
+      if(
+        slots[i].length!==0 &&
+        (
+          slots[i].length<3 ||
+          slots[i].length>10
+        )
+      ){
+
+        alert(tr("selectNumbers"));
+
+        return;
+
+      }
+
+    }
+
+
+    const result=await api(
+      "/api/game/keno/bet",
+      "POST",
+      {
+        roundId:
+          round?.roundId ||
+          round?.id ||
+          null,
+
+        stake:stake,
+
+        slots:slots
+
+      }
+    );
+
+
+    if(!result.ok){
+
+      throw new Error(
+        result.message ||
+        tr("error")
+      );
+
+    }
+
+
+    alert(tr("accepted"));
+
+
+  }catch(error){
+
+    alert(
+      error.message ||
+      tr("error")
+    );
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   LOAD ROUND
+   --------------------------------------------------------- */
+
+async function loadRound(){
+
+  try{
+
+    const result=await api(
+      "/api/game/"+currentGame+"/round?stake="+encodeURIComponent(stake)
+    );
+
+
+    if(result.ok){
+
+      round=result.round || result;
+
+    }
+
+  }catch(error){
+
+    console.warn("Round loading failed:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   BINGO LETTER
+   --------------------------------------------------------- */
+
+function bingoLetter(number){
+
+  if(number<=15) return "B";
+
+  if(number<=30) return "I";
+
+  if(number<=45) return "N";
+
+  if(number<=60) return "G";
+
+  return "O";
+
+}
+
+
+/* ---------------------------------------------------------
+   VOICE
+   --------------------------------------------------------- */
+
+function speak(text){
+
+  try{
+
+    if(!("speechSynthesis" in window)){
+
+      return;
+
+    }
+
+
+    window.speechSynthesis.cancel();
+
+
+    const utterance=
+      new SpeechSynthesisUtterance(text);
+
+
+    utterance.lang=
+      lang==="am"
+      ? "am-ET"
+      : "en-US";
+
+
+    utterance.rate=.88;
+
+
+    window.speechSynthesis.speak(
+      utterance
+    );
+
+
+  }catch(error){
+
+    console.warn("Voice unavailable:",error);
+
+  }
+
+}
+
+
+function enterVoice(){
+
+  loadRound();
+
+}
+
+
+function leaveVoice(){
+
+  try{
+
+    if("speechSynthesis" in window){
+
+      window.speechSynthesis.cancel();
+
+    }
+
+  }catch(error){
+
+    console.warn("Voice stop error:",error);
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   AUTHORITATIVE DRAW HOOK
+   --------------------------------------------------------- */
+
+window.announceDraw=function(number){
+
+  try{
+
+    number=Number(number);
+
+
+    if(!Number.isFinite(number)){
+
+      return;
+
+    }
+
+
+    const isBingo=
+      currentGame==="bingo" ||
+      currentGame==="bingo75" ||
+      currentGame==="bingo90";
+
+
+    const ball=$("ball");
+
+
+    if(ball){
+
+      ball.textContent=
+        isBingo
+        ? bingoLetter(number)+" "+number
+        : String(number);
+
+    }
+
+
+    if(isBingo){
+
+      speak(
+        bingoLetter(number)+" "+number
+      );
+
+    }else{
+
+      speak(
+        String(number)
+      );
+
+    }
+
+
+    const recent=$("recent");
+
+
+    if(recent){
+
+      const span=
+        document.createElement("span");
+
+      span.textContent=number;
+
+      recent.prepend(span);
+
+
+      while(recent.children.length>8){
+
+        recent.lastElementChild.remove();
+
+      }
+
+    }
+
+
+    if(
+      mode==="auto" &&
+      isBingo
+    ){
+
+      document
+        .querySelectorAll(".cell")
+        .forEach(function(cell){
+
+          if(
+            cell.textContent.trim()===
+            String(number)
+          ){
+
+            cell.classList.add("marked");
+
+          }
+
+        });
+
+    }
+
+  }catch(error){
+
+    console.error("announceDraw error:",error);
+
+  }
+
+};
+
+
+/* ---------------------------------------------------------
+   INITIALIZATION
+   --------------------------------------------------------- */
+
+function init(){
+
+  try{
+
+    applyLanguage();
+
+    /*
+      Explicitly guarantee that Home is visible.
+      This prevents a failed optional operation
+      from leaving the app with no visible screen.
+    */
+
+    show("home");
+
+  }catch(error){
+
+    console.error(
+      "DESTA PLAY initialization error:",
+      error
+    );
+
+
+    /*
+      Emergency fallback.
+      Never replace the whole body.
+      Only make Home visible.
+    */
+
+    try{
+
+      document
+        .querySelectorAll(".screen")
+        .forEach(function(screen){
+
+          screen.classList.remove("active");
+
+        });
+
+
+      const fallback=$("home");
+
+      if(fallback){
+
+        fallback.classList.add("active");
+
+      }
+
+    }catch(fallbackError){
+
+      console.error(
+        "Emergency UI recovery failed:",
+        fallbackError
+      );
+
+    }
+
+  }
+
+}
+
+
+/* ---------------------------------------------------------
+   START
+   --------------------------------------------------------- */
+
+if(
+  document.readyState==="loading"
+){
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    init,
+    {once:true}
+  );
+
+}else{
+
+  init();
+
+}
+
+
+})();
+</script>
 
 </body>
 </html>
