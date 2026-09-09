@@ -21,9 +21,12 @@
   --blue:#3498ff
 }
 
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box
+}
 
-html,body{
+html,
+body{
   margin:0;
   padding:0;
   width:100%;
@@ -35,6 +38,16 @@ body{
   color:var(--text);
   font-family:Arial,sans-serif;
   min-height:100vh;
+}
+
+button{
+  font-family:inherit;
+  cursor:pointer;
+}
+
+button:disabled{
+  cursor:not-allowed;
+  opacity:.65;
 }
 
 .app{
@@ -60,46 +73,48 @@ body{
 .brand{
   font-weight:900;
   font-size:21px;
-  letter-spacing:1px
+  letter-spacing:1px;
 }
 
 .lang{
   display:flex;
-  gap:5px
+  gap:5px;
 }
 
-.lang button,.topbtn{
+.lang button,
+.topbtn{
   border:1px solid #ffffff55;
   background:#0005;
   color:#fff;
   border-radius:18px;
   padding:7px 10px;
-  font-weight:700
+  font-weight:700;
 }
 
 .lang button.active{
   background:var(--gold);
   color:#111;
-  border-color:var(--gold)
+  border-color:var(--gold);
 }
 
 main{
-  padding:14px
+  padding:14px;
 }
 
 .screen{
-  display:none
+  display:none;
 }
 
 .screen.active{
-  display:block
+  display:block;
 }
 
 .backrow{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:12px
+  margin-bottom:12px;
+  gap:10px;
 }
 
 .back{
@@ -108,23 +123,23 @@ main{
   border:1px solid #555;
   border-radius:10px;
   padding:9px 13px;
-  font-weight:800
+  font-weight:800;
 }
 
 .title{
   font-size:22px;
-  font-weight:900
+  font-weight:900;
 }
 
 .sub{
   color:var(--muted);
-  font-size:13px
+  font-size:13px;
 }
 
 .games{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px
+  gap:12px;
 }
 
 .game{
@@ -136,18 +151,18 @@ main{
   display:flex;
   flex-direction:column;
   justify-content:space-between;
-  box-shadow:inset 0 0 0 1px #ffffff08
+  box-shadow:inset 0 0 0 1px #ffffff08;
 }
 
 .game h3{
   margin:0;
-  font-size:20px
+  font-size:20px;
 }
 
 .game p{
   color:var(--muted);
   margin:5px 0;
-  font-size:12px
+  font-size:12px;
 }
 
 .game .play{
@@ -157,7 +172,7 @@ main{
   color:#fff;
   border-radius:10px;
   padding:9px 15px;
-  font-weight:900
+  font-weight:900;
 }
 
 .stakes{
@@ -166,7 +181,7 @@ main{
   gap:8px;
   max-height:62vh;
   overflow:auto;
-  padding:2px
+  padding:2px;
 }
 
 .stake{
@@ -175,13 +190,13 @@ main{
   color:#fff;
   border-radius:10px;
   padding:12px 4px;
-  font-weight:900
+  font-weight:900;
 }
 
 .stake.selected{
   background:var(--gold);
   color:#111;
-  border-color:#fff
+  border-color:#fff;
 }
 
 .join{
@@ -194,7 +209,7 @@ main{
   border-radius:12px;
   background:linear-gradient(135deg,var(--gold),var(--gold2));
   font-weight:1000;
-  font-size:17px
+  font-size:17px;
 }
 
 .help{
@@ -203,7 +218,7 @@ main{
   color:var(--gold);
   border-radius:9px;
   padding:8px 12px;
-  font-weight:800
+  font-weight:800;
 }
 
 .info{
@@ -213,12 +228,12 @@ main{
   margin-bottom:12px;
   display:flex;
   justify-content:space-between;
-  gap:8px
+  gap:8px;
 }
 
 .live{
   color:var(--green);
-  font-weight:900
+  font-weight:900;
 }
 
 .ball{
@@ -226,21 +241,28 @@ main{
   height:100px;
   border-radius:50%;
   margin:15px auto;
-  background:radial-gradient(circle at 32% 25%,#fff,#eee 12%,#d7d7d7 28%,#555 70%,#111);
+  background:radial-gradient(
+    circle at 32% 25%,
+    #fff,
+    #eee 12%,
+    #d7d7d7 28%,
+    #555 70%,
+    #111
+  );
   color:#111;
   display:flex;
   align-items:center;
   justify-content:center;
   font-size:36px;
   font-weight:1000;
-  box-shadow:0 7px 25px #000
+  box-shadow:0 7px 25px #000;
 }
 
 .recent{
   display:flex;
   gap:6px;
   overflow:auto;
-  margin:10px 0
+  margin:10px 0;
 }
 
 .recent span{
@@ -251,13 +273,13 @@ main{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:900
+  font-weight:900;
 }
 
 .mode{
   display:flex;
   gap:8px;
-  margin-bottom:10px
+  margin-bottom:10px;
 }
 
 .mode button{
@@ -267,37 +289,37 @@ main{
   border:1px solid #555;
   background:#222;
   color:#fff;
-  font-weight:800
+  font-weight:800;
 }
 
 .mode button.active{
   background:var(--blue);
-  border-color:#fff
+  border-color:#fff;
 }
 
 .boards{
   display:grid;
-  gap:12px
+  gap:12px;
 }
 
 .card{
   background:var(--panel);
   padding:8px;
   border-radius:12px;
-  border:1px solid #444
+  border:1px solid #444;
 }
 
 .cardhead{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:5px
+  margin-bottom:5px;
 }
 
 .grid{
   display:grid;
   grid-template-columns:repeat(5,1fr);
-  gap:4px
+  gap:4px;
 }
 
 .cell{
@@ -307,17 +329,17 @@ main{
   border-radius:5px;
   color:#fff;
   font-weight:900;
-  font-size:15px
+  font-size:15px;
 }
 
 .cell.marked{
   background:var(--gold);
-  color:#111
+  color:#111;
 }
 
 .cell.free{
   background:var(--red);
-  color:#fff
+  color:#fff;
 }
 
 .betbtn{
@@ -328,19 +350,19 @@ main{
   border:1px solid #ff6767;
   background:linear-gradient(135deg,var(--red2),var(--red));
   color:#fff;
-  font-weight:1000
+  font-weight:1000;
 }
 
 .betbtn.accepted{
   background:linear-gradient(135deg,var(--green),#079b49);
   border-color:#8dffc0;
-  color:#04130b
+  color:#04130b;
 }
 
 .numbers{
   display:grid;
   grid-template-columns:repeat(8,1fr);
-  gap:5px
+  gap:5px;
 }
 
 .num{
@@ -349,12 +371,12 @@ main{
   border:1px solid #444;
   background:#252525;
   color:#fff;
-  font-weight:800
+  font-weight:800;
 }
 
 .num.selected{
   background:var(--gold);
-  color:#111
+  color:#111;
 }
 
 .primary{
@@ -364,7 +386,7 @@ main{
   border-radius:10px;
   background:linear-gradient(135deg,var(--gold),var(--gold2));
   font-weight:1000;
-  margin-top:12px
+  margin-top:12px;
 }
 
 .msg{
@@ -373,14 +395,7 @@ main{
   background:#241010;
   border:1px solid #633;
   color:#ffbaba;
-  margin:8px 0
-}
-
-.status{
-  text-align:center;
-  color:var(--muted);
-  font-size:12px;
-  min-height:18px
+  margin:8px 0;
 }
 
 .modal{
@@ -389,11 +404,11 @@ main{
   background:#000b;
   z-index:50;
   display:none;
-  align-items:flex-end
+  align-items:flex-end;
 }
 
 .modal.show{
-  display:flex
+  display:flex;
 }
 
 .modalbox{
@@ -404,12 +419,12 @@ main{
   border-radius:18px 18px 0 0;
   padding:18px;
   max-height:80vh;
-  overflow:auto
+  overflow:auto;
 }
 
 .modalbox h3{
   margin-top:0;
-  color:var(--gold)
+  color:var(--gold);
 }
 
 .close{
@@ -419,7 +434,45 @@ main{
   border-radius:9px;
   background:#333;
   color:#fff;
-  font-weight:900
+  font-weight:900;
+}
+
+.status{
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  min-height:18px;
+}
+
+.slotTabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.slotTabs button{
+  flex:1;
+  padding:9px;
+  border-radius:9px;
+  border:1px solid #555;
+  background:#222;
+  color:#fff;
+  font-weight:800;
+}
+
+.slotTabs button.active{
+  background:var(--blue);
+  border-color:#fff;
+}
+
+@media(max-width:360px){
+  .games{
+    grid-template-columns:1fr;
+  }
+
+  .numbers{
+    grid-template-columns:repeat(6,1fr);
+  }
 }
 </style>
 </head>
@@ -429,12 +482,21 @@ main{
 <div class="app">
 
 <header class="top">
-  <div class="brand">DESTA PLAY</div>
+
+  <div class="brand">
+    DESTA PLAY
+  </div>
 
   <div class="lang">
-    <button id="enBtn" type="button" onclick="setLanguage('en')">ENGLISH</button>
-    <button id="amBtn" type="button" onclick="setLanguage('am')">አማርኛ</button>
+    <button id="enBtn" onclick="setLanguage('en')">
+      ENGLISH
+    </button>
+
+    <button id="amBtn" onclick="setLanguage('am')">
+      አማርኛ
+    </button>
   </div>
+
 </header>
 
 <main>
@@ -442,44 +504,98 @@ main{
 <section id="home" class="screen active">
 
   <div class="backrow">
+
     <div>
-      <div class="title" data-i="chooseGame">Choose Game</div>
-      <div class="sub" data-i="homeSub">Select a game to continue</div>
+      <div class="title" data-i="chooseGame">
+        Choose Game
+      </div>
+
+      <div class="sub" data-i="homeSub">
+        Select a game to continue
+      </div>
     </div>
+
   </div>
 
   <div class="games">
 
     <div class="game">
+
       <div>
         <h3>Bingo</h3>
-        <p data-i="bingoDesc">Live bingo with B-I-N-G-O calls.</p>
+
+        <p data-i="bingoDesc">
+          Live bingo with B-I-N-G-O calls.
+        </p>
       </div>
-      <button class="play" type="button" onclick="chooseGame('bingo')" data-i="play">PLAY</button>
+
+      <button
+        class="play"
+        onclick="chooseGame('bingo')"
+        data-i="play">
+        PLAY
+      </button>
+
     </div>
 
+
     <div class="game">
+
       <div>
         <h3>Bingo 75</h3>
-        <p data-i="bingo75Desc">75-ball bingo with FREE center.</p>
+
+        <p data-i="bingo75Desc">
+          75-ball bingo with FREE center.
+        </p>
       </div>
-      <button class="play" type="button" onclick="chooseGame('bingo75')" data-i="play">PLAY</button>
+
+      <button
+        class="play"
+        onclick="chooseGame('bingo75')"
+        data-i="play">
+        PLAY
+      </button>
+
     </div>
 
+
     <div class="game">
+
       <div>
         <h3>Bingo 90</h3>
-        <p data-i="bingo90Desc">90-ball live ticket game.</p>
+
+        <p data-i="bingo90Desc">
+          90-ball live ticket game.
+        </p>
       </div>
-      <button class="play" type="button" onclick="chooseGame('bingo90')" data-i="play">PLAY</button>
+
+      <button
+        class="play"
+        onclick="chooseGame('bingo90')"
+        data-i="play">
+        PLAY
+      </button>
+
     </div>
 
+
     <div class="game">
+
       <div>
         <h3>Keno</h3>
-        <p data-i="kenoDesc">Pick numbers and watch the draw.</p>
+
+        <p data-i="kenoDesc">
+          Pick numbers and watch the draw.
+        </p>
       </div>
-      <button class="play" type="button" onclick="chooseGame('keno')" data-i="play">PLAY</button>
+
+      <button
+        class="play"
+        onclick="chooseGame('keno')"
+        data-i="play">
+        PLAY
+      </button>
+
     </div>
 
   </div>
@@ -490,20 +606,45 @@ main{
 <section id="stake" class="screen">
 
   <div class="backrow">
-    <button class="back" type="button" onclick="goBack()" data-i="back">← BACK</button>
-    <div class="title" data-i="chooseStake">Choose Stake</div>
+
+    <button
+      class="back"
+      onclick="goBack()"
+      data-i="back">
+      ← BACK
+    </button>
+
+    <div
+      class="title"
+      data-i="chooseStake">
+      Choose Stake
+    </div>
+
     <span></span>
+
   </div>
 
-  <div class="sub" id="stakeGame"></div>
+  <div
+    class="sub"
+    id="stakeGame">
+  </div>
 
-  <div class="stakes" id="stakes"></div>
+  <div
+    class="stakes"
+    id="stakes">
+  </div>
 
-  <button class="join" type="button" onclick="joinGame()" data-i="join">
+  <button
+    class="join"
+    onclick="joinGame()"
+    data-i="join">
     JOIN
   </button>
 
-  <div class="status" id="stakeStatus"></div>
+  <div
+    class="status"
+    id="stakeStatus">
+  </div>
 
 </section>
 
@@ -512,27 +653,49 @@ main{
 
   <div class="backrow">
 
-    <button class="back" type="button" onclick="goBack()" data-i="back">
+    <button
+      class="back"
+      onclick="goBack()"
+      data-i="back">
       ← BACK
     </button>
 
-    <div class="title" id="arenaTitle">GAME</div>
+    <div
+      class="title"
+      id="arenaTitle">
+      GAME
+    </div>
 
-    <button class="help" type="button" onclick="showHelp()" data-i="help">
+    <button
+      class="help"
+      onclick="showHelp()"
+      data-i="help">
       HELP
     </button>
 
   </div>
 
   <div class="info">
+
     <span>
-      <b data-i="stake">STAKE</b>:
-      <span id="stakeValue">0</span> ETB
+      <b data-i="stake">
+        STAKE
+      </b>:
+
+      <span id="stakeValue">
+        0
+      </span>
+
+      ETB
     </span>
 
     <span class="live">
-      ● <span data-i="live">LIVE</span>
+      ●
+      <span data-i="live">
+        LIVE
+      </span>
     </span>
+
   </div>
 
   <div id="arenaBody"></div>
@@ -540,10 +703,13 @@ main{
 </section>
 
 </main>
+
 </div>
 
 
-<div id="modal" class="modal">
+<div
+  id="modal"
+  class="modal">
 
   <div class="modalbox">
 
@@ -551,7 +717,10 @@ main{
 
     <div id="modalText"></div>
 
-    <button class="close" type="button" onclick="closeHelp()" data-i="close">
+    <button
+      class="close"
+      onclick="closeHelp()"
+      data-i="close">
       CLOSE
     </button>
 
@@ -560,68 +729,167 @@ main{
 </div>
 
 
-<noscript>
-  <div style="padding:30px;color:white;background:#090909;text-align:center">
-    DESTA PLAY requires JavaScript to run.
-  </div>
-</noscript>
-
-
 <script>
+
 /* =========================================================
-   DESTA PLAY
-   BLACK-SCREEN-SAFE FRONTEND
+   DESTA PLAY — BLACK SCREEN SAFE FRONTEND
+   =========================================================
+
+   IMPORTANT:
+   - This file keeps the reference UI.
+   - No legacy game code.
+   - No Aviator.
+   - No Roulette.
+   - No PVP terminology.
+   - Exactly four games.
+   - Server remains authoritative.
+   - Frontend failures must not blank the Home screen.
    ========================================================= */
 
-(function(){
 
-"use strict";
+/* =========================================================
+   SAFE DOM REFERENCES
+   ========================================================= */
+
+const $ = id => document.getElementById(id);
+
+const enBtn = $("enBtn");
+const amBtn = $("amBtn");
+
+const home = $("home");
+const stakeScreen = $("stake");
+const arena = $("arena");
+
+const stakeGame = $("stakeGame");
+const stakesBox = $("stakes");
+const stakeStatus = $("stakeStatus");
+
+const arenaTitle = $("arenaTitle");
+const stakeValue = $("stakeValue");
+const arenaBody = $("arenaBody");
+
+const modal = $("modal");
+const modalTitle = $("modalTitle");
+const modalText = $("modalText");
 
 
-/* ---------------------------------------------------------
-   GLOBAL ERROR PROTECTION
-   --------------------------------------------------------- */
+/* =========================================================
+   SAFE STORAGE
+   ========================================================= */
 
-window.addEventListener("error",function(event){
-  console.error("DESTA PLAY error:",event.error || event.message);
-});
+function safeStorageGet(key, fallback = null){
 
-window.addEventListener("unhandledrejection",function(event){
-  console.error("DESTA PLAY promise error:",event.reason);
-});
+  try{
+
+    const value = window.localStorage.getItem(key);
+
+    return value === null ? fallback : value;
+
+  }catch(error){
+
+    console.warn("Storage read failed:", error);
+
+    return fallback;
+
+  }
+
+}
 
 
-/* ---------------------------------------------------------
+function safeStorageSet(key,value){
+
+  try{
+
+    window.localStorage.setItem(key,value);
+
+  }catch(error){
+
+    console.warn("Storage write failed:", error);
+
+  }
+
+}
+
+
+/* =========================================================
    TRANSLATIONS
-   --------------------------------------------------------- */
+   ========================================================= */
 
-const T={
+const T = {
 
-  en:{
-    chooseGame:"Choose Game",
-    homeSub:"Select a game to continue",
-    play:"PLAY",
-    bingoDesc:"Live bingo with B-I-N-G-O calls.",
-    bingo75Desc:"75-ball bingo with FREE center.",
-    bingo90Desc:"90-ball live ticket game.",
-    kenoDesc:"Pick numbers and watch the draw.",
-    chooseStake:"Choose Stake",
-    back:"← BACK",
-    join:"JOIN",
-    help:"HELP",
-    stake:"STAKE",
-    live:"LIVE",
-    close:"CLOSE",
-    placeBet:"PLACE BET",
-    bingo:"BINGO",
-    auto:"AUTO",
-    manual:"MANUAL",
-    recent:"RECENT CALLS",
-    waiting:"Waiting for round…",
-    accepted:"BET ACCEPTED",
-    selectNumbers:"Select 3–10 numbers per slot.",
-    slot:"SLOT",
-    how:"HOW TO PLAY",
+  en: {
+
+    chooseGame:
+      "Choose Game",
+
+    homeSub:
+      "Select a game to continue",
+
+    play:
+      "PLAY",
+
+    bingoDesc:
+      "Live bingo with B-I-N-G-O calls.",
+
+    bingo75Desc:
+      "75-ball bingo with FREE center.",
+
+    bingo90Desc:
+      "90-ball live ticket game.",
+
+    kenoDesc:
+      "Pick numbers and watch the draw.",
+
+    chooseStake:
+      "Choose Stake",
+
+    back:
+      "← BACK",
+
+    join:
+      "JOIN",
+
+    help:
+      "HELP",
+
+    stake:
+      "STAKE",
+
+    live:
+      "LIVE",
+
+    close:
+      "CLOSE",
+
+    placeBet:
+      "PLACE BET",
+
+    bingo:
+      "BINGO",
+
+    auto:
+      "AUTO",
+
+    manual:
+      "MANUAL",
+
+    recent:
+      "RECENT CALLS",
+
+    waiting:
+      "Waiting for round…",
+
+    accepted:
+      "BET ACCEPTED",
+
+    selectNumbers:
+      "Select 3–10 numbers per slot.",
+
+    slot:
+      "SLOT",
+
+    how:
+      "HOW TO PLAY",
 
     bingoHelp:
       "Choose your stake, join the round, select up to 2 cartellas, then PLACE BET. When your bet is accepted, the button changes to BINGO. Watch the official draw. When you have a qualifying pattern, press BINGO. The server verifies every claim.",
@@ -632,34 +900,85 @@ const T={
     bingo90Help:
       "Choose your stake, join the round, select your ticket, then PLACE BET. Watch the official 90-ball draw and press BINGO when your qualifying pattern is complete.",
 
-    error:"Something went wrong. Please try again."
+    error:
+      "Something went wrong. Please try again."
+
   },
 
-  am:{
-    chooseGame:"ጨዋታ ይምረጡ",
-    homeSub:"ለመቀጠል ጨዋታ ይምረጡ",
-    play:"ተጫወት",
-    bingoDesc:"የቀጥታ ቢንጎ ከ B-I-N-G-O ጥሪዎች ጋር።",
-    bingo75Desc:"75 ኳስ ቢንጎ ከነጻ መሃል ጋር።",
-    bingo90Desc:"90 ኳስ የቀጥታ ቲኬት ጨዋታ።",
-    kenoDesc:"ቁጥሮችን ይምረጡ እና ድራውን ይመልከቱ።",
-    chooseStake:"የውርርድ መጠን ይምረጡ",
-    back:"← ተመለስ",
-    join:"ተቀላቀል",
-    help:"እርዳታ",
-    stake:"ውርርድ",
-    live:"ቀጥታ",
-    close:"ዝጋ",
-    placeBet:"ውርርድ አስገባ",
-    bingo:"ቢንጎ",
-    auto:"ራስ-ሰር",
-    manual:"በእጅ",
-    recent:"የቅርብ ጥሪዎች",
-    waiting:"ዙሩን በመጠበቅ ላይ…",
-    accepted:"ውርርዱ ተቀብሏል",
-    selectNumbers:"በእያንዳንዱ ስሎት 3–10 ቁጥሮችን ይምረጡ።",
-    slot:"ስሎት",
-    how:"እንዴት ይጫወታሉ",
+
+  am: {
+
+    chooseGame:
+      "ጨዋታ ይምረጡ",
+
+    homeSub:
+      "ለመቀጠል ጨዋታ ይምረጡ",
+
+    play:
+      "ተጫወት",
+
+    bingoDesc:
+      "የቀጥታ ቢንጎ ከ B-I-N-G-O ጥሪዎች ጋር።",
+
+    bingo75Desc:
+      "75 ኳስ ቢንጎ ከነጻ መሃል ጋር።",
+
+    bingo90Desc:
+      "90 ኳስ የቀጥታ ቲኬት ጨዋታ።",
+
+    kenoDesc:
+      "ቁጥሮችን ይምረጡ እና ድራውን ይመልከቱ።",
+
+    chooseStake:
+      "የውርርድ መጠን ይምረጡ",
+
+    back:
+      "← ተመለስ",
+
+    join:
+      "ተቀላቀል",
+
+    help:
+      "እርዳታ",
+
+    stake:
+      "ውርርድ",
+
+    live:
+      "ቀጥታ",
+
+    close:
+      "ዝጋ",
+
+    placeBet:
+      "ውርርድ አስገባ",
+
+    bingo:
+      "ቢንጎ",
+
+    auto:
+      "ራስ-ሰር",
+
+    manual:
+      "በእጅ",
+
+    recent:
+      "የቅርብ ጥሪዎች",
+
+    waiting:
+      "ዙሩን በመጠበቅ ላይ…",
+
+    accepted:
+      "ውርርዱ ተቀብሏል",
+
+    selectNumbers:
+      "በእያንዳንዱ ስሎት 3–10 ቁጥሮችን ይምረጡ።",
+
+    slot:
+      "ስሎት",
+
+    how:
+      "እንዴት ይጫወታሉ",
 
     bingoHelp:
       "የውርርድ መጠን ይምረጡ፣ ዙሩን ይቀላቀሉ፣ እስከ 2 ካርድ ይምረጡ እና ውርርድ ያስገቡ። ውርርዱ ሲቀበል አዝራሩ ወደ ቢንጎ ይቀየራል። የቀጥታ ድራውን ይመልከቱ። የሚያሸንፍ ንድፍ ሲሟላ ቢንጎን ይጫኑ። አገልጋዩ ውጤቱን ያረጋግጣል።",
@@ -670,99 +989,53 @@ const T={
     bingo90Help:
       "የውርርድ መጠን ይምረጡ፣ ዙሩን ይቀላቀሉ፣ ቲኬትዎን ይምረጡ እና ውርርድ ያስገቡ። የ90 ኳስ ድራውን ይመልከቱ እና የሚያሸንፍ ንድፍ ሲሟላ ቢንጎን ይጫኑ።",
 
-    error:"ችግር ተፈጥሯል። እንደገና ይሞክሩ።"
+    error:
+      "ችግር ተፈጥሯል። እንደገና ይሞክሩ።"
+
   }
 
 };
 
 
-/* ---------------------------------------------------------
-   SAFE DOM HELPERS
-   --------------------------------------------------------- */
-
-const $=function(id){
-  return document.getElementById(id);
-};
-
-const enBtn=$("enBtn");
-const amBtn=$("amBtn");
-const home=$("home");
-const stakeScreen=$("stake");
-const arena=$("arena");
-const stakeGame=$("stakeGame");
-const stakesBox=$("stakes");
-const stakeStatus=$("stakeStatus");
-const stakeValue=$("stakeValue");
-const arenaTitle=$("arenaTitle");
-const arenaBody=$("arenaBody");
-const modal=$("modal");
-const modalTitle=$("modalTitle");
-const modalText=$("modalText");
-
-
-/* ---------------------------------------------------------
-   SAFE STORAGE
-   --------------------------------------------------------- */
-
-function getSavedLanguage(){
-
-  try{
-
-    const value=window.localStorage.getItem("destaLang");
-
-    if(value==="am") return "am";
-
-  }catch(error){
-
-    console.warn("localStorage unavailable:",error);
-
-  }
-
-  return "en";
-}
-
-function saveLanguage(value){
-
-  try{
-
-    window.localStorage.setItem("destaLang",value);
-
-  }catch(error){
-
-    console.warn("Could not save language:",error);
-
-  }
-
-}
-
-
-/* ---------------------------------------------------------
+/* =========================================================
    STATE
-   --------------------------------------------------------- */
+   ========================================================= */
 
-let lang=getSavedLanguage();
+let lang =
+  safeStorageGet("destaLang","en") === "am"
+    ? "am"
+    : "en";
 
-let currentGame="";
+let currentGame = "";
 
-let stake=0;
+let stake = 0;
 
-let history=["home"];
+let history = ["home"];
 
-let round=null;
+let round = null;
 
-let boards=[];
+let boards = [];
 
-let mode="auto";
+let mode = "auto";
 
-let activeKenoSlot=0;
+let activeKenoSlot = 0;
 
-let kenoSlots=[
+let kenoSlots = [
   new Set(),
   new Set()
 ];
 
+let kenoBetPlaced = [
+  false,
+  false
+];
 
-const stakes=[
+
+/* =========================================================
+   EXACT DESTA PLAY STAKES
+   ========================================================= */
+
+const stakes = [
   10,
   20,
   30,
@@ -794,589 +1067,722 @@ const stakes=[
 ];
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    TRANSLATION
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function tr(key){
 
-  try{
-
-    return T[lang][key] || T.en[key] || key;
-
-  }catch(error){
-
-    return T.en[key] || key;
-
-  }
+  return (
+    T[lang]?.[key] ||
+    T.en[key] ||
+    key
+  );
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    LANGUAGE
-   --------------------------------------------------------- */
+   ========================================================= */
 
-window.setLanguage=function(value){
+function setLanguage(language){
 
-  if(value!=="en" && value!=="am"){
-    value="en";
-  }
+  lang =
+    language === "am"
+      ? "am"
+      : "en";
 
-  lang=value;
-
-  saveLanguage(lang);
+  safeStorageSet(
+    "destaLang",
+    lang
+  );
 
   applyLanguage();
 
-  if(arena && arena.classList.contains("active")){
+  if(
+    arena &&
+    arena.classList.contains("active")
+  ){
 
     renderArena();
 
   }
 
-};
+}
 
 
 function applyLanguage(){
 
   try{
 
-    document.documentElement.lang=lang==="am" ? "am" : "en";
+    document.documentElement.lang =
+      lang === "am"
+        ? "am"
+        : "en";
 
-    document.querySelectorAll("[data-i]").forEach(function(element){
+    document
+      .querySelectorAll("[data-i]")
+      .forEach(element => {
 
-      const key=element.getAttribute("data-i");
+        const key =
+          element.dataset.i;
 
-      element.textContent=tr(key);
+        element.textContent =
+          tr(key);
 
-    });
+      });
 
     if(enBtn){
 
-      enBtn.classList.toggle("active",lang==="en");
+      enBtn.classList.toggle(
+        "active",
+        lang === "en"
+      );
 
     }
 
     if(amBtn){
 
-      amBtn.classList.toggle("active",lang==="am");
+      amBtn.classList.toggle(
+        "active",
+        lang === "am"
+      );
 
     }
 
   }catch(error){
 
-    console.error("Language rendering error:",error);
+    console.warn(
+      "Language rendering error:",
+      error
+    );
 
   }
 
 }
 
 
-/* ---------------------------------------------------------
-   SCREEN NAVIGATION
-   --------------------------------------------------------- */
+/* =========================================================
+   SAFE SCREEN NAVIGATION
+   ========================================================= */
 
 function show(id){
 
   try{
 
-    const target=$(id);
+    const target =
+      $(id);
 
     if(!target){
 
-      console.warn("Screen not found:",id);
+      console.warn(
+        "Screen not found:",
+        id
+      );
 
       return;
 
     }
 
-    document.querySelectorAll(".screen").forEach(function(screen){
+    document
+      .querySelectorAll(".screen")
+      .forEach(screen => {
 
-      screen.classList.remove("active");
+        screen.classList.remove(
+          "active"
+        );
 
-    });
+      });
 
-    target.classList.add("active");
+    target.classList.add(
+      "active"
+    );
 
   }catch(error){
 
-    console.error("Screen navigation error:",error);
+    console.error(
+      "Navigation error:",
+      error
+    );
+
+    if(home){
+
+      document
+        .querySelectorAll(".screen")
+        .forEach(screen =>
+          screen.classList.remove("active")
+        );
+
+      home.classList.add(
+        "active"
+      );
+
+    }
 
   }
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    CHOOSE GAME
-   --------------------------------------------------------- */
+   ========================================================= */
 
-window.chooseGame=function(game){
+function chooseGame(game){
 
-  try{
+  const allowed = [
+    "bingo",
+    "bingo75",
+    "bingo90",
+    "keno"
+  ];
 
-    currentGame=game;
+  if(!allowed.includes(game)){
 
-    stake=0;
+    console.warn(
+      "Unknown game:",
+      game
+    );
 
-    round=null;
+    return;
 
-    boards=[];
+  }
 
-    mode="auto";
+  currentGame =
+    game;
 
-    kenoSlots=[
-      new Set(),
-      new Set()
-    ];
+  stake = 0;
 
-    activeKenoSlot=0;
+  round = null;
 
-    history.push("stake");
+  boards = [];
 
-    let gameName="";
+  kenoSlots = [
+    new Set(),
+    new Set()
+  ];
 
-    if(game==="bingo75"){
+  activeKenoSlot = 0;
 
-      gameName="Bingo 75";
+  kenoBetPlaced = [
+    false,
+    false
+  ];
 
-    }else if(game==="bingo90"){
+  history.push(
+    "stake"
+  );
 
-      gameName="Bingo 90";
+  if(stakeGame){
 
-    }else if(game==="keno"){
+    stakeGame.textContent =
+      game === "bingo75"
+        ? "Bingo 75"
+        : game === "bingo90"
+          ? "Bingo 90"
+          : game === "bingo"
+            ? "Bingo"
+            : "Keno";
 
-      gameName="Keno";
+  }
 
-    }else{
+  if(stakesBox){
 
-      gameName="Bingo";
+    stakesBox.innerHTML =
+      stakes
+        .map(
+          value =>
+            `<button class="stake" onclick="selectStake(${value})">${value}</button>`
+        )
+        .join("");
 
-    }
+  }
 
-    if(stakeGame){
+  if(stakeStatus){
 
-      stakeGame.textContent=gameName;
+    stakeStatus.textContent =
+      "";
 
-    }
+  }
 
-    if(stakesBox){
+  show("stake");
 
-      stakesBox.innerHTML=stakes.map(function(value){
+}
 
-        return `
-          <button
-            type="button"
-            class="stake"
-            onclick="selectStake(${value})">
-            ${value}
-          </button>
-        `;
 
-      }).join("");
+/* =========================================================
+   STAKE
+   ========================================================= */
 
-    }
+function selectStake(value){
+
+  const numeric =
+    Number(value);
+
+  if(!stakes.includes(numeric)){
+
+    return;
+
+  }
+
+  stake =
+    numeric;
+
+  document
+    .querySelectorAll(".stake")
+    .forEach(button => {
+
+      button.classList.toggle(
+        "selected",
+        Number(button.textContent) === numeric
+      );
+
+    });
+
+  if(stakeStatus){
+
+    stakeStatus.textContent =
+      "";
+
+  }
+
+}
+
+
+/* =========================================================
+   JOIN
+   ========================================================= */
+
+async function joinGame(){
+
+  if(!stake){
 
     if(stakeStatus){
 
-      stakeStatus.textContent="";
-
-    }
-
-    show("stake");
-
-  }catch(error){
-
-    console.error("chooseGame error:",error);
-
-  }
-
-};
-
-
-/* ---------------------------------------------------------
-   STAKE
-   --------------------------------------------------------- */
-
-window.selectStake=function(value){
-
-  stake=Number(value);
-
-  if(!stakesBox) return;
-
-  stakesBox.querySelectorAll(".stake").forEach(function(button){
-
-    button.classList.toggle(
-      "selected",
-      Number(button.textContent.trim())===stake
-    );
-
-  });
-
-};
-
-
-/* ---------------------------------------------------------
-   JOIN
-   --------------------------------------------------------- */
-
-window.joinGame=function(){
-
-  try{
-
-    if(!stake){
-
-      if(stakeStatus){
-
-        stakeStatus.textContent=
-          lang==="am"
+      stakeStatus.textContent =
+        lang === "am"
           ? "መጀመሪያ የውርርድ መጠን ይምረጡ።"
           : "Select a stake first.";
 
-      }
-
-      return;
-
     }
 
-    history.push("arena");
-
-    if(stakeValue){
-
-      stakeValue.textContent=stake;
-
-    }
-
-    renderArena();
-
-    show("arena");
-
-    enterVoice();
-
-  }catch(error){
-
-    console.error("joinGame error:",error);
+    return;
 
   }
 
-};
+  if(!currentGame){
 
+    if(stakeStatus){
 
-/* ---------------------------------------------------------
-   BACK
-   --------------------------------------------------------- */
-
-window.goBack=function(){
-
-  try{
-
-    if(history.length>1){
-
-      history.pop();
-
-      const previous=history[history.length-1];
-
-      show(previous);
-
-    }else{
-
-      show("home");
+      stakeStatus.textContent =
+        tr("error");
 
     }
 
-    leaveVoice();
+    return;
 
-  }catch(error){
+  }
 
-    console.error("goBack error:",error);
+  history.push(
+    "arena"
+  );
+
+  if(stakeValue){
+
+    stakeValue.textContent =
+      stake;
+
+  }
+
+  renderArena();
+
+  show("arena");
+
+  enterVoice();
+
+}
+
+
+/* =========================================================
+   BACK
+   ========================================================= */
+
+function goBack(){
+
+  leaveVoice();
+
+  if(history.length > 1){
+
+    history.pop();
+
+    const previous =
+      history[history.length - 1];
+
+    show(previous);
+
+  }else{
+
+    history = ["home"];
 
     show("home");
 
   }
 
-};
+}
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    HELP
-   --------------------------------------------------------- */
+   ========================================================= */
 
-window.showHelp=function(){
+function showHelp(){
 
-  try{
+  if(!modal){
 
-    if(!modal || !modalTitle || !modalText) return;
-
-    modalTitle.textContent=tr("how");
-
-    if(currentGame==="keno"){
-
-      modalText.textContent=tr("kenoHelp");
-
-    }else if(currentGame==="bingo90"){
-
-      modalText.textContent=tr("bingo90Help");
-
-    }else{
-
-      modalText.textContent=tr("bingoHelp");
-
-    }
-
-    modal.classList.add("show");
-
-  }catch(error){
-
-    console.error("Help error:",error);
+    return;
 
   }
 
-};
+  if(modalTitle){
 
-
-window.closeHelp=function(){
-
-  try{
-
-    if(modal){
-
-      modal.classList.remove("show");
-
-    }
-
-  }catch(error){
-
-    console.error("Close help error:",error);
+    modalTitle.textContent =
+      tr("how");
 
   }
 
-};
+  if(modalText){
+
+    modalText.textContent =
+      currentGame === "keno"
+        ? tr("kenoHelp")
+        : currentGame === "bingo90"
+          ? tr("bingo90Help")
+          : tr("bingoHelp");
+
+  }
+
+  modal.classList.add(
+    "show"
+  );
+
+}
 
 
-/* ---------------------------------------------------------
+function closeHelp(){
+
+  if(modal){
+
+    modal.classList.remove(
+      "show"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
    ARENA
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function renderArena(){
 
-  try{
+  if(!currentGame){
 
-    if(!arenaTitle || !arenaBody) return;
-
-    if(currentGame==="bingo75"){
-
-      arenaTitle.textContent="BINGO 75";
-
-    }else if(currentGame==="bingo90"){
-
-      arenaTitle.textContent="BINGO 90";
-
-    }else if(currentGame==="keno"){
-
-      arenaTitle.textContent="KENO";
-
-    }else{
-
-      arenaTitle.textContent="BINGO";
-
-    }
-
-    if(stakeValue){
-
-      stakeValue.textContent=stake;
-
-    }
-
-    if(currentGame==="keno"){
-
-      renderKeno();
-
-    }else{
-
-      renderBingo();
-
-    }
-
-    applyLanguage();
-
-  }catch(error){
-
-    console.error("Arena rendering error:",error);
-
-    if(arenaBody){
-
-      arenaBody.innerHTML=`
-        <div class="msg">
-          ${tr("error")}
-        </div>
-      `;
-
-    }
+    return;
 
   }
+
+  if(arenaTitle){
+
+    arenaTitle.textContent =
+      currentGame === "bingo75"
+        ? "BINGO 75"
+        : currentGame === "bingo90"
+          ? "BINGO 90"
+          : currentGame.toUpperCase();
+
+  }
+
+  if(stakeValue){
+
+    stakeValue.textContent =
+      stake;
+
+  }
+
+  if(currentGame === "keno"){
+
+    renderKeno();
+
+  }else{
+
+    renderBingo();
+
+  }
+
+  applyLanguage();
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    BINGO
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function renderBingo(){
 
-  if(!arenaBody) return;
+  if(!boards.length){
 
-  try{
+    boards = [
+      makeCard(
+        currentGame === "bingo90"
+          ? 90
+          : 75
+      ),
 
-    if(!boards.length){
-
-      const version=currentGame==="bingo90" ? 90 : 75;
-
-      boards=[
-        makeCard(version),
-        makeCard(version)
-      ];
-
-    }
-
-    arenaBody.innerHTML=`
-
-      <div class="ball" id="ball">—</div>
-
-      <div
-        class="sub"
-        style="text-align:center">
-        ${tr("recent")}
-      </div>
-
-      <div
-        class="recent"
-        id="recent">
-      </div>
-
-      <div class="mode">
-
-        <button
-          type="button"
-          class="${mode==="auto"?"active":""}"
-          onclick="setMode('auto')">
-          ${tr("auto")}
-        </button>
-
-        <button
-          type="button"
-          class="${mode==="manual"?"active":""}"
-          onclick="setMode('manual')">
-          ${tr("manual")}
-        </button>
-
-      </div>
-
-      <div class="boards">
-
-        ${boards.map(function(board,index){
-
-          return renderBoard(board,index);
-
-        }).join("")}
-
-      </div>
-
-    `;
-
-  }catch(error){
-
-    console.error("Bingo render error:",error);
+      makeCard(
+        currentGame === "bingo90"
+          ? 90
+          : 75
+      )
+    ];
 
   }
+
+  if(!arenaBody){
+
+    return;
+
+  }
+
+  arenaBody.innerHTML = `
+
+    <div class="ball" id="ball">
+      —
+    </div>
+
+    <div
+      class="sub"
+      style="text-align:center">
+      ${tr("recent")}
+    </div>
+
+    <div
+      class="recent"
+      id="recent">
+    </div>
+
+    <div class="mode">
+
+      <button
+        class="${mode === "auto" ? "active" : ""}"
+        onclick="setMode('auto')">
+        ${tr("auto")}
+      </button>
+
+      <button
+        class="${mode === "manual" ? "active" : ""}"
+        onclick="setMode('manual')">
+        ${tr("manual")}
+      </button>
+
+    </div>
+
+    <div class="boards">
+
+      ${boards
+        .map(
+          (board,index) =>
+            renderBoard(
+              board,
+              index
+            )
+        )
+        .join("")}
+
+    </div>
+
+  `;
 
 }
 
 
-/* ---------------------------------------------------------
-   CREATE BINGO CARD
-   --------------------------------------------------------- */
+/* =========================================================
+   BINGO CARD GENERATOR
+   ========================================================= */
 
 function makeCard(version){
 
-  if(version===90){
+  if(version === 90){
 
-    const rows=[];
+    const card = [];
 
-    for(let r=0;r<3;r++){
+    for(let row = 0; row < 3; row++){
 
-      const row=[];
+      const values =
+        new Array(9).fill(null);
 
-      for(let c=0;c<9;c++){
+      const used =
+        new Set();
 
-        row.push(
-          Math.random()<0.45
-          ? null
-          : Math.floor(Math.random()*90)+1
-        );
+      while(
+        used.size < 5
+      ){
 
-      }
+        const position =
+          Math.floor(
+            Math.random() * 9
+          );
 
-      while(row.filter(Boolean).length<5){
+        if(
+          values[position] !== null
+        ){
 
-        const index=Math.floor(Math.random()*9);
+          continue;
 
-        if(!row[index]){
+        }
 
-          row[index]=Math.floor(Math.random()*90)+1;
+        let number =
+          Math.floor(
+            Math.random() * 90
+          ) + 1;
+
+        let attempts = 0;
+
+        while(
+          used.has(number) &&
+          attempts < 200
+        ){
+
+          number =
+            Math.floor(
+              Math.random() * 90
+            ) + 1;
+
+          attempts++;
+
+        }
+
+        if(
+          !used.has(number)
+        ){
+
+          used.add(number);
+
+          values[position] =
+            number;
 
         }
 
       }
 
-      rows.push(row);
+      card.push(
+        values
+      );
 
     }
 
-    return rows;
+    return card;
 
   }
 
 
-  const nums=[
-    ...Array(75)
-  ].map(function(_,index){
+  const pool =
+    Array.from(
+      {length:75},
+      (_,index) =>
+        index + 1
+    );
 
-    return index+1;
+  /*
+   * Standard-style columns:
+   * B = 1-15
+   * I = 16-30
+   * N = 31-45
+   * G = 46-60
+   * O = 61-75
+   */
 
-  });
+  const card = [];
 
+  for(
+    let row = 0;
+    row < 5;
+    row++
+  ){
 
-  const rows=[];
+    const rowValues = [];
 
+    for(
+      let column = 0;
+      column < 5;
+      column++
+    ){
 
-  for(let r=0;r<5;r++){
+      if(
+        row === 2 &&
+        column === 2
+      ){
 
-    rows.push(
-      nums.slice(
-        r*5,
-        r*5+5
-      )
+        rowValues.push(0);
+
+        continue;
+
+      }
+
+      const start =
+        column * 15 + 1;
+
+      const end =
+        column * 15 + 15;
+
+      let number;
+
+      do{
+
+        number =
+          Math.floor(
+            Math.random() *
+            (end - start + 1)
+          ) + start;
+
+      }while(
+        rowValues.includes(number) ||
+        card.some(
+          existingRow =>
+            existingRow[column] === number
+        )
+      );
+
+      rowValues.push(
+        number
+      );
+
+    }
+
+    card.push(
+      rowValues
     );
 
   }
 
-
-  rows[2][2]=0;
-
-  return rows;
+  return card;
 
 }
 
 
-/* ---------------------------------------------------------
-   RENDER BOARD
-   --------------------------------------------------------- */
+/* =========================================================
+   BINGO BOARD RENDER
+   ========================================================= */
 
-function renderBoard(board,index){
+function renderBoard(
+  board,
+  index
+){
 
-  if(currentGame==="bingo90"){
+  if(currentGame === "bingo90"){
 
     return `
 
@@ -1385,7 +1791,7 @@ function renderBoard(board,index){
         <div class="cardhead">
 
           <b>
-            ${tr("slot")} ${index+1}
+            ${tr("slot")} ${index + 1}
           </b>
 
           <span></span>
@@ -1396,28 +1802,27 @@ function renderBoard(board,index){
           class="grid"
           style="grid-template-columns:repeat(9,1fr)">
 
-          ${board.flat().map(function(number,cellIndex){
+          ${board
+            .flat()
+            .map(
+              (number,cellIndex) => `
 
-            return `
+                <button
+                  class="cell ${number === null ? "free" : ""}"
+                  ${number === null ? "disabled" : ""}
+                  onclick="markCell(${index},${cellIndex})">
 
-              <button
-                type="button"
-                class="cell ${number===0?"free":""}"
-                ${!number?"disabled":""}
-                onclick="markCell(${index},${cellIndex})">
+                  ${number === null ? "" : number}
 
-                ${number||""}
+                </button>
 
-              </button>
-
-            `;
-
-          }).join("")}
+              `
+            )
+            .join("")}
 
         </div>
 
         <button
-          type="button"
           class="betbtn"
           id="bet-${index}"
           onclick="placeBingoBet(${index})">
@@ -1440,34 +1845,33 @@ function renderBoard(board,index){
       <div class="cardhead">
 
         <b>
-          Cartella ${index+1}
+          Cartella ${index + 1}
         </b>
 
       </div>
 
       <div class="grid">
 
-        ${board.flat().map(function(number,cellIndex){
+        ${board
+          .flat()
+          .map(
+            (number,cellIndex) => `
 
-          return `
+              <button
+                class="cell ${number === 0 ? "free" : ""}"
+                onclick="markCell(${index},${cellIndex})">
 
-            <button
-              type="button"
-              class="cell ${number===0?"free":""}"
-              onclick="markCell(${index},${cellIndex})">
+                ${number === 0 ? "FREE" : number}
 
-              ${number===0?"FREE":number}
+              </button>
 
-            </button>
-
-          `;
-
-        }).join("")}
+            `
+          )
+          .join("")}
 
       </div>
 
       <button
-        type="button"
         class="betbtn"
         id="bet-${index}"
         onclick="placeBingoBet(${index})">
@@ -1483,293 +1887,290 @@ function renderBoard(board,index){
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    BINGO MODE
-   --------------------------------------------------------- */
+   ========================================================= */
 
-window.setMode=function(value){
+function setMode(newMode){
 
-  mode=value;
+  mode =
+    newMode === "manual"
+      ? "manual"
+      : "auto";
 
   renderArena();
-
-};
-
-
-window.markCell=function(boardIndex,cellIndex){
-
-  if(mode!=="manual") return;
-
-  try{
-
-    const cards=document.querySelectorAll(".boards .card");
-
-    if(!cards[boardIndex]) return;
-
-    const cells=cards[boardIndex].querySelectorAll(".cell");
-
-    if(!cells[cellIndex]) return;
-
-    cells[cellIndex].classList.toggle("marked");
-
-  }catch(error){
-
-    console.error("markCell error:",error);
-
-  }
-
-};
-
-
-/* ---------------------------------------------------------
-   API
-   --------------------------------------------------------- */
-
-async function api(url,method="GET",body){
-
-  try{
-
-    const options={
-      method:method,
-      headers:{
-        "Content-Type":"application/json"
-      }
-    };
-
-    if(body!==undefined && body!==null){
-
-      options.body=JSON.stringify(body);
-
-    }
-
-
-    const controller=
-      typeof AbortController!=="undefined"
-      ? new AbortController()
-      : null;
-
-
-    let timer=null;
-
-
-    if(controller){
-
-      options.signal=controller.signal;
-
-      timer=setTimeout(function(){
-
-        controller.abort();
-
-      },10000);
-
-    }
-
-
-    let response;
-
-
-    try{
-
-      response=await fetch(url,options);
-
-    }finally{
-
-      if(timer){
-
-        clearTimeout(timer);
-
-      }
-
-    }
-
-
-    let data={};
-
-
-    try{
-
-      data=await response.json();
-
-    }catch(error){
-
-      data={};
-
-    }
-
-
-    return {
-      ...data,
-      ok:response.ok && data.ok!==false
-    };
-
-
-  }catch(error){
-
-    console.warn("API unavailable:",url,error);
-
-    return {
-      ok:false,
-      message:"Server unavailable."
-    };
-
-  }
 
 }
 
 
-/* ---------------------------------------------------------
-   BINGO BET
-   --------------------------------------------------------- */
+/* =========================================================
+   MANUAL MARKING
+   ========================================================= */
 
-window.placeBingoBet=async function(index){
+function markCell(
+  boardIndex,
+  cellIndex
+){
 
-  const button=$("bet-"+index);
-
-  if(!button) return;
-
-
-  if(button.dataset.accepted==="1"){
+  if(mode !== "manual"){
 
     return;
 
   }
 
+  const cards =
+    document.querySelectorAll(
+      ".boards .card"
+    );
 
-  button.disabled=true;
+  const card =
+    cards[boardIndex];
 
+  if(!card){
+
+    return;
+
+  }
+
+  const cells =
+    card.querySelectorAll(
+      ".cell"
+    );
+
+  const cell =
+    cells[cellIndex];
+
+  if(!cell){
+
+    return;
+
+  }
+
+  cell.classList.toggle(
+    "marked"
+  );
+
+}
+
+
+/* =========================================================
+   BINGO BET
+   ========================================================= */
+
+async function placeBingoBet(
+  index
+){
+
+  const button =
+    $(`bet-${index}`);
+
+  if(!button){
+
+    return;
+
+  }
+
+  if(
+    button.dataset.accepted === "1"
+  ){
+
+    return;
+
+  }
+
+  if(!stake){
+
+    alert(
+      lang === "am"
+        ? "መጀመሪያ የውርርድ መጠን ይምረጡ።"
+        : "Select a stake first."
+    );
+
+    return;
+
+  }
+
+  if(
+    !boards[index]
+  ){
+
+    alert(
+      tr("error")
+    );
+
+    return;
+
+  }
+
+  button.disabled =
+    true;
+
+  const originalText =
+    tr("placeBet");
+
+  button.textContent =
+    originalText;
 
   try{
 
-    const body={
+    const body = {
 
       roundId:
         round?.roundId ||
         round?.id ||
         null,
 
-      stake:stake,
+      stake:
+        stake,
 
-      card:boards[index],
+      card:
+        boards[index],
 
-      cardIndex:index
+      cardIndex:
+        index
 
     };
 
+    const response =
+      await api(
+        "/api/game/" +
+        currentGame +
+        "/bet",
+        "POST",
+        body
+      );
 
-    const result=await api(
-      "/api/game/"+currentGame+"/bet",
-      "POST",
-      body
-    );
-
-
-    if(!result.ok){
+    if(!response.ok){
 
       throw new Error(
-        result.message ||
+        response.message ||
+        response.error ||
         tr("error")
       );
 
     }
 
+    button.dataset.accepted =
+      "1";
 
-    button.dataset.accepted="1";
+    button.classList.add(
+      "accepted"
+    );
 
-    button.classList.add("accepted");
+    button.textContent =
+      tr("bingo");
 
-    button.textContent=tr("bingo");
-
-
-    /*
-      Important:
-      Once accepted, the button remains
-      accepted and cannot submit twice.
-    */
+    button.disabled =
+      false;
 
   }catch(error){
 
-    button.disabled=false;
+    console.warn(
+      "Bingo bet error:",
+      error
+    );
 
-    button.textContent=tr("placeBet");
+    button.disabled =
+      false;
+
+    button.textContent =
+      originalText;
 
     alert(
-      error.message ||
+      error?.message ||
       tr("error")
     );
 
   }
 
-};
+}
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    KENO
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function renderKeno(){
 
-  if(!arenaBody) return;
+  if(!arenaBody){
 
+    return;
 
-  try{
+  }
 
-    const slot1Active=activeKenoSlot===0;
-    const slot2Active=activeKenoSlot===1;
+  const active =
+    activeKenoSlot;
 
+  const selected =
+    kenoSlots[active];
 
-    arenaBody.innerHTML=`
+  arenaBody.innerHTML = `
 
-      <div
-        class="sub"
-        style="margin-bottom:8px">
+    <div
+      class="sub"
+      style="margin-bottom:8px">
 
-        ${tr("selectNumbers")}
+      ${tr("selectNumbers")}
 
-      </div>
+    </div>
 
+    <div class="slotTabs">
 
-      <div class="mode">
+      <button
+        class="${active === 0 ? "active" : ""}"
+        onclick="selectKenoSlot(0)">
 
-        <button
-          type="button"
-          class="${slot1Active?"active":""}"
-          onclick="switchKenoSlot(0)">
+        ${tr("slot")} 1
 
-          ${tr("slot")} 1
+        ${
+          kenoBetPlaced[0]
+            ? " ✓"
+            : ""
+        }
 
-        </button>
+      </button>
 
+      <button
+        class="${active === 1 ? "active" : ""}"
+        onclick="selectKenoSlot(1)">
 
-        <button
-          type="button"
-          class="${slot2Active?"active":""}"
-          onclick="switchKenoSlot(1)">
+        ${tr("slot")} 2
 
-          ${tr("slot")} 2
+        ${
+          kenoBetPlaced[1]
+            ? " ✓"
+            : ""
+        }
 
-        </button>
+      </button>
 
-      </div>
+    </div>
 
+    <div
+      class="numbers">
 
-      <div class="numbers">
-
-        ${Array.from(
+      ${Array
+        .from(
           {length:80},
-          function(_,index){
+          (_,index) => {
 
-            const number=index+1;
+            const number =
+              index + 1;
 
             return `
 
               <button
-                type="button"
                 class="num ${
-                  kenoSlots[activeKenoSlot].has(number)
-                  ?"selected"
-                  :""
+                  selected.has(number)
+                    ? "selected"
+                    : ""
                 }"
-                onclick="toggleKeno(${activeKenoSlot},${number})">
+                ${
+                  kenoBetPlaced[active]
+                    ? "disabled"
+                    : ""
+                }
+                onclick="toggleKeno(${active},${number})">
 
                 ${number}
 
@@ -1778,282 +2179,479 @@ function renderKeno(){
             `;
 
           }
-        ).join("")}
+        )
+        .join("")}
 
-      </div>
+    </div>
 
+    <button
+      class="primary"
+      ${
+        kenoBetPlaced[active]
+          ? "disabled"
+          : ""
+      }
+      onclick="placeKenoBet()">
 
-      <button
-        type="button"
-        class="primary"
-        onclick="placeKenoBet()">
+      ${
+        kenoBetPlaced[active]
+          ? tr("accepted")
+          : tr("placeBet")
+      }
 
-        ${tr("placeBet")}
+    </button>
 
-      </button>
-
-    `;
-
-  }catch(error){
-
-    console.error("Keno render error:",error);
-
-  }
+  `;
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    KENO SLOT SWITCH
-   --------------------------------------------------------- */
+   ========================================================= */
 
-window.switchKenoSlot=function(slotIndex){
+function selectKenoSlot(slot){
 
-  if(slotIndex!==0 && slotIndex!==1){
+  if(
+    slot !== 0 &&
+    slot !== 1
+  ){
 
     return;
 
   }
 
-  activeKenoSlot=slotIndex;
+  activeKenoSlot =
+    slot;
 
   renderKeno();
 
-};
+}
 
 
-/* ---------------------------------------------------------
-   KENO NUMBER
-   --------------------------------------------------------- */
+/* =========================================================
+   KENO NUMBER SELECTION
+   ========================================================= */
 
-window.toggleKeno=function(slotIndex,number){
+function toggleKeno(
+  slot,
+  number
+){
 
-  try{
+  if(
+    slot !== 0 &&
+    slot !== 1
+  ){
 
-    if(slotIndex!==0 && slotIndex!==1){
-
-      return;
-
-    }
-
-    if(number<1 || number>80){
-
-      return;
-
-    }
-
-
-    const set=kenoSlots[slotIndex];
-
-
-    if(set.has(number)){
-
-      set.delete(number);
-
-    }else if(set.size<10){
-
-      set.add(number);
-
-    }
-
-
-    activeKenoSlot=slotIndex;
-
-    renderKeno();
-
-  }catch(error){
-
-    console.error("Keno selection error:",error);
+    return;
 
   }
 
-};
+  if(
+    kenoBetPlaced[slot]
+  ){
 
+    return;
 
-/* ---------------------------------------------------------
-   KENO BET
-   --------------------------------------------------------- */
+  }
 
-window.placeKenoBet=async function(){
+  const set =
+    kenoSlots[slot];
 
-  try{
+  if(
+    set.has(number)
+  ){
 
-    const slots=kenoSlots.map(function(set){
+    set.delete(number);
 
-      return [...set];
-
-    });
-
+  }else{
 
     if(
-      slots[0].length<3 &&
-      slots[1].length<3
+      set.size >= 10
     ){
-
-      alert(tr("selectNumbers"));
 
       return;
 
     }
 
+    set.add(number);
 
-    /*
-      Empty slot is allowed.
-      Any selected slot must contain 3–10 numbers.
-    */
+  }
 
-    for(let i=0;i<slots.length;i++){
+  activeKenoSlot =
+    slot;
 
-      if(
-        slots[i].length!==0 &&
-        (
-          slots[i].length<3 ||
-          slots[i].length>10
-        )
-      ){
+  renderKeno();
 
-        alert(tr("selectNumbers"));
-
-        return;
-
-      }
-
-    }
+}
 
 
-    const result=await api(
-      "/api/game/keno/bet",
-      "POST",
-      {
-        roundId:
-          round?.roundId ||
-          round?.id ||
-          null,
+/* =========================================================
+   KENO BET
+   ========================================================= */
 
-        stake:stake,
+async function placeKenoBet(){
 
-        slots:slots
+  const slot =
+    activeKenoSlot;
 
-      }
+  const numbers =
+    [...kenoSlots[slot]];
+
+  if(
+    numbers.length < 3 ||
+    numbers.length > 10
+  ){
+
+    alert(
+      tr("selectNumbers")
     );
 
+    return;
 
-    if(!result.ok){
+  }
+
+  if(!stake){
+
+    alert(
+      lang === "am"
+        ? "መጀመሪያ የውርርድ መጠን ይምረጡ።"
+        : "Select a stake first."
+    );
+
+    return;
+
+  }
+
+  if(
+    kenoBetPlaced[slot]
+  ){
+
+    return;
+
+  }
+
+  try{
+
+    const slots =
+      kenoSlots.map(
+        set => [...set]
+      );
+
+    const response =
+      await api(
+        "/api/game/keno/bet",
+        "POST",
+        {
+
+          roundId:
+            round?.roundId ||
+            round?.id ||
+            null,
+
+          stake:
+            stake,
+
+          slots:
+            slots
+
+        }
+      );
+
+    if(!response.ok){
 
       throw new Error(
-        result.message ||
+        response.message ||
+        response.error ||
         tr("error")
       );
 
     }
 
+    kenoBetPlaced[slot] =
+      true;
 
-    alert(tr("accepted"));
-
-
-  }catch(error){
+    renderKeno();
 
     alert(
-      error.message ||
-      tr("error")
+      tr("accepted")
     );
-
-  }
-
-};
-
-
-/* ---------------------------------------------------------
-   LOAD ROUND
-   --------------------------------------------------------- */
-
-async function loadRound(){
-
-  try{
-
-    const result=await api(
-      "/api/game/"+currentGame+"/round?stake="+encodeURIComponent(stake)
-    );
-
-
-    if(result.ok){
-
-      round=result.round || result;
-
-    }
 
   }catch(error){
 
-    console.warn("Round loading failed:",error);
+    console.warn(
+      "Keno bet error:",
+      error
+    );
+
+    alert(
+      error?.message ||
+      tr("error")
+    );
 
   }
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
+   SAFE API
+   ========================================================= */
+
+async function api(
+  url,
+  method = "GET",
+  body = null
+){
+
+  const options = {
+
+    method,
+
+    headers:{
+      "Content-Type":
+        "application/json",
+
+      "Accept":
+        "application/json"
+    },
+
+    cache:
+      "no-store"
+
+  };
+
+  if(body !== null){
+
+    options.body =
+      JSON.stringify(body);
+
+  }
+
+  let controller = null;
+
+  let timeout = null;
+
+  try{
+
+    controller =
+      new AbortController();
+
+    options.signal =
+      controller.signal;
+
+    timeout =
+      setTimeout(
+        () => {
+
+          try{
+
+            controller.abort();
+
+          }catch(_){}
+
+        },
+        10000
+      );
+
+    const response =
+      await fetch(
+        url,
+        options
+      );
+
+    let data = {};
+
+    try{
+
+      data =
+        await response.json();
+
+    }catch(_){
+
+      data = {};
+
+    }
+
+    return {
+
+      ...data,
+
+      ok:
+        response.ok &&
+        data.ok !== false
+
+    };
+
+  }catch(error){
+
+    console.warn(
+      "API connection error:",
+      error
+    );
+
+    return {
+
+      ok:false,
+
+      message:
+        error?.name === "AbortError"
+          ? "Server request timed out."
+          : "Server connection unavailable."
+
+    };
+
+  }finally{
+
+    if(timeout){
+
+      clearTimeout(
+        timeout
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   LOAD CURRENT SERVER ROUND
+   ========================================================= */
+
+async function loadRound(){
+
+  if(!currentGame){
+
+    return null;
+
+  }
+
+  try{
+
+    const response =
+      await api(
+        "/api/game/" +
+        currentGame +
+        "/round?stake=" +
+        encodeURIComponent(stake)
+      );
+
+    if(
+      response.ok
+    ){
+
+      round =
+        response.round ||
+        response;
+
+      return round;
+
+    }
+
+  }catch(error){
+
+    console.warn(
+      "Round load failed:",
+      error
+    );
+
+  }
+
+  return null;
+
+}
+
+
+/* =========================================================
    BINGO LETTER
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function bingoLetter(number){
 
-  if(number<=15) return "B";
+  const n =
+    Number(number);
 
-  if(number<=30) return "I";
+  if(n <= 15){
 
-  if(number<=45) return "N";
+    return "B";
 
-  if(number<=60) return "G";
+  }
+
+  if(n <= 30){
+
+    return "I";
+
+  }
+
+  if(n <= 45){
+
+    return "N";
+
+  }
+
+  if(n <= 60){
+
+    return "G";
+
+  }
 
   return "O";
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    VOICE
-   --------------------------------------------------------- */
+   ========================================================= */
 
 function speak(text){
 
   try{
 
-    if(!("speechSynthesis" in window)){
+    if(
+      !("speechSynthesis" in window)
+    ){
 
       return;
 
     }
 
-
     window.speechSynthesis.cancel();
 
+    const utterance =
+      new SpeechSynthesisUtterance(
+        String(text)
+      );
 
-    const utterance=
-      new SpeechSynthesisUtterance(text);
+    utterance.lang =
+      lang === "am"
+        ? "am-ET"
+        : "en-US";
 
-
-    utterance.lang=
-      lang==="am"
-      ? "am-ET"
-      : "en-US";
-
-
-    utterance.rate=.88;
-
+    utterance.rate =
+      0.88;
 
     window.speechSynthesis.speak(
       utterance
     );
 
-
   }catch(error){
 
-    console.warn("Voice unavailable:",error);
+    console.warn(
+      "Voice error:",
+      error
+    );
 
   }
 
 }
 
+
+/* =========================================================
+   ENTER VOICE / ROUND
+   ========================================================= */
 
 function enterVoice(){
 
@@ -2066,7 +2664,9 @@ function leaveVoice(){
 
   try{
 
-    if("speechSynthesis" in window){
+    if(
+      "speechSynthesis" in window
+    ){
 
       window.speechSynthesis.cancel();
 
@@ -2074,135 +2674,238 @@ function leaveVoice(){
 
   }catch(error){
 
-    console.warn("Voice stop error:",error);
+    console.warn(
+      "Voice cleanup error:",
+      error
+    );
 
   }
 
 }
 
 
-/* ---------------------------------------------------------
+/* =========================================================
    AUTHORITATIVE DRAW HOOK
-   --------------------------------------------------------- */
+   =========================================================
 
-window.announceDraw=function(number){
+   Backend can call:
 
-  try{
+   window.announceDraw(number)
 
-    number=Number(number);
+   The frontend does NOT generate the official draw.
+   ========================================================= */
 
+window.announceDraw =
+  function(number){
 
-    if(!Number.isFinite(number)){
+    try{
 
-      return;
+      const numeric =
+        Number(number);
 
-    }
+      if(
+        !Number.isInteger(numeric)
+      ){
 
+        return;
 
-    const isBingo=
-      currentGame==="bingo" ||
-      currentGame==="bingo75" ||
-      currentGame==="bingo90";
+      }
 
+      const ball =
+        $("ball");
 
-    const ball=$("ball");
+      const recent =
+        $("recent");
 
+      const isBingo =
+        currentGame &&
+        currentGame.startsWith(
+          "bingo"
+        );
 
-    if(ball){
-
-      ball.textContent=
+      const display =
         isBingo
-        ? bingoLetter(number)+" "+number
-        : String(number);
+          ? bingoLetter(numeric) +
+            " " +
+            numeric
+          : String(numeric);
+
+      if(ball){
+
+        ball.textContent =
+          display;
+
+      }
+
+      speak(
+        display
+      );
+
+      if(recent){
+
+        const item =
+          document.createElement(
+            "span"
+          );
+
+        item.textContent =
+          numeric;
+
+        recent.prepend(
+          item
+        );
+
+        while(
+          recent.children.length > 8
+        ){
+
+          recent.lastChild.remove();
+
+        }
+
+      }
+
+      if(
+        mode === "auto" &&
+        isBingo
+      ){
+
+        document
+          .querySelectorAll(
+            ".cell"
+          )
+          .forEach(cell => {
+
+            if(
+              cell.textContent.trim() ===
+              String(numeric)
+            ){
+
+              cell.classList.add(
+                "marked"
+              );
+
+            }
+
+          });
+
+      }
+
+    }catch(error){
+
+      console.warn(
+        "Draw rendering error:",
+        error
+      );
 
     }
 
-
-    if(isBingo){
-
-      speak(
-        bingoLetter(number)+" "+number
-      );
-
-    }else{
-
-      speak(
-        String(number)
-      );
-
-    }
+  };
 
 
-    const recent=$("recent");
+/* =========================================================
+   GLOBAL RUNTIME ERROR PROTECTION
+   =========================================================
+
+   This prevents optional frontend runtime errors from
+   leaving the application in an unusable blank state.
+   ========================================================= */
+
+window.addEventListener(
+  "error",
+  function(event){
+
+    console.error(
+      "DESTA PLAY runtime error:",
+      event.error || event.message
+    );
+
+    /*
+     * Do not replace the entire page.
+     * Keep the existing UI visible.
+     */
+
+  }
+);
 
 
-    if(recent){
+window.addEventListener(
+  "unhandledrejection",
+  function(event){
 
-      const span=
-        document.createElement("span");
+    console.error(
+      "DESTA PLAY promise error:",
+      event.reason
+    );
 
-      span.textContent=number;
+    /*
+     * Prevent an unhandled API promise from becoming
+     * an application-breaking failure.
+     */
 
-      recent.prepend(span);
+    event.preventDefault();
+
+  }
+);
 
 
-      while(recent.children.length>8){
+/* =========================================================
+   MODAL BACKDROP CLOSE
+   ========================================================= */
 
-        recent.lastElementChild.remove();
+if(modal){
+
+  modal.addEventListener(
+    "click",
+    function(event){
+
+      if(
+        event.target === modal
+      ){
+
+        closeHelp();
 
       }
 
     }
+  );
+
+}
 
 
-    if(
-      mode==="auto" &&
-      isBingo
-    ){
+/* =========================================================
+   SAFE INITIALIZATION
+   ========================================================= */
 
-      document
-        .querySelectorAll(".cell")
-        .forEach(function(cell){
-
-          if(
-            cell.textContent.trim()===
-            String(number)
-          ){
-
-            cell.classList.add("marked");
-
-          }
-
-        });
-
-    }
-
-  }catch(error){
-
-    console.error("announceDraw error:",error);
-
-  }
-
-};
-
-
-/* ---------------------------------------------------------
-   INITIALIZATION
-   --------------------------------------------------------- */
-
-function init(){
+function initializeApp(){
 
   try{
 
+    /*
+     * Apply language first.
+     */
+
     applyLanguage();
 
+
     /*
-      Explicitly guarantee that Home is visible.
-      This prevents a failed optional operation
-      from leaving the app with no visible screen.
-    */
+     * Guarantee Home is the initial visible screen.
+     */
+
+    history = ["home"];
 
     show("home");
+
+
+    /*
+     * Do not allow an unavailable backend to prevent
+     * the Home interface from rendering.
+     */
+
+    /*
+     * No backend request is required to display Home.
+     */
+
 
   }catch(error){
 
@@ -2211,68 +2914,65 @@ function init(){
       error
     );
 
-
     /*
-      Emergency fallback.
-      Never replace the whole body.
-      Only make Home visible.
-    */
+     * Final fallback:
+     * Make sure Home is visible even if an optional
+     * initialization operation fails.
+     */
 
     try{
 
       document
         .querySelectorAll(".screen")
-        .forEach(function(screen){
+        .forEach(
+          screen =>
+            screen.classList.remove(
+              "active"
+            )
+        );
 
-          screen.classList.remove("active");
+      const fallbackHome =
+        document.getElementById(
+          "home"
+        );
 
-        });
+      if(fallbackHome){
 
-
-      const fallback=$("home");
-
-      if(fallback){
-
-        fallback.classList.add("active");
+        fallbackHome.classList.add(
+          "active"
+        );
 
       }
 
-    }catch(fallbackError){
-
-      console.error(
-        "Emergency UI recovery failed:",
-        fallbackError
-      );
-
-    }
+    }catch(_){}
 
   }
 
 }
 
 
-/* ---------------------------------------------------------
-   START
-   --------------------------------------------------------- */
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
 
 if(
-  document.readyState==="loading"
+  document.readyState === "loading"
 ){
 
   document.addEventListener(
     "DOMContentLoaded",
-    init,
-    {once:true}
+    initializeApp,
+    {
+      once:true
+    }
   );
 
 }else{
 
-  init();
+  initializeApp();
 
 }
 
-
-})();
 </script>
 
 </body>
