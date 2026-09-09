@@ -1,18 +1,17 @@
 {
   "name": "desta-play",
   "version": "1.0.0",
-  "private": true,
+  "description": "DESTA PLAY gaming platform",
   "type": "module",
-  "engines": {
-    "node": "22.x"
-  },
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.0",
-    "argon2": "^0.41.1",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^4.21.2"
   }
 }
