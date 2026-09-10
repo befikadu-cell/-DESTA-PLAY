@@ -5680,15 +5680,20 @@ app.listen(
             "========================================"
         );
 
-        const databaseOK =
+        const databaseOK 
             await testDatabaseConnection();
 
         if (!databaseOK) {
             console.error(
                 "[BOOT] Database connection failed."
             );
+            for (const tier of EDITION_STAKES) {
+    await seedBingoRoundCounter(tier);
+    startNewBingoRound(tier);
+            }
 
             /*
+          
             |----------------------------------------------------------
             | Do not pretend the database is working.
             | The server remains alive for Render health checks,
