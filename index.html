@@ -1959,14 +1959,55 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #bingoGame .bingoMachine{width:118px!important;height:118px!important;}
 #bingoGame .bingoLatestDraw{font-size:42px!important;}
 #bingoGame .cartelaChooser{margin:2px 5px!important;}
-#bingoGame .cartelaPicker{max-height:72px!important;overflow:hidden!important;grid-template-columns:repeat(12,1fr)!important;gap:2px!important;}
-#bingoGame .cartelaPick{height:20px!important;min-height:20px!important;font-size:7px!important;padding:0!important;}
+#bingoGame .cartelaPicker{
+  display:grid!important;
+  grid-template-rows:repeat(5,24px)!important;
+  grid-template-columns:repeat(24,28px)!important;
+  grid-auto-flow:column!important;
+  grid-auto-columns:28px!important;
+  gap:3px!important;
+  width:100%!important;
+  max-height:132px!important;
+  height:132px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x!important;
+  scrollbar-width:thin;
+  box-sizing:border-box!important;
+}
+#bingoGame .cartelaPick{height:24px!important;min-height:24px!important;width:28px!important;font-size:8px!important;padding:0!important;touch-action:manipulation!important;}
 #bingoGame .cartelaTabs{margin:3px 5px!important;}
 #bingoGame .cartelaGridWrap{max-height:220px!important;overflow:hidden!important;}
 #bingoGame .betSlots{gap:4px!important;padding:4px!important;}
 #bingoGame .betSlot{min-height:58px!important;padding:4px!important;}
 #bingoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
 #bingoGame .feed,#bingoGame .historyBox{display:none!important;}
+
+/* STABLE MINI-WEB: page itself never scrolls; only the Cartela picker scrolls horizontally. */
+html,body{
+  overflow:hidden!important;
+  width:100%!important;
+  height:100%!important;
+  position:fixed!important;
+  inset:0!important;
+}
+#gameScreen,#walletScreen,#profileScreen,#home{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+#gameScreen .gameArea{
+  overflow:hidden!important;
+  min-height:0!important;
+}
+#bingoGame .cartelaChooser{
+  min-height:0!important;
+  overflow:hidden!important;
+}
+#bingoGame .cartelaPicker{
+  overscroll-behavior-y:none!important;
+}
 
 /* Prevent accidental transparent/overlay layers from blocking game controls. */
 #kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
