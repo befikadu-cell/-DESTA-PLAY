@@ -1874,7 +1874,42 @@
     .transactionRow:last-child{border-bottom:0}
     .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
 
-    </style>
+    
+/* DESTA PLAY — compact Telegram Mini App viewport */
+html,body{width:100%;height:100%;overflow:hidden;}
+body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
+#home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px);min-height:0;box-sizing:border-box;overflow:hidden;}
+#gameScreen{padding-bottom:0;}
+.gameGrid{padding:6px 8px;gap:8px;}
+.gameCard{min-height:120px;height:calc((100vh - 190px)/2);max-height:145px;}
+.homeHeader{padding:10px 12px 6px;}
+.logo{font-size:22px;}
+.languageBox{padding:0 10px 7px;}
+.playerSummary{margin:0 8px 4px;padding:7px 9px;}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;height:68px;z-index:5000;}
+/* Game content remains available without changing its existing layout. */
+#gameScreen .gameArea{max-height:calc(100vh - 128px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#gameStakeLobby{max-height:calc(100vh - 70px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+
+/* STAKE LOBBY — compact, fixed Telegram Mini App layout */
+.stakeLobby{margin:6px 8px;padding:8px;border:1px solid #632020;border-radius:12px;background:linear-gradient(145deg,#241010,#0d0d0d);}
+.stakeLobbyHead{text-align:center;margin-bottom:5px;}
+.stakeLobbyHead h2{margin:2px 0;color:var(--gold);font-size:16px;}
+.stakeLobbyHead p{margin:0;color:#999;font-size:9px;}
+.stakeTimer{display:flex;align-items:center;justify-content:center;gap:5px;margin:5px auto 7px;color:#ffd43b;}
+.stakeTimer strong{font-size:22px;line-height:1;}
+.stakeTimer span{font-size:8px;color:#999;}
+.stakeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.stakeChoice{min-width:0;height:34px;padding:3px;border:1px solid #592020;border-radius:6px;background:#190909;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.stakeChoice strong{font-size:10px;color:#ffd43b;}
+.stakeChoice small{font-size:7px;color:#888;margin-top:1px;}
+.stakeChoice.active{background:linear-gradient(180deg,#ffcf3b,#bd7900);border-color:#ffe47b;box-shadow:0 0 7px rgba(255,204,51,.35);}
+.stakeChoice.active strong,.stakeChoice.active small{color:#160900;}
+.stakeLobbyStatus{text-align:center;min-height:16px;margin:5px 0;color:#aaa;font-size:9px;}
+.stakeJoin{width:100%;height:34px;border:0;border-radius:7px;background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-size:11px;font-weight:900;}
+.stakeJoin:disabled{opacity:.45;}
+</style>
     </head>
 
     <body>
@@ -3642,12 +3677,25 @@
        OPEN GAME
     ========================================================= */
 
-    function openGame(game){
+    async function ensureTelegramAuthentication(){
+      if(state.authToken && await loadServerAccount()) return true;
+      if(state.telegramId && await bootstrapTelegramAccount()) return true;
+      return false;
+    }
+
+    async function openGame(game){
       if(game!=="bingo" && game!=="keno") return;
+
+      /* Existing Telegram players must be authenticated automatically.
+         Do not send them to phone/password login before attempting the
+         existing session and Telegram bootstrap flows. */
       if(!state.accountCreated || !state.authToken){
-        showLogin();
-        document.getElementById("accountScreen").classList.remove("hidden");
-        return;
+        const authenticated=await ensureTelegramAuthentication();
+        if(!authenticated){
+          showLogin();
+          document.getElementById("accountScreen").classList.remove("hidden");
+          return;
+        }
       }
 
       state.game=game;
@@ -3656,19 +3704,19 @@
       showPage("game");
       document.getElementById("gameTitle").textContent=game.toUpperCase();
       hideAllGames();
-      document.getElementById(game+"Game").classList.remove("hidden");
+      const gameEl=document.getElementById(game+"Game");
+      if(gameEl) gameEl.classList.remove("hidden");
       buildGame();
 
       const lobby=document.getElementById("gameStakeLobby");
       const title=document.getElementById("stakeLobbyTitle");
-      const grid=document.getElementById("stakeLobbyGrid");
       const join=document.getElementById("stakeLobbyJoin");
       if(lobby) lobby.classList.remove("hidden");
       if(title) title.textContent=game.toUpperCase()+" STAKE";
       if(join){ join.disabled=true; join.textContent="JOIN"; join.onclick=()=>joinStakeLobby(); }
       buildStakeLobby(game);
       updateRound();
-      fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : null);
+      fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : (state.kenoSelectedStake || null));
       fetchStakePlayerCounts(game);
     }
 
@@ -3718,6 +3766,7 @@
       if(game==="keno"){
         const g=document.getElementById("kenoGame");
         if(g) g.classList.remove("hidden");
+        document.getElementById("gameTitle").textContent="KENO";
         updateKenoStakeDisplays();
         fetchLiveRound("keno",stake);
       }
@@ -6567,13 +6616,14 @@
     }
 
     loadTelegramUser();
+    try{ if(tg && typeof tg.ready==="function") tg.ready(); }catch(_e){}
+    try{ if(tg && typeof tg.expand==="function") tg.expand(); }catch(_e){}
 
     (async function initializeDesta(){
       loadTelegramUser();
 
       let authenticated=await loadServerAccount();
-
-      if(!authenticated){
+      if(!authenticated && state.telegramId){
         authenticated=await bootstrapTelegramAccount();
       }
 
@@ -6581,6 +6631,7 @@
         document.getElementById("accountScreen").classList.remove("hidden");
         showCreateAccount();
       }else{
+        document.getElementById("accountScreen").classList.add("hidden");
         showHome();
       }
 
