@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------------
 |
 | Features:
-|   - Multi-Tier PVP Bingo
+|   - Multi-Tier Bingo
 |   - Server-authoritative game rounds
 |   - Permanent Supabase player/balance/transaction storage
 |   - Argon2 password hashing
@@ -12,7 +12,7 @@
 |   - Server-synchronized countdowns
 |   - Continuous 24/7 game loops
 |   - Engine-defined minimum bet validation
-|   - Keno / Bingo / Roulette / Aviator
+|   - Keno / Bingo
 |
 |--------------------------------------------------------------------------
 */
@@ -27,15 +27,8 @@ import crypto from "crypto";
 import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import { createVoiceRouter } from "./voice.js";
-import PVP_ENGINES from "./pvp/engines/index.js";
-import PVPManager, { PVP_ENTRY_FEES as MANAGER_ENTRY_FEES } from "./pvp/PVPManager.js";
-import PoolEngine from "./pvp/PoolEngine.js";
-import PVP_AUTHORITY from "./pvp/PVPAuthority.js";
-
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
-import * as roulette from "./games/roulette.js";
-import * as aviator from "./games/aviator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -189,368 +182,13 @@ function getRegistrationContact(telegramId) {
 |--------------------------------------------------------------------------
 */
 
-const games = {}; // Legacy house games disabled. PVP engines are the active game system.
-
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY — PVP ARENA FOUNDATION
-|--------------------------------------------------------------------------
-|
-| This layer is additive. Existing payment, withdrawal, invitation,
-| authentication and voice systems remain unchanged. PVP results are
-| decided by the server only.
-|
-|--------------------------------------------------------------------------
-*/
-/* Normalize engine IDs so the server accepts both "bingo" and "pvp_bingo"
-   exports from the existing repository. This prevents false "Unsupported PVP
-   game" errors without changing the engine files themselves. */
-const PVP_ENGINE_REGISTRY = Object.fromEntries(
-    Object.entries(PVP_ENGINES || {}).map(([rawId, engine]) => [
-        String(rawId).replace(/^pvp_/i, "").toLowerCase(),
-        engine
-    ])
-);
-
-const PVP_GAME_ORDER = [
-    "bingo","keno","tambola","bingo90","bingo75","numberdraw","trivia",
-    "wheel","ludo","highcard","penalty","dice","target","memory",
-    "racing","speedcards","numberrush"
-];
-
-const PVP_GAMES = Object.fromEntries(
-    PVP_GAME_ORDER
-        .filter(id => PVP_ENGINE_REGISTRY[id])
-        .map(id => {
-            const engine = PVP_ENGINE_REGISTRY[id];
-            return [id, {
-                name: engine.name || id,
-                maxPlayers: Number(engine.maxPlayers || 4),
-                minPlayers: Number(engine.minPlayers || 2)
-            }];
-        })
-);
-
-const PVP_ENTRY_FEES = [...MANAGER_ENTRY_FEES];
-const pvpManager = new PVPManager();
-const PVP_HOUSE_RAKE_PERCENT = 10;
-const pvpPoolEngine = new PoolEngine(PVP_HOUSE_RAKE_PERCENT);
-
-const pvpRooms = new Map();
-const pvpPlayerRooms = new Map();
-const PVP_ROOM_TTL_MS = 30 * 60 * 1000;
-
-function pvpRoomKey(game, entryFee) {
-    return `${game}:${Number(entryFee).toFixed(2)}`;
-}
-
-function pvpPublicRoom(room) {
-    return {
-        roomId: room.roomId,
-        game: room.game,
-        gameName: PVP_GAMES[room.game]?.name || room.game,
-        entryFee: room.entryFee,
-        entryFees: PVP_ENTRY_FEES,
-        grossPool: Number((room.players.size * room.entryFee).toFixed(2)),
-        prizePool: Number((room.players.size * room.entryFee * 0.90).toFixed(2)),
-        maxPlayers: room.maxPlayers,
-        minPlayers: room.minPlayers,
-        playersCount: room.players.size,
-        status: room.status,
-        roundId: room.roundId,
-        createdAt: room.createdAt,
-        startedAt: room.startedAt || null,
-        bettingEndsAt: room.bettingEndsAt,
-        remainingSeconds: Math.max(0, Math.ceil((room.bettingEndsAt - Date.now()) / 1000))
-    };
-}
-
-function pvpGetOrCreateRoom(game, entryFee) {
-    const key = pvpRoomKey(game, entryFee);
-    const existing = pvpRooms.get(key);
-    if (existing && existing.status === "BETTING" && existing.players.size < existing.maxPlayers && Date.now() < existing.bettingEndsAt) {
-        return existing;
-    }
-
-    const cfg = PVP_GAMES[game];
-    if (!cfg) throw new Error("Unsupported PVP game");
-    if (!MANAGER_ENTRY_FEES.includes(Number(entryFee))) throw new Error("Invalid PVP entry fee");
-
-    const now = Date.now();
-    const room = {
-        roomId: `pvp-${game}-${now}-${crypto.randomBytes(4).toString("hex")}`,
-        roundId: `pvp-round-${now}-${crypto.randomBytes(5).toString("hex")}`,
-        game,
-        entryFee: Number(entryFee),
-        maxPlayers: cfg.maxPlayers,
-        minPlayers: cfg.minPlayers,
-        players: new Map(),
-        status: "BETTING",
-        createdAt: now,
-        bettingEndsAt: now + 45000,
-        startedAt: null,
-        finishedAt: null,
-        state: {},
-        result: null,
-        settled: false,
-        winnerIds: []
-    };
-
-    room.state = PVP_AUTHORITY.createAuthorityState(room, PVP_ENGINE_REGISTRY[game]?.createState ? PVP_ENGINE_REGISTRY[game].createState(room, [...room.players.values()]) : {});
-    pvpRooms.set(key, room);
-    pvpPersistRoom(room).catch(console.error);
-    setTimeout(() => pvpStartRoomIfReady(room), 45000);
-    return room;
-}
-
-function pvpEntryFee(value) {
-    const n = Number(value);
-    if (!Number.isFinite(n) || !PVP_ENTRY_FEES.includes(n)) throw new Error("Invalid PVP entry fee");
-    return n;
-}
-
-async function pvpPersistRoom(room) {
-    try {
-        if (!room.dbRoomId) {
-            const { data, error } = await supabase.from("pvp_rooms").insert({
-                game_id: room.game,
-                entry_fee_etb: room.entryFee,
-                round_id: room.roundId,
-                status: room.status,
-                max_players: room.maxPlayers,
-                min_players: room.minPlayers,
-                total_pool_etb: 0,
-                rake_etb: 0,
-                prize_pool_etb: 0,
-                engine_state: room.state || {}
-            }).select("id").single();
-            if (error) throw error;
-            room.dbRoomId = data.id;
-        } else {
-            const pool = pvpPoolEngine.calculatePool(room.entryFee, room.players.size);
-            const { error } = await supabase.from("pvp_rooms").update({
-                status: room.status,
-                total_pool_etb: pool.totalPool,
-                rake_etb: pool.houseFee,
-                prize_pool_etb: pool.prizePool,
-                engine_state: room.state || {},
-                updated_at: nowIso()
-            }).eq("id", room.dbRoomId);
-            if (error) throw error;
-        }
-    } catch (error) { console.error("[PVP] Room persistence warning:", error.message); }
-}
-
-async function pvpPersistPlayer(room, player) {
-    try {
-        if (!room.dbRoomId) await pvpPersistRoom(room);
-        if (!room.dbRoomId) return;
-        await supabase.from("pvp_room_players").insert({
-            room_id: room.dbRoomId,
-            player_id: player.playerId,
-            entry_fee_etb: room.entryFee,
-            action_data: player.actionData || {},
-            status: "JOINED"
-        });
-    } catch (error) { console.error("[PVP] Player persistence warning:", error.message); }
-}
-
-async function pvpPersistSettlement(room, result) {
-    try {
-        if (!room.dbRoomId) await pvpPersistRoom(room);
-        if (!room.dbRoomId) return;
-        await supabase.from("pvp_rounds").insert({ room_id: room.dbRoomId, game_id: room.game, round_id: room.roundId, status: room.status, state: room.state || {}, result: result || {} });
-        await supabase.from("pvp_results").insert({ room_id: room.dbRoomId, game_id: room.game, round_id: room.roundId, result: result || {} });
-        const pool = pvpPoolEngine.calculatePool(room.entryFee, room.players.size);
-        await supabase.from("pvp_pool_ledger").insert({ room_id: room.dbRoomId, round_id: room.roundId, entry_fee_etb: room.entryFee, player_count: room.players.size, gross_pool_etb: pool.totalPool, rake_etb: pool.houseFee, prize_pool_etb: pool.prizePool });
-        for (const winnerId of room.winnerIds || []) {
-            await supabase.from("pvp_winners").insert({ room_id: room.dbRoomId, round_id: room.roundId, player_id: winnerId, prize_etb: result?.winnerShare || 0 });
-            await supabase.from("pvp_settlements").upsert({ room_id: room.dbRoomId, round_id: room.roundId, player_id: winnerId, settlement_type: "WIN", amount_etb: result?.winnerShare || 0, reference_id: `${room.roundId}:win:${winnerId}`, metadata: result || {} }, { onConflict: "reference_id" });
-        }
-    } catch (error) { console.error("[PVP] Settlement persistence warning:", error.message); }
-}
-
-async function pvpDebitPlayer(playerId, room) {
-    return changeBalance({
-        playerId,
-        amount: -room.entryFee,
-        type: "pvp_entry",
-        game: room.game,
-        roundId: room.roundId,
-        description: `PVP entry — ${room.game}`,
-        metadata: { roomId: room.roomId, entryFee: room.entryFee }
-    });
-}
-
-async function pvpHasSettlement(playerId, referenceId) {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("id")
-        .eq("player_id", playerId)
-        .eq("reference_id", referenceId)
-        .in("type", ["pvp_win", "pvp_refund"])
-        .limit(1);
-    if (error) {
-        console.warn("[PVP] Settlement lookup failed:", error.message);
-        return false;
-    }
-    return Array.isArray(data) && data.length > 0;
-}
-
-async function pvpSettleRoom(room, winnerIds = [], metadata = {}) {
-    if (!room || room.settled) return room?.result || null;
-    room.settled = true;
-    room.status = "FINISHED";
-    room.finishedAt = Date.now();
-
-    const uniqueWinners = [...new Set((winnerIds || []).map(String))];
-    const grossPool = Number((room.players.size * room.entryFee).toFixed(2));
-    const houseRake = Number((grossPool * PVP_HOUSE_RAKE_PERCENT / 100).toFixed(2));
-    const winnerPool = Number((grossPool - houseRake).toFixed(2));
-    const baseShareCents = uniqueWinners.length ? Math.floor((winnerPool * 100) / uniqueWinners.length) : 0;
-    const baseShare = Number((baseShareCents / 100).toFixed(2));
-    const remainderCents = uniqueWinners.length ? Math.max(0, Math.round(winnerPool * 100) - baseShareCents * uniqueWinners.length) : 0;
-    const roundingRemainder = Number((remainderCents / 100).toFixed(2));
-
-    room.winnerIds = uniqueWinners;
-    for (const player of room.players.values()) pvpPlayerRooms.delete(player.playerId);
-    room.result = {
-        grossPool,
-        houseRake,
-        winnerPool,
-        winnerIds: uniqueWinners,
-        winnerShare: baseShare,
-        roundingRemainder,
-        ...metadata
-    };
-    await pvpPersistRoom(room);
-    await pvpPersistSettlement(room, room.result);
-
-    for (let index = 0; index < uniqueWinners.length; index++) {
-        const winnerId = uniqueWinners[index];
-        const winnerCents = baseShareCents + (index < remainderCents ? 1 : 0);
-        const winnerAmount = Number((winnerCents / 100).toFixed(2));
-        if (winnerAmount <= 0) continue;
-        const alreadySettled = await pvpHasSettlement(winnerId, `${room.roundId}:win`);
-        if (alreadySettled) continue;
-        try {
-            await changeBalance({
-                playerId: winnerId,
-                amount: winnerAmount,
-                type: "pvp_win",
-                game: room.game,
-                roundId: `${room.roundId}:win`,
-                description: `PVP prize — ${room.game}`,
-                metadata: { roomId: room.roomId, ...room.result }
-            });
-        } catch (error) {
-            console.error(`[PVP] Winner settlement failed for ${winnerId}:`, error.message);
-        }
-    }
-
-    return room.result;
-}
-
-async function pvpRefundRoom(room, reason = "Round cancelled") {
-    if (!room || room.settled) return;
-    room.settled = true;
-    room.status = "FINISHED";
-    room.finishedAt = Date.now();
-    for (const player of room.players.values()) pvpPlayerRooms.delete(player.playerId);
-    for (const player of room.players.values()) {
-        const alreadyRefunded = await pvpHasSettlement(player.playerId, `${room.roundId}:refund`);
-        if (alreadyRefunded) continue;
-        try {
-            await changeBalance({
-                playerId: player.playerId,
-                amount: room.entryFee,
-                type: "pvp_refund",
-                game: room.game,
-                roundId: `${room.roundId}:refund`,
-                description: `PVP refund — ${reason}`,
-                metadata: { roomId: room.roomId, reason }
-            });
-        } catch (error) {
-            console.error(`[PVP] Refund failed for ${player.playerId}:`, error.message);
-        }
-    }
-}
-
-function pvpWinnerByScore(players) {
-    let best = -Infinity;
-    let winners = [];
-    for (const p of players) {
-        const score = Number(p.score || 0);
-        if (score > best) { best = score; winners = [p.playerId]; }
-        else if (score === best) winners.push(p.playerId);
-    }
-    return winners;
-}
-
-async function pvpResolveRoom(room) {
-    if (!room || room.status === "FINISHED" || room.status === "RESOLVING") return room?.result;
-    if (room.players.size < room.minPlayers) {
-        await pvpRefundRoom(room, "Not enough players");
-        return room.result;
-    }
-
-    room.status = "RESOLVING";
-    const players = [...room.players.values()];
-    const engine = PVP_ENGINE_REGISTRY[room.game];
-    if (!engine || typeof engine.resolve !== "function") {
-        await pvpRefundRoom(room, "PVP engine unavailable");
-        return room.result;
-    }
-
-    let resolved;
-    try {
-        resolved = await engine.resolve(room.state?.engineState || room.state, players);
-    } catch (error) {
-        console.error(`[PVP] ${room.game} engine error:`, error);
-        await pvpRefundRoom(room, "Game engine error");
-        return room.result;
-    }
-
-    const winnerIds = Array.isArray(resolved?.winners) ? resolved.winners.map(String) : [];
-    return pvpSettleRoom(room, winnerIds, resolved || {});
-}
-
-function pvpStartRoomIfReady(room) {
-    if (!room || room.status !== "BETTING") return;
-    if (room.players.size < room.minPlayers) {
-        pvpRefundRoom(room, "Not enough players").catch(console.error);
-        return;
-    }
-    room.status = "PLAYING";
-    room.startedAt = Date.now();
-    room.bettingEndsAt = Date.now();
-    for (const player of room.players.values()) { player.actionLocked = false; player.actionData = {}; }
-    if (room.state?.version === 2) {
-        const auth = room.state.authority;
-        auth.phase = auth.phase === "WAITING" ? "ACTION" : auth.phase;
-        const ids = [...room.players.keys()].map(String);
-        if (!auth.currentPlayerId && ids.length) auth.currentPlayerId = ids[0];
-    }
-    pvpPersistRoom(room).catch(console.error);
-}
-
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, room] of pvpRooms.entries()) {
-        if ((room.status === "BETTING" && now >= room.bettingEndsAt) || (room.status === "FINISHED" && now - Number(room.finishedAt || now) > PVP_ROOM_TTL_MS)) {
-            if (room.status === "BETTING") pvpStartRoomIfReady(room);
-            if (room.status === "FINISHED") pvpRooms.delete(key);
-        }
-    }
-}, 5000);
+const games = { bingo, keno };
 
 const rounds = {};
 
 /* Persistent display sequence for each server-authoritative house game. */
 const roundCounters = {
-    keno: 0,
-    roulette: 0,
-    aviator: 0
+    keno: 0
 };
 
 /* Persistent display sequence for each Bingo stake room. */
@@ -564,29 +202,22 @@ const bingoRoundCounters = {};
 
 const DRAW_INTERVALS = {
     bingo: 3000,
-    keno: 3000,
-    roulette: 3000,
-    aviator: 100
+    keno: 3000
 };
 
 const BETTING_TIMERS = {
-    bingo: Number(bingo.BETTING_SECONDS || 40),
-    keno: Number(keno.BETTING_SECONDS || 40),
-    roulette: Number(roulette.BETTING_SECONDS || 40),
-    aviator: Number(aviator.BETTING_SECONDS || 10)
+    bingo: 30,
+    keno: 40
 };
 
 const NEXT_ROUND_DELAY = 5000;
 
 /*
 |--------------------------------------------------------------------------
-| PVP BINGO
+| SERVER-AUTHORITATIVE BINGO
 |--------------------------------------------------------------------------
 |
-| IMPORTANT:
-| The engine is authoritative for valid bingo bet amounts.
-| We do NOT create another conflicting minimum-bet rule here.
-|
+| The Bingo engine is authoritative for valid bet amounts.
 |--------------------------------------------------------------------------
 */
 
@@ -1879,6 +1510,48 @@ async function findPasswordResetRequest(
     return data;
 }
 
+const passwordResetCodes = new Map();
+const passwordResetTokens = new Map();
+
+function createPasswordResetCode(requestId) {
+    const code = String(crypto.randomInt(100000, 1000000));
+    passwordResetCodes.set(String(requestId), {
+        code,
+        expiresAt: Date.now() + 5 * 60 * 1000
+    });
+    return code;
+}
+
+function consumePasswordResetCode(requestId, code) {
+    const key = String(requestId || "");
+    const entry = passwordResetCodes.get(key);
+    if (!entry || Date.now() > entry.expiresAt || String(code || "") !== entry.code) {
+        if (entry && Date.now() > entry.expiresAt) passwordResetCodes.delete(key);
+        return false;
+    }
+    passwordResetCodes.delete(key);
+    return true;
+}
+
+function createPasswordResetToken(requestId) {
+    const token = crypto.randomBytes(32).toString("hex");
+    passwordResetTokens.set(token, {
+        requestId: String(requestId),
+        expiresAt: Date.now() + 5 * 60 * 1000
+    });
+    return token;
+}
+
+function consumePasswordResetToken(token, requestId) {
+    const entry = passwordResetTokens.get(String(token || ""));
+    if (!entry || entry.requestId !== String(requestId || "") || Date.now() > entry.expiresAt) {
+        if (entry && Date.now() > entry.expiresAt) passwordResetTokens.delete(String(token));
+        return false;
+    }
+    passwordResetTokens.delete(String(token));
+    return true;
+}
+
 async function processPasswordResetAction(
     action,
     requestId
@@ -1925,8 +1598,20 @@ async function processPasswordResetAction(
             );
         }
 
+        const resetCode = createPasswordResetCode(requestId);
+
+        const resetPlayer = await findPlayerById(request.player_id);
+        if (resetPlayer?.telegram_id) {
+            await telegramApi("sendMessage", {
+                chat_id: String(resetPlayer.telegram_id),
+                text: `DESTA PLAY password reset\n\nYour verification code is: ${resetCode}\n\nThis code expires in 5 minutes. Do not share it with anyone.`
+            }).catch(error => {
+                console.warn("[PASSWORD RESET] Could not send code to player:", error.message);
+            });
+        }
+
         await sendAdminGroupAudit(
-            `PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
+            `PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}\nVerification code issued for 5 minutes.`
         );
 
         return "RESET APPROVED";
@@ -2126,6 +1811,37 @@ app.get(
 );
 
 app.post(
+    "/api/account/password-reset-verify-code",
+    async (req, res) => {
+        try {
+            const phone = normalizePhone(req.body.phone);
+            const requestId = String(req.body.requestId || "").trim();
+            const code = String(req.body.code || "").trim();
+
+            if (!phone || !requestId || !/^\d{6}$/.test(code)) {
+                return res.status(400).json({success:false,error:"Phone number, reset request ID and 6-digit code are required"});
+            }
+
+            const request = await findPasswordResetRequest(requestId, phone);
+            if (!request) return res.status(404).json({success:false,error:"Password reset request not found"});
+            if (request.status !== "APPROVED") {
+                return res.status(400).json({success:false,error:request.status === "REJECTED" ? "Password reset was rejected by the administrator" : "Password reset is waiting for administrator approval"});
+            }
+
+            if (!consumePasswordResetCode(requestId, code)) {
+                return res.status(400).json({success:false,error:"Invalid or expired verification code"});
+            }
+
+            const resetToken = createPasswordResetToken(requestId);
+            return res.json({success:true,resetToken,expiresInSeconds:300});
+        } catch (error) {
+            console.error("Password reset code verification error:", error);
+            return res.status(500).json({success:false,error:error.message || "Could not verify recovery code"});
+        }
+    }
+);
+
+app.post(
     "/api/account/password-reset-complete",
     async (req, res) => {
         try {
@@ -2139,8 +1855,9 @@ app.post(
 
             const password =
                 req.body.password;
+            const resetToken = String(req.body.resetToken || "").trim();
 
-            if (!phone || !requestId) {
+            if (!phone || !requestId || !resetToken) {
                 return res.status(400).json({
                     success: false,
                     error:
@@ -2181,6 +1898,14 @@ app.post(
                                 : "Password reset is waiting for administrator approval"
                 });
             }
+
+            const tokenEntry = passwordResetTokens.get(resetToken);
+            if (!tokenEntry || tokenEntry.requestId !== requestId || Date.now() > tokenEntry.expiresAt) {
+                if (tokenEntry && Date.now() > tokenEntry.expiresAt) passwordResetTokens.delete(resetToken);
+                return res.status(400).json({success:false,error:"Invalid or expired reset token. Verify the recovery code again."});
+            }
+
+            passwordResetTokens.delete(resetToken);
 
             const passwordHash =
                 await argon2.hash(password);
@@ -2307,7 +2032,7 @@ app.get("/api/bonus", requirePlayer, async (req, res) => {
             withdrawalValue:Number((Math.max(0, points) / 10).toFixed(2)),
             playRate:"1 point = 1 ETB play value",
             withdrawalRate:"10 points = 1 ETB withdrawal value",
-            eligibleGames:["aviator","roulette"]
+            eligibleGames:["bingo","keno"]
         });
     } catch (error) {
         return res.status(500).json({success:false,error:error.message || "Could not load bonus points"});
@@ -4704,100 +4429,6 @@ function generateKenoDraw() {
 
 /*
 |--------------------------------------------------------------------------
-| AVIATOR CRASH POINT
-|--------------------------------------------------------------------------
-*/
-
-function generateCrashPoint(round = null) {
-    const generator =
-        aviator.generateSecureBalancedCrashPoint ||
-        aviator.default
-            ?.generateSecureBalancedCrashPoint;
-
-    if (
-        typeof generator ===
-        "function"
-    ) {
-        const safeRound =
-            round || {
-                bets: []
-            };
-
-        if (
-            !Array.isArray(
-                safeRound.bets
-            )
-        ) {
-            safeRound.bets = [];
-        }
-
-        const value =
-            Number(
-                generator(
-                    safeRound,
-                    10000
-                )
-            );
-
-        if (
-            Number.isFinite(value) &&
-            value >= 1
-        ) {
-            return Number(
-                value.toFixed(2)
-            );
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Compatibility fallback.
-    | Prefer the secure engine function above whenever available.
-    |--------------------------------------------------------------
-    */
-
-    const legacyGenerator =
-        aviator.generateCrashPoint ||
-        aviator.default?.generateCrashPoint;
-
-    if (
-        typeof legacyGenerator ===
-        "function"
-    ) {
-        const value =
-            Number(
-                legacyGenerator()
-            );
-
-        if (
-            Number.isFinite(value) &&
-            value >= 1
-        ) {
-            return Number(
-                value.toFixed(2)
-            );
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Cryptographically random fallback.
-    |--------------------------------------------------------------
-    */
-
-    const cents =
-        crypto.randomInt(
-            100,
-            10001
-        );
-
-    return Number(
-        (cents / 100).toFixed(2)
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
 | SAVE HOUSE ROUND
 |--------------------------------------------------------------------------
 */
@@ -4875,8 +4506,6 @@ async function saveRound(
             bets:
                 round.bets || [],
 
-            rouletteSettled:
-                Boolean(round.rouletteSettled)
         },
 
         updated_at:
@@ -5013,158 +4642,40 @@ function getPublicRound(
 |--------------------------------------------------------------------------
 */
 
-function startHouseRound(
-    gameName
-) {
-    const bettingSeconds =
-        Number(
-            BETTING_TIMERS[
-                gameName
-            ] || 40
-        );
+function startHouseRound(gameName) {
+    if (gameName !== "keno") return;
 
-    const now =
-        Date.now();
-
+    const bettingSeconds = 40;
+    const now = Date.now();
     const round = {
-        id:
-            `${gameName}-${now}-` +
-            crypto
-                .randomBytes(4)
-                .toString("hex"),
-
-        game:
-            gameName,
-
-        status:
-            "BETTING",
-
-        createdAt:
-            now,
-
-        startedAt:
-            now,
-
+        id: `keno-${now}-${crypto.randomBytes(4).toString("hex")}`,
+        game: "keno",
+        status: "BETTING",
+        createdAt: now,
+        startedAt: now,
         bettingSeconds,
-
-        bettingStartedAt:
-            now,
-
-        bettingEndsAt:
-            now +
-            bettingSeconds *
-                1000,
-
+        bettingStartedAt: now,
+        bettingEndsAt: now + bettingSeconds * 1000,
         drawnNumbers: [],
-
         drawIndex: 0,
-
         currentNumber: null,
-
         result: null,
-
         crashPoint: null,
-
         multiplier: 1.00,
-
-        roundNumber: ++roundCounters[gameName]
+        roundNumber: ++roundCounters.keno,
+        bets: [],
+        secretDraw: generateKenoDraw()
     };
 
-    if (gameName === "roulette") {
-        round.bets = [];
-    }
+    rounds.keno = round;
+    console.log(`[KENO] NEW ROUND ${round.id} | BETTING ${bettingSeconds}s`);
+    saveRound(round).catch(console.error);
 
-    /*
-    |--------------------------------------------------------------
-    | KENO
-    |--------------------------------------------------------------
-    */
-
-    if (
-        gameName === "keno"
-    ) {
-        round.secretDraw =
-            generateKenoDraw();
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | AVIATOR
-    |--------------------------------------------------------------
-    |
-    | ONLY FIX:
-    | The Aviator engine expects round.bets to exist.
-    |--------------------------------------------------------------
-    */
-
-    if (
-        gameName === "aviator"
-    ) {
-        round.bets = [];
-
-        round.secretCrashPoint =
-            generateCrashPoint(
-                round
-            );
-    }
-
-    rounds[gameName] =
-        round;
-
-    console.log(
-        `[${gameName.toUpperCase()}] NEW ROUND ${round.id} | BETTING ${bettingSeconds}s`
-    );
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            const current =
-                rounds[gameName];
-
-            if (
-                !current ||
-                current.id !==
-                    round.id ||
-                current.status !==
-                    "BETTING"
-            ) {
-                return;
-            }
-
-            if (
-                gameName ===
-                "keno"
-            ) {
-                startKenoDraw(
-                    gameName,
-                    round.id
-                );
-            }
-
-            if (
-                gameName ===
-                "roulette"
-            ) {
-                startRouletteSpin(
-                    round.id
-                );
-            }
-
-            if (
-                gameName ===
-                "aviator"
-            ) {
-                startAviatorFlight(
-                    round.id
-                );
-            }
-        },
-        bettingSeconds *
-            1000
-    );
+    setTimeout(() => {
+        const current = rounds.keno;
+        if (!current || current.id !== round.id || current.status !== "BETTING") return;
+        startKenoDraw("keno", round.id);
+    }, bettingSeconds * 1000);
 }
 
 /*
@@ -5278,324 +4789,6 @@ function revealNextKenoNumber(
 
 /*
 |--------------------------------------------------------------------------
-| ROULETTE BET SETTLEMENT
-|--------------------------------------------------------------------------
-*/
-
-async function settleRouletteRound(round) {
-    if (!round || round.rouletteSettled || !Array.isArray(round.bets)) return;
-
-    const result = Number(round.result);
-    if (!Number.isInteger(result) || result < 0 || result > 36) return;
-
-    const redNumbers = [
-        1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36
-    ];
-    const resultColor = result === 0
-        ? "green"
-        : (redNumbers.includes(result) ? "red" : "black");
-
-    for (const bet of round.bets) {
-        if (bet.settled) continue;
-
-        const amount = Number(bet.amount);
-        let payout = 0;
-
-        if (Number.isFinite(amount) && amount > 0) {
-            if (bet.betType === "number" && Number(bet.number) === result) {
-                payout = amount * 36;
-            } else if (bet.betType === "color" && String(bet.color).toLowerCase() === resultColor) {
-                payout = amount * 2;
-            }
-        }
-
-        if (payout > 0) {
-            if (String(bet.currency || "cash") === "bonus") {
-                await writeBonusTransaction({
-                    playerId: bet.playerId,
-                    points: payout,
-                    type: "bonus_win",
-                    description: JSON.stringify({
-                        game:"roulette",
-                        betId:bet.betId,
-                        result,
-                        resultColor,
-                        payout
-                    }),
-                    referenceId: round.id
-                });
-            } else {
-                await changeBalance({
-                    playerId: bet.playerId,
-                    amount: payout,
-                    type: "roulette_win",
-                    game: "roulette",
-                    roundId: round.id,
-                    description: "Roulette winning payout",
-                    metadata: {
-                        betId: bet.betId,
-                        slot: bet.slot,
-                        result,
-                        resultColor,
-                        payout
-                    }
-                });
-            }
-        }
-
-        bet.payout = payout;
-        bet.settled = true;
-    }
-
-    round.rouletteSettled = true;
-}
-
-/*
-|--------------------------------------------------------------------------
-| ROULETTE
-|--------------------------------------------------------------------------
-*/
-
-function startRouletteSpin(
-    roundId
-) {
-    const round =
-        rounds.roulette;
-
-    if (!round || round.id !== roundId ||
-        (round.status !== "BETTING" && round.status !== "SPINNING")) {
-        return;
-    }
-
-    if (round.status === "BETTING") {
-        round.status = "SPINNING";
-    }
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[ROULETTE] SPINNING ${round.id}`
-    );
-
-    setTimeout(
-        async () => {
-            const current =
-                rounds.roulette;
-
-            if (
-                !current ||
-                current.id !==
-                    roundId ||
-                current.status !==
-                    "SPINNING"
-            ) {
-                return;
-            }
-
-            try {
-                const spinFn =
-                    roulette.spin ||
-                    roulette.default
-                        ?.spin;
-
-                if (
-                    typeof spinFn !==
-                    "function"
-                ) {
-                    throw new Error(
-                        "Roulette engine spin function unavailable"
-                    );
-                }
-
-                current.result =
-                    spinFn();
-
-                await settleRouletteRound(current);
-
-                current.status =
-                    "FINISHED";
-
-                console.log(
-                    `[ROULETTE] RESULT ${current.result}`
-                );
-
-                await saveRound(
-                    current
-                );
-
-                await settleRouletteRound(current);
-
-                await saveRound(current);
-
-                finishHouseRound(
-                    "roulette",
-                    roundId
-                );
-            } catch (error) {
-                console.error(
-                    "[ROULETTE] Spin error:",
-                    error
-                );
-
-                current.status =
-                    "FINISHED";
-
-                await saveRound(
-                    current
-                ).catch(
-                    console.error
-                );
-
-                finishHouseRound(
-                    "roulette",
-                    roundId
-                );
-            }
-        },
-        DRAW_INTERVALS.roulette
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| AVIATOR
-|--------------------------------------------------------------------------
-*/
-
-function startAviatorFlight(
-    roundId
-) {
-    const round =
-        rounds.aviator;
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
-        return;
-    }
-
-    round.status =
-        "FLYING";
-
-    round.flyingStartedAt =
-        Date.now();
-
-    round.multiplier =
-        1.00;
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[AVIATOR] FLIGHT ${round.id} | CRASH ${round.secretCrashPoint}x`
-    );
-
-    updateAviator(
-        round.id
-    );
-}
-
-function updateAviator(
-    roundId
-) {
-    const round =
-        rounds.aviator;
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "FLYING"
-    ) {
-        return;
-    }
-
-    const elapsed =
-        Date.now() -
-        round.flyingStartedAt;
-
-    const seconds =
-        elapsed / 1000;
-
-    /*
-    |--------------------------------------------------------------
-    | Existing multiplier curve preserved.
-    |--------------------------------------------------------------
-    */
-
-    round.multiplier =
-        Number(
-            Math.max(
-                1,
-                Math.pow(
-                    1.18,
-                    seconds
-                )
-            ).toFixed(2)
-        );
-
-    if (
-        round.multiplier >=
-        round.secretCrashPoint
-    ) {
-        round.multiplier =
-            round.secretCrashPoint;
-
-        round.crashPoint =
-            round.secretCrashPoint;
-
-        round.status =
-            "CRASHED";
-
-        console.log(
-            `[AVIATOR] CRASH ${round.crashPoint}x`
-        );
-
-        saveRound(
-            round
-        ).catch(console.error);
-
-        setTimeout(
-            () => {
-                finishHouseRound(
-                    "aviator",
-                    round.id
-                );
-            },
-            DRAW_INTERVALS.aviator
-        );
-
-        return;
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Persist current server state.
-    |--------------------------------------------------------------
-    */
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            updateAviator(
-                roundId
-            );
-        },
-        DRAW_INTERVALS.aviator
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
 | FINISH HOUSE ROUND
 |--------------------------------------------------------------------------
 */
@@ -5660,370 +4853,88 @@ function finishHouseRound(
 
 /*
 |--------------------------------------------------------------------------
-| RESTORE HOUSE ROUND
+| RESTORE KENO ROUND
 |--------------------------------------------------------------------------
 */
 
-async function restoreHouseRound(
-    gameName
-) {
+async function restoreHouseRound(gameName) {
+    if (gameName !== "keno") return;
+
     try {
-        const {
-            data,
-            error
-        } = await supabase
+        const { data, error } = await supabase
             .from("game_rounds")
             .select("*")
-            .eq(
-                "game",
-                gameName
-            )
-            .order(
-                "updated_at",
-                {
-                    ascending:
-                        false
-                }
-            )
+            .eq("game", "keno")
+            .order("updated_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
-        if (
-            error ||
-            !data
-        ) {
-            console.log(
-                `[${gameName}] No saved round. Starting new round.`
-            );
-
-            startHouseRound(
-                gameName
-            );
-
+        if (error || !data) {
+            console.log("[KENO] No saved round. Starting new round.");
+            startHouseRound("keno");
             return;
         }
 
-        if (
-            data.status ===
-                "FINISHED" ||
-            data.status ===
-                "CRASHED"
-        ) {
+        if (["FINISHED", "CRASHED"].includes(data.status)) {
             const previousState = data.engine_state || {};
-            roundCounters[gameName] = Math.max(
-                Number(roundCounters[gameName] || 0),
-                Number(previousState.roundNumber || 0)
-            );
-
-            startHouseRound(
-                gameName
-            );
-
+            roundCounters.keno = Math.max(roundCounters.keno, Number(previousState.roundNumber || 0));
+            startHouseRound("keno");
             return;
         }
 
-        const state =
-            data.engine_state ||
-            {};
-
-        const bettingStartedAt =
-            new Date(
-                data.betting_started_at
-            ).getTime();
-
-        const bettingEndsAt =
-            new Date(
-                data.betting_ends_at
-            ).getTime();
-
-        if (
-            !Number.isFinite(
-                bettingStartedAt
-            ) ||
-            !Number.isFinite(
-                bettingEndsAt
-            )
-        ) {
-            startHouseRound(
-                gameName
-            );
-
+        const state = data.engine_state || {};
+        const bettingStartedAt = new Date(data.betting_started_at).getTime();
+        const bettingEndsAt = new Date(data.betting_ends_at).getTime();
+        if (!Number.isFinite(bettingStartedAt) || !Number.isFinite(bettingEndsAt)) {
+            startHouseRound("keno");
             return;
         }
 
         const round = {
-            id:
-                data.round_id ||
-                data.id,
-
-            game:
-                data.game,
-
-            status:
-                data.status,
-
-            createdAt:
-                bettingStartedAt,
-
-            startedAt:
-                bettingStartedAt,
-
-            bettingSeconds:
-                Number(
-                    data.betting_seconds ||
-                    BETTING_TIMERS[
-                        gameName
-                    ]
-                ),
-
+            id: data.round_id || data.id,
+            game: "keno",
+            status: data.status,
+            createdAt: bettingStartedAt,
+            startedAt: bettingStartedAt,
+            bettingSeconds: 40,
             bettingStartedAt,
-
             bettingEndsAt,
-
-            drawnNumbers:
-                Array.isArray(
-                    data.drawn_numbers
-                )
-                    ? data.drawn_numbers
-                    : [],
-
-            drawIndex:
-                Number(
-                    state.drawIndex ??
-                    data.drawn_numbers
-                        ?.length ??
-                    0
-                ),
-
-            currentNumber:
-                state.currentNumber ??
-                data.current_number ??
-                null,
-
-            result:
-                data.result,
-
-            crashPoint:
-                data.crash_point,
-
-            multiplier:
-                Number(
-                    state.multiplier ??
-                    data.multiplier ??
-                    1
-                ),
-
-            roundNumber:
-                Math.max(1, Number(state.roundNumber || 1))
+            drawnNumbers: Array.isArray(data.drawn_numbers) ? data.drawn_numbers : [],
+            drawIndex: Number(state.drawIndex ?? data.drawn_numbers?.length ?? 0),
+            currentNumber: state.currentNumber ?? data.current_number ?? null,
+            result: data.result,
+            crashPoint: null,
+            multiplier: 1,
+            roundNumber: Math.max(1, Number(state.roundNumber || 1)),
+            bets: Array.isArray(state.bets) ? state.bets : [],
+            secretDraw: Array.isArray(state.secretDraw) && state.secretDraw.length === 20
+                ? state.secretDraw.map(Number)
+                : generateKenoDraw()
         };
 
-        roundCounters[gameName] = Math.max(
-            Number(roundCounters[gameName] || 0),
-            Number(round.roundNumber || 1)
-        );
+        roundCounters.keno = Math.max(roundCounters.keno, round.roundNumber);
+        rounds.keno = round;
+        console.log(`[KENO] RESTORED ${round.id} | ${round.status}`);
 
-        if (gameName === "roulette") {
-            round.bets = Array.isArray(state.bets) ? state.bets : [];
-            round.rouletteSettled = Boolean(state.rouletteSettled);
-        }
-
-        if (
-            gameName ===
-            "keno"
-        ) {
-            round.secretDraw =
-                Array.isArray(
-                    state.secretDraw
-                )
-                    ? state.secretDraw
-                    : generateKenoDraw();
-        }
-
-        if (
-            gameName ===
-            "aviator"
-        ) {
-            round.bets = [];
-
-            round.secretCrashPoint =
-                Number(
-                    state.secretCrashPoint
-                );
-
-            round.flyingStartedAt =
-                state.flyingStartedAt;
-
-            if (
-                !Number.isFinite(
-                    round.secretCrashPoint
-                )
-            ) {
-                round.secretCrashPoint =
-                    generateCrashPoint(
-                        round
-                    );
-            }
-        }
-
-        rounds[gameName] =
-            round;
-
-        console.log(
-            `[${gameName.toUpperCase()}] RESTORED ${round.id} | ${round.status}`
-        );
-
-        /*
-        |--------------------------------------------------------------
-        | BETTING
-        |--------------------------------------------------------------
-        */
-
-        if (
-            round.status ===
-            "BETTING"
-        ) {
-            const remaining =
-                Math.max(
-                    0,
-                    round.bettingEndsAt -
-                        Date.now()
-                );
-
-            setTimeout(
-                () => {
-                    const current =
-                        rounds[
-                            gameName
-                        ];
-
-                    if (
-                        !current ||
-                        current.id !==
-                            round.id ||
-                        current.status !==
-                            "BETTING"
-                    ) {
-                        return;
-                    }
-
-                    if (
-                        gameName ===
-                        "keno"
-                    ) {
-                        startKenoDraw(
-                            gameName,
-                            round.id
-                        );
-                    }
-
-                    if (
-                        gameName ===
-                        "roulette"
-                    ) {
-                        startRouletteSpin(
-                            round.id
-                        );
-                    }
-
-                    if (
-                        gameName ===
-                        "aviator"
-                    ) {
-                        startAviatorFlight(
-                            round.id
-                        );
-                    }
-                },
-                remaining
-            );
-
+        if (round.status === "BETTING") {
+            const remaining = Math.max(0, round.bettingEndsAt - Date.now());
+            setTimeout(() => {
+                const current = rounds.keno;
+                if (!current || current.id !== round.id || current.status !== "BETTING") return;
+                startKenoDraw("keno", round.id);
+            }, remaining);
             return;
         }
 
-        /*
-        |--------------------------------------------------------------
-        | KENO DRAWING
-        |--------------------------------------------------------------
-        */
-
-        if (
-            gameName ===
-                "keno" &&
-            round.status ===
-                "DRAWING"
-        ) {
-            revealNextKenoNumber(
-                gameName,
-                round.id
-            );
-
+        if (round.status === "DRAWING") {
+            revealNextKenoNumber("keno", round.id);
             return;
         }
 
-        /*
-        |--------------------------------------------------------------
-        | ROULETTE SPINNING
-        |--------------------------------------------------------------
-        */
-
-        if (
-            gameName ===
-                "roulette" &&
-            round.status ===
-                "SPINNING"
-        ) {
-            startRouletteSpin(
-                round.id
-            );
-                        return;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | AVIATOR FLYING
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            gameName ===
-                "aviator" &&
-            round.status ===
-                "FLYING"
-        ) {
-            /*
-            |----------------------------------------------------------
-            | Recalculate the multiplier from the original start time.
-            | This prevents a Render restart from resetting the flight
-            | timer.
-            |----------------------------------------------------------
-            */
-
-            if (
-                !round.flyingStartedAt
-            ) {
-                round.flyingStartedAt =
-                    Date.now();
-            }
-
-            updateAviator(
-                round.id
-            );
-
-            return;
-        }
-
-        startHouseRound(
-            gameName
-        );
+        startHouseRound("keno");
     } catch (error) {
-        console.error(
-            `[${gameName.toUpperCase()}] RESTORE ERROR:`,
-            error
-        );
-
-        startHouseRound(
-            gameName
-        );
+        console.error("[KENO] RESTORE ERROR:", error);
+        startHouseRound("keno");
     }
 }
 
@@ -6161,126 +5072,6 @@ app.post(
 | EDITION 8 — SERVER-AUTHORITATIVE ROULETTE BET
 |--------------------------------------------------------------------------
 */
-
-function rouletteBetIsValid(amount) {
-    return validateEngineBet(roulette, amount);
-}
-
-app.post(
-    "/api/roulette/bet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const round = rounds.roulette;
-            const slot = Number(req.body.slot || 1);
-            const amount = Number(req.body.amount);
-            const betType = String(req.body.betType || "").toLowerCase();
-            const number = req.body.number == null ? null : Number(req.body.number);
-            const color = req.body.color == null ? null : String(req.body.color).toLowerCase();
-
-            if (!round || round.status !== "BETTING") {
-                return res.status(400).json({ success:false, error:"Roulette betting is closed" });
-            }
-            if (![1,2].includes(slot)) {
-                return res.status(400).json({ success:false, error:"Invalid roulette slot" });
-            }
-            try { rouletteBetIsValid(amount); }
-            catch (error) {
-                return res.status(400).json({ success:false, error:error.message || "Invalid Roulette bet amount" });
-            }
-            if (!Number.isFinite(amount) || amount < 10) {
-                return res.status(400).json({ success:false, error:"Minimum Roulette bet is 10 ETB" });
-            }
-
-            if (betType === "number") {
-                if (!Number.isInteger(number) || number < 0 || number > 36) {
-                    return res.status(400).json({ success:false, error:"Roulette number must be 0–36" });
-                }
-            } else if (betType === "color") {
-                if (!["red","black","green"].includes(color)) {
-                    return res.status(400).json({ success:false, error:"Choose red, black, or green" });
-                }
-            } else {
-                return res.status(400).json({ success:false, error:"Choose a roulette number or color" });
-            }
-
-            if (!Array.isArray(round.bets)) round.bets = [];
-            if (round.bets.some(b => b.playerId === req.player.id && Number(b.slot) === slot)) {
-                return res.status(400).json({ success:false, error:"This roulette slot already has a bet for this round" });
-            }
-
-            const currency = String(req.body.currency || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-            let balanceAfter = Number(req.player.balance || 0);
-            let bonusPointsAfter = await getBonusPoints(req.player.id);
-
-            if (currency === "bonus") {
-                if (amount > bonusPointsAfter) {
-                    return res.status(400).json({ success:false, error:"Insufficient bonus points" });
-                }
-                await writeBonusTransaction({
-                    playerId:req.player.id,
-                    points:-amount,
-                    type:"bonus_play",
-                    game:"roulette",
-                    roundId:round.id,
-                    description:"Roulette bonus-point bet"
-                });
-                bonusPointsAfter = Number((bonusPointsAfter - amount).toFixed(2));
-            } else {
-                const currentBalance = Number(req.player.balance || 0);
-                if (amount > currentBalance) {
-                    return res.status(400).json({ success:false, error:"Insufficient balance" });
-                }
-                balanceAfter = await changeBalance({
-                    playerId:req.player.id,
-                    amount:-amount,
-                    type:"roulette_bet",
-                    game:"roulette",
-                    roundId:round.id,
-                    description:"Roulette bet",
-                    metadata:{ betId:"pending", slot, betType, number, color, currency }
-                });
-            }
-
-            const betId = makeId("ROUBET");
-
-            round.bets.push({
-                betId,
-                playerId:req.player.id,
-                slot,
-                amount,
-                currency,
-                betType,
-                number:betType === "number" ? number : null,
-                color:betType === "color" ? color : null,
-                placedAt:Date.now(),
-                settled:false,
-                payout:0
-            });
-
-            await saveRound(round);
-
-            return res.json({
-                success:true,
-                betId,
-                roundId:round.id,
-                slot,
-                amount,
-                currency,
-                betType,
-                number,
-                color,
-                balanceAfter,
-                bonusPointsAfter,
-                bettingEndsAt:round.bettingEndsAt,
-                remainingMilliseconds:Math.max(0, round.bettingEndsAt - Date.now())
-            });
-        } catch (error) {
-            console.error("Roulette bet error:", error);
-            return res.status(500).json({ success:false, error:error.message || "Could not place Roulette bet" });
-        }
-    }
-);
 
 /*
 |--------------------------------------------------------------------------
@@ -6442,71 +5233,6 @@ app.get(
 |--------------------------------------------------------------------------
 */
 
-/*
-|--------------------------------------------------------------------------
-| AVIATOR BETS WITH OPTIONAL BONUS POINTS
-|--------------------------------------------------------------------------
-*/
-app.post("/api/aviator/bet", requirePlayer, async (req, res) => {
-    try {
-        const round = rounds.aviator;
-        const slot = Number(req.body.slot || 1);
-        const amount = Number(req.body.amount);
-        const currency = String(req.body.currency || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-        if (!round || round.status !== "BETTING") return res.status(400).json({success:false,error:"Aviator betting is closed"});
-        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator slot"});
-        if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({success:false,error:"Invalid Aviator amount"});
-        if (!Array.isArray(round.bets)) round.bets=[];
-        if (round.bets.some(b => b.playerId === req.player.id && Number(b.slot) === slot)) return res.status(400).json({success:false,error:"This Aviator slot already has a bet for this round"});
-
-        let balanceAfter = Number(req.player.balance || 0);
-        let bonusPointsAfter = await getBonusPoints(req.player.id);
-        if (currency === "bonus") {
-            if (amount > bonusPointsAfter) return res.status(400).json({success:false,error:"Insufficient bonus points"});
-            await writeBonusTransaction({playerId:req.player.id,points:-amount,type:"bonus_play",description:JSON.stringify({game:"aviator",slot,amount}),referenceId:round.id});
-            bonusPointsAfter=Number((bonusPointsAfter-amount).toFixed(2));
-        } else {
-            if (amount > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
-            balanceAfter=await changeBalance({playerId:req.player.id,amount:-amount,type:"aviator_bet",game:"aviator",roundId:round.id,description:"Aviator bet",metadata:{slot,amount,currency}});
-        }
-
-        const betId=makeId("AVIBET");
-        round.bets.push({betId,playerId:req.player.id,slot,amount,currency,placedAt:Date.now(),cashedOut:false,cashout:null,payout:0});
-        await saveRound(round);
-        return res.json({success:true,betId,roundId:round.id,slot,amount,currency,balanceAfter,bonusPointsAfter});
-    } catch(error) {
-        console.error("Aviator bet error:",error);
-        return res.status(500).json({success:false,error:error.message || "Could not place Aviator bet"});
-    }
-});
-
-app.post("/api/aviator/cashout", requirePlayer, async (req, res) => {
-    try {
-        const round=rounds.aviator;
-        const slot=Number(req.body.slot || 1);
-        if (!round || !["FLYING"].includes(round.status)) return res.status(400).json({success:false,error:"Aviator flight is not active"});
-        const bet=Array.isArray(round.bets) ? round.bets.find(b => b.playerId===req.player.id && Number(b.slot)===slot && !b.cashedOut) : null;
-        if (!bet) return res.status(400).json({success:false,error:"No active Aviator bet"});
-        const multiplier=Number(round.multiplier);
-        if (!Number.isFinite(multiplier) || multiplier < 1) return res.status(400).json({success:false,error:"Invalid flight multiplier"});
-        const payout=Number((Number(bet.amount)*multiplier).toFixed(2));
-        bet.cashedOut=true; bet.cashout=multiplier; bet.payout=payout;
-        let balanceAfter=Number(req.player.balance || 0);
-        let bonusPointsAfter=await getBonusPoints(req.player.id);
-        if (String(bet.currency)==="bonus") {
-            await writeBonusTransaction({playerId:req.player.id,points:payout,type:"bonus_win",description:JSON.stringify({game:"aviator",betId:bet.betId,slot,multiplier,payout}),referenceId:round.id});
-            bonusPointsAfter=Number((bonusPointsAfter+payout).toFixed(2));
-        } else {
-            balanceAfter=await changeBalance({playerId:req.player.id,amount:payout,type:"aviator_win",game:"aviator",roundId:round.id,description:"Aviator cash-out",metadata:{betId:bet.betId,slot,multiplier,payout}});
-        }
-        await saveRound(round);
-        return res.json({success:true,payout,multiplier,currency:bet.currency,balanceAfter,bonusPointsAfter});
-    } catch(error) {
-        console.error("Aviator cashout error:",error);
-        return res.status(500).json({success:false,error:error.message || "Could not cash out Aviator bet"});
-    }
-});
-
 app.get(
     "/api/game/:game/round",
     requirePlayer,
@@ -6523,11 +5249,7 @@ app.get(
         |--------------------------------------------------------------
         */
 
-        if (
-            gameName === "bingo" ||
-            gameName === "bingo75" ||
-            gameName === "bingo90"
-        ) {
+        if (gameName === "bingo") {
             const requestedStake = editionStakeIsValid(req.query.stake);
             const tier = requestedStake || EDITION_STAKES.find(n => bingoRooms[n]);
 
@@ -6538,27 +5260,17 @@ app.get(
                 });
             }
 
-            const variant = gameName === "bingo90" ? "bingo90" : "bingo75";
             const round = getPublicBingoRound(tier);
-            round.variant = variant;
+            round.variant = "bingo75";
             round.stake = tier;
-            round.totalDraws = variant === "bingo90" ? 90 : 75;
-
-            /* The compact baseline has a verified 75-ball cartela engine.
-             * Do not fabricate a 90-ball ticket until bingo90.js is present. */
-            if (variant === "bingo90") {
-                round.cards = [];
-                round.cardIds = [];
-            } else {
-                const cards = [0,1].map(i => {
-                    const number = editionCartelaNumber(req.player.id, i);
-                    return getBingoCartela(number);
-                });
-                round.cards = cards;
-                round.cardIds = [0,1].map(i =>
-                    `cartela-${editionCartelaNumber(req.player.id,i)}`
-                );
-            }
+            round.totalDraws = 75;
+            round.cards = [0,1].map(i => {
+                const number = editionCartelaNumber(req.player.id, i);
+                return getBingoCartela(number);
+            });
+            round.cardIds = [0,1].map(i =>
+                `cartela-${editionCartelaNumber(req.player.id,i)}`
+            );
 
             return res.json({
                 success:true,
@@ -6690,202 +5402,7 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
-});
 
-/*
-|--------------------------------------------------------------------------
-| PVP ARENA API
-|--------------------------------------------------------------------------
-| Additive only. Existing account, payment, withdrawal, invitation and
-| voice endpoints above remain untouched.
-|--------------------------------------------------------------------------
-*/
-app.get("/api/pvp/games", requirePlayer, (req, res) => {
-    const games = PVP_GAME_ORDER.map(id => {
-        const cfg = PVP_GAMES[id];
-        return cfg ? { id, ...cfg, available:true } : {
-            id,
-            name:id,
-            minPlayers:2,
-            maxPlayers:4,
-            available:false
-        };
-    });
-    res.json({ success:true, games });
-});
-
-app.get("/api/pvp/rooms", requirePlayer, (req, res) => {
-    try {
-        const game=String(req.query.game || "").trim().toLowerCase();
-        const fee=pvpEntryFee(req.query.entryFee || 10);
-        if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
-        const room=pvpGetOrCreateRoom(game,fee);
-        res.json({success:true,room:pvpPublicRoom(room)});
-    } catch(error) {
-        res.status(400).json({success:false,error:error.message});
-    }
-});
-
-app.post("/api/pvp/join", requirePlayer, async (req, res) => {
-    try {
-        const game=String(req.body.game || "").trim().toLowerCase();
-        const fee=pvpEntryFee(req.body.entryFee || 10);
-        if (!PVP_GAMES[game]) return res.status(400).json({success:false,error:"Unsupported PVP game"});
-        if (pvpPlayerRooms.has(req.player.id)) return res.status(409).json({success:false,error:"You are already in a PVP room"});
-
-        const room=pvpGetOrCreateRoom(game,fee);
-        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"Room is no longer accepting players"});
-        if (room.players.has(req.player.id)) return res.json({success:true,room:pvpPublicRoom(room),alreadyJoined:true});
-        if (room.players.size >= room.maxPlayers) return res.status(409).json({success:false,error:"Room is full"});
-
-        await pvpDebitPlayer(req.player.id,room);
-        room.players.set(req.player.id,{ playerId:String(req.player.id), telegramName:String(req.player.username || req.player.telegram_username || "Player"), joinedAt:Date.now(), score:0, actionLocked:false, actionData:{} });
-        // Rebuild the authoritative state whenever a participant joins so the server
-        // assigns turns/roles/chances from the actual participant list.
-        const previousAuthority = room.state?.authority;
-        const existingEngineState = room.state?.engineState || {};
-        room.state = PVP_AUTHORITY.createAuthorityState(room, existingEngineState);
-        if (previousAuthority?.serverSeed) room.state.authority.serverSeed = previousAuthority.serverSeed;
-        pvpPlayerRooms.set(req.player.id,room.roomId);
-        await pvpPersistPlayer(room, room.players.get(req.player.id));
-        await pvpPersistRoom(room);
-
-        if (room.players.size >= room.maxPlayers) pvpStartRoomIfReady(room);
-        res.json({success:true,room:{...pvpPublicRoom(room),authority:PVP_AUTHORITY.publicAuthorityState(room, req.player.id)},balance:Number(req.player.balance || 0)-room.entryFee});
-    } catch(error) {
-        res.status(400).json({success:false,error:error.message});
-    }
-});
-
-app.post("/api/pvp/action", requirePlayer, async (req, res) => {
-    try {
-        const roomId = String(req.body.roomId || "");
-        const room = [...pvpRooms.values()].find(r => r.roomId === roomId);
-        if (!room) return res.status(404).json({success:false,error:"PVP room not found"});
-        const player = room.players.get(req.player.id);
-        if (!player) return res.status(403).json({success:false,error:"You are not in this room"});
-        if (!["BETTING","READY","PLAYING"].includes(room.status)) return res.status(409).json({success:false,error:"This round is no longer accepting actions"});
-
-        const engine = PVP_ENGINE_REGISTRY[room.game];
-        if (!engine || typeof engine.validateAction !== "function") throw new Error("PVP engine unavailable");
-        const rawAction = req.body.actionData || {};
-        if (!rawAction || typeof rawAction !== "object" || Array.isArray(rawAction)) {
-            throw new Error("Invalid PVP action");
-        }
-        let authorityResult = null;
-
-        if (room.state?.version === 2) {
-            authorityResult = PVP_AUTHORITY.applyAction(room, req.player.id, rawAction);
-        }
-
-        if (authorityResult?.engineAction) {
-            const action = engine.validateAction(rawAction, room.state?.engineState || room.state);
-            if (["bingo","bingo75"].includes(room.game) && action.type === "card") {
-                player.actionData = { ...(player.actionData || {}), ...action };
-                player.actionLocked = false;
-            } else if (["tambola","bingo90"].includes(room.game) && action.type === "ticket") {
-                player.actionData = { ...(player.actionData || {}), ...action };
-                player.actionLocked = false;
-            } else if (["bingo","bingo75","tambola","bingo90"].includes(room.game) && action.type === "claim") {
-                if (!player.actionData?.numbers || !Array.isArray(player.actionData.numbers)) throw new Error("Submit your card or ticket first");
-                player.actionData = { ...(player.actionData || {}), ...action };
-                player.actionLocked = true;
-            } else {
-                player.actionData = action;
-                player.actionLocked = true;
-            }
-        }
-
-        try {
-            if (room.dbRoomId) await supabase.from("pvp_actions").insert({
-                room_id:room.dbRoomId,
-                round_id:room.roundId,
-                player_id:String(req.player.id),
-                action_type:String(rawAction.type||"action"),
-                action_payload:rawAction,
-                accepted:true
-            });
-        } catch (error) { console.error("[PVP] Action persistence warning:", error.message); }
-
-        const authorityFinished = room.state?.authority?.phase === "FINISHED";
-        const allSubmitted = [...room.players.values()].every(p => p.actionLocked);
-        if (authorityFinished) {
-            const winnerIds = room.state.authority.winners || [];
-            await pvpSettleRoom(room, winnerIds, {
-                scores:room.state.authority.scores,
-                authoritativeHistory:room.state.authority.history,
-                authorityVersion:2
-            });
-        } else if (allSubmitted && ["bingo","bingo75","tambola","bingo90","numberdraw","wheel","highcard","dice","target"].includes(room.game)) {
-            await pvpResolveRoom(room);
-        } else {
-            room.status = "PLAYING";
-            await pvpPersistRoom(room);
-        }
-
-        const publicAuthority = room.state?.version === 2 ? PVP_AUTHORITY.publicAuthorityState(room, req.player.id) : null;
-        res.json({success:true,room:{...pvpPublicRoom(room),authority:publicAuthority},result:room.result||null});
-    } catch(error) {
-        res.status(400).json({success:false,error:error.message || "Action rejected"});
-    }
-});
-
-app.post("/api/pvp/leave", requirePlayer, async (req, res) => {
-    try {
-        const roomId=String(req.body.roomId || "");
-        const room=[...pvpRooms.values()].find(r=>r.roomId===roomId);
-        if (!room) return res.json({success:true});
-        if (room.status !== "BETTING") return res.status(409).json({success:false,error:"You cannot leave after the round starts"});
-        const player=room.players.get(req.player.id);
-        if (!player) return res.json({success:true});
-        room.players.delete(req.player.id);
-        pvpPlayerRooms.delete(req.player.id);
-        await changeBalance({ playerId:req.player.id, amount:room.entryFee, type:"pvp_refund", game:room.game, roundId:`${room.roundId}:leave`, description:"PVP leave refund", metadata:{roomId:room.roomId} });
-        res.json({success:true,room:pvpPublicRoom(room)});
-    } catch(error) {
-        res.status(400).json({success:false,error:error.message});
-    }
-});
-
-app.get("/api/pvp/room/:roomId", requirePlayer, (req,res)=>{
-    const room=[...pvpRooms.values()].find(r=>r.roomId===String(req.params.roomId));
-    if(!room) return res.status(404).json({success:false,error:"PVP room not found"});
-    const player=room.players.get(req.player.id);
-    res.json({success:true,room:{...pvpPublicRoom(room),authority:PVP_AUTHORITY.publicAuthorityState(room, req.player.id)},joined:Boolean(player),result:room.result||null});
-});
-
-/*
-|--------------------------------------------------------------------------
-| BOOT
-|--------------------------------------------------------------------------
-*/
-
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY PLAYER-FLOW EDITION API
-|--------------------------------------------------------------------------
-|
-| Frontend contract:
-|   POST /api/game/bingo/bet
-|   POST /api/game/bingo75/bet
-|   POST /api/game/bingo90/bet
-|   POST /api/game/bingo/bingo-claim
-|   POST /api/game/bingo75/bingo-claim
-|   POST /api/game/bingo90/bingo-claim
-|   POST /api/game/keno/bet
-|
-| The server remains authoritative. Authentication is required.
-| These adapters reuse the existing permanent-account/ledger layer.
-|--------------------------------------------------------------------------
-*/
-
-const EDITION_STAKES = [
-    10,20,30,40,50,60,70,80,90,100,
-    150,200,250,300,350,400,450,500,
-    550,600,650,700,750,800,850,900,950,1000
-];
 
 function editionStakeIsValid(value) {
     const n = Number(value);
@@ -6893,8 +5410,7 @@ function editionStakeIsValid(value) {
 }
 
 function editionBingoVariant(gameName) {
-    if (gameName === "bingo90") return "bingo90";
-    return "bingo75";
+    return gameName === "bingo" ? "bingo75" : null;
 }
 
 function editionCartelaNumber(playerId, cardIndex) {
@@ -6907,13 +5423,7 @@ function editionCartelaNumber(playerId, cardIndex) {
 }
 
 function editionPublicBingoCards(playerId, variant) {
-    /*
-     * Bingo 75 uses the fixed 120-card engine already present in the server.
-     * Bingo 90 is exposed as a 3x9 ticket only when a dedicated 90-ball
-     * engine is installed. The compact baseline does not silently invent
-     * a second ticket generator.
-     */
-    if (variant === "bingo90") return [];
+    if (variant !== "bingo75") return [];
 
     return [0,1].map(index => {
         const cartelaNumber = editionCartelaNumber(playerId, index);
@@ -6944,7 +5454,7 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
         return next();
     }
 
-    if (!["bingo","bingo75","bingo90"].includes(gameName)) {
+    if (gameName !== "bingo") {
         return next();
     }
 
@@ -6967,11 +5477,7 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
         }
 
         const variant = editionBingoVariant(gameName);
-        if (variant === "bingo90") {
-            return res.status(503).json({success:false,error:"Bingo 90 engine is not installed in the current backend"});
-        }
-
-        const cartelaNumber = editionCartelaNumber(req.player.id, cardIndex);
+                const cartelaNumber = editionCartelaNumber(req.player.id, cardIndex);
         const cartela = getBingoCartela(cartelaNumber);
 
         const duplicate = room.players.some(p =>
@@ -7026,13 +5532,9 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
  * server-side cartela claim API without trusting client card contents. */
 app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) => {
     const gameName = String(req.params.game || "").toLowerCase();
-    if (!["bingo","bingo75","bingo90"].includes(gameName)) return next();
+    if (gameName !== "bingo") return next();
 
     try {
-        if (gameName === "bingo90") {
-            return res.status(503).json({success:false,error:"Bingo 90 engine is not installed in the current backend"});
-        }
-
         const cardIndex = Number(req.body?.cardIndex);
         const roundId = String(req.body?.roundId || "").trim();
         if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 1) {
@@ -7161,7 +5663,7 @@ app.listen(
         );
 
         console.log(
-            "Keno / Bingo / Roulette / Aviator / PVP Arena"
+            "Keno / Bingo"
         );
 
         console.log(
@@ -7197,23 +5699,12 @@ app.listen(
             */
         }
 
-        /* Legacy house Bingo boot disabled: Bingo PVP is handled by /api/pvp/* and PVPAuthority. */
+        /* Start the two active server-authoritative games only. */
+        await restoreHouseRound("keno");
 
-        /*
-        |--------------------------------------------------------------
-        | RESTORE HOUSE GAMES
-        |--------------------------------------------------------------
-        */
-
-        for (
-            const gameName
-            of Object.keys(
-                games
-            )
-        ) {
-            await restoreHouseRound(
-                gameName
-            );
+        for (const tier of EDITION_STAKES) {
+            await seedBingoRoundCounter(tier);
+            startNewBingoRound(tier);
         }
 
         console.log(
