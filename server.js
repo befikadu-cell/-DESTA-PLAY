@@ -86,6 +86,15 @@ const TELEBIRR_ACCOUNT =
 
 const MIN_DEPOSIT_AMOUNT = 50;
 
+const EDITION_STAKES = [
+    10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
+    150, 200, 250, 300, 350, 400, 450, 500,
+    550, 600, 650, 700, 750, 800, 850, 900,
+    950, 1000
+];
+
+
+
 const SUPPORTED_DEPOSIT_METHODS = {
     telebirr: true,
     mpesa: false,
@@ -5680,7 +5689,7 @@ app.listen(
             "========================================"
         );
 
-        const databaseOK 
+        const databaseOK =
             await testDatabaseConnection();
 
         if (!databaseOK) {
