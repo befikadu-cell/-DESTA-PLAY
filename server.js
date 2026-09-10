@@ -26,7 +26,6 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
-import { createVoiceRouter } from "./voice.js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
 
@@ -135,7 +134,6 @@ app.use(express.json({ limit: "100kb" }));
 app.use(express.static(__dirname));
 
 /* SERVER AUDIO VOICE — game engines remain untouched. */
-createVoiceRouter(app, { publicDir: path.join(__dirname, "public") });
 
 /*
 |--------------------------------------------------------------------------
