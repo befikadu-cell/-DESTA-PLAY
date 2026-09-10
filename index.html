@@ -2157,6 +2157,7 @@ async function checkExistingSession(){
       const data=await r.json().catch(()=>({}));
       if(r.ok && data.success){
         if(data.isNewUser){
+          state.telegramIdentity={telegramId:String(data.telegramId||""),telegramName:String(data.telegramName||""),telegramUsername:String(data.telegramUsername||"")};
           auth.classList.remove("hidden");
           authMode="register";
           toggleAuthMode();
@@ -2166,11 +2167,13 @@ async function checkExistingSession(){
         }
         auth.classList.add("hidden");
         if(data.playerId) state.playerId=String(data.playerId);
+        if(data.token){ localStorage.setItem("desta_play_token",data.token); }
         openPage("home");
         return;
       }
     }
-    const r=await fetch(`${API_BASE}/api/auth/me`,{cache:"no-store",credentials:"include"});
+    const savedToken=localStorage.getItem("desta_play_token")||"";
+    const r=await fetch(`${API_BASE}/api/auth/me`,{cache:"no-store",credentials:"include",headers:savedToken?{"Authorization":`Bearer ${savedToken}`}:{}});
     if(r.ok){
       const data=await r.json().catch(()=>({}));
       if(data.playerId) state.playerId=String(data.playerId);
@@ -2182,7 +2185,7 @@ async function checkExistingSession(){
   auth.classList.remove("hidden");
   if(authMode!=="login") toggleAuthMode();
 }
-async function submitAuth(){const msg=document.getElementById("authMessage");try{let body,endpoint;if(authMode==="login"){endpoint="/api/auth/login";body={phone:document.getElementById("loginPhone").value.trim(),password:document.getElementById("loginPassword").value};}else{endpoint="/api/auth/register";const phone=document.getElementById("registerPhone").value.trim();const password=document.getElementById("registerPassword").value;const passwordConfirm=document.getElementById("registerPasswordConfirm").value;if(password!==passwordConfirm){msg.textContent="Passwords do not match";return;}body={phone,password,passwordConfirm};}const r=await fetch(`${API_BASE}${endpoint}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=data.message||"Unable to continue";return;}document.getElementById("authScreen").classList.add("hidden");openPage("home");}catch(e){msg.textContent="Connection error. Please try again.";}}
+async function submitAuth(){const msg=document.getElementById("authMessage");try{let body,endpoint;if(authMode==="login"){endpoint="/api/auth/login";body={phone:document.getElementById("loginPhone").value.trim(),password:document.getElementById("loginPassword").value};}else{endpoint="/api/auth/register";const phone=document.getElementById("registerPhone").value.trim();const password=document.getElementById("registerPassword").value;const passwordConfirm=document.getElementById("registerPasswordConfirm").value;if(password!==passwordConfirm){msg.textContent="Passwords do not match";return;}body={phone,password,passwordConfirm};}const r=await fetch(`${API_BASE}${endpoint}`,{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify(authMode==="register"?{...body,...(state.telegramIdentity||{})}:body)});const data=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=data.message||"Unable to continue";return;}if(data.token){ localStorage.setItem("desta_play_token",data.token); } if(data.player?.id) state.playerId=String(data.player.id); document.getElementById("authScreen").classList.add("hidden");openPage("home");}catch(e){msg.textContent="Connection error. Please try again.";}}
 function goBackFromPage(){openPage(previousPage==="games"?"home":previousPage);}
 function toggleVoice(){voiceEnabled=!voiceEnabled;const b=document.getElementById("voiceBtn");if(b)b.textContent=voiceEnabled?"🔊 Voice ON":"🔇 Voice OFF";if(!voiceEnabled&&"speechSynthesis"in window)window.speechSynthesis.cancel();}
 function copyInviteCode(){const code=document.getElementById("inviteCode")?.textContent||"";navigator.clipboard?.writeText(code).then(()=>showToast("Invitation code copied"));}
