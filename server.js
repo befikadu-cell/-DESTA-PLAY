@@ -5316,6 +5316,56 @@ app.get(
 
 /*
 |--------------------------------------------------------------------------
+| EDITION STAKE COUNTS / BINGO CARTELA AVAILABILITY
+|--------------------------------------------------------------------------
+*/
+app.get("/api/game/stakes", requirePlayer, (req, res) => {
+    const game = String(req.query?.game || "").toLowerCase();
+    if (game !== "bingo" && game !== "keno") {
+        return res.status(400).json({ success:false, error:"Invalid game" });
+    }
+    const stakes = EDITION_STAKES.map(stake => {
+        let players = 0;
+        let status = "BETTING";
+        let remainingSeconds = 0;
+        let roundId = null;
+        if (game === "bingo") {
+            const room = bingoRooms[stake];
+            if (room) {
+                players = Array.isArray(room.players) ? new Set(room.players.map(p => String(p.playerId))).size : 0;
+                status = room.status;
+                remainingSeconds = Math.max(0, Math.ceil((Number(room.bettingEndsAt || 0)-Date.now())/1000));
+                roundId = room.id;
+            }
+        } else {
+            const round = rounds.keno;
+            if (round) {
+                const ids = new Set((Array.isArray(round.bets) ? round.bets : [])
+                    .filter(b => Number(b.amount) === Number(stake))
+                    .map(b => String(b.playerId)));
+                players = ids.size;
+                status = round.status;
+                remainingSeconds = Math.max(0, Math.ceil((Number(round.bettingEndsAt || 0)-Date.now())/1000));
+                roundId = round.id;
+            }
+        }
+        return { stake, players, status, remainingSeconds, roundId };
+    });
+    return res.json({ success:true, game, serverTime:Date.now(), stakes });
+});
+
+app.get("/api/game/bingo/cartelas", requirePlayer, (req, res) => {
+    const stake = editionStakeIsValid(req.query?.stake);
+    if (!stake) return res.status(400).json({ success:false, error:"Invalid stake" });
+    const room = bingoRooms[stake];
+    const occupied = room && Array.isArray(room.players)
+        ? [...new Set(room.players.map(p => Number(p.cartelaNumber)).filter(n => Number.isInteger(n) && n >= 1 && n <= 120))]
+        : [];
+    return res.json({ success:true, stake, roundId:room?.id || null, status:room?.status || "WAITING", occupied });
+});
+
+/*
+|--------------------------------------------------------------------------
 | SERVER TIME
 |--------------------------------------------------------------------------
 */
