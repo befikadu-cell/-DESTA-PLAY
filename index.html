@@ -1910,7 +1910,68 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 .stakeJoin{width:100%;height:34px;border:0;border-radius:7px;background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-size:11px;font-weight:900;}
 .stakeJoin:disabled{opacity:.45;}
 </style>
-    </head>
+    <style id="desta-final-game-fix">
+/* FINAL COMPACT MINI-APP / TOUCH FIX — preserves existing structure */
+html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none;}
+body{min-height:100vh;height:100vh;padding:0!important;}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow:hidden;}
+#home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px)!important;min-height:0!important;max-height:calc(100vh - 68px);box-sizing:border-box;overflow:hidden!important;}
+#gameScreen{position:relative;padding:0!important;}
+.gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
+#gameScreen .gameTitle{display:none!important;}
+#gameScreen .gameArea{height:calc(100vh - 126px)!important;max-height:none!important;margin:0 6px!important;box-sizing:border-box;overflow:hidden!important;border-radius:12px;}
+#gameScreen .stakeLobby{position:relative;z-index:20;max-height:none!important;height:auto;overflow:hidden!important;margin:6px!important;}
+.stakeGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;}
+.stakeChoice{height:32px;min-height:32px;}
+.stakeLobby{padding:7px!important;}
+.stakeLobbyHead h2{font-size:15px!important;}
+.stakeLobbyHead p{font-size:8px!important;}
+.stakeTimer{margin:3px auto 5px!important;}
+.stakeTimer strong{font-size:20px!important;}
+.stakeLobbyStatus{font-size:8px!important;margin:4px 0!important;}
+.stakeJoin{height:34px!important;margin-top:3px!important;}
+
+/* KENO — compact, tappable and visually centered like the supplied reference */
+#kenoGame{height:100%;overflow:hidden;position:relative;}
+#kenoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
+#kenoGame .countdown{padding:4px!important;font-size:10px!important;}
+.kenoSelectedRows{display:grid!important;grid-template-columns:1fr 1fr;gap:4px!important;margin:2px 5px!important;}
+.kenoSelectedRows .selectedRow{min-height:27px!important;padding:3px 5px!important;box-sizing:border-box;}
+.kenoSelectedRows .selectedNumber{padding:2px 4px!important;font-size:8px!important;}
+.kenoBoard{padding:4px!important;gap:3px!important;grid-template-columns:repeat(10,1fr)!important;}
+.kenoNumber{min-width:0!important;width:100%!important;font-size:9px!important;aspect-ratio:1/1;cursor:pointer!important;pointer-events:auto!important;}
+#kenoGame .drawNumberCircle{width:96px!important;height:96px!important;margin:4px auto!important;}
+#kenoGame .drawNumberCircle span{font-size:31px!important;}
+#kenoGame .drawStatus{padding:3px!important;font-size:9px!important;}
+#kenoGame .betSlots{display:grid!important;grid-template-columns:1fr 1fr;gap:5px!important;padding:4px!important;}
+#kenoGame .betSlot{min-height:65px!important;padding:5px!important;cursor:pointer!important;pointer-events:auto!important;}
+#kenoGame .placeBtn{min-height:28px!important;padding:5px!important;font-size:9px!important;}
+#kenoGame .feed,#kenoGame .historyBox{display:none!important;}
+
+/* BINGO — compact header/draw area matching supplied reference */
+#bingoGame{height:100%;overflow:hidden;position:relative;}
+#bingoGame .bingoStakeScreen{padding:6px!important;}
+#bingoGame .bingoPlayArea{height:100%;overflow:hidden;}
+#bingoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
+#bingoGame .countdown{padding:4px!important;font-size:10px!important;}
+#bingoGame .bingoAnimation{height:180px!important;}
+#bingoGame .bingoMachine{width:118px!important;height:118px!important;}
+#bingoGame .bingoLatestDraw{font-size:42px!important;}
+#bingoGame .cartelaChooser{margin:2px 5px!important;}
+#bingoGame .cartelaPicker{max-height:72px!important;overflow:hidden!important;grid-template-columns:repeat(12,1fr)!important;gap:2px!important;}
+#bingoGame .cartelaPick{height:20px!important;min-height:20px!important;font-size:7px!important;padding:0!important;}
+#bingoGame .cartelaTabs{margin:3px 5px!important;}
+#bingoGame .cartelaGridWrap{max-height:220px!important;overflow:hidden!important;}
+#bingoGame .betSlots{gap:4px!important;padding:4px!important;}
+#bingoGame .betSlot{min-height:58px!important;padding:4px!important;}
+#bingoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
+#bingoGame .feed,#bingoGame .historyBox{display:none!important;}
+
+/* Prevent accidental transparent/overlay layers from blocking game controls. */
+#kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
+</style>
+</head>
 
     <body>
 
@@ -3699,6 +3760,7 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
       }
 
       state.game=game;
+      state.gameJoined=false;
       state.stakeLobbyGame=game;
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
       showPage("game");
@@ -3760,6 +3822,10 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
       const game=state.stakeLobbyGame;
       const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
       if(!stake) return;
+      state.gameJoined=true;
+      /* Provisional local state only until the authoritative server round
+         arrives. This makes the number/slot controls responsive immediately. */
+      state.bettingOpen=true;
       const lobby=document.getElementById("gameStakeLobby");
       if(lobby) lobby.classList.add("hidden");
       if(game==="bingo") enterBingoWithStake();
@@ -3947,9 +4013,7 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 
     function activateKenoSlot(slot){
 
-      if(!state.bettingOpen)
-        return;
-
+      if(slot!==1 && slot!==2) return;
       state.activeKenoSlot=slot;
 
       document
@@ -3983,7 +4047,10 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 
     function selectKeno(n,button){
 
-      if(!state.bettingOpen)
+      /* Allow immediate touch selection after JOIN while the first server
+         round response is arriving. Once the server reports DRAWING/closed,
+         its authoritative state still wins. */
+      if(!state.bettingOpen && !(state.gameJoined && Number(state.countdown||0)>0))
         return;
 
       const slot=
@@ -4067,10 +4134,10 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
       const numbers=
         state.kenoSelections[slot];
 
-      if(numbers.length<1){
+      if(numbers.length<3){
 
         alert(
-          "Select 1 to 10 numbers for Slot "+slot+"."
+          "Select 3 to 10 numbers for Slot "+slot+"."
         );
 
         return;
@@ -6714,5 +6781,18 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
       </div>
     </div>
 
-    </body>
+    
+<script id="desta-touch-repair">
+(function(){
+  document.addEventListener("touchstart",function(e){
+    const n=e.target.closest && e.target.closest(".kenoNumber");
+    if(n){ n.style.transform="scale(.96)"; setTimeout(()=>n.style.transform="",90); }
+  },{passive:true});
+})();
+</script>
+</body>
     </html>
+
+
+
+
