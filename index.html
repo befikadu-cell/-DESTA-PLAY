@@ -223,6 +223,13 @@
       color:var(--gold);
     }
 
+    /* HOME is intentionally compact and does not scroll. Other pages retain their own scrolling. */
+    #home{
+      height:calc(100vh - 68px);
+      overflow:hidden;
+      box-sizing:border-box;
+    }
+
     .gameGrid{
       padding:10px;
       display:grid;
@@ -2593,27 +2600,6 @@
 
 
     <!-- ======================================================
-         INVITE
-    ====================================================== -->
-
-    <section id="inviteScreen" style="display:none">
-      <button class="pageBackBtn" type="button" onclick="showPage('home')">← BACK</button>
-      <div class="pageTitle">INVITE</div>
-      <div class="profileCard inviteCard">
-        <h3>Invite Bonus</h3>
-        <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
-        <div class="profileRow">
-          <span>Your Invite Code</span>
-          <span id="inviteCode">—</span>
-        </div>
-        <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
-        <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
-        <div id="inviteStatus" class="walletStatus"></div>
-      </div>
-    </section>
-
-
-    <!-- ======================================================
          PROFILE
     ====================================================== -->
 
@@ -2651,6 +2637,20 @@
 
       </div>
 
+      <div class="profileCard inviteCard" style="margin-top:12px">
+        <h3>INVITATION</h3>
+        <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
+        <div class="profileRow"><span>Your Invite Code</span><strong id="profileInviteCode">—</strong></div>
+        <div class="profileRow"><span>Players Invited</span><strong id="profileInviteCount">0</strong></div>
+        <div class="profileRow"><span>Points Earned</span><strong id="profileInviteEarnedPoints">0.00</strong></div>
+        <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
+        <div class="profileRow"><span>Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
+        <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
+        <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
+        <div id="inviteStatus" class="walletStatus"></div>
+      </div>
+
     </section>
 
 
@@ -2685,15 +2685,6 @@
 
         <span>👛</span>
         WALLET
-
-      </button>
-
-      <button
-        id="navInvite"
-        onclick="showPage('invite')">
-
-        <span>🎁</span>
-        INVITE
 
       </button>
 
@@ -3537,9 +3528,6 @@
         .getElementById("profileScreen")
         .style.display="none";
 
-      document
-        .getElementById("inviteScreen")
-        .style.display="none";
 
       document
         .querySelectorAll(".bottomNav button")
@@ -3586,24 +3574,20 @@
       }
 
       if(page==="invite"){
-
-        document
-          .getElementById("inviteScreen")
-          .style.display="block";
-
-        document
-          .getElementById("navInvite")
-          .classList.add("active");
-
-        loadInviteData();
-
+        /* Invitation belongs under PROFILE; keep old calls compatible. */
+        page="profile";
+        state.page="profile";
       }
 
       if(page==="profile"){
         document
           .getElementById("profileScreen")
           .style.display="block";
+        document
+          .getElementById("navProfile")
+          .classList.add("active");
         updatePlayerDisplays();
+        loadInviteData();
       }
 
     }
@@ -3620,6 +3604,14 @@
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "Could not load invite information.");
         codeEl.textContent=data.inviteCode || "—";
+        const profileCode=document.getElementById("profileInviteCode");
+        if(profileCode) profileCode.textContent=data.inviteCode || "—";
+        const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+        setText("profileInviteCount",Number(data.invitedPlayers||0));
+        setText("profileInviteEarnedPoints",Number(data.earnedPoints||0).toFixed(2));
+        setText("profileBonusPoints",Number(data.bonusPoints||0).toFixed(2));
+        setText("profileInvitePlayValue",Number(data.playValue||0).toFixed(2));
+        setText("profileInviteWithdrawalValue",Number(data.withdrawalValue||0).toFixed(2));
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
       }catch(error){
@@ -6454,16 +6446,22 @@
         if(!response.ok || !data.success) throw new Error(data.error || "Could not initialize account.");
 
         if(data.registered){
-          state.accountCreated=false;
-          state.authToken="";
-          localStorage.removeItem("destaAccountCreated");
-          localStorage.removeItem("destaAuthToken");
+          /* Existing Telegram accounts receive a fresh session from bootstrap.
+             Never send an already-registered player to phone/password login on startup. */
+          state.authToken=data.token || "";
+          state.accountCreated=!!state.authToken;
           if(data.player){
             state.playerId=data.player.playerId || state.playerId;
             state.telegramName=data.player.telegramName || state.telegramName;
+            state.balance=Number(data.player.balance || 0);
           }
-          showLogin();
-          document.getElementById("accountScreen").classList.remove("hidden");
+          if(state.authToken){
+            localStorage.setItem("destaAuthToken",state.authToken);
+            localStorage.setItem("destaAccountCreated","true");
+            updatePlayerDisplays();
+            loadWalletData();
+            return true;
+          }
           return false;
         }
 
@@ -6507,6 +6505,8 @@
       if(!authenticated){
         document.getElementById("accountScreen").classList.remove("hidden");
         showCreateAccount();
+      }else{
+        showHome();
       }
 
       buildKeno(); buildBingo(); showTab("my"); startLiveRoundSync();
