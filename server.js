@@ -1,2103 +1,1030 @@
-// ============================================================================
-// DESTA PLAY — SERVER-AUTHORITATIVE GAME ENGINE
-// ============================================================================
-//
-// Games / Editions:
-//   1. Bingo
-//   2. Bingo 75
-//   3. Bingo 90
-//   4. Keno
-//
-// Rules:
-//   - Server controls rounds and official draws.
-//   - Client cannot decide winners.
-//   - PLACE BET is the only action that accepts a selection.
-//   - Bingo claims are independently verified by the server.
-//   - Keno scores are calculated by the server.
-//   - Keno: 60% first / 30% second / 10% house.
-//   - Tie for first: entire 90% winner pool is split.
-//   - Tie for second: 30% second-place pool is split.
-//   - No third-place payout.
-//
-// IMPORTANT:
-// The Maps below are temporary engine storage.
-// They MUST NOT replace the existing permanent Supabase ledger.
-//
-// For real-money production, connect:
-//   balance check -> atomic debit -> accepted bet -> ledger
-//   and settlement -> ledger -> balance credit
-// using the existing permanent database.
-//
-// NEVER drop, recreate, wipe, or replace the permanent database.
-// ============================================================================
+/*
+|--------------------------------------------------------------------------
+| DESTA PLAY — 24/7 CONTINUOUS BACKEND ENGINE
+|--------------------------------------------------------------------------
+|
+| Features:
+|   - Multi-Tier PVP Bingo
+|   - Server-authoritative game rounds
+|   - Permanent Supabase player/balance/transaction storage
+|   - Argon2 password hashing
+|   - Server-side authentication
+|   - Server-synchronized countdowns
+|   - Continuous 24/7 game loops
+|   - Engine-defined minimum bet validation
+|   - Keno / Bingo / Roulette / Aviator
+|
+|--------------------------------------------------------------------------
+*/
+
+"use strict";
 
 import express from "express";
 import cors from "cors";
-import crypto from "node:crypto";
+import path from "path";
+import { fileURLToPath } from "url";
+import crypto from "crypto";
+import argon2 from "argon2";
+import { createClient } from "@supabase/supabase-js";
+import { createVoiceRouter } from "./voice.js";
+import PVP_ENGINES from "./pvp/engines/index.js";
+import PVPManager, { PVP_ENTRY_FEES as MANAGER_ENTRY_FEES } from "./pvp/PVPManager.js";
+import PoolEngine from "./pvp/PoolEngine.js";
+import PVP_AUTHORITY from "./pvp/PVPAuthority.js";
 
-const app = express();
+import * as keno from "./games/keno.js";
+import * as bingo from "./games/bingo.js";
+import * as roulette from "./games/roulette.js";
+import * as aviator from "./games/aviator.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/*
+|--------------------------------------------------------------------------
+| ENVIRONMENT
+|--------------------------------------------------------------------------
+*/
 
 const PORT = Number(process.env.PORT || 10000);
 
-app.use(cors());
-app.use(express.json({ limit: "1mb" }));
-app.use(express.static("."));
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
-// ============================================================================
-// GAME CONFIGURATION
-// ============================================================================
+const ADMIN_TELEGRAM_ID =
+    String(process.env.ADMIN_TELEGRAM_ID || "").trim();
 
-const GAMES = {
-  bingo: {
-    name: "Bingo",
-    edition: "bingo",
-    bettingSeconds: 30,
-    maxCards: 2,
-    drawCount: 75
-  },
+const ADMIN_PRIVATE_GROUP_ID =
+    String(process.env.ADMIN_PRIVATE_GROUP_ID || "").trim();
 
-  bingo75: {
-    name: "Bingo 75",
-    edition: "bingo75",
-    bettingSeconds: 30,
-    maxCards: 2,
-    drawCount: 75
-  },
+const TELEGRAM_BOT_TOKEN =
+    String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
 
-  bingo90: {
-    name: "Bingo 90",
-    edition: "bingo90",
-    bettingSeconds: 30,
-    maxCards: 2,
-    drawCount: 90
-  },
+const TELEGRAM_WEBHOOK_SECRET =
+    String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
 
-  keno: {
-    name: "Keno",
-    edition: "keno",
-    bettingSeconds: 40,
-    maxSlots: 2,
-    drawCount: 20
-  }
+const PUBLIC_APP_URL =
+    String(
+        process.env.PUBLIC_APP_URL ||
+        "https://desta-play.onrender.com/"
+    ).trim().replace(/\/$/, "");
+
+const SMS_WEBHOOK_SECRET =
+    String(process.env.SMS_WEBHOOK_SECRET || "").trim();
+
+const PAYMENT_OWNER_NAME =
+    String(
+        process.env.PAYMENT_OWNER_NAME ||
+        "TEST PAYMENT OWNER"
+    ).trim();
+
+const PAYMENT_PHONE =
+    String(
+        process.env.PAYMENT_PHONE ||
+        "TEST PAYMENT PHONE"
+    ).trim();
+
+const TELEBIRR_ACCOUNT =
+    String(
+        process.env.TELEBIRR_ACCOUNT ||
+        "TEST TELEBIRR ACCOUNT"
+    ).trim();
+
+const MIN_DEPOSIT_AMOUNT = 50;
+
+const SUPPORTED_DEPOSIT_METHODS = {
+    telebirr: true,
+    mpesa: false,
+    cbe_birr: false
 };
 
-// ============================================================================
-// OFFICIAL DESTA PLAY STAKES
-// ============================================================================
-//
-// 10 -> 100 by 10
-// 100 -> 1000 by 50
-//
-// No amount input is required from the player.
-// The frontend must use this exact list.
-//
-// ============================================================================
-
-const STAKES = [
-  10,
-  20,
-  30,
-  40,
-  50,
-  60,
-  70,
-  80,
-  90,
-  100,
-  150,
-  200,
-  250,
-  300,
-  350,
-  400,
-  450,
-  500,
-  550,
-  600,
-  650,
-  700,
-  750,
-  800,
-  850,
-  900,
-  950,
-  1000
-];
-
-function validStake(value) {
-  const amount = Number(value);
-
-  return STAKES.includes(amount)
-    ? amount
-    : null;
+if (!SUPABASE_URL) {
+    throw new Error("Missing SUPABASE_URL");
 }
 
-// ============================================================================
-// TEMPORARY ENGINE STORAGE
-// ============================================================================
-//
-// These Maps allow the frontend/game engine to be tested.
-//
-// PRODUCTION:
-// Replace these persistence operations with transactions/RPCs against the
-// existing permanent Supabase database.
-//
-// ============================================================================
-
-const rounds = new Map();
-
-const bets = new Map();
-
-const claims = new Set();
-
-// ============================================================================
-// GENERAL HELPERS
-// ============================================================================
-
-function createId(prefix) {
-  return `${prefix}_${crypto.randomUUID()}`;
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
 }
 
-function currentTime() {
-  return Date.now();
+if (!SESSION_SECRET) {
+    throw new Error("Missing SESSION_SECRET");
 }
 
-function unique(values) {
-  return [...new Set(values)];
-}
-
-// Cryptographically stronger shuffle for official server draw order.
-function secureShuffle(values) {
-  const array = [...values];
-
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = crypto.randomInt(i + 1);
-
-    const temp = array[i];
-
-    array[i] = array[j];
-
-    array[j] = temp;
-  }
-
-  return array;
-}
-
-function validNumberArray(
-  values,
-  min,
-  max,
-  minCount,
-  maxCount
-) {
-  if (!Array.isArray(values)) {
-    return false;
-  }
-
-  if (
-    values.length < minCount ||
-    values.length > maxCount
-  ) {
-    return false;
-  }
-
-  if (
-    values.some(
-      n =>
-        !Number.isInteger(n) ||
-        n < min ||
-        n > max
-    )
-  ) {
-    return false;
-  }
-
-  return unique(values).length === values.length;
-}
-
-// ============================================================================
-// ROUND CREATION
-// ============================================================================
-
-function createRound(game) {
-  const config = GAMES[game];
-
-  const createdAt = currentTime();
-
-  let drawPool;
-
-  // --------------------------------------------------------------------------
-  // KENO
-  // --------------------------------------------------------------------------
-
-  if (game === "keno") {
-
-    // Keno draws 20 unique numbers from 1-80.
-
-    drawPool = secureShuffle(
-      Array.from(
-        { length: 80 },
-        (_, index) => index + 1
-      )
-    ).slice(0, 20);
-
-  }
-
-  // --------------------------------------------------------------------------
-  // BINGO
-  // --------------------------------------------------------------------------
-
-  else {
-
-    // Bingo editions use their appropriate ball range.
-
-    drawPool = secureShuffle(
-      Array.from(
-        { length: config.drawCount },
-        (_, index) => index + 1
-      )
-    );
-  }
-
-  return {
-    id: createId("round"),
-
-    game,
-
-    edition: config.edition,
-
-    status: "BETTING",
-
-    createdAt,
-
-    bettingEndsAt:
-      createdAt +
-      config.bettingSeconds * 1000,
-
-    drawStartedAt: null,
-
-    finishedAt: null,
-
-    drawIndex: 0,
-
-    draw: [],
-
-    drawPool,
-
-    settled: false
-  };
-}
-
-// ============================================================================
-// GET OR CREATE CURRENT ROUND
-// ============================================================================
-
-function getRound(game) {
-
-  if (!GAMES[game]) {
-    return null;
-  }
-
-  let round = rounds.get(game);
-
-  if (
-    !round ||
-    round.status === "FINISHED"
-  ) {
-
-    round = createRound(game);
-
-    rounds.set(
-      game,
-      round
-    );
-  }
-
-  return round;
-}
-
-// ============================================================================
-// PUBLIC ROUND DATA
-// ============================================================================
-
-function publicRound(round) {
-
-  return {
-
-    id:
-      round.id,
-
-    game:
-      round.game,
-
-    edition:
-      round.edition,
-
-    status:
-      round.status,
-
-    createdAt:
-      round.createdAt,
-
-    bettingEndsAt:
-      round.bettingEndsAt,
-
-    drawStartedAt:
-      round.drawStartedAt,
-
-    finishedAt:
-      round.finishedAt,
-
-    drawIndex:
-      round.drawIndex,
-
-    drawnNumbers:
-      [...round.draw],
-
-    secondsRemaining:
-      round.status === "BETTING"
-        ? Math.max(
-            0,
-            Math.ceil(
-              (
-                round.bettingEndsAt -
-                currentTime()
-              ) / 1000
-            )
-          )
-        : 0
-  };
-}
-
-// ============================================================================
-// BINGO 75 VALIDATION
-// ============================================================================
-//
-// Standard structure:
-//
-//       B   I   N   G   O
-//
-//       5   5   5   5   5
-//
-// Center N cell = FREE.
-//
-// ============================================================================
-
-function validateBingo75Card(card) {
-
-  if (!Array.isArray(card)) {
-    return false;
-  }
-
-  if (card.length !== 5) {
-    return false;
-  }
-
-  if (
-    card.some(
-      row =>
-        !Array.isArray(row) ||
-        row.length !== 5
-    )
-  ) {
-    return false;
-  }
-
-  const seen = new Set();
-
-  for (
-    let row = 0;
-    row < 5;
-    row++
-  ) {
-
-    for (
-      let column = 0;
-      column < 5;
-      column++
-    ) {
-
-      // Center FREE cell.
-      if (
-        row === 2 &&
-        column === 2
-      ) {
-        continue;
-      }
-
-      const number =
-        Number(
-          card[row][column]
-        );
-
-      if (
-        !Number.isInteger(number) ||
-        number < 1 ||
-        number > 75
-      ) {
-        return false;
-      }
-
-      if (seen.has(number)) {
-        return false;
-      }
-
-      seen.add(number);
-    }
-  }
-
-  return seen.size === 24;
-}
-
-// ============================================================================
-// BINGO 75 MARKING
-// ============================================================================
-
-function bingo75Marked(
-  card,
-  drawnNumbers
-) {
-
-  const drawn =
-    new Set(drawnNumbers);
-
-  return card.map(
-    (row, rowIndex) =>
-      row.map(
-        (value, columnIndex) => {
-
-          // FREE center.
-          if (
-            rowIndex === 2 &&
-            columnIndex === 2
-          ) {
-            return true;
-          }
-
-          return drawn.has(
-            Number(value)
-          );
-        }
-      )
-  );
-}
-
-// ============================================================================
-// BINGO 75 HORIZONTAL / VERTICAL / DIAGONAL
-// ============================================================================
-
-function has5x5BingoPattern(marked) {
-
-  // Horizontal
-
-  for (
-    let row = 0;
-    row < 5;
-    row++
-  ) {
-
-    if (
-      marked[row].every(Boolean)
-    ) {
-      return true;
-    }
-  }
-
-  // Vertical
-
-  for (
-    let column = 0;
-    column < 5;
-    column++
-  ) {
-
-    let complete = true;
-
-    for (
-      let row = 0;
-      row < 5;
-      row++
-    ) {
-
-      if (
-        !marked[row][column]
-      ) {
-
-        complete = false;
-
-        break;
-      }
-    }
-
-    if (complete) {
-      return true;
-    }
-  }
-
-  // Main diagonal
-
-  let diagonalOne = true;
-
-  for (
-    let index = 0;
-    index < 5;
-    index++
-  ) {
-
-    if (
-      !marked[index][index]
-    ) {
-
-      diagonalOne = false;
-
-      break;
-    }
-  }
-
-  if (diagonalOne) {
-    return true;
-  }
-
-  // Reverse diagonal
-
-  let diagonalTwo = true;
-
-  for (
-    let index = 0;
-    index < 5;
-    index++
-  ) {
-
-    if (
-      !marked[index][4 - index]
-    ) {
-
-      diagonalTwo = false;
-
-      break;
-    }
-  }
-
-  return diagonalTwo;
-}
-
-// ============================================================================
-// BINGO 90 VALIDATION
-// ============================================================================
-//
-// Standard Bingo 90 ticket:
-//
-// 3 rows x 9 columns
-// 5 numbers per row
-// 15 numbers total
-// Blank cells allowed.
-//
-// ============================================================================
-
-function validateBingo90Card(card) {
-
-  if (!Array.isArray(card)) {
-    return false;
-  }
-
-  if (card.length !== 3) {
-    return false;
-  }
-
-  if (
-    card.some(
-      row =>
-        !Array.isArray(row) ||
-        row.length !== 9
-    )
-  ) {
-    return false;
-  }
-
-  const seen = new Set();
-
-  for (const row of card) {
-
-    let numberCount = 0;
-
-    for (const value of row) {
-
-      // Blank cell.
-
-      if (
-        value === null ||
-        value === 0 ||
-        value === ""
-      ) {
-        continue;
-      }
-
-      const number =
-        Number(value);
-
-      if (
-        !Number.isInteger(number) ||
-        number < 1 ||
-        number > 90
-      ) {
-        return false;
-      }
-
-      if (seen.has(number)) {
-        return false;
-      }
-
-      seen.add(number);
-
-      numberCount++;
-    }
-
-    // Every row has exactly 5 numbers.
-
-    if (numberCount !== 5) {
-      return false;
-    }
-  }
-
-  // 3 x 5 = 15 total numbers.
-
-  return seen.size === 15;
-}
-
-// ============================================================================
-// BINGO 90 MARKING
-// ============================================================================
-
-function bingo90Marked(
-  card,
-  drawnNumbers
-) {
-
-  const drawn =
-    new Set(drawnNumbers);
-
-  return card.map(
-    row =>
-      row.map(
-        value => {
-
-          // Blank cells do not block a row.
-
-          if (
-            value === null ||
-            value === 0 ||
-            value === ""
-          ) {
-            return true;
-          }
-
-          return drawn.has(
-            Number(value)
-          );
-        }
-      )
-  );
-}
-
-// ============================================================================
-// BINGO 90 PATTERN
-// ============================================================================
-//
-// Horizontal, vertical and diagonal verification.
-//
-// ============================================================================
-
-function hasBingo90Pattern(marked) {
-
-  // Horizontal
-
-  for (
-    let row = 0;
-    row < 3;
-    row++
-  ) {
-
-    if (
-      marked[row].every(Boolean)
-    ) {
-      return true;
-    }
-  }
-
-  // Vertical
-
-  for (
-    let column = 0;
-    column < 9;
-    column++
-  ) {
-
-    if (
-      marked[0][column] &&
-      marked[1][column] &&
-      marked[2][column]
-    ) {
-      return true;
-    }
-  }
-
-  // Diagonal
-
-  for (
-    let column = 0;
-    column <= 6;
-    column++
-  ) {
-
-    if (
-      marked[0][column] &&
-      marked[1][column + 1] &&
-      marked[2][column + 2]
-    ) {
-      return true;
-    }
-
-    if (
-      marked[2][column] &&
-      marked[1][column + 1] &&
-      marked[0][column + 2]
-    ) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// ============================================================================
-// KENO
-// ============================================================================
-//
-// Numbers:
-//   1-80
-//
-// Draw:
-//   20 unique numbers
-//
-// Each slot:
-//   3-10 unique numbers
-//
-// Player may use:
-//   1 or 2 slots
-//
-// Final score:
-//   highest match count among the player's slots.
-//
-// ============================================================================
-
-function kenoScore(
-  selection,
-  drawnNumbers
-) {
-
-  const drawn =
-    new Set(drawnNumbers);
-
-  let matches = 0;
-
-  for (
-    const number of selection
-  ) {
-
-    if (
-      drawn.has(number)
-    ) {
-      matches++;
-    }
-  }
-
-  return matches;
-}
-
-// ============================================================================
-// KENO PAYOUT CALCULATION
-// ============================================================================
-//
-// Normal:
-//
-//   1st = 60%
-//   2nd = 30%
-//   House = 10%
-//
-// If two or more players tie for first:
-//
-//   Entire 90% winner pool is split equally.
-//
-// If first is clear and second is tied:
-//
-//   First = 60%
-//   Second pool = 30% split
-//
-// No third-place payout.
-//
-// ============================================================================
-
-function calculateKenoPayouts(
-  entries,
-  totalPool
-) {
-
-  if (
-    !entries.length ||
-    totalPool <= 0
-  ) {
-    return [];
-  }
-
-  const ranked =
-    [...entries].sort(
-      (a, b) =>
-        b.score - a.score
-    );
-
-  const firstScore =
-    ranked[0].score;
-
-  const firstPlace =
-    ranked.filter(
-      entry =>
-        entry.score ===
-        firstScore
-    );
-
-  // --------------------------------------------------------------------------
-  // TIE FOR FIRST
-  // --------------------------------------------------------------------------
-
-  if (
-    firstPlace.length > 1
-  ) {
-
-    const payout =
-      (
-        totalPool * 0.90
-      ) /
-      firstPlace.length;
-
-    return firstPlace.map(
-      entry => ({
-
-        ...entry,
-
-        rank: 1,
-
-        percentage:
-          90 /
-          firstPlace.length,
-
-        payout
-      })
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // CLEAR FIRST
-  // --------------------------------------------------------------------------
-
-  const result = [
-
+/*
+|--------------------------------------------------------------------------
+| SUPABASE
+|--------------------------------------------------------------------------
+*/
+
+const supabase = createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
     {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    }
+);
 
-      ...ranked[0],
+/*
+|--------------------------------------------------------------------------
+| EXPRESS
+|--------------------------------------------------------------------------
+*/
 
-      rank: 1,
+const app = express();
 
-      percentage: 60,
+app.use(cors());
+app.use(express.json({ limit: "100kb" }));
+app.use(
+    express.static(
+        path.join(__dirname, "public")
+    )
+);
 
-      payout:
-        totalPool * 0.60
+createVoiceRouter(
+    app,
+    {
+        publicDir:
+            path.join(
+                __dirname,
+                "public"
+            )
+    }
+);
+
+/*
+|--------------------------------------------------------------------------
+| TELEGRAM REGISTRATION CONTACT CACHE
+|--------------------------------------------------------------------------
+*/
+
+const pendingRegistrationContacts =
+    new Map();
+
+function storeRegistrationContact(
+    telegramId,
+    phone
+) {
+    const id =
+        String(
+            telegramId || ""
+        ).trim();
+
+    const normalized =
+        normalizePhone(phone);
+
+    if (
+        !id ||
+        !normalized
+    ) {
+        return false;
     }
 
-  ];
-
-  // --------------------------------------------------------------------------
-  // FIND SECOND SCORE
-  // --------------------------------------------------------------------------
-
-  const secondEntry =
-    ranked.find(
-      entry =>
-        entry.score <
-        firstScore
+    pendingRegistrationContacts.set(
+        id,
+        {
+            phone: normalized,
+            createdAt: Date.now()
+        }
     );
 
-  if (!secondEntry) {
-    return result;
-  }
-
-  const secondScore =
-    secondEntry.score;
-
-  const secondPlace =
-    ranked.filter(
-      entry =>
-        entry.score ===
-        secondScore
-    );
-
-  const secondPayout =
-    (
-      totalPool * 0.30
-    ) /
-    secondPlace.length;
-
-  for (
-    const entry of secondPlace
-  ) {
-
-    result.push({
-
-      ...entry,
-
-      rank: 2,
-
-      percentage:
-        30 /
-        secondPlace.length,
-
-      payout:
-        secondPayout
-    });
-  }
-
-  return result;
+    return true;
 }
 
-// ============================================================================
-// ROUND SUPERVISOR
-// ============================================================================
-//
-// Every second:
-//
-// BETTING
-//   ↓
-// DRAWING
-//   ↓
-// FINISHED
-//
-// The server controls the draw.
-//
-// ============================================================================
-
-function advanceRound(round) {
-
-  // --------------------------------------------------------------------------
-  // BETTING -> DRAWING
-  // --------------------------------------------------------------------------
-
-  if (
-    round.status === "BETTING" &&
-    currentTime() >=
-      round.bettingEndsAt
-  ) {
-
-    round.status = "DRAWING";
-
-    round.drawStartedAt =
-      currentTime();
-  }
-
-  if (
-    round.status !== "DRAWING"
-  ) {
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // KENO
-  // --------------------------------------------------------------------------
-
-  if (
-    round.game === "keno"
-  ) {
-
-    if (
-      round.drawIndex < 20
-    ) {
-
-      round.draw.push(
-        round.drawPool[
-          round.drawIndex
-        ]
-      );
-
-      round.drawIndex++;
-    }
-
-    if (
-      round.drawIndex >= 20
-    ) {
-
-      round.status =
-        "FINISHED";
-
-      round.finishedAt =
-        currentTime();
-    }
-
-    return;
-  }
-
-  // --------------------------------------------------------------------------
-  // BINGO
-  // --------------------------------------------------------------------------
-
-  if (
-    round.drawIndex <
-    round.drawPool.length
-  ) {
-
-    round.draw.push(
-      round.drawPool[
-        round.drawIndex
-      ]
-    );
-
-    round.drawIndex++;
-  }
-
-  if (
-    round.drawIndex >=
-    round.drawPool.length
-  ) {
-
-    round.status =
-      "FINISHED";
-
-    round.finishedAt =
-      currentTime();
-  }
-}
-
-// Run the server round engine.
-
-setInterval(
-  () => {
-
-    for (
-      const round of rounds.values()
-    ) {
-
-      advanceRound(round);
-    }
-
-  },
-  1000
-);
-
-// ============================================================================
-// HEALTH
-// ============================================================================
-
-app.get(
-  "/api/health",
-  (_req, res) => {
-
-    res.json({
-
-      ok: true,
-
-      service:
-        "DESTA PLAY",
-
-      engine:
-        "server-authoritative",
-
-      time:
-        new Date().toISOString()
-    });
-  }
-);
-
-// ============================================================================
-// AVAILABLE GAMES / EDITIONS
-// ============================================================================
-
-app.get(
-  "/api/games",
-  (_req, res) => {
-
-    res.json({
-
-      games:
-        Object.entries(
-          GAMES
-        ).map(
-          ([id, config]) => ({
-
-            id,
-
-            name:
-              config.name,
-
-            edition:
-              config.edition,
-
-            bettingSeconds:
-              config.bettingSeconds,
-
-            maxCards:
-              config.maxCards,
-
-            maxSlots:
-              config.maxSlots,
-
-            drawCount:
-              config.drawCount
-          })
-        ),
-
-      stakes:
-        [...STAKES]
-    });
-  }
-);
-
-// ============================================================================
-// STAKES
-// ============================================================================
-
-app.get(
-  "/api/stakes",
-  (_req, res) => {
-
-    res.json({
-
-      ok: true,
-
-      stakes:
-        [...STAKES]
-    });
-  }
-);
-
-// ============================================================================
-// CURRENT ROUND
-// ============================================================================
-
-app.get(
-  "/api/game/:game/round",
-  (req, res) => {
-
-    const {
-      game
-    } = req.params;
-
-    const round =
-      getRound(game);
-
-    if (!round) {
-
-      return res
-        .status(404)
-        .json({
-
-          error:
-            "Unknown game"
-        });
-    }
-
-    res.json({
-
-      round:
-        publicRound(round)
-    });
-  }
-);
-
-// ============================================================================
-// PLACE BET
-// ============================================================================
-//
-// Entering the game does NOT deduct money.
-//
-// Selecting a stake does NOT deduct money.
-//
-// Selecting cards/numbers does NOT deduct money.
-//
-// ONLY this endpoint represents an accepted PLACE BET.
-//
-// Production version must atomically:
-//
-//   1. Authenticate player
-//   2. Verify balance
-//   3. Debit wallet
-//   4. Create accepted bet
-//   5. Create ledger record
-//
-// ============================================================================
-
-app.post(
-  "/api/game/:game/bet",
-  (req, res) => {
-
-    const {
-      game
-    } = req.params;
-
-    const {
-      playerId,
-      stake,
-      cards,
-      slots
-    } = req.body || {};
-
-    // --------------------------------------------------------------------------
-    // GAME CHECK
-    // --------------------------------------------------------------------------
-
-    if (!GAMES[game]) {
-
-      return res
-        .status(404)
-        .json({
-
-          error:
-            "Unknown game"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // PLAYER CHECK
-    // --------------------------------------------------------------------------
-
-    if (!playerId) {
-
-      return res
-        .status(400)
-        .json({
-
-          error:
-            "playerId is required"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // EXACT STAKE CHECK
-    // --------------------------------------------------------------------------
-
-    const amount =
-      validStake(stake);
-
-    if (amount === null) {
-
-      return res
-        .status(400)
-        .json({
-
-          error:
-            "Invalid stake. Select an available DESTA PLAY stake."
-        });
-    }
-
-    const round =
-      getRound(game);
-
-    // --------------------------------------------------------------------------
-    // BETTING DEADLINE
-    // --------------------------------------------------------------------------
-
-    if (
-      round.status !== "BETTING" ||
-      currentTime() >=
-        round.bettingEndsAt
-    ) {
-
-      return res
-        .status(409)
-        .json({
-
-          error:
-            "Betting is closed"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // DUPLICATE PROTECTION
-    // --------------------------------------------------------------------------
-
-    const betKey =
-      `${round.id}:${playerId}`;
-
-    if (
-      bets.has(betKey)
-    ) {
-
-      return res
-        .status(409)
-        .json({
-
-          error:
-            "Bet already accepted for this round"
-        });
-    }
-
-    let normalized;
-
-    try {
-
-      // ========================================================================
-      // BINGO
-      // ========================================================================
-
-      if (
-        game === "bingo"
-      ) {
-
-        if (
-          !Array.isArray(cards) ||
-          cards.length < 1 ||
-          cards.length > 2
-        ) {
-
-          throw new Error(
-            "Select 1 or 2 Bingo cartellas"
-          );
-        }
-
-        normalized =
-          cards.map(
-            card => {
-
-              if (
-                !validateBingo75Card(
-                  card
-                )
-              ) {
-
-                throw new Error(
-                  "Invalid Bingo cartella"
-                );
-              }
-
-              return card;
-            }
-          );
-      }
-
-      // ========================================================================
-      // BINGO 75
-      // ========================================================================
-
-      else if (
-        game === "bingo75"
-      ) {
-
-        if (
-          !Array.isArray(cards) ||
-          cards.length < 1 ||
-          cards.length > 2
-        ) {
-
-          throw new Error(
-            "Select 1 or 2 Bingo 75 cartellas"
-          );
-        }
-
-        normalized =
-          cards.map(
-            card => {
-
-              if (
-                !validateBingo75Card(
-                  card
-                )
-              ) {
-
-                throw new Error(
-                  "Invalid Bingo 75 cartella"
-                );
-              }
-
-              return card;
-            }
-          );
-      }
-
-      // ========================================================================
-      // BINGO 90
-      // ========================================================================
-
-      else if (
-        game === "bingo90"
-      ) {
-
-        if (
-          !Array.isArray(cards) ||
-          cards.length < 1 ||
-          cards.length > 2
-        ) {
-
-          throw new Error(
-            "Select 1 or 2 Bingo 90 cartellas"
-          );
-        }
-
-        normalized =
-          cards.map(
-            card => {
-
-              if (
-                !validateBingo90Card(
-                  card
-                )
-              ) {
-
-                throw new Error(
-                  "Invalid Bingo 90 cartella"
-                );
-              }
-
-              return card;
-            }
-          );
-      }
-
-      // ========================================================================
-      // KENO
-      // ========================================================================
-
-      else if (
-        game === "keno"
-      ) {
-
-        if (
-          !Array.isArray(slots) ||
-          slots.length < 1 ||
-          slots.length > 2
-        ) {
-
-          throw new Error(
-            "Select 1 or 2 Keno slots"
-          );
-        }
-
-        normalized =
-          slots.map(
-            slot => {
-
-              if (
-                !validNumberArray(
-                  slot,
-                  1,
-                  80,
-                  3,
-                  10
-                )
-              ) {
-
-                throw new Error(
-                  "Each Keno slot needs 3-10 unique numbers from 1-80"
-                );
-              }
-
-              return [...slot];
-            }
-          );
-      }
-
-      // ========================================================================
-      // SAFETY
-      // ========================================================================
-
-      else {
-
-        throw new Error(
-          "Unsupported game edition"
+function getRegistrationContact(
+    telegramId
+) {
+    const id =
+        String(
+            telegramId || ""
+        ).trim();
+
+    const entry =
+        pendingRegistrationContacts.get(
+            id
         );
-      }
 
-    } catch (error) {
-
-      return res
-        .status(400)
-        .json({
-
-          error:
-            error.message
-        });
+    if (!entry) {
+        return null;
     }
 
-    // ========================================================================
-    // PRODUCTION DATABASE INTEGRATION POINT
-    // ========================================================================
-    //
-    // Replace the temporary Map operation below with an atomic Supabase
-    // transaction/RPC against the existing permanent database.
-    //
-    // DO NOT trust the client balance.
-    // DO NOT deduct money twice.
-    // DO NOT accept a bet after the deadline.
-    //
-    // ========================================================================
+    if (
+        Date.now() -
+        entry.createdAt >
+        10 * 60 * 1000
+    ) {
+        pendingRegistrationContacts.delete(
+            id
+        );
 
-    const bet = {
+        return null;
+    }
 
-      id:
-        createId("bet"),
+    return entry.phone;
+}
 
-      roundId:
-        round.id,
+/*
+|--------------------------------------------------------------------------
+| GAME ENGINES
+|--------------------------------------------------------------------------
+*/
 
-      game,
+const games = {};
 
-      edition:
-        GAMES[game].edition,
+/*
+|--------------------------------------------------------------------------
+| DESTA PLAY — PVP ARENA FOUNDATION
+|--------------------------------------------------------------------------
+*/
 
-      playerId:
-        String(playerId),
+const PVP_GAMES =
+    Object.fromEntries(
+        Object.entries(
+            PVP_ENGINES
+        ).map(
+            ([id, engine]) => [
+                id,
+                {
+                    name: engine.name,
+                    maxPlayers:
+                        Number(
+                            engine.maxPlayers ||
+                            4
+                        ),
+                    minPlayers:
+                        Number(
+                            engine.minPlayers ||
+                            2
+                        )
+                }
+            ]
+        )
+    );
 
-      stake:
-        amount,
+const PVP_ENTRY_FEES =
+    [
+        ...MANAGER_ENTRY_FEES
+    ];
 
-      cards:
-        game === "keno"
-          ? undefined
-          : normalized,
+const pvpManager =
+    new PVPManager();
 
-      slots:
-        game === "keno"
-          ? normalized
-          : undefined,
+const PVP_HOUSE_RAKE_PERCENT = 10;
 
-      acceptedAt:
-        currentTime(),
+const pvpPoolEngine =
+    new PoolEngine(
+        PVP_HOUSE_RAKE_PERCENT
+    );
 
-      status:
-        "ACCEPTED"
+const pvpRooms =
+    new Map();
+
+const pvpPlayerRooms =
+    new Map();
+
+const PVP_ROOM_TTL_MS =
+    30 * 60 * 1000;
+
+function pvpRoomKey(
+    game,
+    entryFee
+) {
+    return (
+        `${game}:${Number(entryFee).toFixed(2)}`
+    );
+}
+
+function pvpPublicRoom(
+    room
+) {
+    return {
+        roomId:
+            room.roomId,
+
+        game:
+            room.game,
+
+        gameName:
+            PVP_GAMES[
+                room.game
+            ]?.name ||
+            room.game,
+
+        entryFee:
+            room.entryFee,
+
+        entryFees:
+            PVP_ENTRY_FEES,
+
+        grossPool:
+            Number(
+                (
+                    room.players.size *
+                    room.entryFee
+                ).toFixed(2)
+            ),
+
+        prizePool:
+            Number(
+                (
+                    room.players.size *
+                    room.entryFee *
+                    0.90
+                ).toFixed(2)
+            ),
+
+        maxPlayers:
+            room.maxPlayers,
+
+        minPlayers:
+            room.minPlayers,
+
+        playersCount:
+            room.players.size,
+
+        status:
+            room.status,
+
+        roundId:
+            room.roundId,
+
+        createdAt:
+            room.createdAt,
+
+        startedAt:
+            room.startedAt ||
+            null,
+
+        bettingEndsAt:
+            room.bettingEndsAt,
+
+        remainingSeconds:
+            Math.max(
+                0,
+                Math.ceil(
+                    (
+                        room.bettingEndsAt -
+                        Date.now()
+                    ) / 1000
+                )
+            )
+    };
+}
+
+function pvpGetOrCreateRoom(
+    game,
+    entryFee
+) {
+    const key =
+        pvpRoomKey(
+            game,
+            entryFee
+        );
+
+    const existing =
+        pvpRooms.get(
+            key
+        );
+
+    if (
+        existing &&
+        existing.status === "BETTING" &&
+        existing.players.size <
+            existing.maxPlayers &&
+        Date.now() <
+            existing.bettingEndsAt
+    ) {
+        return existing;
+    }
+
+    const cfg =
+        PVP_GAMES[
+            game
+        ];
+
+    if (!cfg) {
+        throw new Error(
+            "Unsupported PVP game"
+        );
+    }
+
+    if (
+        !MANAGER_ENTRY_FEES.includes(
+            Number(entryFee)
+        )
+    ) {
+        throw new Error(
+            "Invalid PVP entry fee"
+        );
+    }
+
+    const now =
+        Date.now();
+
+    const room = {
+        roomId:
+            `pvp-${game}-${now}-${crypto.randomBytes(4).toString("hex")}`,
+
+        roundId:
+            `pvp-round-${now}-${crypto.randomBytes(5).toString("hex")}`,
+
+        game,
+
+        entryFee:
+            Number(entryFee),
+
+        maxPlayers:
+            cfg.maxPlayers,
+
+        minPlayers:
+            cfg.minPlayers,
+
+        players:
+            new Map(),
+
+        status:
+            "BETTING",
+
+        createdAt:
+            now,
+
+        bettingEndsAt:
+            now + 45000,
+
+        startedAt:
+            null,
+
+        finishedAt:
+            null,
+
+        state:
+            {},
+
+        result:
+            null,
+
+        settled:
+            false,
+
+        winnerIds:
+            []
     };
 
-    bets.set(
-      betKey,
-      bet
+    room.state =
+        PVP_AUTHORITY.createAuthorityState(
+            room,
+            PVP_ENGINES[
+                game
+            ]?.createState
+                ? PVP_ENGINES[
+                    game
+                ].createState(room)
+                : {}
+        );
+
+    pvpRooms.set(
+        key,
+        room
     );
 
-    return res
-      .status(201)
-      .json({
+    pvpPersistRoom(
+        room
+    ).catch(
+        console.error
+    );
 
-        ok: true,
+    setTimeout(
+        () =>
+            pvpStartRoomIfReady(
+                room
+            ),
+        45000
+    );
 
-        message:
-          "PLACE BET accepted",
+    return room;
+}
 
-        bet: {
+function pvpEntryFee(
+    value
+) {
+    const n =
+        Number(value);
 
-          id:
-            bet.id,
+    if (
+        !Number.isFinite(n) ||
+        !PVP_ENTRY_FEES.includes(n)
+    ) {
+        throw new Error(
+            "Invalid PVP entry fee"
+        );
+    }
 
-          roundId:
-            bet.roundId,
+    return n;
+}
 
-          game:
-            bet.game,
+async function pvpPersistRoom(
+    room
+) {
+    try {
+        if (!room.dbRoomId) {
+            const {
+                data,
+                error
+            } =
+                await supabase
+                    .from("pvp_rooms")
+                    .insert({
+                        game_id:
+                            room.game,
 
-          edition:
-            bet.edition,
+                        entry_fee_etb:
+                            room.entryFee,
 
-          stake:
-            bet.stake,
+                        round_id:
+                            room.roundId,
 
-          status:
-            bet.status,
+                        status:
+                            room.status,
 
-          acceptedAt:
-            bet.acceptedAt
-        },
+                        max_players:
+                            room.maxPlayers,
 
-        round:
-          publicRound(round)
-      });
-  }
-);
+                        min_players:
+                            room.minPlayers,
 
-// ============================================================================
-// BINGO CLAIM
-// ============================================================================
-//
-// Player presses BINGO.
-//
-// Server checks:
-//
-//   - correct game
-//   - correct round
-//   - round is drawing
-//   - player identity
-//   - accepted bet
-//   - exact bet ID
-//   - exact card
-//   - card ownership
-//   - card contents
-//   - official draw history
-//   - pattern
-//   - duplicate claim
-//
-// Client NEVER tells the server "I won."
-// Client only submits a claim.
-//
-// ============================================================================
+                        total_pool_etb:
+                            0,
+
+                        rake_etb:
+                            0,
+
+                        prize_pool_etb:
+                            0,
+
+                        engine_state:
+                            room.state ||
+                            {}
+                    })
+                    .select("id")
+                    .single();
+
+            if (error) {
+                throw error;
+            }
+
+            room.dbRoomId =
+                data.id;
+        } else {
+            const pool =
+                pvpPoolEngine.calculatePool(
+                    room.entryFee,
+                    room.players.size
+                );
+
+            const {
+                error
+            } =
+                await supabase
+                    .from("pvp_rooms")
+                    .update({
+                        status:
+                            room.status,
+
+                        total_pool_etb:
+                            pool.grossPool,
+
+                        rake_etb:
+                            pool.rake,
+
+                        prize_pool_etb:
+                            pool.prizePool,
+
+                        engine_state:
+                            room.state ||
+                            {}
+                    })
+                    .eq(
+                        "id",
+                        room.dbRoomId
+                    );
+
+            if (error) {
+                throw error;
+            }
+        }
+    } catch (error) {
+        console.error(
+            "[PVP] Room persistence error:",
+            error.message
+        );
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| TELEGRAM MINI APP AUTOMATIC PLAYER DETECTION
+|--------------------------------------------------------------------------
+|
+| The frontend sends Telegram.WebApp.initData here.
+|
+| Existing player:
+|   -> automatically authenticated
+|   -> no login/password screen
+|   -> go directly to Home
+|
+| New player:
+|   -> automatically detected
+|   -> account setup is shown
+|
+| Telegram initData must be validated before trusting identity.
+|--------------------------------------------------------------------------
+*/
+
+function validateTelegramInitData(
+    initData
+) {
+    if (
+        !initData ||
+        !TELEGRAM_BOT_TOKEN
+    ) {
+        return null;
+    }
+
+    try {
+        const params =
+            new URLSearchParams(
+                initData
+            );
+
+        const receivedHash =
+            params.get(
+                "hash"
+            );
+
+        if (!receivedHash) {
+            return null;
+        }
+
+        params.delete(
+            "hash"
+        );
+
+        const dataCheckString =
+            [...params.entries()]
+                .sort(
+                    ([a], [b]) =>
+                        a.localeCompare(b)
+                )
+                .map(
+                    ([key, value]) =>
+                        `${key}=${value}`
+                )
+                .join("\n");
+
+        const secretKey =
+            crypto
+                .createHmac(
+                    "sha256",
+                    "WebAppData"
+                )
+                .update(
+                    TELEGRAM_BOT_TOKEN
+                )
+                .digest();
+
+        const calculatedHash =
+            crypto
+                .createHmac(
+                    "sha256",
+                    secretKey
+                )
+                .update(
+                    dataCheckString
+                )
+                .digest(
+                    "hex"
+                );
+
+        if (
+            calculatedHash.length !==
+            receivedHash.length
+        ) {
+            return null;
+        }
+
+        if (
+            !crypto.timingSafeEqual(
+                Buffer.from(
+                    calculatedHash,
+                    "utf8"
+                ),
+                Buffer.from(
+                    receivedHash,
+                    "utf8"
+                )
+            )
+        ) {
+            return null;
+        }
+
+        const authDate =
+            Number(
+                params.get(
+                    "auth_date"
+                )
+            );
+
+        if (
+            !Number.isFinite(
+                authDate
+            )
+        ) {
+            return null;
+        }
+
+        /*
+         * Reject very old authentication data.
+         */
+        const age =
+            Math.floor(
+                Date.now() / 1000
+            ) -
+            authDate;
+
+        if (
+            age >
+            24 * 60 * 60
+        ) {
+            return null;
+        }
+
+        const userRaw =
+            params.get(
+                "user"
+            );
+
+        if (!userRaw) {
+            return null;
+        }
+
+        const user =
+            JSON.parse(
+                userRaw
+            );
+
+        if (
+            !user ||
+            !user.id
+        ) {
+            return null;
+        }
+
+        return {
+            telegramId:
+                String(
+                    user.id
+                ),
+
+            username:
+                String(
+                    user.username ||
+                    ""
+                ),
+
+            firstName:
+                String(
+                    user.first_name ||
+                    ""
+                ),
+
+            lastName:
+                String(
+                    user.last_name ||
+                    ""
+                ),
+
+            languageCode:
+                String(
+                    user.language_code ||
+                    ""
+                )
+        };
+    } catch (error) {
+        console.error(
+            "[Telegram Auth]",
+            error.message
+        );
+
+        return null;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| TELEGRAM AUTH ENDPOINT
+|--------------------------------------------------------------------------
+*/
 
 app.post(
-  "/api/game/:game/bingo-claim",
-  (req, res) => {
+    "/api/auth/telegram",
+    async (
+        req,
+        res
+    ) => {
+        try {
+            const initData =
+                String(
+                    req.body?.initData ||
+                    ""
+                ).trim();
 
-    const {
-      game
-    } = req.params;
+            if (!initData) {
+                return res.status(400).json({
+                    success: false,
+                    error:
+                        "Telegram authentication data missing"
+                });
+            }
 
-    const {
-      playerId,
-      betId,
-      cardIndex
-    } = req.body || {};
+            const telegramUser =
+                validateTelegramInitData(
+                    initData
+                );
 
-    // --------------------------------------------------------------------------
-    // GAME CHECK
-    // --------------------------------------------------------------------------
+            if (!telegramUser) {
+                return res.status(401).json({
+                    success: false,
+                    error:
+                        "Invalid Telegram authentication"
+                });
+            }
 
-    if (
-      game !== "bingo" &&
-      game !== "bingo75" &&
-      game !== "bingo90"
-    ) {
+            /*
+             * IMPORTANT:
+             * Use the permanent player database.
+             *
+             * Adjust the column/table names below only if your
+             * existing permanent schema uses different names.
+             */
+            const {
+                data: existingPlayer,
+                error
+            } =
+                await supabase
+                    .from("players")
+                    .select(
+                        "id, telegram_id, username, phone"
+                    )
+                    .eq(
+                        "telegram_id",
+                        telegramUser.telegramId
+                    )
+                    .maybeSingle();
 
-      return res
-        .status(400)
-        .json({
+            if (error) {
+                console.error(
+                    "[Telegram Auth] Database lookup error:",
+                    error.message
+                );
 
-          error:
-            "Not a Bingo game"
-        });
+                return res.status(500).json({
+                    success: false,
+                    error:
+                        "Database lookup failed"
+                });
+            }
+
+            /*
+             * EXISTING PLAYER
+             *
+             * No password screen.
+             * No manual login.
+             */
+            if (existingPlayer) {
+                const sessionToken =
+                    createSessionToken(
+                        existingPlayer.id
+                    );
+
+                setSessionCookie(
+                    res,
+                    sessionToken
+                );
+
+                return res.json({
+                    success: true,
+                    isNewUser: false,
+                    playerId:
+                        String(
+                            existingPlayer.id
+                        ),
+                    telegramId:
+                        telegramUser.telegramId,
+                    username:
+                        telegramUser.username,
+                    phone:
+                        existingPlayer.phone ||
+                        null
+                });
+            }
+
+            /*
+             * NEW PLAYER
+             *
+             * Do not create a duplicate account.
+             * The account can be completed by the registration
+             * endpoint using this same Telegram identity.
+             */
+            return res.json({
+                success: true,
+                isNewUser: true,
+                playerId: null,
+                telegramId:
+                    telegramUser.telegramId,
+                username:
+                    telegramUser.username,
+                phone:
+                    getRegistrationContact(
+                        telegramUser.telegramId
+                    )
+            });
+        } catch (error) {
+            console.error(
+                "[Telegram Auth]",
+                error
+            );
+
+            return res.status(500).json({
+                success: false,
+                error:
+                    "Automatic player detection failed"
+            });
+        }
     }
-
-    const round =
-      getRound(game);
-
-    // --------------------------------------------------------------------------
-    // ROUND CHECK
-    // --------------------------------------------------------------------------
-
-    if (
-      round.status !== "DRAWING"
-    ) {
-
-      return res
-        .status(409)
-        .json({
-
-          error:
-            "Bingo claims are closed"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // REQUIRED DATA
-    // --------------------------------------------------------------------------
-
-    if (
-      !playerId ||
-      !betId ||
-      !Number.isInteger(
-        cardIndex
-      )
-    ) {
-
-      return res
-        .status(400)
-        .json({
-
-          error:
-            "playerId, betId and cardIndex are required"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // FIND EXACT ACCEPTED BET
-    // --------------------------------------------------------------------------
-
-    const bet =
-      [...bets.values()]
-        .find(
-          item =>
-            item.id === betId &&
-            item.roundId ===
-              round.id &&
-            item.playerId ===
-              String(playerId) &&
-            item.game ===
-              game &&
-            item.status ===
-              "ACCEPTED"
-        );
-
-    if (!bet) {
-
-      return res
-        .status(403)
-        .json({
-
-          error:
-            "Accepted bet not found"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // CARD CHECK
-    // --------------------------------------------------------------------------
-
-    if (
-      cardIndex < 0 ||
-      cardIndex >=
-        bet.cards.length
-    ) {
-
-      return res
-        .status(400)
-        .json({
-
-          error:
-            "Invalid cartella"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // DUPLICATE CLAIM PROTECTION
-    // --------------------------------------------------------------------------
-
-    const claimKey =
-      `${round.id}:${playerId}:${cardIndex}`;
-
-    if (
-      claims.has(claimKey)
-    ) {
-
-      return res
-        .status(409)
-        .json({
-
-          error:
-            "Claim already submitted"
-        });
-    }
-
-    const card =
-      bet.cards[
-        cardIndex
-      ];
-
-    let marked;
-
-    let valid;
-
-    // --------------------------------------------------------------------------
-    // BINGO 90
-    // --------------------------------------------------------------------------
-
-    if (
-      game === "bingo90"
-    ) {
-
-      marked =
-        bingo90Marked(
-          card,
-          round.draw
-        );
-
-      valid =
-        hasBingo90Pattern(
-          marked
-        );
-    }
-
-    // --------------------------------------------------------------------------
-    // BINGO / BINGO 75
-    // --------------------------------------------------------------------------
-
-    else {
-
-      marked =
-        bingo75Marked(
-          card,
-          round.draw
-        );
-
-      valid =
-        has5x5BingoPattern(
-          marked
-        );
-    }
-
-    // Claim can only be submitted once.
-
-    claims.add(
-      claimKey
-    );
-
-    // --------------------------------------------------------------------------
-    // INVALID CLAIM
-    // --------------------------------------------------------------------------
-
-    if (!valid) {
-
-      return res.json({
-
-        ok: false,
-
-        winner: false,
-
-        message:
-          "BINGO claim rejected by server"
-      });
-    }
-
-    // ========================================================================
-    // PRODUCTION SETTLEMENT POINT
-    // ========================================================================
-    //
-    // A valid winner must be settled through an atomic database transaction.
-    //
-    // The final production settlement must prevent:
-    //
-    //   - duplicate payout
-    //   - two simultaneous winners exceeding the pool
-    //   - repeated requests
-    //   - race conditions
-    //
-    // ========================================================================
-
-    return res.json({
-
-      ok: true,
-
-      winner: true,
-
-      message:
-        "BINGO verified by server",
-
-      roundId:
-        round.id,
-
-      betId:
-        bet.id,
-
-      cardIndex
-    });
-  }
 );
 
-// ============================================================================
-// KENO RESULT
-// ============================================================================
-//
-// After all 20 official numbers are drawn:
-//
-//   - server calculates every player's highest slot score
-//   - server ranks scores
-//   - server calculates tie distribution
-//
-// Client never sends a score.
-//
-// ============================================================================
+/*
+|--------------------------------------------------------------------------
+| SESSION HELPERS
+|--------------------------------------------------------------------------
+*/
 
-app.get(
-  "/api/game/keno/result/:roundId",
-  (req, res) => {
+function createSessionToken(
+    playerId
+) {
+    const payload =
+        `${String(playerId)}.${Date.now()}`;
 
-    const {
-      roundId
-    } = req.params;
+    const signature =
+        crypto
+            .createHmac(
+                "sha256",
+                SESSION_SECRET
+            )
+            .update(
+                payload
+            )
+            .digest(
+                "hex"
+            );
 
-    const round =
-      [...rounds.values()]
-        .find(
-          item =>
-            item.id ===
-              roundId &&
-            item.game ===
-              "keno"
-        );
-
-    if (!round) {
-
-      return res
-        .status(404)
-        .json({
-
-          error:
-            "Keno round not found"
-        });
-    }
-
-    if (
-      round.status !==
-      "FINISHED"
-    ) {
-
-      return res
-        .status(409)
-        .json({
-
-          error:
-            "Keno round is not finished"
-        });
-    }
-
-    // --------------------------------------------------------------------------
-    // COLLECT ACCEPTED KENO BETS
-    // --------------------------------------------------------------------------
-
-    const entries =
-      [...bets.values()]
-        .filter(
-          bet =>
-            bet.roundId ===
-              round.id &&
-            bet.game ===
-              "keno" &&
-            bet.status ===
-              "ACCEPTED"
+    return Buffer
+        .from(
+            `${payload}.${signature}`
         )
-        .map(
-          bet => {
-
-            const scores =
-              bet.slots.map(
-                slot =>
-                  kenoScore(
-                    slot,
-                    round.draw
-                  )
-              );
-
-            return {
-
-              betId:
-                bet.id,
-
-              playerId:
-                bet.playerId,
-
-              stake:
-                bet.stake,
-
-              scores,
-
-              // Highest score from either slot.
-
-              score:
-                Math.max(
-                  ...scores
-                )
-            };
-          }
+        .toString(
+            "base64url"
         );
+}
 
-    // --------------------------------------------------------------------------
-    // TOTAL ACCEPTED POOL
-    // --------------------------------------------------------------------------
-
-    const totalPool =
-      entries.reduce(
-        (
-          total,
-          entry
-        ) =>
-          total +
-          entry.stake,
-        0
-      );
-
-    // --------------------------------------------------------------------------
-    // PAYOUT CALCULATION
-    // --------------------------------------------------------------------------
-
-    const payouts =
-      calculateKenoPayouts(
-        entries,
-        totalPool
-      );
-
-    return res.json({
-
-      ok: true,
-
-      roundId:
-        round.id,
-
-      drawnNumbers:
-        round.draw,
-
-      totalPool,
-
-      housePercentage:
-        10,
-
-      payouts
-    });
-  }
-);
-
-// ============================================================================
-// 404
-// ============================================================================
-
-app.use(
-  (req, res) => {
-
-    res
-      .status(404)
-      .json({
-
-        error:
-          "Not found",
-
-        path:
-          req.path
-      });
-  }
-);
-
-// ============================================================================
-// ERROR HANDLER
-// ============================================================================
-
-app.use(
-  (
-    error,
-    _req,
+function setSessionCookie(
     res,
-    _next
-  ) => {
-
-    console.error(
-      error
+    token
+) {
+    res.setHeader(
+        "Set-Cookie",
+        `desta_session=${token}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=604800`
     );
+}
 
-    res
-      .status(500)
-      .json({
+/*
+|--------------------------------------------------------------------------
+| NOTE
+|--------------------------------------------------------------------------
+|
+| The remainder of this server is your existing backend engine.
+| Keep your existing authentication, balance, deposit, withdrawal,
+| invitation, Telegram notification, Keno and Bingo implementations
+| below this point.
+|
+|--------------------------------------------------------------------------
+*/
 
-        error:
-          "Internal server error"
-      });
-  }
-);
-
-// ============================================================================
-// START SERVER
-// ============================================================================
-
-app.listen(
-  PORT,
-  () => {
-
-    console.log(
-      `DESTA PLAY server listening on port ${PORT}`
-    );
-  }
-);
+/*
+ * EXISTING SERVER CODE CONTINUES HERE.
+ *
+ * Keep the remainder of your current server.js unchanged.
+ */
