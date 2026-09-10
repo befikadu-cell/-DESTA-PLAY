@@ -2149,6 +2149,20 @@
       </header>
 
 
+      <section id="gameStakeLobby" class="stakeLobby hidden">
+        <div class="stakeLobbyHead">
+          <h2 id="stakeLobbyTitle">STAKE</h2>
+          <p>Choose your stake. The number of players at each stake is shown below.</p>
+        </div>
+        <div class="stakeTimer">
+          <strong id="stakeLobbyTimer">--</strong>
+          <span>SECONDS</span>
+        </div>
+        <div id="stakeLobbyGrid" class="stakeGrid"></div>
+        <div id="stakeLobbyStatus" class="stakeLobbyStatus">Select a stake to continue.</div>
+        <button id="stakeLobbyJoin" class="stakeJoin" type="button" disabled>JOIN</button>
+      </section>
+
       <div
         class="gameTitle"
         id="gameTitle">
@@ -2164,6 +2178,8 @@
         ================================================== -->
 
         <div id="kenoGame" class="hidden">
+
+          <div class="selectedStakeBanner">STAKE: <span id="kenoSelectedStakeDisplay">—</span> ETB</div>
 
           <div
             class="countdown"
@@ -2223,26 +2239,7 @@
                 SLOT 1
               </div>
 
-              <div class="amountControl">
-
-                <button
-                  onclick="event.stopPropagation();changeAmount('k1',-10)">
-                  −
-                </button>
-
-                <input
-                  id="k1"
-                  type="number"
-                  value="10"
-                  min="1"
-                  inputmode="decimal">
-
-                <button
-                  onclick="event.stopPropagation();changeAmount('k1',10)">
-                  +
-                </button>
-
-              </div>
+              <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k1StakeDisplay">—</span> ETB</div>
 
               <div
                 class="livePayout"
@@ -2267,26 +2264,7 @@
                 SLOT 2
               </div>
 
-              <div class="amountControl">
-
-                <button
-                  onclick="event.stopPropagation();changeAmount('k2',-10)">
-                  −
-                </button>
-
-                <input
-                  id="k2"
-                  type="number"
-                  value="10"
-                  min="1"
-                  inputmode="decimal">
-
-                <button
-                  onclick="event.stopPropagation();changeAmount('k2',10)">
-                  +
-                </button>
-
-              </div>
+              <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k2StakeDisplay">—</span> ETB</div>
 
               <div
                 class="livePayout"
@@ -2347,7 +2325,7 @@
 
         <div id="bingoGame" class="hidden">
 
-          <div id="bingoStakeScreen" class="bingoStakeScreen">
+          <div id="bingoStakeScreen" class="bingoStakeScreen hidden">
 
             <div class="pageTitle" style="margin:12px 0 8px">BINGO STAKE</div>
 
@@ -2362,6 +2340,8 @@
           </div>
 
           <div id="bingoPlayArea" class="hidden">
+
+          <div class="selectedStakeBanner">STAKE: <span id="bingoSelectedStakeDisplay">—</span> ETB</div>
 
           <div class="countdown" id="bingoCountdown">
             BETTING 30s
@@ -2791,6 +2771,13 @@
       },
 
       bingoSelectedStake:null,
+
+      kenoSelectedStake:null,
+
+      stakeLobbyGame:"",
+      stakeLobbyTimer:0,
+      stakeLobbyTimerId:null,
+      stakePlayerCounts:{},
 
       activeKenoSlot:1,
 
@@ -3656,42 +3643,119 @@
     ========================================================= */
 
     function openGame(game){
-
       if(game!=="bingo" && game!=="keno") return;
       if(!state.accountCreated || !state.authToken){
         showLogin();
         document.getElementById("accountScreen").classList.remove("hidden");
         return;
       }
+
       state.game=game;
+      state.stakeLobbyGame=game;
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
-
       showPage("game");
-
-      document
-        .getElementById("gameTitle")
-        .textContent=
-          game.toUpperCase();
-
-      updateRound();
-
+      document.getElementById("gameTitle").textContent=game.toUpperCase();
       hideAllGames();
-
-      document
-        .getElementById(game+"Game")
-        .classList.remove("hidden");
-
+      document.getElementById(game+"Game").classList.remove("hidden");
       buildGame();
 
-      if(game === "bingo"){
-        const stake=document.getElementById("bingoStakeScreen");
-        const play=document.getElementById("bingoPlayArea");
-        if(stake)stake.classList.remove("hidden");
-        if(play)play.classList.add("hidden");
-      }
-
+      const lobby=document.getElementById("gameStakeLobby");
+      const title=document.getElementById("stakeLobbyTitle");
+      const grid=document.getElementById("stakeLobbyGrid");
+      const join=document.getElementById("stakeLobbyJoin");
+      if(lobby) lobby.classList.remove("hidden");
+      if(title) title.textContent=game.toUpperCase()+" STAKE";
+      if(join){ join.disabled=true; join.textContent="JOIN"; join.onclick=()=>joinStakeLobby(); }
+      buildStakeLobby(game);
+      updateRound();
+      fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : null);
+      fetchStakePlayerCounts(game);
     }
 
+    function buildStakeLobby(game){
+      const grid=document.getElementById("stakeLobbyGrid");
+      if(!grid) return;
+      const stakes=[10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000];
+      grid.innerHTML="";
+      stakes.forEach(amount=>{
+        const b=document.createElement("button");
+        b.type="button";
+        b.className="stakeChoice";
+        b.dataset.stake=String(amount);
+        b.innerHTML=`<strong>${amount} ETB</strong><small class="stakePlayers" id="${game}StakePlayers${amount}">0 players</small>`;
+        b.onclick=()=>selectLobbyStake(amount);
+        grid.appendChild(b);
+      });
+      const selected=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      if(selected) selectLobbyStake(selected);
+      else {
+        const status=document.getElementById("stakeLobbyStatus");
+        if(status) status.textContent="Select a stake to continue.";
+      }
+    }
+
+    function selectLobbyStake(amount){
+      amount=Number(amount);
+      if(!Number.isFinite(amount)) return;
+      if(state.stakeLobbyGame==="bingo") state.bingoSelectedStake=amount;
+      if(state.stakeLobbyGame==="keno") state.kenoSelectedStake=amount;
+      document.querySelectorAll("#stakeLobbyGrid .stakeChoice").forEach(b=>b.classList.toggle("active",Number(b.dataset.stake)===amount));
+      const join=document.getElementById("stakeLobbyJoin");
+      if(join) join.disabled=false;
+      const status=document.getElementById("stakeLobbyStatus");
+      if(status) status.textContent=`Selected ${amount} ETB. Tap JOIN to enter the live round.`;
+      if(state.stakeLobbyGame==="bingo") selectBingoStake(amount);
+      if(state.stakeLobbyGame==="keno") updateKenoStakeDisplays();
+    }
+
+    function joinStakeLobby(){
+      const game=state.stakeLobbyGame;
+      const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      if(!stake) return;
+      const lobby=document.getElementById("gameStakeLobby");
+      if(lobby) lobby.classList.add("hidden");
+      if(game==="bingo") enterBingoWithStake();
+      if(game==="keno"){
+        const g=document.getElementById("kenoGame");
+        if(g) g.classList.remove("hidden");
+        updateKenoStakeDisplays();
+        fetchLiveRound("keno",stake);
+      }
+    }
+
+    function startStakeLobbyTimer(seconds){
+      clearInterval(state.stakeLobbyTimerId);
+      state.stakeLobbyTimer=Math.max(0,Math.floor(Number(seconds)||0));
+      const tick=()=>{
+        const el=document.getElementById("stakeLobbyTimer");
+        if(el) el.textContent=String(Math.max(0,state.stakeLobbyTimer)).padStart(2,"0");
+        if(state.stakeLobbyTimer<=0){ clearInterval(state.stakeLobbyTimerId); return; }
+        state.stakeLobbyTimer--;
+      };
+      tick();
+      state.stakeLobbyTimerId=setInterval(tick,1000);
+    }
+
+    async function fetchStakePlayerCounts(game){
+      try{
+        const response=await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/stake-counts`,{cache:"no-store",headers:{"Accept":"application/json"}});
+        if(!response.ok) return;
+        const data=await safeJsonResponse(response);
+        if(!data || !data.success || !data.counts) return;
+        state.stakePlayerCounts[game]=data.counts;
+        Object.entries(data.counts).forEach(([stake,count])=>{
+          const el=document.getElementById(`${game}StakePlayers${stake}`);
+          if(el) el.textContent=`${Number(count)||0} players`;
+        });
+      }catch(e){ console.warn("Stake count connection error:",e); }
+    }
+
+    function updateKenoStakeDisplays(){
+      const stake=Number(state.kenoSelectedStake||0);
+      ["kenoSelectedStakeDisplay","k1StakeDisplay","k2StakeDisplay"].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.textContent=stake||"—";
+      });
+    }
 
     function backToGames(){
       hideAllGames();
@@ -3964,12 +4028,7 @@
 
       }
 
-      const amount=
-        Number(
-          document.getElementById(
-            "k"+slot
-          ).value
-        );
+      const amount=Number(state.kenoSelectedStake || 0);
 
       if(amount<=0 || amount>state.balance){
 
@@ -4065,6 +4124,9 @@
 
           const n=
             state.kenoDraw[i];
+
+          const latestEl=document.getElementById("kenoLatestDraw");
+          if(latestEl){ latestEl.textContent=String(n).padStart(2,"0"); latestEl.classList.remove("pop"); void latestEl.offsetWidth; latestEl.classList.add("pop"); }
 
           const ball=
             document.createElement("div");
@@ -4285,8 +4347,12 @@
       if(!state.bingoSelectedStake)return;
       const stake=document.getElementById("bingoStakeScreen");
       const play=document.getElementById("bingoPlayArea");
+      const lobby=document.getElementById("gameStakeLobby");
       if(stake)stake.classList.add("hidden");
+      if(lobby)lobby.classList.add("hidden");
       if(play)play.classList.remove("hidden");
+      const display=document.getElementById("bingoSelectedStakeDisplay");
+      if(display)display.textContent=state.bingoSelectedStake;
       buildBingo();
       fetchLiveRound("bingo",state.bingoSelectedStake);
     }
@@ -6078,6 +6144,16 @@
 
       updateRound();
       updateCountdownFromServer(round);
+      if(state.stakeLobbyGame===game && !document.getElementById("gameStakeLobby")?.classList.contains("hidden")){
+        startStakeLobbyTimer(Number(round.remainingSeconds || 0));
+        const status=document.getElementById("stakeLobbyStatus");
+        if(status && round.status!=="BETTING") status.textContent="Betting window closed. Waiting for the next round.";
+        if(Number(round.players)>0 && state.stakeLobbyGame==="keno"){
+          const selected=Number(state.kenoSelectedStake||0);
+          const el=document.getElementById(`kenoStakePlayers${selected}`);
+          if(el) el.textContent=`${Number(round.players)||0} players`;
+        }
+      }
 
       if(game === "keno"){
         const drawn=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
@@ -6303,6 +6379,10 @@
       try{
         let url = `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
 
+        if(game === "keno" && Number.isFinite(Number(tier))){
+          url += `?stake=${encodeURIComponent(Number(tier))}`;
+        }
+
         if(game === "bingo" && Number.isInteger(Number(tier))){
           url += `?tier=${encodeURIComponent(Number(tier))}`;
         }
@@ -6344,10 +6424,8 @@
       liveRoundBusy = true;
       try{
         await Promise.all([
-          fetchLiveRound("keno"),
-          fetchLiveRound("bingo", state.bingoAmounts?.[1]),
-          fetchLiveRound("roulette"),
-          fetchLiveRound("aviator")
+          fetchLiveRound("keno", state.kenoSelectedStake),
+          fetchLiveRound("bingo", state.bingoSelectedStake)
         ]);
       }finally{
         state.bettingOpen = !!state.bettingOpenByGame[state.game];
@@ -6408,7 +6486,7 @@
     function startLiveRoundSync(){
       clearInterval(liveRoundTimer);
       fetchAllLiveRounds();
-      ["keno","bingo","roulette","aviator"].forEach(loadRoundHistory);
+      ["keno","bingo"].forEach(loadRoundHistory);
       liveRoundTimer = setInterval(() => {
         fetchAllLiveRounds();
       }, 1000);
