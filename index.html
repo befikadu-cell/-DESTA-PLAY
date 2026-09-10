@@ -1246,6 +1246,7 @@ body{
 }
 
 </style>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 
 <body>
@@ -2139,7 +2140,48 @@ function updateGameSpecificUI() {
 }
 
 function toggleAuthMode(){authMode=authMode==="login"?"register":"login";document.getElementById("authTitle").textContent=authMode==="login"?"Login":"Create account";document.getElementById("authSub").textContent=authMode==="login"?"Existing players can enter directly.":"New users can create an account.";["loginPhone","loginPassword"].forEach(id=>document.getElementById(id)?.classList.toggle("hidden",authMode!=="login"));["registerPhone","registerPassword","registerPasswordConfirm"].forEach(id=>document.getElementById(id)?.classList.toggle("hidden",authMode!=="register"));document.getElementById("authSubmit").textContent=authMode==="login"?"LOGIN":"CREATE ACCOUNT";document.getElementById("authSwitch").textContent=authMode==="login"?"New user? Create account":"Already have an account? Login";}
-async function checkExistingSession(){const auth=document.getElementById("authScreen");try{const r=await fetch(`${API_BASE}/api/auth/me`,{cache:"no-store"});if(r.ok){auth.classList.add("hidden");openPage("home");return;}}catch(e){}auth.classList.remove("hidden");if(authMode!=="login")toggleAuthMode();}
+async function checkExistingSession(){
+  const auth=document.getElementById("authScreen");
+  const msg=document.getElementById("authMessage");
+  const tg=window.Telegram?.WebApp;
+  try{
+    if(tg){ tg.ready(); tg.expand(); }
+    const initData=tg?.initData || "";
+    if(initData){
+      const r=await fetch(`${API_BASE}/api/auth/telegram`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        credentials:"include",
+        body:JSON.stringify({initData})
+      });
+      const data=await r.json().catch(()=>({}));
+      if(r.ok && data.success){
+        if(data.isNewUser){
+          auth.classList.remove("hidden");
+          authMode="register";
+          toggleAuthMode();
+          msg.textContent="New player detected. Create your DESTA PLAY password to continue.";
+          if(data.phone) document.getElementById("registerPhone").value=data.phone;
+          return;
+        }
+        auth.classList.add("hidden");
+        if(data.playerId) state.playerId=String(data.playerId);
+        openPage("home");
+        return;
+      }
+    }
+    const r=await fetch(`${API_BASE}/api/auth/me`,{cache:"no-store",credentials:"include"});
+    if(r.ok){
+      const data=await r.json().catch(()=>({}));
+      if(data.playerId) state.playerId=String(data.playerId);
+      auth.classList.add("hidden");
+      openPage("home");
+      return;
+    }
+  }catch(e){ console.warn("Automatic player detection failed",e); }
+  auth.classList.remove("hidden");
+  if(authMode!=="login") toggleAuthMode();
+}
 async function submitAuth(){const msg=document.getElementById("authMessage");try{let body,endpoint;if(authMode==="login"){endpoint="/api/auth/login";body={phone:document.getElementById("loginPhone").value.trim(),password:document.getElementById("loginPassword").value};}else{endpoint="/api/auth/register";const phone=document.getElementById("registerPhone").value.trim();const password=document.getElementById("registerPassword").value;const passwordConfirm=document.getElementById("registerPasswordConfirm").value;if(password!==passwordConfirm){msg.textContent="Passwords do not match";return;}body={phone,password,passwordConfirm};}const r=await fetch(`${API_BASE}${endpoint}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await r.json().catch(()=>({}));if(!r.ok){msg.textContent=data.message||"Unable to continue";return;}document.getElementById("authScreen").classList.add("hidden");openPage("home");}catch(e){msg.textContent="Connection error. Please try again.";}}
 function goBackFromPage(){openPage(previousPage==="games"?"home":previousPage);}
 function toggleVoice(){voiceEnabled=!voiceEnabled;const b=document.getElementById("voiceBtn");if(b)b.textContent=voiceEnabled?"🔊 Voice ON":"🔇 Voice OFF";if(!voiceEnabled&&"speechSynthesis"in window)window.speechSynthesis.cancel();}
