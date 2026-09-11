@@ -442,6 +442,25 @@ async function telegramApi(method, payload) {
     }
 }
 
+const PLAYER_TELEGRAM_COMMANDS = [
+    { command: "start", description: "Open DESTA PLAY" },
+    { command: "help", description: "Help and commands" },
+    { command: "games", description: "Available games" },
+    { command: "wallet", description: "Check wallet" },
+    { command: "profile", description: "View profile" },
+    { command: "support", description: "Contact support" },
+    { command: "invite", description: "Invitation information" },
+    { command: "deposit", description: "Deposit money" },
+    { command: "withdraw", description: "Withdraw money" },
+    { command: "transactions", description: "Transaction history" },
+    { command: "bonus", description: "Check bonus" },
+    { command: "status", description: "Account status" }
+];
+
+async function configurePlayerTelegramCommands() {
+    return telegramApi("setMyCommands", { commands: PLAYER_TELEGRAM_COMMANDS });
+}
+
 async function sendAdminTelegramMessage(text, replyMarkup = null) {
     if (!ADMIN_TELEGRAM_ID) {
         console.warn("[ADMIN] ADMIN_TELEGRAM_ID is not configured");
@@ -5837,6 +5856,10 @@ app.listen(
     PORT,
     "0.0.0.0",
     async () => {
+        await configurePlayerTelegramCommands().catch(error =>
+            console.error("[TELEGRAM] Could not configure player commands:", error)
+        );
+
         console.log(
             "========================================"
         );
