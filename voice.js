@@ -149,9 +149,17 @@ const DestaVoice = (() => {
 
   function toggle(){ setEnabled(!enabled); return enabled; }
 
+  function speakText(text, language="en"){
+    if(!enabled || !text) return false;
+    const normalized=String(language||"en").toLowerCase()==="am" ? "am" : "en";
+    queue.unshift({text:String(text),language:normalized});
+    playNext();
+    return true;
+  }
+
   function getState(){ return {enabled,speaking,activeGame,activeRoundId,activeStake,voicesReady,voiceCount:voices.length}; }
 
-  return {enterLiveGame,leaveLiveGame,announceDraw,buildAnnouncement,getBingoLetter,setEnabled,toggle,stopVoice,getState};
+  return {enterLiveGame,leaveLiveGame,announceDraw,buildAnnouncement,getBingoLetter,setEnabled,toggle,stopVoice,speakText,getState};
 })();
 
 if(typeof window!=="undefined") window.DestaVoice=DestaVoice;
