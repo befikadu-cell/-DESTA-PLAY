@@ -4115,16 +4115,7 @@ html,body{
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
       updateVoiceButton();
-      /* Use the actual JOIN tap to unlock mobile speech synthesis. */
-      try{
-        if("speechSynthesis" in window){
-          window.speechSynthesis.cancel();
-          const unlockUtterance=new SpeechSynthesisUtterance(" ");
-          unlockUtterance.volume=0;
-          window.speechSynthesis.speak(unlockUtterance);
-          window.speechSynthesis.resume();
-        }
-      }catch(e){}
+      /* JOIN is already a user gesture; DestaVoice owns speech playback. */
       /* Provisional local state only until the authoritative server round
          arrives. This makes the number/slot controls responsive immediately. */
       state.bettingOpen=true;
@@ -6376,42 +6367,21 @@ html,body{
       voiceState.queue=[];
       voiceState.requestSeq++;
       try{ if(window.DestaVoice && typeof window.DestaVoice.stopVoice==="function") window.DestaVoice.stopVoice(); }catch(e){}
-      if(voiceState.currentAudio){
-        try{ voiceState.currentAudio.pause(); }catch(e){}
-        try{ voiceState.currentAudio.currentTime=0; }catch(e){}
-        voiceState.currentAudio=null;
-      }
+      voiceState.currentAudio=null;
       voiceState.playing=false;
     }
 
     function queueGameVoice(en, am, priority=false){
       const useAm=String(state.language||"en").toLowerCase()==="am";
       const text=String(useAm ? (am||"") : (en||""));
-      if(!text.trim()) return;
-      if(priority) voiceState.queue.unshift({text,priority:true,language:useAm?"am":"en"});
-      else voiceState.queue.push({text,priority:false,language:useAm?"am":"en"});
-      if(voiceState.queue.length>12) voiceState.queue.splice(0,voiceState.queue.length-12);
-      playNextGameVoice();
+      if(!text.trim() || !voiceState.enabled) return;
+      try{
+        if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
+          window.DestaVoice.speakText(text,useAm?"am":"en");
+      }catch(e){}
     }
 
-    async function playNextGameVoice(){
-      if(!voiceState.enabled || voiceState.playing || !voiceState.queue.length) return;
-      if(!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance==="undefined") return;
-      voiceState.playing=true;
-      const item=voiceState.queue.shift();
-      const seq=voiceState.requestSeq;
-      try{
-        const utterance=new SpeechSynthesisUtterance(String(item.text||""));
-        utterance.rate=.95; utterance.pitch=1; utterance.volume=1;
-        utterance.onend=()=>{voiceState.playing=false;voiceState.currentAudio=null;if(seq===voiceState.requestSeq)playNextGameVoice();};
-        utterance.onerror=()=>{voiceState.playing=false;voiceState.currentAudio=null;if(seq===voiceState.requestSeq)playNextGameVoice();};
-        voiceState.currentAudio=utterance;
-        window.speechSynthesis.speak(utterance);
-      }catch(error){
-        console.warn("Game voice playback failed:",error);
-        voiceState.playing=false; voiceState.currentAudio=null;
-      }
-    }
+    function playNextGameVoice(){}
 
     function voiceTestText(){
       return String(state.language||"en").toLowerCase()==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
