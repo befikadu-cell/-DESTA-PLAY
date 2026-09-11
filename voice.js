@@ -42,9 +42,7 @@ const DestaVoice = (() => {
   */
 
   const BINGO_GAMES = new Set([
-    "bingo",
-    "bingo75",
-    "bingo90"
+    "bingo"
   ]);
 
   const KENO_GAME = "keno";
