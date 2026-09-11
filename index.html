@@ -6,6 +6,7 @@
     <title>DESTA PLAY</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <script src="./voice.js"></script>
 
     <style>
     :root{
@@ -3754,7 +3755,10 @@ html,body{
          restriction must never follow the player back to HOME or into a
          fresh game lobby. It remains active only while the current GAME
          screen is open in watch-only mode. */
-      if(page!=="game" && state.page==="game") state.watchOnly=false;
+      if(page!=="game" && state.page==="game") {
+        state.watchOnly=false;
+        try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
+      }
 
       if(
         !state.accountCreated &&
@@ -4185,6 +4189,7 @@ html,body{
       state.stakeLobbyGame="";
       state.gameJoined=false;
       state.watchOnly=false;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
       state.bettingOpen=false;
       liveRoundSyncActive=false;
       clearTimeout(liveRoundTimer);
@@ -6456,8 +6461,20 @@ html,body{
         if(count>Number(voiceState.lastDrawCount[game]||0)){
           const n=round.drawnNumbers[count-1];
           voiceState.lastDrawCount[game]=count;
-          if(game==="bingo") speakGameVoice(bingoVoiceCall(n),bingoVoiceCall(n));
-          else speakGameVoice(`Keno number ${n}.`,`የኬኖ ቁጥር ${n}።`);
+          if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.announceDraw==="function"){
+            try{
+              window.DestaVoice.announceDraw({
+                game,
+                roundId:id,
+                stake:round.stake||round.tier||null,
+                number:n
+              });
+            }catch(e){}
+          }else if(game==="bingo"){
+            speakGameVoice(bingoVoiceCall(n),bingoVoiceCall(n));
+          }else{
+            speakGameVoice(`Keno number ${n}.`,`የኬኖ ቁጥር ${n}።`);
+          }
         }
       }
 
@@ -6640,7 +6657,13 @@ html,body{
         voiceState.enabled=true;
         voiceState.unlocked=true;
         if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
-          try{ window.DestaVoice.enterLiveGame(game,round.id,round.stake||round.tier||null); }catch(e){}
+          try{
+            const voiceStateNow = typeof window.DestaVoice.getState === "function" ? window.DestaVoice.getState() : null;
+            const voiceStake = round.stake||round.tier||null;
+            if(!voiceStateNow || voiceStateNow.activeGame!==game || String(voiceStateNow.activeRoundId||"")!==String(round.id||"") || Number(voiceStateNow.activeStake||0)!==Number(voiceStake||0)){
+              window.DestaVoice.enterLiveGame(game,round.id,voiceStake);
+            }
+          }catch(e){}
         }
       }
       const previousId=lastServerRoundId[game];
