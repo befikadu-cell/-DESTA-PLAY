@@ -2229,6 +2229,18 @@ html,body{
             autocomplete="new-password"
             placeholder="Confirm password">
 
+          <label class="accountLabel">
+            INVITATION CODE (OPTIONAL)
+          </label>
+
+          <input
+            id="registrationReferralCode"
+            class="accountInput"
+            type="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            placeholder="Enter invitation code (optional)">
+
           <button
             class="accountBtn"
             onclick="createAccount()">
@@ -2984,6 +2996,8 @@ html,body{
 
       referralCode:(new URLSearchParams(location.search).get("ref") || "").trim(),
 
+      telegramStartApp:"",
+
       rounds:{
         keno:0,
         bingo:0,
@@ -3124,6 +3138,13 @@ html,body{
 
         if(user){
 
+          state.telegramStartApp=
+            String(tg.initDataUnsafe.start_param || "").trim();
+
+          if(state.telegramStartApp && !state.referralCode){
+            state.referralCode=state.telegramStartApp;
+          }
+
           state.telegramId=
             String(user.id || "");
 
@@ -3243,6 +3264,10 @@ html,body{
       document.getElementById("accountResetFields").classList.add("hidden");
       document.getElementById("accountLoginFields").classList.add("hidden");
       document.getElementById("accountCreateFields").classList.remove("hidden");
+      const referralInput=document.getElementById("registrationReferralCode");
+      if(referralInput){
+        referralInput.value=state.referralCode || "";
+      }
       clearAccountMessage();
     }
 
@@ -3410,6 +3435,8 @@ html,body{
       const message=document.getElementById("accountMessage");
       if(password.length<6 || password.length>128 || !/^[A-Za-z0-9#@]+$/.test(password)){ message.className="accountMessage error"; message.textContent="Password must be at least 6 characters and may contain only letters, numbers, #, or @."; return; }
       if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
+      const registrationReferralCode=(document.getElementById("registrationReferralCode")?.value || state.referralCode || "").trim().toUpperCase();
+      state.referralCode=registrationReferralCode;
       const registrationPhone=document.getElementById("registrationPhone").value.trim();
       if(!registrationPhone){ message.className="accountMessage error"; message.textContent="Share your phone number through Telegram first."; return; }
       if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
