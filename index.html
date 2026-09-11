@@ -4318,59 +4318,83 @@ html,body{
     }
 
 
-    function placeKenoBet(slot){
+    async function placeKenoBet(slot){
+
+      if(slot!==1 && slot!==2) return;
 
       if(!state.bettingOpen){
-
         alert("Betting is closed.");
-
         return;
-
       }
 
-      const numbers=
-        state.kenoSelections[slot];
+      const numbers=[...(state.kenoSelections[slot] || [])];
 
-      if(numbers.length<3){
-
-        alert(
-          "Select 3 to 10 numbers for Slot "+slot+"."
-        );
-
+      if(numbers.length<3 || numbers.length>10){
+        alert("Select 3 to 10 numbers for Slot "+slot+".");
         return;
-
       }
 
       const amount=Number(state.kenoSelectedStake || 0);
-
-      if(amount<=0 || amount>state.balance){
-
-        alert("Invalid balance or amount.");
-
+      if(amount<=0){
+        alert("Select a stake first.");
         return;
-
       }
 
-      if(
-        state.kenoBets[slot]
-      ){
-
+      if(state.kenoBets[slot]){
         alert("This slot is already placed.");
-
         return;
-
       }
 
-      state.balance-=amount;
+      const button=document.querySelectorAll("#kenoGame .placeBtn")[slot-1];
+      if(button){ button.disabled=true; button.textContent="PLACING..."; }
 
-      state.kenoBets[slot]={
-        amount,
-        numbers:[...numbers],
-        placed:true
-      };
+      try{
+        const headers={"Content-Type":"application/json","Accept":"application/json"};
+        if(state.authToken) headers["Authorization"]="Bearer "+state.authToken;
 
-      updateBalance();
+        const response=await fetch("https://desta-play.onrender.com/api/game/keno/bet",{
+          method:"POST",
+          headers,
+          body:JSON.stringify({
+            stake:amount,
+            slotIndex:slot,
+            slots:[numbers],
+            roundId:state.serverRoundIds?.keno || ""
+          })
+        });
 
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){
+          throw new Error(data?.error || "Keno bet was not accepted by the server.");
+        }
+
+        state.kenoBets[slot]={
+          amount:Number(data.stake || amount),
+          numbers:[...numbers],
+          placed:true,
+          accepted:true,
+          betId:data.betId,
+          roundId:data.roundId,
+          slotIndex:slot
+        };
+
+        if(Number.isFinite(Number(data.balanceAfter))){
+          state.balance=Number(data.balanceAfter);
+          updateBalance();
+        }
+
+        updateKenoSelectionDisplay();
+        renderServerKeno({
+          status: state.bettingOpen ? "BETTING" : "DRAWING",
+          drawnNumbers: state.kenoDraw || [],
+          playersInRoom: data.playersInRoom || 0,
+          totalDraws:20
+        });
+
+      }catch(error){
+        if(button){ button.disabled=false; button.textContent="PLACE BET"; }
+        alert(error.message || "Could not place Keno bet.");
+      }
     }
 
 
@@ -6765,6 +6789,18 @@ html,body{
           ((state.kenoSelections[1] || []).includes(n) ||
            (state.kenoSelections[2] || []).includes(n))
         );
+        button.disabled = round.status !== "BETTING";
+      });
+
+      [1,2].forEach(slot=>{
+        const place=document.querySelectorAll("#kenoGame .placeBtn")[slot-1];
+        if(place){
+          const accepted=!!state.kenoBets[slot]?.accepted;
+          place.disabled = round.status !== "BETTING" || accepted;
+          place.textContent = accepted ? "ACCEPTED" : "PLACE BET";
+        }
+        const slotEl=document.getElementById("kenoBetSlot"+slot);
+        if(slotEl) slotEl.classList.toggle("locked",!!state.kenoBets[slot]?.accepted || round.status!=="BETTING");
       });
     }
 
