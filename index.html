@@ -4007,6 +4007,7 @@ html,body{
       if(voiceState.enabled){
         voiceState.unlocked=true;
         try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+        try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
         /* Establish a WATCH LIVE voice session immediately from the user's
            tap.  Do not wait for the asynchronous /round response. */
         try{
@@ -6469,20 +6470,23 @@ html,body{
       const n=round.drawnNumbers[count-1];
       voiceState.lastDrawCount[game]=count;
 
+      let announced=false;
       if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.announceDraw==="function"){
         try{
-          window.DestaVoice.announceDraw({
+          announced=!!window.DestaVoice.announceDraw({
             game,
             roundId:id,
             stake:round.stake||round.tier||null,
             number:n,
             language:state.language||"en"
           });
-        }catch(e){}
-      }else if(game==="bingo"){
+        }catch(e){ announced=false; }
+      }
+
+      if(!announced && game==="bingo"){
         const call=bingoVoiceCall(n);
         speakGameVoice(call,call);
-      }else{
+      }else if(!announced && game==="keno"){
         speakGameVoice(String(n),String(n));
       }
     }
