@@ -461,6 +461,21 @@ async function configurePlayerTelegramCommands() {
     return telegramApi("setMyCommands", { commands: PLAYER_TELEGRAM_COMMANDS });
 }
 
+/* setMyCommands creates the Telegram command menu only. Register the actual
+   webhook as well, otherwise Telegram has nowhere to deliver player commands. */
+async function configurePlayerTelegramWebhook() {
+    if (!TELEGRAM_BOT_TOKEN || !PUBLIC_APP_URL) return { ok:false, skipped:true };
+    const payload = {
+        url: `${PUBLIC_APP_URL}/api/admin/telegram/webhook`,
+        allowed_updates: ["message", "callback_query"]
+    };
+    if (TELEGRAM_WEBHOOK_SECRET) payload.secret_token = TELEGRAM_WEBHOOK_SECRET;
+    const result = await telegramApi("setWebhook", payload);
+    if (result.ok) console.log(`[TELEGRAM] Webhook configured: ${payload.url}`);
+    else console.error("[TELEGRAM] Webhook configuration failed:", result.error || result);
+    return result;
+}
+
 async function sendAdminTelegramMessage(text, replyMarkup = null) {
     if (!ADMIN_TELEGRAM_ID) {
         console.warn("[ADMIN] ADMIN_TELEGRAM_ID is not configured");
@@ -5857,6 +5872,10 @@ app.listen(
     async () => {
         await configurePlayerTelegramCommands().catch(error =>
             console.error("[TELEGRAM] Could not configure player commands:", error)
+        );
+
+        await configurePlayerTelegramWebhook().catch(error =>
+            console.error("[TELEGRAM] Could not configure webhook:", error)
         );
 
         console.log(
