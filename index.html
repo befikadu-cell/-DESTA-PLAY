@@ -6248,6 +6248,7 @@ html,body{
     let liveRoundTimer = null;
     let liveRoundBusy = false;
     let lastServerRoundId = {};
+    let serverCountdownTimer = null;
 
     /* =========================================================
        VOICE ANNOUNCER — ALL GAMES
@@ -6444,18 +6445,38 @@ html,body{
                  document.getElementById(game + "Status");
       if(!el) return;
 
-      const seconds = Number(round.remainingSeconds || 0);
+      clearInterval(serverCountdownTimer);
+
       const betting = round.status === "BETTING";
+      const endsAt = Number(round.bettingEndsAt || 0);
 
-      el.textContent = betting
-        ? "BETTING " + seconds + "s"
-        : (round.status === "DRAWING" ? "DRAWING" :
-           round.status === "FLYING" ? "FLYING" :
-           round.status === "SPINNING" ? "SPINNING" :
-           round.status === "CRASHED" ? "CRASHED" :
-           "BETTING CLOSED");
+      const paint = () => {
+        if(round.status !== "BETTING"){
+          el.textContent =
+            round.status === "DRAWING" ? "DRAWING" :
+            round.status === "FLYING" ? "FLYING" :
+            round.status === "SPINNING" ? "SPINNING" :
+            round.status === "CRASHED" ? "CRASHED" :
+            "BETTING CLOSED";
+          el.classList.toggle("closed", true);
+          return;
+        }
 
-      el.classList.toggle("closed", !betting);
+        const serverRemaining = Number(round.remainingMilliseconds);
+        const remaining = Number.isFinite(serverRemaining) && serverRemaining >= 0
+          ? Math.max(0, serverRemaining - (Date.now() - Number(round.serverTime || Date.now())))
+          : Math.max(0, endsAt - Date.now());
+
+        const seconds = Math.ceil(remaining / 1000);
+        el.textContent = "BETTING " + seconds + "s";
+        el.classList.toggle("closed", seconds <= 0);
+      };
+
+      paint();
+
+      if(betting && (endsAt > Date.now() || Number(round.remainingMilliseconds) > 0)){
+        serverCountdownTimer = setInterval(paint, 200);
+      }
     }
 
     function applyServerRound(round){
@@ -6491,10 +6512,15 @@ html,body{
         startStakeLobbyTimer(Number(round.remainingSeconds || 0));
         const status=document.getElementById("stakeLobbyStatus");
         if(status && round.status!=="BETTING") status.textContent="Betting window closed. Waiting for the next round.";
-        if(Number(round.players)>0 && state.stakeLobbyGame==="keno"){
+        if(state.stakeLobbyGame==="keno"){
           const selected=Number(state.kenoSelectedStake||0);
           const el=document.getElementById(`kenoStakePlayers${selected}`);
-          if(el) el.textContent=`${Number(round.players)||0} players`;
+          if(el) el.textContent=`${Number(round.playersInRoom)||0} players`;
+        }
+        if(state.stakeLobbyGame==="bingo"){
+          const selected=Number(state.bingoSelectedStake||0);
+          const el=document.getElementById(`bingoStakePlayers${selected}`);
+          if(el) el.textContent=`${Number(round.playersInRoom)||0} players`;
         }
       }
 
@@ -6648,7 +6674,7 @@ html,body{
       const playersEl=document.getElementById("kenoPlayersStat");
       if(playersEl) playersEl.textContent=String(Number(round.playersInRoom ?? round.players)||0);
       const playersFeed=document.getElementById("kenoPlayers");
-      if(playersFeed) playersFeed.textContent=String(Number(round.players)||0);
+      if(playersFeed) playersFeed.textContent=String(Number(round.playersInRoom)||0);
       [1,2,3].forEach((pos)=>{
         const el=document.getElementById("kenoLast"+pos);
         if(el) el.textContent=nums.length>=pos ? String(nums[nums.length-pos]).padStart(2,"0") : "—";
@@ -6700,7 +6726,7 @@ html,body{
       const callsEl=document.getElementById("bingoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
       const playersEl=document.getElementById("bingoPlayersStat");
-      if(playersEl) playersEl.textContent=String(Number(round.players)||0);
+      if(playersEl) playersEl.textContent=String(Number(round.playersInRoom)||0);
 
       [1,2,3].forEach((pos)=>{
         const el=document.getElementById("bingoLast"+pos);
@@ -6768,9 +6794,14 @@ html,body{
           url += `?stake=${encodeURIComponent(Number(tier))}`;
         }
 
+        const headers = {"Accept":"application/json"};
+        if(state.authToken){
+          headers["Authorization"] = "Bearer " + state.authToken;
+        }
+
         const response = await fetch(url, {
           cache:"no-store",
-          headers:{"Accept":"application/json"}
+          headers
         });
 
         if(!response.ok) return;
