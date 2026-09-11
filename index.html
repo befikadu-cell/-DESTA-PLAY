@@ -1921,7 +1921,10 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
 #gameScreen .gameTitle{display:none!important;}
 #gameScreen .gameArea{height:calc(100vh - 126px)!important;max-height:none!important;margin:0 6px!important;box-sizing:border-box;overflow:hidden!important;border-radius:12px;}
-#gameScreen .stakeLobby{position:relative;z-index:20;max-height:none!important;height:auto;overflow:hidden!important;margin:6px!important;}
+#gameScreen .stakeLobby{position:absolute!important;z-index:100!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:hidden!important;padding:10px 8px!important;background:linear-gradient(145deg,#241010,#090909)!important;}
+#gameScreen .stakeLobby .stakeGrid{flex:1 1 auto;min-height:0;overflow:hidden;}
+#gameScreen .stakeLobby{display:flex;flex-direction:column;}
+#gameScreen .stakeLobby.hidden{display:none!important;}
 .stakeGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;}
 .stakeChoice{height:32px;min-height:32px;}
 .stakeLobby{padding:7px!important;}
@@ -1947,6 +1950,39 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #kenoGame .betSlots{display:grid!important;grid-template-columns:1fr 1fr;gap:5px!important;padding:4px!important;}
 #kenoGame .betSlot{min-height:65px!important;padding:5px!important;cursor:pointer!important;pointer-events:auto!important;}
 #kenoGame .placeBtn{min-height:28px!important;padding:5px!important;font-size:9px!important;}
+#kenoGame .feed,#kenoGame .historyBox{display:none!important;}
+
+/* WALLET HELP */
+.walletHelpCard{position:relative;width:min(92vw,430px);max-height:78vh;overflow:auto;box-sizing:border-box;padding:16px;border-radius:14px;background:#171717;border:1px solid #632020;box-shadow:0 18px 50px rgba(0,0,0,.65);color:#fff;}
+.walletHelpCard h3{margin:14px 0 6px;color:#ffd43c;font-size:14px;}
+.walletHelpCard p{margin:0;color:#ddd;font-size:12px;line-height:1.55;}
+
+/* KENO LIVE DRAW — reference-style compact layout */
+#kenoGame{height:100%;overflow:hidden!important;position:relative;box-sizing:border-box;}
+.kenoLiveLayout{display:grid;grid-template-columns:72px 1fr 112px;align-items:center;gap:6px;margin:3px 6px 2px;height:178px;}
+.kenoLastColumn{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.kenoSectionLabel,.kenoDrawLabel,.kenoRecentLabel{color:#aaa;font-size:10px;font-weight:700;text-align:center;letter-spacing:.2px;}
+.kenoLastBall{width:43px;height:43px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#555,#191919 62%,#090909);border:2px solid #6f2525;color:#fff;font-size:13px;font-weight:900;box-shadow:inset 0 2px 7px rgba(255,255,255,.08),0 0 5px rgba(160,0,0,.25);}
+.kenoCenterColumn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;}
+.kenoDrawLabel{margin-bottom:3px;}
+.kenoBilliardBall{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,#fff 0,#f7f7f7 48%,#d7d7d7 78%,#aaa 100%);border:7px solid #f5b900;box-shadow:0 0 0 3px #ffcf33,0 0 22px rgba(255,187,0,.35),inset -9px -10px 18px rgba(0,0,0,.16),inset 8px 8px 15px rgba(255,255,255,.9);}
+.kenoBilliardBall span{color:#111;font-size:38px;font-weight:1000;line-height:1;text-shadow:0 1px 0 #fff;}
+.kenoBilliardBall span.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+.kenoStatsColumn{display:flex;flex-direction:column;gap:7px;}
+.kenoStatBox{height:58px;border-radius:12px;background:#202020;border:1px solid #4b2929;display:flex;flex-direction:column;justify-content:center;padding:0 9px;box-sizing:border-box;box-shadow:inset 0 0 10px rgba(0,0,0,.35);}
+.kenoStatBox strong{font-size:19px;color:#fff;line-height:1.05;}
+.kenoStatBox span{font-size:10px;color:#aaa;margin-top:2px;}
+.kenoRecentLabel{text-align:left;margin:1px 8px 2px;}
+.kenoRecentCalls{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:2px 7px 4px;scrollbar-width:none;white-space:nowrap;}
+.kenoRecentCalls::-webkit-scrollbar{display:none;}
+.kenoRecentCalls .recentBall{flex:0 0 35px;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#151515;border:2px solid #672525;color:#fff;font-size:10px;font-weight:900;}
+#kenoGame .drawStatus{padding:2px 0!important;font-size:8px!important;min-height:10px;}
+#kenoGame .kenoSelectedRows{margin:2px 5px!important;gap:4px!important;}
+#kenoGame .kenoBoard{padding:3px 5px!important;gap:3px!important;}
+#kenoGame .kenoNumber{min-width:0!important;width:100%!important;aspect-ratio:1!important;font-size:9px!important;pointer-events:auto!important;touch-action:manipulation!important;}
+#kenoGame .betSlots{gap:5px!important;padding:3px 5px!important;}
+#kenoGame .betSlot{min-height:55px!important;padding:4px!important;}
+#kenoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
 #kenoGame .feed,#kenoGame .historyBox{display:none!important;}
 
 /* BINGO — compact header/draw area matching supplied reference */
@@ -2008,6 +2044,12 @@ html,body{
 #bingoGame .cartelaPicker{
   overscroll-behavior-y:none!important;
 }
+
+/* WALLET HEADER + HELP */
+.walletPageHead{display:flex;align-items:center;justify-content:space-between;padding:0 8px 2px;}
+.walletPageHead .pageTitle{margin:0;}
+.walletHelpBtn{width:34px;height:34px;border:1px solid #632020;border-radius:50%;background:#171717;color:#ffd43c;font-size:20px;font-weight:900;line-height:1;cursor:pointer;touch-action:manipulation;}
+.walletHelpBtn:active{transform:scale(.95);}
 
 /* Prevent accidental transparent/overlay layers from blocking game controls. */
 #kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
@@ -2317,140 +2359,79 @@ html,body{
         <div id="kenoGame" class="hidden">
 
           <div class="selectedStakeBanner">STAKE: <span id="kenoSelectedStakeDisplay">—</span> ETB</div>
+          <div class="countdown" id="kenoCountdown">BETTING 40s</div>
 
-          <div
-            class="countdown"
-            id="kenoCountdown">
-            BETTING 40s
-          </div>
+          <section class="kenoLiveLayout" aria-label="Keno live game">
+            <div class="kenoLastColumn">
+              <div class="kenoSectionLabel">LAST</div>
+              <div class="kenoLastBall" id="kenoLast1">—</div>
+              <div class="kenoLastBall" id="kenoLast2">—</div>
+              <div class="kenoLastBall" id="kenoLast3">—</div>
+            </div>
+
+            <div class="kenoCenterColumn">
+              <div class="kenoDrawLabel">DRAWN NUMBER</div>
+              <div class="kenoBilliardBall" id="kenoDrawCircle" aria-label="Latest Keno drawn number">
+                <span id="kenoLatestDraw">—</span>
+              </div>
+              <div class="drawStatus" id="kenoDrawStatus">Waiting for draw...</div>
+            </div>
+
+            <div class="kenoStatsColumn">
+              <div class="kenoStatBox">
+                <strong id="kenoCallsStat">0</strong>
+                <span>CALLS</span>
+              </div>
+              <div class="kenoStatBox">
+                <strong id="kenoPlayersStat">0</strong>
+                <span>PLAYERS</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="kenoRecentLabel">RECENT CALLS</div>
+          <div class="kenoRecentCalls" id="kenoRecentCalls"></div>
 
           <div class="kenoSelectedRows">
-
             <div class="selectedRow">
-
               <strong>SLOT 1</strong>
-
-              <div
-                id="kenoSlot1Numbers">
-                <span class="muted">No numbers</span>
-              </div>
-
+              <div id="kenoSlot1Numbers"><span class="muted">No numbers</span></div>
             </div>
-
             <div class="selectedRow">
-
               <strong>SLOT 2</strong>
-
-              <div
-                id="kenoSlot2Numbers">
-                <span class="muted">No numbers</span>
-              </div>
-
+              <div id="kenoSlot2Numbers"><span class="muted">No numbers</span></div>
             </div>
-
           </div>
 
-          <div
-            class="kenoBoard"
-            id="kenoBoard">
-          </div>
+          <div class="kenoBoard" id="kenoBoard"></div>
 
-          <div class="drawNumberCircle" id="kenoDrawCircle" aria-label="Latest Keno drawn number">
-            <span id="kenoLatestDraw">—</span>
-          </div>
-
-          <div
-            class="drawStatus"
-            id="kenoDrawStatus">
-            Waiting for draw...
-          </div>
+          <div id="kenoDrawBalls" aria-hidden="true" style="display:none"></div>
 
           <div class="betSlots">
-
-            <div
-              class="betSlot"
-              id="kenoBetSlot1"
-              onclick="activateKenoSlot(1)">
-
-              <div class="slotTitle">
-                SLOT 1
-              </div>
-
+            <div class="betSlot" id="kenoBetSlot1" onclick="activateKenoSlot(1)">
+              <div class="slotTitle">SLOT 1</div>
               <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k1StakeDisplay">—</span> ETB</div>
-
-              <div
-                class="livePayout"
-                id="kenoPayout1">
-              </div>
-
-              <button
-                class="placeBtn"
-                onclick="event.stopPropagation();placeKenoBet(1)">
-                PLACE BET
-              </button>
-
+              <div class="livePayout" id="kenoPayout1"></div>
+              <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(1)">PLACE BET</button>
             </div>
-
-
-            <div
-              class="betSlot"
-              id="kenoBetSlot2"
-              onclick="activateKenoSlot(2)">
-
-              <div class="slotTitle">
-                SLOT 2
-              </div>
-
+            <div class="betSlot" id="kenoBetSlot2" onclick="activateKenoSlot(2)">
+              <div class="slotTitle">SLOT 2</div>
               <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k2StakeDisplay">—</span> ETB</div>
-
-              <div
-                class="livePayout"
-                id="kenoPayout2">
-              </div>
-
-              <button
-                class="placeBtn"
-                onclick="event.stopPropagation();placeKenoBet(2)">
-                PLACE BET
-              </button>
-
+              <div class="livePayout" id="kenoPayout2"></div>
+              <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(2)">PLACE BET</button>
             </div>
-
           </div>
 
           <div class="feed">
-
-            <div class="feedRow">
-              <span>Active slot</span>
-              <span id="activeKenoSlot">SLOT 1</span>
-            </div>
-
-            <div class="feedRow">
-              <span>Slot 1 selected</span>
-              <span id="kenoSelected1">0 / 10</span>
-            </div>
-
-            <div class="feedRow">
-              <span>Slot 2 selected</span>
-              <span id="kenoSelected2">0 / 10</span>
-            </div>
-
-            <div class="feedRow">
-              <span>Players in round</span>
-              <span id="kenoPlayers">0</span>
-            </div>
-
+            <div class="feedRow"><span>Active slot</span><span id="activeKenoSlot">SLOT 1</span></div>
+            <div class="feedRow"><span>Slot 1 selected</span><span id="kenoSelected1">0 / 10</span></div>
+            <div class="feedRow"><span>Slot 2 selected</span><span id="kenoSelected2">0 / 10</span></div>
+            <div class="feedRow"><span>Players in round</span><span id="kenoPlayers">0</span></div>
           </div>
 
           <div class="historyBox">
-
-            <div class="historyHeader">
-              LAST 10 KENO ROUNDS
-            </div>
-
-            <div id="kenoHistory">
-            </div>
-
+            <div class="historyHeader">LAST 10 KENO ROUNDS</div>
+            <div id="kenoHistory"></div>
           </div>
 
         </div>
@@ -2681,7 +2662,10 @@ html,body{
 
       <button class="pageBackBtn" type="button" onclick="showPage('home')">← BACK</button>
 
-      <div class="pageTitle">WALLET</div>
+      <div class="walletPageHead">
+        <div class="pageTitle">WALLET</div>
+        <button class="walletHelpBtn" type="button" onclick="openWalletHelp()" aria-label="Wallet help">?</button>
+      </div>
 
       <div class="walletBalance">
         <small>AVAILABLE BALANCE</small>
@@ -2700,12 +2684,12 @@ html,body{
 
       <div class="walletCard">
         <h3>DEPOSIT VERIFICATION</h3>
-        <p>After you send payment, submit the amount, payment recipient and transaction/reference ID. The server and SMS forwarder will cross-check the payment before any balance is credited.</p>
+        <p>1. Enter your sender phone number and deposit amount.<br>2. Tap PAY and follow the payment instructions.<br>3. Complete the payment, then tap I HAVE PAID.<br>4. Submit the transaction/reference information and wait for confirmation.</p>
       </div>
 
       <div class="walletCard">
         <h3>WITHDRAWAL</h3>
-        <p>Withdrawals are checked by the server. Your withdrawable balance is determined by the backend and cannot be changed from this page.</p>
+        <p>1. Enter the amount you want to withdraw.<br>2. Enter your withdrawal phone number.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.<br>5. If the password is correct, the withdrawal request is submitted.</p>
       </div>
 
       <div class="walletCard">
@@ -3803,6 +3787,16 @@ html,body{
       state.game=game;
       state.gameJoined=false;
       state.stakeLobbyGame=game;
+
+      // A fresh stake screen must never show selections from a previous visit.
+      state.kenoSelections={1:[],2:[]};
+      state.kenoBets={1:null,2:null};
+      state.activeKenoSlot=1;
+      state.bingoCartelas={1:null,2:null};
+      state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
+      state.bingoMarks[1][12]=true;
+      state.bingoMarks[2][12]=true;
+      state.bingoBoards={1:null,2:null};
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
       showPage("game");
       document.getElementById("gameTitle").textContent=game.toUpperCase();
@@ -3913,9 +3907,31 @@ html,body{
       });
     }
 
+    function clearGameSelections(){
+      state.kenoSelections={1:[],2:[]};
+      state.kenoBets={1:null,2:null};
+      state.activeKenoSlot=1;
+      state.bingoCartelas={1:null,2:null};
+      state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
+      state.bingoMarks[1][12]=true;
+      state.bingoMarks[2][12]=true;
+      state.bingoBoards={1:null,2:null};
+      const board=document.getElementById("kenoBoard");
+      if(board) board.innerHTML="";
+      const picker=document.getElementById("cartelaPicker");
+      if(picker) picker.innerHTML="";
+      const s1=document.getElementById("kenoSlot1Numbers");
+      const s2=document.getElementById("kenoSlot2Numbers");
+      if(s1) s1.innerHTML='<span class="muted">No numbers</span>';
+      if(s2) s2.innerHTML='<span class="muted">No numbers</span>';
+    }
+
     function backToGames(){
       hideAllGames();
+      clearGameSelections();
       state.game="";
+      state.stakeLobbyGame="";
+      state.gameJoined=false;
       state.bettingOpen=false;
       const wheel=document.getElementById("rouletteWheel");
       if(wheel){
@@ -4284,6 +4300,11 @@ html,body{
 
           const latestEl=document.getElementById("kenoLatestDraw");
           if(latestEl){ latestEl.textContent=String(n).padStart(2,"0"); latestEl.classList.remove("pop"); void latestEl.offsetWidth; latestEl.classList.add("pop"); }
+          const callsEl=document.getElementById("kenoCallsStat");
+          if(callsEl) callsEl.textContent=String(i+1);
+          [1,2,3].forEach((pos)=>{ const el=document.getElementById("kenoLast"+pos); if(el) el.textContent=(i+1>=pos)?String(state.kenoDraw[i+1-pos]).padStart(2,"0"):"—"; });
+          const recent=document.getElementById("kenoRecentCalls");
+          if(recent){ const rn=state.kenoDraw.slice(0,i+1).slice(-10).reverse(); recent.innerHTML=rn.map(x=>`<span class="recentBall">${String(x).padStart(2,"0")}</span>`).join(""); }
 
           const ball=
             document.createElement("div");
@@ -5669,6 +5690,25 @@ html,body{
        HELP
     ========================================================= */
 
+
+
+    function closeWalletHelp(){
+      const modal=document.getElementById("walletHelpModal");
+      if(modal) modal.classList.add("hidden");
+    }
+    function openWalletHelp(){
+      const modal=document.getElementById("walletHelpModal");
+      if(!modal) return;
+      modal.innerHTML=`<div class="walletHelpCard">
+        <div class="walletModalHead"><h2>WALLET HELP</h2><button class="walletModalClose" onclick="closeWalletHelp()">×</button></div>
+        <h3>Deposit</h3>
+        <p>1. Tap DEPOSIT.<br>2. Enter the sender phone number and deposit amount.<br>3. Tap PAY and follow the payment instructions.<br>4. Tap I HAVE PAID.<br>5. Enter the receipt or reference number and tap SUBMIT.</p>
+        <h3>Withdrawal</h3>
+        <p>1. Tap WITHDRAW.<br>2. Enter the withdrawal amount and the phone number receiving the money.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.</p>
+      </div>`;
+      modal.classList.remove("hidden");
+    }
+
     function openHelp(){
 
       const help={
@@ -6457,6 +6497,24 @@ html,body{
           latestEl.classList.add("pop");
         }
       }
+      const callsEl=document.getElementById("kenoCallsStat");
+      if(callsEl) callsEl.textContent=String(nums.length);
+      const playersEl=document.getElementById("kenoPlayersStat");
+      if(playersEl) playersEl.textContent=String(Number(round.players)||0);
+      const playersFeed=document.getElementById("kenoPlayers");
+      if(playersFeed) playersFeed.textContent=String(Number(round.players)||0);
+      [1,2,3].forEach((pos)=>{
+        const el=document.getElementById("kenoLast"+pos);
+        if(el) el.textContent=nums.length>=pos ? String(nums[nums.length-pos]).padStart(2,"0") : "—";
+      });
+      const recent=document.getElementById("kenoRecentCalls");
+      if(recent){
+        const recentNums=nums.slice(-10).reverse();
+        recent.innerHTML=recentNums.length
+          ? recentNums.map(n=>`<span class="recentBall">${String(n).padStart(2,"0")}</span>`).join("")
+          : `<span class="muted">No calls yet</span>`;
+      }
+
       const status = document.getElementById("kenoDrawStatus");
       if(status){
         status.textContent = round.status === "DRAWING"
@@ -6749,6 +6807,11 @@ html,body{
     })();
 
     </script>
+
+    <!-- ======================================================
+         WALLET HELP MODAL
+    ====================================================== -->
+    <div id="walletHelpModal" class="walletModal hidden" onclick="if(event.target===this)closeWalletHelp()"></div>
 
     <!-- ======================================================
          DEPOSIT MODAL
