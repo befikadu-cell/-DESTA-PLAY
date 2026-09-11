@@ -811,9 +811,9 @@
       text-shadow:0 0 10px rgba(255,212,59,.8);
     }
 
-    .bingoLatestDraw.pop{
-      animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);
-    }
+    .bingoLatestDraw.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+    .kenoBilliardBall.drawPop,.bingoBilliardBall.drawPop{animation:drawBallPop .65s cubic-bezier(.17,.89,.32,1.28);}
+    @keyframes drawBallPop{0%{transform:scale(.82)}55%{transform:scale(1.08)}100%{transform:scale(1)}}
 
     @keyframes bingoRingSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
     @keyframes latestDrawPop{0%{transform:scale(.35);opacity:.15}55%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
@@ -3975,6 +3975,10 @@ html,body{
       const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
       if(!stake) return;
       state.gameJoined=true;
+      voiceState.enabled=true;
+      voiceState.unlocked=true;
+      try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      updateVoiceButton();
       /* Provisional local state only until the authoritative server round
          arrives. This makes the number/slot controls responsive immediately. */
       state.bettingOpen=true;
@@ -3988,6 +3992,7 @@ html,body{
         updateKenoStakeDisplays();
         fetchLiveRound("keno",stake);
       }
+      startLiveRoundSync();
     }
 
     function startStakeLobbyTimer(seconds){
@@ -4044,6 +4049,8 @@ html,body{
     }
 
     function backToGames(){
+      try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+      clearVoiceQueue();
       hideAllGames();
       clearGameSelections();
       state.game="";
@@ -6303,34 +6310,20 @@ html,body{
 
     async function playNextGameVoice(){
       if(!voiceState.enabled || voiceState.playing || !voiceState.queue.length) return;
+      if(!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance==="undefined") return;
       voiceState.playing=true;
       const item=voiceState.queue.shift();
       const seq=voiceState.requestSeq;
       try{
-        const lang=String(state.language||"en").toLowerCase()==="am" ? "am" : "en";
-        const VOICE_API_BASE="https://desta-play.onrender.com";
-        const url=VOICE_API_BASE+"/api/voice?lang="+encodeURIComponent(lang)+"&text="+encodeURIComponent(item.text);
-        const audio=new Audio(url);
-        voiceState.currentAudio=audio;
-        audio.preload="auto";
-        audio.volume=1;
-        await new Promise((resolve,reject)=>{
-          let done=false;
-          const finish=(err)=>{ if(done)return; done=true; err?reject(err):resolve(); };
-          audio.onended=()=>finish();
-          audio.onerror=()=>finish(new Error("voice audio failed"));
-          audio.onabort=()=>finish();
-          const timer=setTimeout(()=>finish(new Error("voice timeout")),8000);
-          audio.onended=()=>{ clearTimeout(timer); finish(); };
-          audio.onerror=()=>{ clearTimeout(timer); finish(new Error("voice audio failed")); };
-          audio.play().catch(err=>{ clearTimeout(timer); finish(err); });
-        });
+        const utterance=new SpeechSynthesisUtterance(String(item.text||""));
+        utterance.rate=.95; utterance.pitch=1; utterance.volume=1;
+        utterance.onend=()=>{voiceState.playing=false;voiceState.currentAudio=null;if(seq===voiceState.requestSeq)playNextGameVoice();};
+        utterance.onerror=()=>{voiceState.playing=false;voiceState.currentAudio=null;if(seq===voiceState.requestSeq)playNextGameVoice();};
+        voiceState.currentAudio=utterance;
+        window.speechSynthesis.speak(utterance);
       }catch(error){
-        console.warn("Server voice playback failed:",error);
-      }finally{
-        if(seq===voiceState.requestSeq) voiceState.currentAudio=null;
-        voiceState.playing=false;
-        if(seq===voiceState.requestSeq) playNextGameVoice();
+        console.warn("Game voice playback failed:",error);
+        voiceState.playing=false; voiceState.currentAudio=null;
       }
     }
 
@@ -6358,6 +6351,8 @@ html,body{
 
     function speakGameVoice(en, am, priority=false){
       if(!voiceState.enabled) return;
+      if(state.game!=="keno" && state.game!=="bingo") return;
+      if(!state.gameJoined) return;
       queueGameVoice(en,am,priority);
     }
 
@@ -6485,6 +6480,13 @@ html,body{
       announceRoundVoice(round);
 
       const game=round.game;
+      if(state.game===game && state.gameJoined){
+        voiceState.enabled=true;
+        voiceState.unlocked=true;
+        if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
+          try{ window.DestaVoice.enterLiveGame(game,round.id,round.stake||round.tier||null); }catch(e){}
+        }
+      }
       const previousId=lastServerRoundId[game];
       const isNewRound=Boolean(previousId && previousId !== round.id);
       lastServerRoundId[game]=round.id;
@@ -6659,14 +6661,17 @@ html,body{
       const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
       const latest=nums.length ? nums[nums.length-1] : null;
       const latestEl=document.getElementById("kenoLatestDraw");
+      const latestBall=document.getElementById("kenoDrawCircle");
       if(latestEl){
         const shown=latest!=null ? String(latest).padStart(2,"0") : "—";
         const changed=String(latestEl.textContent)!==shown;
         latestEl.textContent=shown;
         if(changed && latest!=null){
           latestEl.classList.remove("pop");
+          if(latestBall) latestBall.classList.remove("drawPop");
           void latestEl.offsetWidth;
           latestEl.classList.add("pop");
+          if(latestBall){ void latestBall.offsetWidth; latestBall.classList.add("drawPop"); }
         }
       }
       const callsEl=document.getElementById("kenoCallsStat");
@@ -6713,14 +6718,17 @@ html,body{
       const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
       const latest=nums.length ? nums[nums.length-1] : null;
       const latestEl=document.getElementById("bingoLatestDraw");
+      const latestBall=document.getElementById("bingoDrawCircle");
       if(latestEl){
         const shown=latest!=null ? String(latest) : "—";
         const changed=String(latestEl.textContent)!==shown;
         latestEl.textContent=shown;
         if(changed && latest!=null){
           latestEl.classList.remove("pop");
+          if(latestBall) latestBall.classList.remove("drawPop");
           void latestEl.offsetWidth;
           latestEl.classList.add("pop");
+          if(latestBall){ void latestBall.offsetWidth; latestBall.classList.add("drawPop"); }
         }
       }
       const callsEl=document.getElementById("bingoCallsStat");
@@ -6799,10 +6807,14 @@ html,body{
           headers["Authorization"] = "Bearer " + state.authToken;
         }
 
-        const response = await fetch(url, {
-          cache:"no-store",
-          headers
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        let response;
+        try{
+          response = await fetch(url, {cache:"no-store", headers, signal:controller.signal});
+        }finally{
+          clearTimeout(timeoutId);
+        }
 
         if(!response.ok) return;
 
@@ -6901,7 +6913,7 @@ html,body{
       ["keno","bingo"].forEach(loadRoundHistory);
       liveRoundTimer = setInterval(() => {
         fetchAllLiveRounds();
-      }, 1000);
+      }, state.gameJoined ? 500 : 1000);
     }
 
     /* The server owns the round. The browser never creates or advances rounds. */
