@@ -5490,13 +5490,17 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
         }
 
         const variant = editionBingoVariant(gameName);
-                const cartelaNumber = editionCartelaNumber(req.player.id, cardIndex);
+        const selectedCartela = Number(req.body?.cartelaNumber);
+        if (!Number.isInteger(selectedCartela) || selectedCartela < 1 || selectedCartela > 120) {
+            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
+        }
+        const cartelaNumber = selectedCartela;
         const cartela = getBingoCartela(cartelaNumber);
 
         const duplicate = room.players.some(p =>
-            p.playerId === req.player.id && Number(p.cartelaNumber) === cartelaNumber
+            Number(p.cartelaNumber) === cartelaNumber
         );
-        if (duplicate) return res.status(400).json({success:false,error:"This cartela is already bet"});
+        if (duplicate) return res.status(400).json({success:false,error:"That Cartela is already in play"});
 
         const playerCartelas = room.players.filter(p => p.playerId === req.player.id);
         if (playerCartelas.length >= 2) {
@@ -5554,7 +5558,11 @@ app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) =>
             return res.status(400).json({success:false,error:"Invalid cartela selection"});
         }
 
-        const cartelaNumber = editionCartelaNumber(req.player.id, cardIndex);
+        const requestedCartela = Number(req.body?.cartelaNumber);
+        if (!Number.isInteger(requestedCartela) || requestedCartela < 1 || requestedCartela > 120) {
+            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
+        }
+        const cartelaNumber = requestedCartela;
         const stake = EDITION_STAKES.find(t =>
             bingoRooms[t] && bingoRooms[t].id === roundId
         );
