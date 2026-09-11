@@ -3999,6 +3999,21 @@ html,body{
 
     function watchLiveGame(game){
       state.watchOnly=true; state.gameJoined=false; state.stakeLobbyGame=game; clearInterval(state.stakeLobbyTimerId);
+
+      /* WATCH LIVE is a user gesture. If game voice is already enabled, use
+         this gesture to unlock mobile speech synthesis before the first
+         asynchronous server draw arrives. Do not change the player's voice
+         preference if voice is OFF. */
+      if(voiceState.enabled){
+        voiceState.unlocked=true;
+        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+        try{
+          const useAm=String(state.language||"en").toLowerCase()==="am";
+          if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
+            window.DestaVoice.speakText(useAm ? "ድምጽ ንቁ ነው።" : "Voice on.",useAm?"am":"en");
+        }catch(e){}
+      }
+
       const lobby=document.getElementById("gameStakeLobby"); if(lobby) lobby.classList.add("hidden");
       const title=document.getElementById("gameTitle"); if(title) title.textContent=game.toUpperCase()+" • LIVE";
       if(game==="bingo"){ const play=document.getElementById("bingoPlayArea"); if(play) play.classList.remove("hidden"); buildBingo(); const current=state.lastServerRounds?.bingo; if(current) primeLiveDrawPresentation("bingo",current); fetchLiveRound("bingo",null); }
@@ -4114,7 +4129,6 @@ html,body{
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
-      try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
       updateVoiceButton();
       /* JOIN is already a user gesture; DestaVoice owns speech playback. */
       /* Provisional local state only until the authoritative server round
@@ -6402,7 +6416,6 @@ html,body{
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
-      try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
       updateVoiceButton();
 
       /* The button gesture unlocks browser speech synthesis on mobile. */
@@ -6619,7 +6632,6 @@ html,body{
         voiceState.unlocked=voiceState.enabled;
         if(voiceState.enabled){
           try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
-          try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
         }
         if(voiceState.enabled && typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
           try{
