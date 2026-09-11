@@ -2673,6 +2673,8 @@ html,body{
 
               <button
                 class="placeBtn"
+                id="bingoPlaceBtn1"
+                type="button"
                 onclick="placeBingoBet(1)">
                 PLACE BET
               </button>
@@ -2699,6 +2701,8 @@ html,body{
 
               <button
                 class="placeBtn"
+                id="bingoPlaceBtn2"
+                type="button"
                 onclick="placeBingoBet(2)">
                 PLACE BET
               </button>
@@ -4948,8 +4952,12 @@ html,body{
         state.bingoBets[slot]={amount,cartelaNumber,placed:true,roundId:data.roundId};
         if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
         updateBalance();
-        if(btn){btn.disabled=true;btn.textContent="BET PLACED";}
-        const payout=document.getElementById("bingoPayout"+slot); if(payout)payout.textContent="BET PLACED — "+amount+" ETB";
+        if(btn){
+          btn.disabled=true;
+          btn.textContent="BINGO";
+          btn.onclick=()=>claimBingo(slot);
+        }
+        const payout=document.getElementById("bingoPayout"+slot); if(payout)payout.textContent="BET ACCEPTED — "+amount+" ETB";
         const status=document.getElementById("cartelaStatus"); if(status)status.textContent="Cartela "+cartelaNumber+" bet accepted for Slot "+slot+".";
         renderCartelaPicker();
       }catch(error){if(btn){btn.disabled=false;btn.textContent="PLACE BET";}alert(error.message || "Could not place Bingo bet.");}
@@ -5047,6 +5055,26 @@ html,body{
 
       });
 
+    }
+
+
+    function syncBingoSlotButtons(round){
+      if(!round) return;
+      [1,2].forEach(slot=>{
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        if(!place) return;
+        const accepted=!!state.bingoBets[slot];
+        const valid=accepted && checkBingo(state.bingoBoards[slot]||[],slot);
+        if(accepted){
+          place.disabled=!valid || round.status!=="DRAWING";
+          place.textContent="BINGO";
+          place.onclick=()=>claimBingo(slot);
+        }else{
+          place.disabled=round.status!=="BETTING";
+          place.textContent="PLACE BET";
+          place.onclick=()=>placeBingoBet(slot);
+        }
+      });
     }
 
 
@@ -6712,7 +6740,10 @@ html,body{
           const b2=document.getElementById("bingoButton2");
           if(b1){b1.disabled=true;b1.textContent="BINGO — CARTELA 1";}
           if(b2){b2.disabled=true;b2.textContent="BINGO — CARTELA 2";}
-          document.querySelectorAll("#bingoGame .placeBtn").forEach(btn=>{btn.disabled=false;btn.textContent="PLACE BET";});
+          [1,2].forEach(slot=>{
+            const place=document.getElementById("bingoPlaceBtn"+slot);
+            if(place){place.disabled=false;place.textContent="PLACE BET";place.onclick=()=>placeBingoBet(slot);}
+          });
           [1,2].forEach(slot=>{const p=document.getElementById("bingoPayout"+slot);if(p)p.textContent="";});
         }
         syncLiveDrawPresentation("bingo",round);
@@ -6908,17 +6939,26 @@ html,body{
         [1,2].forEach(slot=>autoMarkBingoCartela(slot));
       }
       [1,2].forEach(slot=>{
-        const btn=document.getElementById("bingoButton"+slot);
-        if(btn){
-          const valid=!!state.bingoBets[slot] && checkBingo(state.bingoBoards[slot]||[],slot);
-          btn.disabled=!valid || round.status!=="DRAWING";
+        const bingoBtn=document.getElementById("bingoButton"+slot);
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        const accepted=!!state.bingoBets[slot];
+        const valid=accepted && checkBingo(state.bingoBoards[slot]||[],slot);
+        if(bingoBtn){
+          bingoBtn.disabled=!valid || round.status!=="DRAWING";
         }
-        const place=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
         if(place){
-          place.disabled=round.status!=="BETTING" || !!state.bingoBets[slot];
-          if(!state.bingoBets[slot]) place.textContent="PLACE BET";
+          if(accepted){
+            place.disabled=!valid || round.status!=="DRAWING";
+            place.textContent="BINGO";
+            place.onclick=()=>claimBingo(slot);
+          }else{
+            place.disabled=round.status!=="BETTING";
+            place.textContent="PLACE BET";
+            place.onclick=()=>placeBingoBet(slot);
+          }
         }
       });
+      syncBingoSlotButtons(round);
       if(typeof renderCartela === "function") renderCartela();
       if(typeof renderCartelaPicker === "function") renderCartelaPicker();
     }
