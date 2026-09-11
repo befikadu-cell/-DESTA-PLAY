@@ -35,6 +35,7 @@ const DestaVoice = (() => {
         const am = { B:"ቢ", I:"አይ", N:"ኤን", G:"ጂ", O:"ኦ" };
         return `${am[letter]} ${number}`;
       }
+      if (letter === "O") return `O, ${number}`;
       return `${letter} ${number}`;
     }
 
@@ -79,6 +80,9 @@ const DestaVoice = (() => {
 
   function playNext() {
     if (!enabled || speaking || !queue.length) return;
+    if (!activeGame || (activeGame !== "bingo" && activeGame !== "keno")) { stopVoice(); return; }
+    const gameScreen = document.getElementById("gameScreen");
+    if (gameScreen && gameScreen.classList.contains("hidden")) { stopVoice(); return; }
     const item = queue.shift();
     const seq = requestSeq;
     const lang = item.language === "am" ? "am" : "en";
@@ -113,6 +117,9 @@ const DestaVoice = (() => {
 
   function queueText(text, language = "en", priority = false) {
     if (!enabled || !String(text || "").trim()) return false;
+    if (!activeGame || (activeGame !== "bingo" && activeGame !== "keno")) return false;
+    const gameScreen = document.getElementById("gameScreen");
+    if (gameScreen && gameScreen.classList.contains("hidden")) return false;
     const item = { text:String(text), language:language === "am" ? "am" : "en" };
     if (priority) queue.unshift(item); else queue.push(item);
     if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
