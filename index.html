@@ -2700,16 +2700,14 @@ html,body{
             <button
               class="bingoBtn"
               id="bingoButton1"
-              onclick="claimBingo(1)"
-              disabled>
+              onclick="claimBingo(1)">
               BINGO — CARTELA 1
             </button>
 
             <button
               class="bingoBtn"
               id="bingoButton2"
-              onclick="claimBingo(2)"
-              disabled>
+              onclick="claimBingo(2)">
               BINGO — CARTELA 2
             </button>
 
@@ -4873,6 +4871,12 @@ html,body{
       state.balance-=amount;
 
       updateBalance();
+      const btn=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
+      if(btn){btn.disabled=true;btn.textContent="BET PLACED";}
+      const payout=document.getElementById("bingoPayout"+slot);
+      if(payout)payout.textContent="BET PLACED — "+amount+" ETB";
+      const status=document.getElementById("cartelaStatus");
+      if(status)status.textContent="Cartela "+state.bingoCartelas[slot]+" bet placed for Slot "+slot+".";
 
     }
 
@@ -5018,19 +5022,16 @@ html,body{
 
     function claimBingo(slot){
 
-      const board=
-        state.bingoBoards[slot];
-
-      if(
-        !board.length ||
-        !checkBingo(board,slot)
-      )
+      const board=state.bingoBoards[slot] || [];
+      if(!state.bingoCartelas[slot]){
+        alert("Choose a Cartela for Slot "+slot+" first.");
         return;
-
-      alert(
-        "BINGO — CARTELA "+
-        state.bingoCartelas[slot]
-      );
+      }
+      if(!board.length || !checkBingo(board,slot)){
+        alert("Not BINGO yet — keep playing Cartela "+state.bingoCartelas[slot]+".");
+        return;
+      }
+      alert("BINGO — CARTELA "+state.bingoCartelas[slot]);
 
       document
         .getElementById(
@@ -6519,8 +6520,8 @@ html,body{
           state.bingoMarks[2][12]=true;
           const b1=document.getElementById("bingoButton1");
           const b2=document.getElementById("bingoButton2");
-          if(b1)b1.disabled=true;
-          if(b2)b2.disabled=true;
+          if(b1){b1.disabled=false;b1.textContent="BINGO — CARTELA 1";}
+          if(b2){b2.disabled=false;b2.textContent="BINGO — CARTELA 2";}
         }
         if(changed || isNewRound)renderServerBingo(round);
       }
