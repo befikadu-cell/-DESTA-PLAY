@@ -30,8 +30,9 @@ const DestaVoice = (() => {
   let activeRoundId = null;
   let activeStake = null;
 
-  let enabled = true;
+  let enabled = false;
   let speaking = false;
+  let voices = [];
 
   let lastAnnouncementKey = null;
 
@@ -153,6 +154,30 @@ const DestaVoice = (() => {
     return null;
   }
 
+  function refreshVoices() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    try { voices = window.speechSynthesis.getVoices() || []; } catch (_) { voices = []; }
+  }
+
+  function pickVoice(language) {
+    refreshVoices();
+    const wanted = language === "am" ? ["am-ET", "am"] : ["en-US", "en"];
+    for (const prefix of wanted) {
+      const exact = voices.find(v => String(v.lang || "").toLowerCase() === prefix.toLowerCase());
+      if (exact) return exact;
+    }
+    for (const prefix of wanted) {
+      const partial = voices.find(v => String(v.lang || "").toLowerCase().startsWith(prefix.toLowerCase().split("-")[0]));
+      if (partial) return partial;
+    }
+    return null;
+  }
+
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    refreshVoices();
+    try { window.speechSynthesis.addEventListener("voiceschanged", refreshVoices); } catch (_) {}
+  }
+
   /*
   |--------------------------------------------------------------------------
   | STOP CURRENT VOICE
@@ -203,10 +228,13 @@ const DestaVoice = (() => {
       new SpeechSynthesisUtterance(text);
     utterance.lang = language === "am" ? "am-ET" : "en-US";
 
+    const selectedVoice = pickVoice(language);
+    if (selectedVoice) utterance.voice = selectedVoice;
+
     /*
      * Clear, short live-game announcement.
      */
-    utterance.rate = 0.95;
+    utterance.rate = 0.88;
     utterance.pitch = 1;
     utterance.volume = 1;
 
