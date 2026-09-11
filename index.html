@@ -4109,7 +4109,7 @@ html,body{
         return;
       }
 
-      el.textContent=String(Math.floor(raw)).padStart(4,"0");
+      el.textContent=String(Math.floor(raw)).padStart(3,"0");
 
     }
 
@@ -4544,7 +4544,7 @@ html,body{
               onclick="viewKenoHistory(${index})">
 
               <strong>
-                ROUND ${String(item.round).padStart(4,"0")}
+                ROUND ${String(item.round).padStart(3,"0")}
               </strong>
 
               <br>
@@ -4573,7 +4573,7 @@ html,body{
         .getElementById("kenoDrawStatus")
         .textContent=
           "ROUND "+
-          String(item.round).padStart(4,"0")+
+          String(item.round).padStart(3,"0")+
           " — "+
           item.numbers.join(" • ");
 
@@ -5291,7 +5291,7 @@ html,body{
               <div class="historyRound">
 
                 <strong>
-                  ROUND ${String(item.round).padStart(4,"0")}
+                  ROUND ${String(item.round).padStart(3,"0")}
                 </strong>
 
                 <br>
@@ -5767,7 +5767,7 @@ html,body{
             <span>ROUND</span>
             <span>${String(
               state.rounds[state.game]
-            ).padStart(4,"0")}</span>
+            ).padStart(3,"0")}</span>
           </div>
 
           <div class="feedRow">
@@ -6646,7 +6646,7 @@ html,body{
       const callsEl=document.getElementById("kenoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
       const playersEl=document.getElementById("kenoPlayersStat");
-      if(playersEl) playersEl.textContent=String(Number(round.players)||0);
+      if(playersEl) playersEl.textContent=String(Number(round.playersInRoom ?? round.players)||0);
       const playersFeed=document.getElementById("kenoPlayers");
       if(playersFeed) playersFeed.textContent=String(Number(round.players)||0);
       [1,2,3].forEach((pos)=>{
@@ -6765,7 +6765,7 @@ html,body{
         }
 
         if(game === "bingo" && Number.isInteger(Number(tier))){
-          url += `?tier=${encodeURIComponent(Number(tier))}`;
+          url += `?stake=${encodeURIComponent(Number(tier))}`;
         }
 
         const response = await fetch(url, {
