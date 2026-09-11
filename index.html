@@ -2873,6 +2873,7 @@ html,body{
         <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
         <div class="profileRow"><span>Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
         <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Bonus Withdrawal</span><strong id="profileBonusWithdrawalStatus">Requires 3,000 points</strong></div>
         <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
         <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
         <div id="inviteStatus" class="walletStatus"></div>
@@ -3869,6 +3870,7 @@ html,body{
         setText("profileBonusPoints",Number(data.bonusPoints||0).toFixed(2));
         setText("profileInvitePlayValue",Number(data.playValue||0).toFixed(2));
         setText("profileInviteWithdrawalValue",Number(data.withdrawalValue||0).toFixed(2));
+        setText("profileBonusWithdrawalStatus",data.bonusWithdrawalEligible ? "ELIGIBLE" : `Requires ${Number(data.bonusWithdrawalMinimumPoints||3000).toLocaleString()} points`);
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
       }catch(error){
