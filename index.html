@@ -4211,7 +4211,7 @@ html,body{
     }
 
     function backToGames(){
-      try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
       clearVoiceQueue();
       hideAllGames();
       clearGameSelections();
@@ -6388,22 +6388,25 @@ html,body{
     function clearVoiceQueue(){
       voiceState.queue=[];
       voiceState.requestSeq++;
+      voiceState.playing=false;
       try{ if(window.DestaVoice && typeof window.DestaVoice.stopVoice==="function") window.DestaVoice.stopVoice(); }catch(e){}
       voiceState.currentAudio=null;
-      voiceState.playing=false;
     }
 
     function queueGameVoice(en, am, priority=false){
+      if(!voiceState.enabled) return;
       const useAm=String(state.language||"en").toLowerCase()==="am";
-      const text=String(useAm ? (am||"") : (en||""));
-      if(!text.trim() || !voiceState.enabled) return;
+      const text=String(useAm ? (am||en||"") : (en||"")).trim();
+      if(!text) return;
       try{
         if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
           window.DestaVoice.speakText(text,useAm?"am":"en");
-      }catch(e){}
+      }catch(e){ console.warn("Game voice playback failed:",e); }
     }
 
-    function playNextGameVoice(){}
+    function playNextGameVoice(){
+      /* Server-audio voice playback is queued by DestaVoice. */
+    }
 
     function voiceTestText(){
       return String(state.language||"en").toLowerCase()==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
@@ -6413,37 +6416,40 @@ html,body{
       if(voiceState.enabled){
         voiceState.enabled=false;
         clearVoiceQueue();
-        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(false); }catch(e){}
         try{ localStorage.setItem(voiceStorageKey(),"0"); }catch(e){}
         updateVoiceButton();
+        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(false); }catch(e){}
         return;
       }
 
       voiceState.enabled=true;
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
-      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
       updateVoiceButton();
-
-      /* The button gesture unlocks browser speech synthesis on mobile. */
-      queueGameVoice(voiceTestText(),voiceTestText(),true);
+      try{
+        if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true);
+        if(window.DestaVoice && typeof window.DestaVoice.speakText==="function"){
+          const useAm=String(state.language||"en").toLowerCase()==="am";
+          window.DestaVoice.speakText(voiceTestText(),useAm?"am":"en");
+        }
+      }catch(e){ console.warn("Voice activation failed:",e); }
     }
 
     function speakGameVoice(en, am, priority=false){
       if(!voiceState.enabled) return;
       if(state.game!=="keno" && state.game!=="bingo") return;
-      if(!state.gameJoined && !state.watchOnly) return;
+      if(!(state.gameJoined || state.watchOnly)) return;
       queueGameVoice(en,am,priority);
     }
 
     function bingoVoiceCall(n){
       const num=Number(n);
-      if(num>=1 && num<=15) return `B-${num}`;
-      if(num>=16 && num<=30) return `I-${num}`;
-      if(num>=31 && num<=45) return `N-${num}`;
-      if(num>=46 && num<=60) return `G-${num}`;
-      if(num>=61 && num<=75) return `O-${num}`;
-      return `Bingo-${num}`;
+      if(num>=1 && num<=15) return `B ${num}`;
+      if(num>=16 && num<=30) return `I ${num}`;
+      if(num>=31 && num<=45) return `N ${num}`;
+      if(num>=46 && num<=60) return `G ${num}`;
+      if(num>=61 && num<=75) return `O ${num}`;
+      return null;
     }
 
     function announceRoundVoice(round){
