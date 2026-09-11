@@ -3979,6 +3979,16 @@ html,body{
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       updateVoiceButton();
+      /* Use the actual JOIN tap to unlock mobile speech synthesis. */
+      try{
+        if("speechSynthesis" in window){
+          window.speechSynthesis.cancel();
+          const unlockUtterance=new SpeechSynthesisUtterance(" ");
+          unlockUtterance.volume=0;
+          window.speechSynthesis.speak(unlockUtterance);
+          window.speechSynthesis.resume();
+        }
+      }catch(e){}
       /* Provisional local state only until the authoritative server round
          arrives. This makes the number/slot controls responsive immediately. */
       state.bettingOpen=true;
@@ -4057,6 +4067,7 @@ html,body{
       state.stakeLobbyGame="";
       state.gameJoined=false;
       state.bettingOpen=false;
+      liveRoundSyncActive=true;
       const wheel=document.getElementById("rouletteWheel");
       if(wheel){
         wheel.classList.remove("spinning","resultSpin");
@@ -6474,6 +6485,56 @@ html,body{
       }
     }
 
+    /* Live draw presentation state. The server remains authoritative;
+       this queue only makes every newly received server draw visible smoothly. */
+    const liveDrawPresentation = {
+      keno:{roundId:"", seen:0, queue:[], running:false, generation:0},
+      bingo:{roundId:"", seen:0, queue:[], running:false, generation:0}
+    };
+
+    function presentNextLiveDraw(game){
+      const stateBox=liveDrawPresentation[game];
+      if(!stateBox || stateBox.running || !stateBox.queue.length) return;
+      stateBox.running=true;
+      const generation=stateBox.generation;
+      const value=stateBox.queue.shift();
+      const latestId=document.getElementById(game+"LatestDraw");
+      const circle=document.getElementById(game+"DrawCircle");
+      if(latestId){
+        latestId.textContent=game==="keno" ? String(value).padStart(2,"0") : String(value);
+        latestId.classList.remove("pop");
+        if(circle) circle.classList.remove("drawPop");
+        void latestId.offsetWidth;
+        latestId.classList.add("pop");
+        if(circle){ void circle.offsetWidth; circle.classList.add("drawPop"); }
+      }
+      setTimeout(()=>{
+        if(generation!==stateBox.generation) return;
+        stateBox.running=false;
+        presentNextLiveDraw(game);
+      },700);
+    }
+
+    function syncLiveDrawPresentation(game,round){
+      const box=liveDrawPresentation[game];
+      if(!box) return;
+      const roundId=String(round?.id||"");
+      const nums=Array.isArray(round?.drawnNumbers)?round.drawnNumbers.map(Number).filter(Number.isFinite):[];
+      if(box.roundId!==roundId){
+        box.roundId=roundId;
+        box.seen=0;
+        box.queue=[];
+        box.generation++;
+        box.running=false;
+      }
+      /* Queue every newly received authoritative number. Never invent one. */
+      if(nums.length>box.seen){
+        for(let i=box.seen;i<nums.length;i++) box.queue.push(nums[i]);
+        box.seen=nums.length;
+        presentNextLiveDraw(game);
+      }
+    }
+
     function applyServerRound(round){
       if(!round || !round.game) return;
 
@@ -6534,7 +6595,8 @@ html,body{
           state.kenoSelections={1:[],2:[]};
           state.kenoBets={1:null,2:null};
         }
-        if(changed || isNewRound)renderServerKeno(round);
+        syncLiveDrawPresentation("keno",round);
+        if(changed || isNewRound || state.game===game)renderServerKeno(round);
       }
 
       if(game === "bingo"){
@@ -6551,7 +6613,8 @@ html,body{
           if(b1){b1.disabled=false;b1.textContent="BINGO — CARTELA 1";}
           if(b2){b2.disabled=false;b2.textContent="BINGO — CARTELA 2";}
         }
-        if(changed || isNewRound)renderServerBingo(round);
+        syncLiveDrawPresentation("bingo",round);
+        if(changed || isNewRound || state.game===game)renderServerBingo(round);
       }
 
       if(game === "roulette"){
@@ -6666,13 +6729,7 @@ html,body{
         const shown=latest!=null ? String(latest).padStart(2,"0") : "—";
         const changed=String(latestEl.textContent)!==shown;
         latestEl.textContent=shown;
-        if(changed && latest!=null){
-          latestEl.classList.remove("pop");
-          if(latestBall) latestBall.classList.remove("drawPop");
-          void latestEl.offsetWidth;
-          latestEl.classList.add("pop");
-          if(latestBall){ void latestBall.offsetWidth; latestBall.classList.add("drawPop"); }
-        }
+
       }
       const callsEl=document.getElementById("kenoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
@@ -6723,13 +6780,7 @@ html,body{
         const shown=latest!=null ? String(latest) : "—";
         const changed=String(latestEl.textContent)!==shown;
         latestEl.textContent=shown;
-        if(changed && latest!=null){
-          latestEl.classList.remove("pop");
-          if(latestBall) latestBall.classList.remove("drawPop");
-          void latestEl.offsetWidth;
-          latestEl.classList.add("pop");
-          if(latestBall){ void latestBall.offsetWidth; latestBall.classList.add("drawPop"); }
-        }
+
       }
       const callsEl=document.getElementById("bingoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
@@ -6808,7 +6859,7 @@ html,body{
         }
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         let response;
         try{
           response = await fetch(url, {cache:"no-store", headers, signal:controller.signal});
@@ -6845,15 +6896,22 @@ html,body{
 
     async function fetchAllLiveRounds(){
       if(liveRoundBusy) return;
-      liveRoundBusy = true;
+      liveRoundBusy=true;
       try{
-        await Promise.all([
-          fetchLiveRound("keno", state.kenoSelectedStake),
-          fetchLiveRound("bingo", state.bingoSelectedStake)
-        ]);
+        /* While inside a game, watch only that game at high frequency.
+           This prevents the other request from delaying the visible draw. */
+        if(state.gameJoined && (state.game==="keno" || state.game==="bingo")){
+          const stake=state.game==="keno" ? state.kenoSelectedStake : state.bingoSelectedStake;
+          await fetchLiveRound(state.game,stake);
+        }else{
+          await Promise.all([
+            fetchLiveRound("keno",state.kenoSelectedStake),
+            fetchLiveRound("bingo",state.bingoSelectedStake)
+          ]);
+        }
       }finally{
-        state.bettingOpen = !!state.bettingOpenByGame[state.game];
-        liveRoundBusy = false;
+        state.bettingOpen=!!state.bettingOpenByGame[state.game];
+        liveRoundBusy=false;
       }
     }
 
@@ -6907,13 +6965,22 @@ html,body{
       }
     }
 
+    let liveRoundSyncActive=false;
+
     function startLiveRoundSync(){
       clearInterval(liveRoundTimer);
+      liveRoundSyncActive=true;
       fetchAllLiveRounds();
       ["keno","bingo"].forEach(loadRoundHistory);
-      liveRoundTimer = setInterval(() => {
-        fetchAllLiveRounds();
-      }, state.gameJoined ? 500 : 1000);
+      const schedule=()=>{
+        if(!liveRoundSyncActive) return;
+        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
+        liveRoundTimer=setTimeout(async()=>{
+          await fetchAllLiveRounds();
+          schedule();
+        },delay);
+      };
+      schedule();
     }
 
     /* The server owns the round. The browser never creates or advances rounds. */
