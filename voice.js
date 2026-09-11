@@ -1,111 +1,148 @@
-/* DESTA PLAY — LIVE GAME VOICE ENGINE */
+/* DESTA PLAY — SINGLE LIVE GAME VOICE ENGINE */
 const DestaVoice = (() => {
+  let enabled = false;
+  let speaking = false;
   let activeGame = null;
   let activeRoundId = null;
   let activeStake = null;
-  let enabled = false;
-  let speaking = false;
-  let lastAnnouncementKey = null;
   let queue = [];
   let voices = [];
   let voicesReady = false;
+  let lastAnnouncementKey = null;
+  let unlocked = false;
+
+  const synth = () => (typeof window !== "undefined" ? window.speechSynthesis : null);
 
   function refreshVoices(){
-    if(typeof window === "undefined" || !window.speechSynthesis) return;
-    try{
-      voices = window.speechSynthesis.getVoices() || [];
-      voicesReady = voices.length > 0;
-    }catch(e){ voices=[]; }
+    const s=synth();
+    if(!s) return;
+    try{ voices=s.getVoices()||[]; voicesReady=voices.length>0; }catch(e){ voices=[]; voicesReady=false; }
   }
 
-  function initVoices(){
+  function init(){
     refreshVoices();
-    if(typeof window !== "undefined" && window.speechSynthesis){
-      try{ window.speechSynthesis.addEventListener("voiceschanged", refreshVoices); }catch(e){}
+    const s=synth();
+    if(s){
+      try{s.addEventListener("voiceschanged",refreshVoices);}catch(e){}
+      try{setTimeout(refreshVoices,250);setTimeout(refreshVoices,1000);}catch(e){}
     }
   }
-  initVoices();
+  init();
+
+  function normalizeLanguage(language){
+    return String(language||"en").toLowerCase().startsWith("am") ? "am" : "en";
+  }
 
   function getBingoLetter(number){
-    number=Number(number);
-    if(!Number.isInteger(number)) return null;
-    if(number>=1 && number<=15) return "B";
-    if(number<=30) return "I";
-    if(number<=45) return "N";
-    if(number<=60) return "G";
-    if(number<=75) return "O";
-    return null;
+    const n=Number(number);
+    if(!Number.isInteger(n)||n<1||n>75) return null;
+    if(n<=15) return "B";
+    if(n<=30) return "I";
+    if(n<=45) return "N";
+    if(n<=60) return "G";
+    return "O";
   }
 
-  function buildAnnouncement(game, number, language="en"){
-    game=String(game||"").toLowerCase();
-    number=Number(number);
-    language=String(language||"en").toLowerCase()==="am" ? "am" : "en";
-    if(!Number.isInteger(number)) return null;
-    if(game==="bingo"){
-      const letter=getBingoLetter(number);
+  function buildAnnouncement(game,number,language="en"){
+    const g=String(game||"").toLowerCase();
+    const n=Number(number);
+    const lang=normalizeLanguage(language);
+    if(!Number.isInteger(n)) return null;
+    if(g==="bingo"){
+      const letter=getBingoLetter(n);
       if(!letter) return null;
-      if(language==="am"){
+      if(lang==="am"){
         const am={B:"ቢ",I:"አይ",N:"ኤን",G:"ጂ",O:"ኦ"};
-        return `${am[letter]} ${number}`;
+        return `${am[letter]} ${n}`;
       }
-      return `${letter} ${number}`;
+      return `${letter} ${n}`;
     }
-    if(game==="keno" && number>=1 && number<=80) return String(number);
+    if(g==="keno" && n>=1 && n<=80) return String(n);
     return null;
-  }
-
-  function stopVoice(){
-    queue=[];
-    if(typeof window!=="undefined" && window.speechSynthesis){
-      try{ window.speechSynthesis.cancel(); }catch(e){}
-    }
-    speaking=false;
   }
 
   function chooseVoice(language){
     refreshVoices();
-    const prefix=language==="am" ? "am" : "en";
-    const exact=voices.find(v=>String(v.lang||"").toLowerCase()===`${prefix}-${language==="am"?"et":"us"}`);
-    if(exact) return exact;
-    const regional=voices.find(v=>String(v.lang||"").toLowerCase().startsWith(prefix+"-"));
-    if(regional) return regional;
-    return voices.find(v=>String(v.lang||"").toLowerCase()===prefix) || null;
+    const lang=normalizeLanguage(language);
+    const prefix=lang==="am"?"am":"en";
+    if(lang==="am"){
+      return voices.find(v=>String(v.lang||"").toLowerCase()==="am-et") ||
+             voices.find(v=>String(v.lang||"").toLowerCase().startsWith("am-")) ||
+             null;
+    }
+    return voices.find(v=>String(v.lang||"").toLowerCase()==="en-us") ||
+           voices.find(v=>String(v.lang||"").toLowerCase().startsWith(prefix+"-")) ||
+           voices.find(v=>String(v.lang||"").toLowerCase()==="en") || null;
   }
 
-  function speak(text, language="en"){
-    if(!enabled || !text || typeof window==="undefined" || !window.speechSynthesis || typeof SpeechSynthesisUtterance==="undefined") return false;
-    language=String(language||"en").toLowerCase()==="am" ? "am" : "en";
-    const utterance=new SpeechSynthesisUtterance(String(text));
-    utterance.lang=language==="am" ? "am-ET" : "en-US";
-    const voice=chooseVoice(language);
-    if(voice) utterance.voice=voice;
-    utterance.rate=0.9;
-    utterance.pitch=1;
-    utterance.volume=1;
-    speaking=true;
-    utterance.onend=()=>{ speaking=false; playNext(); };
-    utterance.onerror=()=>{ speaking=false; playNext(); };
+  function stopVoice(){
+    queue=[];
+    const s=synth();
+    if(s){try{s.cancel();}catch(e){}}
+    speaking=false;
+  }
+
+  function unlock(){
+    const s=synth();
+    unlocked=true;
+    if(!s) return false;
+    try{s.resume();}catch(e){}
+    return true;
+  }
+
+  function speakNow(text,language="en"){
+    if(!enabled || !String(text||"").trim()) return false;
+    const s=synth();
+    if(!s || typeof SpeechSynthesisUtterance==="undefined") return false;
+    const lang=normalizeLanguage(language);
     try{
-      window.speechSynthesis.resume();
-      window.speechSynthesis.speak(utterance);
+      s.resume();
+      const u=new SpeechSynthesisUtterance(String(text));
+      u.lang=lang==="am"?"am-ET":"en-US";
+      const v=chooseVoice(lang);
+      if(v) u.voice=v;
+      u.rate=0.86;
+      u.pitch=1;
+      u.volume=1;
+      speaking=true;
+      u.onend=()=>{speaking=false;playNext();};
+      u.onerror=()=>{speaking=false;playNext();};
+      s.speak(u);
       return true;
-    }catch(e){ speaking=false; return false; }
+    }catch(e){speaking=false;return false;}
   }
 
   function playNext(){
     if(!enabled || speaking || !queue.length) return;
     const item=queue.shift();
-    speak(item.text,item.language);
+    if(!speakNow(item.text,item.language)){
+      speaking=false;
+      if(queue.length) setTimeout(playNext,120);
+    }
   }
 
-  function enterLiveGame(game, roundId, stake){
+  function enqueue(text,language="en",front=false){
+    if(!enabled || !String(text||"").trim()) return false;
+    const item={text:String(text),language:normalizeLanguage(language)};
+    if(front) queue.unshift(item); else queue.push(item);
+    if(queue.length>12) queue.splice(0,queue.length-12);
+    playNext();
+    return true;
+  }
+
+  function speakText(text,language="en"){
+    unlock();
+    return enqueue(text,language,true);
+  }
+
+  function enterLiveGame(game,roundId,stake){
     stopVoice();
     activeGame=String(game||"").toLowerCase();
     activeRoundId=roundId==null?null:String(roundId);
     activeStake=stake==null?null:Number(stake);
     lastAnnouncementKey=null;
     refreshVoices();
+    unlock();
   }
 
   function leaveLiveGame(){
@@ -116,50 +153,43 @@ const DestaVoice = (() => {
     lastAnnouncementKey=null;
   }
 
-  function isActive(game, roundId, stake){
-    game=String(game||"").toLowerCase();
-    if(activeGame!==game) return false;
+  function isActive(game,roundId,stake){
+    const g=String(game||"").toLowerCase();
+    if(activeGame!==g) return false;
     if(activeRoundId!==null && roundId!=null && String(activeRoundId)!==String(roundId)) return false;
-    if(activeStake!==null && stake!=null && Number(activeStake)!==Number(stake)) return false;
     return true;
   }
 
   function announceDraw({game,roundId,stake,number,language="en"}){
-    game=String(game||"").toLowerCase();
-    number=Number(number);
-    if(!enabled || !isActive(game,roundId,stake)) return false;
-    if(game==="bingo" && (!Number.isInteger(number)||number<1||number>75)) return false;
-    if(game==="keno" && (!Number.isInteger(number)||number<1||number>80)) return false;
-    const text=buildAnnouncement(game,number,language);
+    const g=String(game||"").toLowerCase();
+    const n=Number(number);
+    if(!enabled || !isActive(g,roundId,stake)) return false;
+    if(g==="bingo" && (!Number.isInteger(n)||n<1||n>75)) return false;
+    if(g==="keno" && (!Number.isInteger(n)||n<1||n>80)) return false;
+    const lang=normalizeLanguage(language);
+    const text=buildAnnouncement(g,n,lang);
     if(!text) return false;
-    const key=`${game}:${roundId}:${stake}:${number}`;
+    const key=`${g}:${String(roundId??"")}:${n}:${lang}`;
     if(key===lastAnnouncementKey) return false;
     lastAnnouncementKey=key;
-    queue.push({text,language:String(language||"en").toLowerCase()==="am"?"am":"en"});
-    if(queue.length>8) queue.splice(0,queue.length-8);
-    playNext();
-    return true;
+    unlock();
+    return enqueue(text,lang,false);
   }
 
   function setEnabled(value){
     enabled=Boolean(value);
     if(!enabled) stopVoice();
-    else { refreshVoices(); if(typeof window!=="undefined"&&window.speechSynthesis){try{window.speechSynthesis.resume();}catch(e){}} }
+    else {refreshVoices();unlock();}
   }
 
-  function toggle(){ setEnabled(!enabled); return enabled; }
+  function toggle(){setEnabled(!enabled);return enabled;}
 
-  function speakText(text, language="en"){
-    if(!enabled || !text) return false;
-    const normalized=String(language||"en").toLowerCase()==="am" ? "am" : "en";
-    queue.unshift({text:String(text),language:normalized});
-    playNext();
-    return true;
+  function getState(){
+    refreshVoices();
+    return {enabled,speaking,activeGame,activeRoundId,activeStake,voicesReady,voiceCount:voices.length,unlocked};
   }
 
-  function getState(){ return {enabled,speaking,activeGame,activeRoundId,activeStake,voicesReady,voiceCount:voices.length}; }
-
-  return {enterLiveGame,leaveLiveGame,announceDraw,buildAnnouncement,getBingoLetter,setEnabled,toggle,stopVoice,speakText,getState};
+  return {enterLiveGame,leaveLiveGame,announceDraw,buildAnnouncement,getBingoLetter,setEnabled,toggle,stopVoice,speakText,unlock,getState};
 })();
 
 if(typeof window!=="undefined") window.DestaVoice=DestaVoice;
