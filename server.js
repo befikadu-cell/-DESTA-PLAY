@@ -1,5959 +1,7358 @@
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY — 24/7 CONTINUOUS BACKEND ENGINE
-|--------------------------------------------------------------------------
-|
-| Features:
-|   - Multi-Tier Bingo
-|   - Server-authoritative game rounds
-|   - Permanent Supabase player/balance/transaction storage
-|   - Argon2 password hashing
-|   - Server-side authentication
-|   - Server-synchronized countdowns
-|   - Continuous 24/7 game loops
-|   - Engine-defined minimum bet validation
-|   - Keno / Bingo
-|
-|--------------------------------------------------------------------------
-*/
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>DESTA PLAY</title>
 
-"use strict";
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <script src="./voice.js"></script>
 
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import crypto from "crypto";
-import argon2 from "argon2";
-import { createClient } from "@supabase/supabase-js";
-import * as keno from "./games/keno.js";
-import * as bingo from "./games/bingo.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/*
-|--------------------------------------------------------------------------
-| ENVIRONMENT
-|--------------------------------------------------------------------------
-*/
-
-const PORT = Number(process.env.PORT || 10000);
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SESSION_SECRET = process.env.SESSION_SECRET;
-
-/*
-|--------------------------------------------------------------------------
-| DESTA PLAY — EDITIONS 2–8 SERVER CONFIGURATION
-|--------------------------------------------------------------------------
-|
-| Keep private administrator IDs and bot secrets on Render environment
-| variables. Payment display values may be supplied here as placeholders
-| until the real values are configured.
-|
-| IMPORTANT: Minimum deposit is 50 ETB.
-|--------------------------------------------------------------------------
-*/
-
-const ADMIN_TELEGRAM_ID =
-    String(process.env.ADMIN_TELEGRAM_ID || "").trim();
-
-const ADMIN_PRIVATE_GROUP_ID =
-    String(process.env.ADMIN_PRIVATE_GROUP_ID || "").trim();
-
-const TELEGRAM_BOT_TOKEN =
-    String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
-
-const TELEGRAM_WEBHOOK_SECRET =
-    String(process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
-
-const PUBLIC_APP_URL =
-    String(process.env.PUBLIC_APP_URL || "https://desta-play.onrender.com/").trim().replace(/\/$/, "");
-
-/* Player support contact shown by the Telegram /support command.
-   Configure SUPPORT_TELEGRAM_USERNAME in Render environment variables. */
-const SUPPORT_TELEGRAM_USERNAME =
-    String(process.env.SUPPORT_TELEGRAM_USERNAME || "@Bit_coinfam").trim();
-
-const TELEGRAM_MINI_APP_URL =
-    String(process.env.TELEGRAM_MINI_APP_URL || "https://t.me/Dasta_play_bot/Dasta").trim();
-
-const SMS_WEBHOOK_SECRET =
-    String(process.env.SMS_WEBHOOK_SECRET || "").trim();
-
-const PAYMENT_OWNER_NAME =
-    String(process.env.PAYMENT_OWNER_NAME || "TEST PAYMENT OWNER").trim();
-
-const PAYMENT_PHONE =
-    String(process.env.PAYMENT_PHONE || "TEST PAYMENT PHONE").trim();
-
-const TELEBIRR_ACCOUNT =
-    String(process.env.TELEBIRR_ACCOUNT || "TEST TELEBIRR ACCOUNT").trim();
-
-const MIN_DEPOSIT_AMOUNT = 50;
-
-const EDITION_STAKES = [
-    10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
-    150, 200, 250, 300, 350, 400, 450, 500,
-    550, 600, 650, 700, 750, 800, 850, 900,
-    950, 1000
-];
-
-
-
-const SUPPORTED_DEPOSIT_METHODS = {
-    telebirr: true,
-    mpesa: false,
-    cbe_birr: false
-};
-
-if (!SUPABASE_URL) {
-    throw new Error("Missing SUPABASE_URL");
-}
-
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
-}
-
-if (!SESSION_SECRET) {
-    throw new Error("Missing SESSION_SECRET");
-}
-
-/*
-|--------------------------------------------------------------------------
-| SUPABASE
-|--------------------------------------------------------------------------
-*/
-
-const supabase = createClient(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EXPRESS
-|--------------------------------------------------------------------------
-*/
-
-const app = express();
-
-app.use(cors());
-app.use(express.json({ limit: "100kb" }));
-app.use(express.static(__dirname));
-
-/* SERVER AUDIO VOICE — game engines remain untouched. */
-
-/*
-|--------------------------------------------------------------------------
-| TELEGRAM REGISTRATION CONTACT CACHE
-|--------------------------------------------------------------------------
-| Telegram WebApp requestContact() tells the browser that sharing was
-| accepted, while the actual phone contact arrives at the bot webhook.
-| Keep that verified contact briefly so the Mini App can retrieve it.
-|--------------------------------------------------------------------------
-*/
-
-const pendingRegistrationContacts = new Map();
-
-function storeRegistrationContact(telegramId, phone) {
-    const id = String(telegramId || "").trim();
-    const normalized = normalizePhone(phone);
-    if (!id || !normalized) return false;
-
-    pendingRegistrationContacts.set(id, {
-        phone: normalized,
-        createdAt: Date.now()
-    });
-
-    return true;
-}
-
-function getRegistrationContact(telegramId) {
-    const id = String(telegramId || "").trim();
-    const entry = pendingRegistrationContacts.get(id);
-
-    if (!entry) return null;
-
-    if (Date.now() - entry.createdAt > 10 * 60 * 1000) {
-        pendingRegistrationContacts.delete(id);
-        return null;
+    <style>
+    :root{
+      --red:#b40000;
+      --red2:#ef1b1b;
+      --gold:#ffcc33;
+      --gold2:#ff9f00;
+      --dark:#090909;
+      --dark2:#151515;
+      --panel:#1d1d1d;
+      --panel2:#252525;
+      --text:#fff;
+      --muted:#aaa;
+      --green:#18d66b;
+      --blue:#3498ff;
     }
 
-    return entry.phone;
-}
-
-/*
-|--------------------------------------------------------------------------
-| GAME ENGINES
-|--------------------------------------------------------------------------
-*/
-
-const games = { bingo, keno };
-
-const rounds = {};
-
-/* Persistent display sequence for each server-authoritative house game. */
-const roundCounters = {
-    keno: 0
-};
-
-/* Persistent display sequence for each Bingo stake room. */
-const bingoRoundCounters = {};
-/* Each Bingo stake room has its own permanent round sequence.
-   First round is 001, then 002, 003, ... restored from Supabase on restart. */
-
-/*
-|--------------------------------------------------------------------------
-| ENGINE TIMING
-|--------------------------------------------------------------------------
-*/
-
-const DRAW_INTERVALS = {
-    bingo: 3000,
-    keno: 3000
-};
-
-const BETTING_TIMERS = {
-    bingo: 30,
-    keno: 40
-};
-
-const NEXT_ROUND_DELAY = 5000;
-
-/*
-|--------------------------------------------------------------------------
-| SERVER-AUTHORITATIVE BINGO
-|--------------------------------------------------------------------------
-|
-| The Bingo engine is authoritative for valid bet amounts.
-|--------------------------------------------------------------------------
-*/
-
-const bingoRooms = {};
-
-/*
-|--------------------------------------------------------------------------
-| GENERAL HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function nowIso() {
-    return new Date().toISOString();
-}
-
-function makeId(prefix = "DP") {
-    return (
-        `${prefix}-` +
-        Date.now() +
-        "-" +
-        crypto.randomBytes(4).toString("hex")
-    );
-}
-
-function makePlayerId() {
-    return (
-        "DP-" +
-        crypto.randomBytes(4).toString("hex").toUpperCase()
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| UNIQUE PLAYER INVITE CODE
-|--------------------------------------------------------------------------
-|
-| Every player ID is generated from cryptographically random bytes. The
-| invite code is a stable, unique server-generated representation of that
-| player ID, so it survives browser refreshes and server restarts without
-| requiring another database column.
-|--------------------------------------------------------------------------
-*/
-
-function makeInviteCode(playerId) {
-    const raw = String(playerId || "").trim();
-    if (!raw) return "";
-    return "DP" + raw.replace(/^DP-/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-}
-
-function inviteCodeToPlayerId(inviteCode) {
-    const code = String(inviteCode || "").trim().toUpperCase();
-    const suffix = code.replace(/^DP/, "");
-    if (!/^[A-F0-9]{8}$/.test(suffix)) return null;
-    return "DP-" + suffix;
-}
-
-function makeInviteLink(playerId) {
-    const code = makeInviteCode(playerId);
-    return code ? `${PUBLIC_APP_URL}/?ref=${encodeURIComponent(code)}` : "";
-}
-
-function normalizeTelegramName(name) {
-    if (typeof name !== "string") {
-        return "Player";
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
     }
 
-    return (
-        name
-            .trim()
-            .replace(/\s+/g, " ")
-            .slice(0, 80) || "Player"
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| PASSWORD VALIDATION
-|--------------------------------------------------------------------------
-|
-| Minimum: 6 characters
-| Maximum: 128 characters
-| Allowed: A-Z, a-z, 0-9, #, @
-|
-| The same account password is used for withdrawal verification.
-| There is no separate withdrawal password.
-|
-|--------------------------------------------------------------------------
-*/
-
-function validPassword(password) {
-    return (
-        typeof password === "string" &&
-        password.length >= 6 &&
-        password.length <= 128 &&
-        /^[A-Za-z0-9#@]+$/.test(password)
-    );
-}
-
-function numericAmount(value) {
-    const amount = Number(value);
-
-    if (!Number.isFinite(amount)) {
-        throw new Error("Invalid amount");
+    html,body{
+      margin:0;
+      min-height:100%;
+      background:
+        radial-gradient(circle at top,#3b0000 0,#100000 35%,#050505 75%);
+      color:#fff;
+      font-family:Arial,Helvetica,sans-serif;
     }
 
-    return amount;
-}
-
-async function dbError(context, error) {
-    console.error(`[DATABASE ERROR] ${context}:`, {
-        message: error?.message,
-        code: error?.code,
-        details: error?.details,
-        hint: error?.hint
-    });
-}
-
-
-
-/*
-|--------------------------------------------------------------------------
-| EDITIONS 2–7 FINANCIAL / ADMIN HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function normalizePhone(value) {
-    return String(value || "")
-        .trim()
-        .replace(/[^0-9+]/g, "")
-        .slice(0, 32);
-}
-
-function normalizeReference(value) {
-    return String(value || "")
-        .trim()
-        .slice(0, 200);
-}
-
-function safeJson(value) {
-    try {
-        return JSON.stringify(value);
-    } catch (_) {
-        return "{}";
-    }
-}
-
-function parseFirstAmount(text) {
-    const matches = String(text || "").match(/(?:ETB|Birr|Amount|Paid|received|sent)?\s*([0-9]{1,9}(?:[.,][0-9]{1,2})?)/gi) || [];
-
-    for (const item of matches) {
-        const numberMatch = item.match(/[0-9]{1,9}(?:[.,][0-9]{1,2})?/);
-        if (!numberMatch) continue;
-        const amount = Number(numberMatch[0].replace(",", ""));
-        if (Number.isFinite(amount) && amount > 0) return amount;
+    body{
+      min-height:100vh;
+      padding-bottom:72px;
     }
 
-    return null;
-}
-
-function extractReferenceCandidates(text) {
-    const source = String(text || "");
-    const values = new Set();
-
-    const labeled = source.match(/(?:transaction|trans|reference|ref|receipt|id)[\s:#-]*([A-Za-z0-9_-]{5,80})/gi) || [];
-
-    for (const item of labeled) {
-        const match = item.match(/([A-Za-z0-9_-]{5,80})$/);
-        if (match) values.add(match[1]);
+    button,input{
+      font:inherit;
     }
 
-    const longTokens = source.match(/[A-Za-z0-9_-]{8,80}/g) || [];
-    for (const token of longTokens) values.add(token);
-
-    return [...values];
-}
-
-async function telegramApi(method, payload) {
-    if (!TELEGRAM_BOT_TOKEN) {
-        return { ok: false, skipped: true, error: "TELEGRAM_BOT_TOKEN is not configured" };
+    button{
+      cursor:pointer;
     }
 
-    try {
-        const response = await fetch(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            }
-        );
-
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok || !data?.ok) {
-            console.error("[TELEGRAM] API ERROR:", data || response.status);
-            return { ok: false, error: data?.description || `HTTP ${response.status}` };
-        }
-
-        return { ok: true, data };
-    } catch (error) {
-        console.error("[TELEGRAM] REQUEST ERROR:", error);
-        return { ok: false, error: error.message };
+    .hidden{
+      display:none!important;
     }
+
+    /* =========================================================
+       ACCOUNT / REGISTRATION
+    ========================================================= */
+
+    #accountScreen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .accountPanel{
+      width:100%;
+      max-width:420px;
+      padding:22px;
+      border-radius:18px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+      border:1px solid #6b2424;
+      box-shadow:0 15px 50px #000;
+    }
+
+    .accountLogo{
+      text-align:center;
+      color:var(--gold);
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:1px;
+      margin-bottom:5px;
+    }
+
+    .accountWelcome{
+      text-align:center;
+      color:#ddd;
+      font-size:13px;
+      margin-bottom:20px;
+    }
+
+    .accountInfo{
+      padding:12px;
+      border:1px solid #482020;
+      border-radius:10px;
+      background:#111;
+      margin-bottom:15px;
+    }
+
+    .accountInfoRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:5px 0;
+      font-size:12px;
+    }
+
+    .accountInfoRow span:last-child{
+      color:var(--gold);
+      font-weight:bold;
+    }
+
+    .accountLabel{
+      display:block;
+      margin:10px 0 5px;
+      color:#ffd43c;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .accountInput{
+      width:100%;
+      padding:11px;
+      border-radius:8px;
+      border:1px solid #633333;
+      background:#080808;
+      color:#fff;
+      outline:none;
+    }
+
+    .accountInput:focus{
+      border-color:var(--gold);
+    }
+
+    .accountBtn{
+      width:100%;
+      margin-top:14px;
+      padding:11px;
+      border:0;
+      border-radius:9px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+      color:#fff;
+      font-weight:900;
+    }
+
+    .accountMessage{
+      min-height:20px;
+      text-align:center;
+      font-size:11px;
+      margin-top:10px;
+    }
+
+    .accountMessage.error{
+      color:#ff5555;
+    }
+
+    .accountMessage.success{
+      color:var(--green);
+    }
+
+    /* =========================================================
+       HOME
+    ========================================================= */
+
+    #home{
+      min-height:100vh;
+      padding-bottom:80px;
+    }
+
+    .homeHeader{
+      padding:18px 15px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .logo{
+      font-size:25px;
+      font-weight:900;
+      color:var(--gold);
+      letter-spacing:1px;
+    }
+
+    .languageBox{
+      display:flex;
+      gap:6px;
+      padding:0 15px 15px;
+    }
+
+    .languageBox button{
+      border:1px solid #6d1717;
+      background:#210909;
+      color:#ddd;
+      border-radius:8px;
+      padding:7px 12px;
+    }
+
+    .languageBox button.active{
+      background:linear-gradient(180deg,var(--gold),#d58a00);
+      color:#170900;
+      font-weight:bold;
+    }
+
+    .playerSummary{
+      margin:0 10px 5px;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border:1px solid #5d2020;
+      border-radius:10px;
+      background:#110909;
+    }
+
+    .playerSummary small{
+      color:#aaa;
+    }
+
+    .playerSummary strong{
+      color:var(--gold);
+    }
+
+    /* HOME is intentionally compact and does not scroll. Other pages retain their own scrolling. */
+    #home{
+      height:calc(100vh - 68px);
+      overflow:hidden;
+      box-sizing:border-box;
+    }
+
+    .gameGrid{
+      padding:10px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .gameCard{
+      position:relative;
+      min-height:155px;
+      overflow:hidden;
+      border:1px solid #632020;
+      border-radius:16px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+      box-shadow:0 8px 25px #000;
+    }
+
+    .gameCard h3{
+      position:absolute;
+      z-index:5;
+      top:8px;
+      left:10px;
+      margin:0;
+      color:var(--gold);
+      font-size:16px;
+    }
+
+    .gameCard small{
+      position:absolute;
+      z-index:5;
+      bottom:8px;
+      left:10px;
+      color:#ddd;
+    }
+
+    .gameOpen{
+      position:absolute;
+      z-index:8;
+      right:8px;
+      bottom:7px;
+      border:0;
+      border-radius:8px;
+      padding:6px 9px;
+      background:var(--red2);
+      color:white;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .aviatorHome{
+      position:absolute;
+      inset:0;
+      overflow:hidden;
+    }
+
+    .homePlane{
+      position:absolute;
+      font-size:35px;
+      animation:planeHome 3s linear infinite;
+    }
+
+    @keyframes planeHome{
+      0%{left:-40px;bottom:25px;transform:rotate(-8deg)}
+      50%{left:48%;bottom:75px;transform:rotate(-5deg)}
+      100%{left:110%;bottom:115px;transform:rotate(-2deg)}
+    }
+
+    .bingoHomeBalls{
+      position:absolute;
+      inset:40px 8px 30px;
+    }
+
+    .bingoHomeBalls span{
+      position:absolute;
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(145deg,#ffe16a,#d88b00);
+      color:#500;
+      font-weight:bold;
+    }
+
+    .bingoHomeBalls span:nth-child(1){left:10%;top:15%}
+    .bingoHomeBalls span:nth-child(2){left:42%;top:40%}
+    .bingoHomeBalls span:nth-child(3){left:72%;top:20%}
+    .bingoHomeBalls span:nth-child(4){left:28%;top:70%}
+
+    .kenoHome{
+      position:absolute;
+      inset:42px 8px 25px;
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:5px;
+      align-content:center;
+    }
+
+    .kenoHome span{
+      width:25px;
+      height:25px;
+      border-radius:50%;
+      background:#c70000;
+      border:2px solid #ffcf40;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:9px;
+    }
+
+    .rouletteHome{
+      position:absolute;
+      width:85px;
+      height:85px;
+      border-radius:50%;
+      border:8px solid #d49a00;
+      left:50%;
+      top:53%;
+      transform:translate(-50%,-50%);
+      background:repeating-conic-gradient(
+        #b00000 0deg 20deg,
+        #111 20deg 40deg
+      );
+    }
+
+    .rouletteHome:after{
+      content:"0";
+      position:absolute;
+      inset:28px;
+      background:#d49a00;
+      border-radius:50%;
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       GAME
+    ========================================================= */
+
+    #gameScreen{
+      display:none;
+      min-height:100vh;
+      padding-bottom:80px;
+    }
+
+    .gameHeader{
+      position:sticky;
+      top:0;
+      z-index:1000;
+      min-height:58px;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:8px;
+      padding:7px 8px;
+      background:linear-gradient(180deg,#260000,#100000);
+      border-bottom:1px solid #652000;
+      box-shadow:0 4px 18px rgba(0,0,0,.65);
+    }
+
+    .roundInfo{
+      color:#ffd04a;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .headerRight{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .balance{
+      background:#241b00;
+      border:1px solid #d79d00;
+      color:#ffd84c;
+      padding:6px 8px;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .helpBtn{
+      width:31px;
+      height:31px;
+      border-radius:50%;
+      border:1px solid #ffd24a;
+      background:#390900;
+      color:#ffd24a;
+      font-weight:900;
+    }
+
+    .voiceBtn{
+      font-size:16px;
+      min-width:44px;
+      padding:0 10px;
+    }
+
+    .voiceBtn.voiceActive{
+      box-shadow:0 0 12px rgba(255,212,60,.55);
+    }
+
+
+    .gameTitle{
+      text-align:center;
+      padding:8px 0;
+      color:#fff;
+      font-size:20px;
+      font-weight:900;
+    }
+
+    .gameArea{
+      margin:0 8px;
+      border:1px solid #632020;
+      border-radius:14px;
+      background:#0d0d0d;
+      overflow:hidden;
+    }
+
+    .countdown{
+      text-align:center;
+      padding:8px;
+      color:#ffd13d;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .countdown.closed{
+      color:#ff5555;
+    }
+
+    /* =========================================================
+       TABS / SLOTS
+    ========================================================= */
+
+    .mainTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      margin:8px;
+      gap:4px;
+    }
+
+    .mainTabs button,
+    .subTabs button{
+      border:1px solid #6e2020;
+      background:#220b0b;
+      color:#ddd;
+      padding:9px 4px;
+      border-radius:8px;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .mainTabs button.active,
+    .subTabs button.active{
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+    }
+
+    .subTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:4px;
+      margin:0 8px 8px;
+    }
+
+    .betSlots{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      padding:8px;
+    }
+
+    .betSlot{
+      background:linear-gradient(145deg,#251010,#111);
+      border:1px solid #702222;
+      border-radius:12px;
+      padding:8px;
+      transition:.2s;
+    }
+
+    .betSlot.active{
+      border-color:#ffd43b;
+      box-shadow:0 0 12px #8d6100;
+    }
+
+    .slotTitle{
+      text-align:center;
+      color:var(--gold);
+      font-weight:bold;
+      font-size:11px;
+      margin-bottom:7px;
+    }
+
+    .amountControl{
+      display:grid;
+      grid-template-columns:32px 1fr 32px;
+      gap:3px;
+    }
+
+    .amountControl button{
+      border:1px solid #a26d00;
+      background:#381c00;
+      color:#ffd13a;
+      border-radius:7px;
+      font-weight:bold;
+    }
+
+    .amountControl input{
+      min-width:0;
+      width:100%;
+      text-align:center;
+      background:#090909;
+      color:white;
+      border:1px solid #593333;
+      border-radius:7px;
+      padding:6px;
+    }
+
+    .placeBtn{
+      width:100%;
+      margin-top:7px;
+      border:0;
+      border-radius:8px;
+      padding:9px 4px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+      color:white;
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .placeBtn:disabled{
+      opacity:.45;
+    }
+
+    .livePayout{
+      margin-top:6px;
+      text-align:center;
+      color:var(--green);
+      font-size:10px;
+      font-weight:bold;
+      min-height:14px;
+    }
+
+    /* =========================================================
+       FEEDS
+    ========================================================= */
+
+    .feed{
+      margin:0 8px 8px;
+      background:#101010;
+      border:1px solid #362020;
+      border-radius:10px;
+      padding:8px;
+    }
+
+    .feedRow{
+      display:flex;
+      justify-content:space-between;
+      padding:6px 3px;
+      border-bottom:1px solid #222;
+      font-size:10px;
+    }
+
+    .feedRow:last-child{
+      border-bottom:0;
+    }
+
+    .win{
+      color:var(--green);
+    }
+
+    .muted{
+      color:#888;
+    }
+
+    /* =========================================================
+       KENO
+    ========================================================= */
+
+    .kenoSelectedRows{
+      padding:5px 8px;
+    }
+
+    .selectedRow{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      min-height:30px;
+      padding:5px;
+      margin-bottom:4px;
+      border:1px solid #432020;
+      border-radius:7px;
+      background:#130909;
+    }
+
+    .selectedRow strong{
+      color:var(--gold);
+      font-size:10px;
+      width:45px;
+    }
+
+    .selectedNumber{
+      padding:3px 6px;
+      border-radius:5px;
+      background:#8d0000;
+      color:#fff;
+      font-size:9px;
+      font-weight:bold;
+    }
+
+    .kenoBoard{
+      padding:8px;
+      display:grid;
+      grid-template-columns:repeat(10,1fr);
+      gap:4px;
+    }
+
+    .kenoNumber{
+      aspect-ratio:1;
+      border-radius:50%;
+      border:1px solid #6f2a2a;
+      background:#191919;
+      color:#ddd;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:bold;
+    }
+
+    .kenoNumber.selected{
+      background:linear-gradient(145deg,#ffd43b,#bd7600);
+      color:#150900;
+      border-color:#ffe67d;
+    }
+
+    .kenoNumber.drawn{
+      background:#d00000;
+      color:white;
+      border-color:#ffcf3b;
+    }
+
+    .kenoNumber.hit{
+      box-shadow:0 0 14px #ffd52e;
+    }
+
+    .drawStatus{
+      text-align:center;
+      padding:8px;
+      color:#ffd44c;
+      font-size:12px;
+      font-weight:bold;
+    }
+
+    .drawBalls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      padding:8px;
+      min-height:45px;
+      justify-content:center;
+    }
+
+    .ball{
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#ff4b3e,#970000);
+      border:2px solid #ffd43b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:white;
+      font-weight:900;
+      font-size:11px;
+    }
+
+    .historyBox{
+      margin:8px;
+      border:1px solid #472222;
+      border-radius:10px;
+      overflow:hidden;
+    }
+
+    .historyHeader{
+      padding:9px;
+      color:var(--gold);
+      background:#190808;
+      font-weight:bold;
+      font-size:11px;
+    }
+
+    .historyRound{
+      padding:8px;
+      border-top:1px solid #292020;
+      font-size:9px;
+      line-height:1.8;
+      cursor:pointer;
+    }
+
+    .historyRound:hover{
+      background:#211010;
+    }
+
+    .historyRound strong{
+      color:#ffd44c;
+    }
+
+    .historyNums{
+      color:#ddd;
+    }
+
+    /* =========================================================
+       BINGO
+    ========================================================= */
+
+    .bingoAnimation{
+      height:180px;
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(circle,#451000,#080808 65%);
+    }
+
+    .bingoMachine{
+      position:absolute;
+      width:112px;
+      height:112px;
+      border:7px solid #e0a400;
+      border-radius:50%;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      box-shadow:0 0 18px rgba(255,204,51,.28),inset 0 0 20px rgba(255,160,0,.12);
+      background:radial-gradient(circle,#171717 0 56%,#080808 57%);
+    }
+
+    .bingoMachine:before,
+    .bingoMachine:after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      border-radius:50%;
+      pointer-events:none;
+    }
+
+    .bingoMachine:before{
+      width:82px;
+      height:82px;
+      border:2px dashed rgba(255,212,59,.72);
+      box-shadow:0 0 12px rgba(255,212,59,.18);
+      animation:bingoRingSpin 2.8s linear infinite;
+    }
+
+    .bingoMachine:after{
+      width:5px;
+      height:86px;
+      background:linear-gradient(to bottom,transparent,#ffd43b 18%,#ffd43b 82%,transparent);
+      box-shadow:0 0 8px rgba(255,212,59,.55);
+      opacity:.45;
+    }
+
+    .bingoLatestDraw{
+      position:absolute;
+      inset:0;
+      z-index:5;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:31px;
+      font-weight:1000;
+      text-shadow:0 0 10px rgba(255,212,59,.8);
+    }
+
+    .bingoLatestDraw.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+    .kenoBilliardBall.drawPop,.bingoBilliardBall.drawPop{animation:drawBallPop .65s cubic-bezier(.17,.89,.32,1.28);}
+    @keyframes drawBallPop{0%{transform:scale(.82)}55%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+    @keyframes bingoRingSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+    @keyframes latestDrawPop{0%{transform:scale(.35);opacity:.15}55%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
+
+    .bingoBall{
+      position:absolute;
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#fff,#aaa);
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      font-weight:bold;
+    }
+
+    .cartelaEntry{
+      display:grid;
+      grid-template-columns:1fr 65px;
+      gap:5px;
+      padding:8px;
+    }
+
+    .cartelaEntry input{
+      width:100%;
+      padding:8px;
+      border-radius:7px;
+      border:1px solid #633333;
+      background:#080808;
+      color:#fff;
+      text-align:center;
+    }
+
+    .cartelaEntry button{
+      border:0;
+      border-radius:7px;
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+      font-weight:900;
+    }
+
+    .cartelaTabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:5px;
+      padding:8px 8px 0;
+    }
+
+    .cartelaTab{
+      text-align:center;
+      padding:8px;
+      border:1px solid #682020;
+      background:#200909;
+      color:#ffd13c;
+      border-radius:8px 8px 0 0;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .cartelaTab.active{
+      background:linear-gradient(180deg,#ffcf3b,#bd7900);
+      color:#190900;
+    }
+
+    .cartelaPicker{
+      display:grid;
+      grid-template-columns:repeat(10,1fr);
+      gap:4px;
+      margin:8px 0 10px;
+      max-height:190px;
+      overflow-y:auto;
+      padding:4px;
+      border:1px solid #472020;
+      border-radius:9px;
+      background:#101010;
+    }
+
+    .cartelaPick{
+      min-height:30px;
+      border:1px solid #552323;
+      border-radius:5px;
+      background:#211010;
+      color:#fff;
+      font-size:10px;
+      font-weight:900;
+    }
+
+    .cartelaPick.selected{
+      background:linear-gradient(145deg,#ffd43b,#bd7900);
+      color:#111;
+      border-color:#ffd43b;
+    }
+
+    .pageBackBtn{
+      display:block;
+      width:100%;
+      margin:0 0 10px;
+      padding:9px 11px;
+      border:1px solid #6b2424;
+      border-radius:8px;
+      background:#160909;
+      color:#ffd43b;
+      font-weight:900;
+      font-size:11px;
+      text-align:left;
+    }
+
+    .cartelaGridWrap{
+      padding:8px;
+    }
+
+    .cartelaGrid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:3px;
+      padding:6px;
+      background:#161616;
+      border:1px solid #522020;
+      border-radius:8px;
+    }
+
+    .bingoColumnLetters{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:3px;
+      margin:0 6px 3px;
+    }
+
+    .bingoColumnLetter{
+      text-align:center;
+      padding:5px 2px;
+      border-radius:5px;
+      color:#fff;
+      font-size:11px;
+      font-weight:1000;
+      text-shadow:0 1px 3px #000;
+    }
+    .bingoColumnLetter.colB{background:#8d2020}
+    .bingoColumnLetter.colI{background:#245a8d}
+    .bingoColumnLetter.colN{background:#23734b}
+    .bingoColumnLetter.colG{background:#8b5a1e}
+    .bingoColumnLetter.colO{background:#703c8f}
+
+    .cartelaCell{
+      aspect-ratio:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:4px;
+      color:#fff;
+      font-size:9px;
+      font-weight:bold;
+      border:1px solid transparent;
+      transition:transform .15s ease,background .15s ease,box-shadow .15s ease;
+    }
+
+    .cartelaCell.colB{background:#4b1717}
+    .cartelaCell.colI{background:#172f4b}
+    .cartelaCell.colN{background:#17452f}
+    .cartelaCell.colG{background:#4a3215}
+    .cartelaCell.colO{background:#3d214f}
+
+    .cartelaCell.called{
+      border-color:#ffd43b;
+      box-shadow:0 0 7px rgba(255,212,59,.42);
+    }
+
+    .cartelaCell.marked{
+      background:linear-gradient(145deg,#ffd43b,#bd7900) !important;
+      color:#160900;
+      border-color:#fff0a0;
+      box-shadow:0 0 12px rgba(255,212,59,.75);
+      transform:scale(.96);
+    }
+
+    .cartelaCell.free{
+      background:linear-gradient(145deg,#ffd43b,#bd7900) !important;
+      color:#111;
+    }
+
+    .drawNumberCircle{
+      width:92px;
+      height:92px;
+      margin:8px auto 4px;
+      border:4px solid #e0a400;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle,#191919 0 52%,#080808 53%);
+      box-shadow:0 0 18px rgba(255,204,51,.24),inset 0 0 18px rgba(255,160,0,.12);
+    }
+
+    .drawNumberCircle span{
+      color:#fff;
+      font-size:28px;
+      font-weight:1000;
+      text-shadow:0 0 10px rgba(255,212,59,.8);
+    }
+
+    .drawNumberCircle span.pop{
+      animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);
+    }
+
+    .cartelaStatus{
+      text-align:center;
+      color:#ffd43c;
+      font-size:10px;
+      min-height:18px;
+    }
+
+    .bingoDraw{
+      display:flex;
+      justify-content:center;
+      gap:7px;
+      padding:7px;
+      flex-wrap:wrap;
+    }
+
+    .bingoCalled{
+      width:38px;
+      height:38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:50%;
+      background:linear-gradient(145deg,#ff4b3e,#970000);
+      border:2px solid #ffd43b;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+
+    /* =========================================================
+       ROULETTE
+    ========================================================= */
+
+    .rouletteArea{
+      padding:10px;
+      text-align:center;
+    }
+
+    .rouletteWheel{
+      width:190px;
+      height:190px;
+      margin:5px auto 12px;
+      border-radius:50%;
+      border:9px solid #d69a00;
+      background:repeating-conic-gradient(
+        #b00000 0deg 10deg,
+        #090909 10deg 20deg
+      );
+      position:relative;
+      transition:transform 4s cubic-bezier(.1,.7,.2,1);
+    }
+
+    .rouletteCenter{
+      position:absolute;
+      width:48px;
+      height:48px;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      border-radius:50%;
+      background:#d49a00;
+      color:#111;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      z-index:3;
+    }
+
+    .rouletteEdgeNumbers{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    .edgeNumber{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:24px;
+      height:24px;
+      margin:-12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:8px;
+      font-weight:900;
+      color:#fff;
+      text-shadow:0 1px 2px #000;
+      transform:
+        rotate(var(--angle))
+        translateY(-75px)
+        rotate(calc(var(--angle) * -1));
+    }
+
+    .rouletteResult{
+      min-height:25px;
+      color:#ffd13d;
+      font-weight:bold;
+    }
+
+    .rouletteGrid{
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:3px;
+      padding:8px;
+    }
+
+    .rouletteNum{
+      padding:8px 2px;
+      border:1px solid #333;
+      border-radius:5px;
+      font-size:10px;
+      font-weight:bold;
+      color:#fff;
+    }
+
+    .rouletteNum.selected{
+      border-color:#ffd43b;
+      box-shadow:0 0 10px #ffd43b;
+      transform:scale(1.05);
+    }
+
+    .rouletteNum.winner{
+      box-shadow:0 0 12px #ffd43b;
+      border-color:#ffd43b;
+      transform:scale(1.08);
+    }
+
+    .red{background:#a80000}
+    .black{background:#090909}
+    .green{background:#008a4b}
+
+    /* =========================================================
+       AVIATOR
+    ========================================================= */
+
+    .aviatorHistoryBar{
+      display:flex;
+      align-items:center;
+      gap:4px;
+      min-height:38px;
+      padding:4px 6px 4px 8px;
+      border-bottom:1px solid #4b1d1d;
+      background:#120606;
+    }
+
+    .aviatorHistoryLine{
+      flex:1;
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color:#ffcf3a;
+      font-size:10px;
+      font-weight:900;
+      line-height:28px;
+    }
+
+    .aviatorHistoryExpand{
+      flex:0 0 28px;
+      width:28px;
+      height:28px;
+      border-radius:7px;
+      border:1px solid #8a5a00;
+      background:#211010;
+      color:#ffd43b;
+      font-size:18px;
+      font-weight:1000;
+      line-height:1;
+    }
+
+    .aviatorHistoryExpanded{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+      padding:6px 8px;
+      background:#0f0505;
+      border-bottom:1px solid #4b1d1d;
+    }
+
+    .aviatorHistoryExpanded.hidden{display:none}
+
+    .aviatorHistoryExpanded .mult{
+      padding:5px 3px;
+      border-radius:5px;
+      background:#211010;
+      border:1px solid #552323;
+      color:#ffcf3a;
+      font-size:9px;
+      font-weight:bold;
+      text-align:center;
+    }
+
+    .aviatorFlight{
+      height:220px;
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(160deg,#230000,#050505 65%);
+    }
+
+    .gridLines{
+      position:absolute;
+      inset:0;
+      opacity:.15;
+      background-image:
+        linear-gradient(#fff 1px,transparent 1px),
+        linear-gradient(90deg,#fff 1px,transparent 1px);
+      background-size:40px 40px;
+    }
+
+    .flightMultiplier{
+      position:absolute;
+      left:50%;
+      top:32%;
+      transform:translate(-50%,-50%);
+      color:#ffd43a;
+      font-size:34px;
+      font-weight:900;
+    }
+
+    .plane{
+      position:absolute;
+      left:20%;
+      bottom:30px;
+      font-size:40px;
+    }
+
+    .flightCurve{
+      position:absolute;
+      left:-20%;
+      bottom:-80px;
+      width:140%;
+      height:200px;
+      border-top:3px solid #e20000;
+      border-radius:50%;
+      transform:rotate(-12deg);
+    }
+
+    .aviatorBetState{
+      text-align:center;
+      min-height:20px;
+      color:var(--green);
+      font-size:11px;
+      font-weight:bold;
+      padding:5px;
+    }
+
+    /* =========================================================
+       DRAW ANIMATIONS
+    ========================================================= */
+
+    .drawPot{
+      position:relative;
+      width:150px;
+      height:82px;
+      margin:6px auto 2px;
+      border:3px solid #d69a00;
+      border-radius:50% 50% 44% 44%;
+      background:radial-gradient(circle at 50% 35%,#333,#090909 68%);
+      overflow:hidden;
+      box-shadow:0 0 16px rgba(255,210,50,.18);
+    }
+
+    .drawPot:before{
+      content:"";
+      position:absolute;
+      left:9px;
+      right:9px;
+      top:7px;
+      height:3px;
+      background:#ffd43b;
+      opacity:.7;
+    }
+
+    .drawPot:after{
+      content:"";
+      position:absolute;
+      width:44px;
+      height:44px;
+      left:50%;
+      top:50%;
+      margin:-22px;
+      border:3px solid transparent;
+      border-top-color:#ffd43b;
+      border-right-color:rgba(255,212,59,.35);
+      border-radius:50%;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .drawPot.spinning:after{
+      opacity:1;
+      animation:drawPotSpinner .42s linear infinite;
+    }
+
+    @keyframes drawPotSpinner{to{transform:rotate(360deg)}}
+
+    .potMixBall{
+      width:16px !important;
+      height:16px !important;
+      font-size:6px !important;
+      opacity:.92;
+    }
+
+    .drawPotBall{
+      position:absolute;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:linear-gradient(145deg,#fff,#aaa);
+      color:#111;
+      font-size:7px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      animation:potBounce .32s linear infinite alternate;
+    }
+
+    .drawPot.spinning .drawPotBall{
+      animation:potSpin .18s linear infinite;
+    }
+
+    .drawPot.reveal .drawPotBall{
+      animation:potDrop .55s cubic-bezier(.2,.8,.3,1) forwards;
+    }
+
+    .drawPot .drawnPotBall.dropOut{
+      z-index:8;
+      animation:potDropOut .8s cubic-bezier(.17,.89,.32,1.28) forwards;
+    }
+
+    @keyframes potBounce{
+      from{transform:translateY(2px) rotate(-6deg)}
+      to{transform:translateY(-9px) rotate(6deg)}
+    }
+
+    @keyframes potSpin{
+      from{transform:translate(0,0) rotate(0deg)}
+      to{transform:translate(72px,20px) rotate(360deg)}
+    }
+
+    @keyframes potDrop{
+      0%{transform:translateY(-35px) scale(.65);opacity:.35}
+      65%{transform:translateY(10px) scale(1.18);opacity:1}
+      100%{transform:translateY(0) scale(1);opacity:1}
+    }
+
+    @keyframes potDropOut{
+      0%{transform:translate(0,-5px) scale(.7);opacity:0}
+      35%{transform:translate(0,-22px) scale(1.15);opacity:1}
+      70%{transform:translate(0,18px) scale(1.22);opacity:1}
+      100%{transform:translate(0,48px) scale(1);opacity:0}
+    }
+
+    .newDrawBall{
+      animation:newBallPop .65s cubic-bezier(.17,.89,.32,1.28);
+      box-shadow:0 0 18px #ffd43b;
+    }
+
+    @keyframes newBallPop{
+      0%{transform:translateY(-30px) scale(.25);opacity:0}
+      65%{transform:translateY(5px) scale(1.25);opacity:1}
+      100%{transform:translateY(0) scale(1);opacity:1}
+    }
+
+    .aviatorFlight{
+      position:relative;
+      overflow:hidden;
+      background:radial-gradient(circle at 70% 25%,rgba(255,204,51,.08),transparent 28%),linear-gradient(180deg,#170808,#070707);
+    }
+
+    .aviatorFlight.flyingActive:after{
+      content:"";
+      position:absolute;
+      inset:-20%;
+      background:repeating-linear-gradient(-18deg,transparent 0 24px,rgba(255,255,255,.035) 25px 27px);
+      animation:flightSpeedLines .7s linear infinite;
+      pointer-events:none;
+    }
+
+    @keyframes flightSpeedLines{from{transform:translateX(0)}to{transform:translateX(-70px)}}
+
+    .aviatorFlight.flyingActive .plane{
+      animation:planeFlight 1.1s cubic-bezier(.45,.05,.55,.95) infinite alternate;
+      filter:drop-shadow(0 0 8px rgba(255,212,59,.75));
+      will-change:transform;
+    }
+
+    .aviatorFlight.flyingActive .flightCurve{
+      animation:curveMove 1.2s linear infinite;
+    }
+
+    .aviatorFlight.crashActive{
+      animation:crashShake .5s ease-in-out 2;
+    }
+
+    .aviatorFlight.crashActive .plane{
+      animation:planeCrash .75s cubic-bezier(.4,0,1,1) forwards;
+    }
+
+    @keyframes planeFlight{
+      0%{transform:translate(0,12px) rotate(-5deg) scale(.98)}
+      50%{transform:translate(24px,-10px) rotate(-10deg) scale(1.02)}
+      100%{transform:translate(62px,-42px) rotate(-14deg) scale(1.05)}
+    }
+
+    @keyframes curveMove{
+      from{transform:rotate(-12deg) translateX(0)}
+      to{transform:rotate(-12deg) translateX(25px)}
+    }
+
+    @keyframes planeCrash{
+      0%{transform:translate(38px,-28px) rotate(-13deg);opacity:1}
+      100%{transform:translate(105px,90px) rotate(45deg);opacity:0}
+    }
+
+    @keyframes crashShake{
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-7px) rotate(-1deg)}
+      75%{transform:translateX(7px) rotate(1deg)}
+    }
+
+    .gameBackBtn{
+      display:flex!important;
+      align-items:center;
+      justify-content:center;
+      min-width:78px;
+      height:38px;
+      border:2px solid #ffd43b;
+      background:linear-gradient(180deg,#6d0b0b,#210000);
+      color:#fff3a0;
+      border-radius:10px;
+      padding:0 10px;
+      font-size:12px;
+      font-weight:1000;
+      white-space:nowrap;
+      box-shadow:0 0 10px rgba(255,212,59,.22);
+      cursor:pointer;
+    }
+
+    .gameBackBtn:active{
+      transform:scale(.96);
+      background:#8b1010;
+    }
+
+    .rouletteColorBets{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:7px;
+      margin:8px 0 10px;
+    }
+
+    .rouletteColorBtn{
+      border:1px solid #555;
+      border-radius:9px;
+      padding:10px 5px;
+      color:#fff;
+      font-weight:900;
+      font-size:11px;
+      background:#111;
+    }
+    .rouletteColorBtn.red{background:#a80000}
+    .rouletteColorBtn.black{background:#050505}
+    .rouletteColorBtn.green{background:#008a4b}
+    .rouletteColorBtn.selected{
+      outline:3px solid #ffd43b;
+      box-shadow:0 0 16px rgba(255,212,59,.55);
+    }
+
+    .rouletteSelectionInfo{
+      min-height:18px;
+      text-align:center;
+      color:#ffd43b;
+      font-size:11px;
+      font-weight:900;
+      margin-bottom:6px;
+    }
+
+    .rouletteSlotPicker{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      margin:6px 0 8px;
+    }
+
+    .rouletteSlotBtn{
+      border:1px solid #6b2424;
+      border-radius:9px;
+      padding:9px;
+      background:#160707;
+      color:#aaa;
+      font-weight:900;
+      font-size:10px;
+    }
+
+    .rouletteSlotBtn.active{
+      border-color:#ffd43b;
+      color:#ffd43b;
+      box-shadow:0 0 12px rgba(255,212,59,.22);
+    }
+
+    .drawPot{
+      transform:translateZ(0);
+      box-shadow:inset 0 0 28px rgba(255,180,30,.12),0 8px 22px rgba(0,0,0,.45);
+    }
+
+    .drawPot.spinning{
+      animation:potMachinePulse .42s ease-in-out infinite alternate;
+    }
+
+    .drawPot.spinning .potMixBall{
+      animation:potMixOrbit .42s linear infinite;
+    }
+
+    .drawPot.reveal{
+      animation:potRevealFlash .8s ease-out;
+    }
+
+    @keyframes potMachinePulse{from{transform:scale(1) rotate(-1deg)}to{transform:scale(1.025) rotate(1deg)}}
+    @keyframes potMixOrbit{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(8px,-7px) rotate(90deg)}50%{transform:translate(-6px,6px) rotate(180deg)}75%{transform:translate(7px,5px) rotate(270deg)}100%{transform:translate(0,0) rotate(360deg)}}
+    @keyframes potRevealFlash{0%{filter:brightness(1)}35%{filter:brightness(1.9)}100%{filter:brightness(1)}}
+
+    .rouletteWheel{
+      box-shadow:0 0 0 3px rgba(255,204,51,.12),0 0 28px rgba(255,170,0,.16),0 12px 30px rgba(0,0,0,.5);
+      transform-origin:50% 50%;
+    }
+
+    .rouletteWheel.spinning{
+      animation:rouletteLiveSpin .48s linear infinite;
+      will-change:transform;
+    }
+
+    .rouletteWheel.resultSpin{
+      animation:none!important;
+      transition:transform 2.8s cubic-bezier(.08,.72,.18,1);
+      will-change:transform;
+    }
+
+    .rouletteWheel.idle{
+      animation:none!important;
+      transition:none!important;
+    }
+
+    @keyframes rouletteLiveSpin{
+      from{transform:rotate(0deg)}
+      to{transform:rotate(360deg)}
+    }
+
+    /* =========================================================
+       WALLET
+    ========================================================= */
+
+    #walletScreen,
+    #profileScreen{
+      display:none;
+      min-height:100vh;
+      padding:15px 10px 90px;
+    }
+
+    .pageTitle{
+      text-align:center;
+      color:var(--gold);
+      font-size:22px;
+      font-weight:900;
+      margin:10px 0 18px;
+    }
+
+    .walletBalance{
+      text-align:center;
+      padding:18px;
+      border:1px solid #6b2424;
+      border-radius:14px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+    }
+
+    .walletBalance small{
+      color:#aaa;
+    }
+
+    .walletBalance strong{
+      display:block;
+      margin-top:5px;
+      color:#ffd43c;
+      font-size:27px;
+    }
+
+    .walletButtons{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .walletBtn{
+      border:0;
+      border-radius:9px;
+      padding:12px;
+      font-weight:900;
+      color:#fff;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);
+    }
+
+    .walletCard{
+      margin-top:10px;
+      padding:12px;
+      border:1px solid #472020;
+      border-radius:10px;
+      background:#101010;
+    }
+
+    .walletCard h3{
+      margin:0 0 8px;
+      color:#ffd43c;
+      font-size:13px;
+    }
+
+    .walletCard p{
+      color:#bbb;
+      font-size:11px;
+    }
+
+    /* =========================================================
+       PROFILE
+    ========================================================= */
+
+    .profileCard{
+      padding:15px;
+      border:1px solid #632020;
+      border-radius:14px;
+      background:linear-gradient(145deg,#291010,#0d0d0d);
+    }
+
+    .profileRow{
+      display:flex;
+      justify-content:space-between;
+      padding:10px 3px;
+      border-bottom:1px solid #292020;
+      font-size:12px;
+    }
+
+    .profileRow:last-child{
+      border-bottom:0;
+    }
+
+    .profileRow span:last-child{
+      color:var(--gold);
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       BOTTOM NAVIGATION
+    ========================================================= */
+
+    .bottomNav{
+      position:fixed;
+      z-index:500;
+      left:0;
+      right:0;
+      bottom:0;
+      height:68px;
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      background:linear-gradient(180deg,#1b0505,#080000);
+      border-top:1px solid #6b2424;
+      box-shadow:0 -8px 25px #000;
+    }
+
+    .bottomNav button{
+      border:0;
+      background:transparent;
+      color:#aaa;
+      font-size:10px;
+      font-weight:bold;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:3px;
+    }
+
+    .bottomNav button span{
+      font-size:20px;
+    }
+
+    .bottomNav button.active{
+      color:#ffd43c;
+    }
+
+    /* =========================================================
+       HELP
+    ========================================================= */
+
+    .helpOverlay{
+      position:fixed;
+      inset:0;
+      z-index:999;
+      background:rgba(0,0,0,.78);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+    }
+
+    .helpPanel{
+      width:100%;
+      max-width:420px;
+      max-height:85vh;
+      overflow:auto;
+      background:linear-gradient(145deg,#2a0808,#100000);
+      border:1px solid #d89c00;
+      border-radius:16px;
+      padding:15px;
+      box-shadow:0 15px 50px #000;
+    }
+
+    .helpPanel h2{
+      margin-top:0;
+      color:#ffd43c;
+    }
+
+    .helpPanel h3{
+      color:#ffbf26;
+      font-size:14px;
+    }
+
+    .helpPanel p{
+      color:#ddd;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .closeHelp{
+      width:100%;
+      border:0;
+      border-radius:8px;
+      padding:10px;
+      background:#bd0000;
+      color:#fff;
+      font-weight:bold;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media(max-width:360px){
+
+      .gameGrid{
+        gap:7px;
+        padding:7px;
+      }
+
+      .gameCard{
+        min-height:135px;
+      }
+
+      .kenoBoard{
+        gap:2px;
+      }
+
+      .kenoNumber{
+        font-size:8px;
+      }
+
+      .betSlots{
+        gap:4px;
+        padding:5px;
+      }
+
+      .amountControl{
+        grid-template-columns:27px 1fr 27px;
+      }
+
+    }
+
+    /* =========================================================
+       DEPOSIT / WITHDRAW MODALS
+    ========================================================= */
+    .walletModal{
+      position:fixed;
+      inset:0;
+      z-index:1200;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:15px;
+      background:rgba(0,0,0,.82);
+    }
+    .walletModal.hidden{display:none!important}
+    .walletModalPanel{
+      width:100%;
+      max-width:430px;
+      max-height:90vh;
+      overflow:auto;
+      padding:16px;
+      border:1px solid #d79d00;
+      border-radius:16px;
+      background:linear-gradient(145deg,#2b0909,#0d0d0d);
+      box-shadow:0 18px 60px #000;
+    }
+    .walletModalHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .walletModalHead h2{margin:0;color:#ffd43c;font-size:18px}
+    .walletModalClose{
+      width:32px;height:32px;border:1px solid #6b2424;border-radius:50%;
+      background:#220707;color:#fff;font-size:20px;
+    }
+    .walletFormLabel{display:block;margin:9px 0 5px;color:#ffd43c;font-size:11px;font-weight:bold}
+    .walletFormInput,.walletFormSelect{
+      width:100%;padding:10px;border-radius:8px;border:1px solid #633333;
+      background:#080808;color:#fff;outline:none;
+    }
+    .walletFormInput:focus,.walletFormSelect:focus{border-color:#ffd43c}
+    .walletHint{
+      margin:8px 0;padding:9px;border-radius:8px;background:#160909;
+      border:1px solid #402020;color:#bbb;font-size:10px;line-height:1.5;
+    }
+    .walletSubmit{
+      width:100%;margin-top:12px;padding:11px;border:0;border-radius:9px;
+      background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-weight:900;
+    }
+    .walletSubmit:disabled{opacity:.5}
+    .walletPasswordBox{margin-top:12px;padding-top:8px;border-top:1px solid #472020}
+    .walletStatus{min-height:18px;margin-top:8px;text-align:center;font-size:11px}
+    .walletStatus.ok{color:#18d66b}.walletStatus.err{color:#ff5555}.walletStatus.wait{color:#ffd43c}
+    .walletStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+    .walletStat{padding:9px;border:1px solid #472020;border-radius:9px;background:#101010;text-align:center}
+    .walletStat small{display:block;color:#999;font-size:9px}.walletStat strong{color:#ffd43c;font-size:12px}
+    .transactionRow{padding:9px 3px;border-bottom:1px solid #292020;font-size:10px;line-height:1.5}
+    .transactionRow:last-child{border-bottom:0}
+    .transactionStatus{font-weight:900}.statusPending{color:#ffd43c}.statusApproved{color:#18d66b}.statusRejected{color:#ff5555}
+
+    
+/* DESTA PLAY — compact Telegram Mini App viewport */
+html,body{width:100%;height:100%;overflow:hidden;}
+body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
+#home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px);min-height:0;box-sizing:border-box;overflow:hidden;}
+#gameScreen{padding-bottom:0;}
+.gameGrid{padding:6px 8px;gap:8px;}
+.gameCard{min-height:120px;height:calc((100vh - 190px)/2);max-height:145px;}
+.homeHeader{padding:10px 12px 6px;}
+.logo{font-size:22px;}
+.languageBox{padding:0 10px 7px;}
+.playerSummary{margin:0 8px 4px;padding:7px 9px;}
+.bottomNav{position:fixed;left:0;right:0;bottom:0;height:68px;z-index:5000;}
+/* Game content remains available without changing its existing layout. */
+#gameScreen .gameArea{max-height:calc(100vh - 128px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+#gameStakeLobby{max-height:calc(100vh - 70px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+
+/* STAKE LOBBY — compact, fixed Telegram Mini App layout */
+.stakeLobby{margin:6px 8px;padding:8px;border:1px solid #632020;border-radius:12px;background:linear-gradient(145deg,#241010,#0d0d0d);}
+.stakeLobbyHead{text-align:center;margin-bottom:5px;}
+.stakeLobbyHead h2{margin:2px 0;color:var(--gold);font-size:16px;}
+.stakeLobbyHead p{margin:0;color:#999;font-size:9px;}
+.stakeTimer{display:flex;align-items:center;justify-content:center;gap:5px;margin:5px auto 7px;color:#ffd43b;}
+.stakeTimer strong{font-size:22px;line-height:1;}
+.stakeTimer span{font-size:8px;color:#999;}
+.stakeGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;}
+.stakeChoice{min-width:0;height:34px;padding:3px;border:1px solid #592020;border-radius:6px;background:#190909;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.stakeChoice strong{font-size:10px;color:#ffd43b;}
+.stakeChoice small{font-size:7px;color:#888;margin-top:1px;}
+.stakeChoice.active{background:linear-gradient(180deg,#ffcf3b,#bd7900);border-color:#ffe47b;box-shadow:0 0 7px rgba(255,204,51,.35);}
+.stakeChoice.active strong,.stakeChoice.active small{color:#160900;}
+ .stakeWalletChoice{margin:8px 0 6px;padding:7px 8px;border:1px solid #3b2020;border-radius:9px;background:#101010;}
+.stakeWalletLabel{font-size:9px;font-weight:900;color:#aaa;margin-bottom:5px;}
+.stakeWalletButtons{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.stakeWalletBtn{border:1px solid #482222;border-radius:7px;padding:7px 5px;background:#181818;color:#bbb;font-size:10px;font-weight:900;}
+.stakeWalletBtn.active{background:linear-gradient(180deg,#8f1717,#4b0909);color:#fff;border-color:#e33;}
+.stakeWalletBalances{display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#aaa;font-size:9px;}
+.stakeLobbyStatus{text-align:center;min-height:16px;margin:5px 0;color:#aaa;font-size:9px;}
+.stakeActionRow{display:flex;gap:6px;width:100%;margin-top:2px;} .stakeActionRow .stakeJoin,.stakeActionRow .stakeWatch{flex:1 1 0;width:50%;height:34px;border:0;border-radius:7px;color:#fff;font-size:11px;font-weight:900;} .stakeJoin{background:linear-gradient(180deg,#ff3b2f,#a60000);} .stakeWatch{background:linear-gradient(180deg,#444,#202020);border:1px solid #777!important;} .stakeJoin:disabled{opacity:.45;}
+.stakeJoin:disabled{opacity:.45;}
+</style>
+    <style id="desta-final-game-fix">
+/* FINAL COMPACT MINI-APP / TOUCH FIX — preserves existing structure */
+html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none;}
+body{min-height:100vh;height:100vh;padding:0!important;}
+button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow:hidden;}
+#home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px)!important;min-height:0!important;max-height:calc(100vh - 68px);box-sizing:border-box;overflow:hidden!important;}
+#gameScreen{position:relative;padding:0!important;}
+.gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
+#gameScreen .gameTitle{display:none!important;}
+#gameScreen .gameArea{height:calc(100vh - 126px)!important;max-height:none!important;margin:0 6px!important;box-sizing:border-box;overflow-y:auto!important;overflow-x:hidden!important;border-radius:12px;}
+#gameScreen .stakeLobby{position:absolute!important;z-index:100!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:hidden!important;padding:10px 8px!important;background:linear-gradient(145deg,#241010,#090909)!important;}
+#gameScreen .stakeLobby .stakeGrid{flex:1 1 auto;min-height:0;overflow:hidden;}
+#gameScreen .stakeLobby{display:flex;flex-direction:column;}
+#gameScreen .stakeLobby.hidden{display:none!important;}
+.stakeGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;}
+.stakeChoice{height:32px;min-height:32px;}
+.stakeLobby{padding:7px!important;}
+.stakeLobbyHead h2{font-size:15px!important;}
+.stakeLobbyHead p{font-size:8px!important;}
+.stakeTimer{margin:3px auto 5px!important;}
+.stakeTimer strong{font-size:20px!important;}
+.stakeLobbyStatus{font-size:8px!important;margin:4px 0!important;}
+.stakeJoin{height:34px!important;margin-top:3px!important;}
+
+/* KENO — compact, tappable and visually centered like the supplied reference */
+#kenoGame{height:100%;overflow:hidden;position:relative;}
+#kenoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
+#kenoGame .countdown{padding:4px!important;font-size:10px!important;}
+.kenoSelectedRows{display:none!important;}
+.kenoSelectedRows .selectedRow{min-height:27px!important;padding:3px 5px!important;box-sizing:border-box;}
+.kenoSelectedRows .selectedNumber{padding:2px 4px!important;font-size:8px!important;}
+.kenoBoard{padding:4px!important;gap:3px!important;grid-template-columns:repeat(10,1fr)!important;}
+.kenoNumber{min-width:0!important;width:100%!important;font-size:9px!important;aspect-ratio:1/1;cursor:pointer!important;pointer-events:auto!important;}
+#kenoGame .drawNumberCircle{width:96px!important;height:96px!important;margin:4px auto!important;}
+#kenoGame .drawNumberCircle span{font-size:31px!important;}
+#kenoGame .drawStatus{padding:3px!important;font-size:9px!important;}
+#kenoGame .betSlots{display:flex!important;flex-direction:column!important;gap:6px!important;padding:4px 6px!important;}
+#kenoGame .betSlot{min-height:65px!important;padding:5px!important;cursor:pointer!important;pointer-events:auto!important;}
+#kenoGame .placeBtn{min-height:28px!important;padding:5px!important;font-size:9px!important;}
+#kenoGame .feed,#kenoGame .historyBox{display:none!important;}
+
+/* WALLET HELP */
+.walletHelpCard{position:relative;width:min(92vw,430px);max-height:78vh;overflow:auto;box-sizing:border-box;padding:16px;border-radius:14px;background:#171717;border:1px solid #632020;box-shadow:0 18px 50px rgba(0,0,0,.65);color:#fff;}
+.walletHelpCard h3{margin:14px 0 6px;color:#ffd43c;font-size:14px;}
+.walletHelpCard p{margin:0;color:#ddd;font-size:12px;line-height:1.55;}
+
+/* KENO LIVE DRAW — reference-style compact layout */
+#kenoGame{min-height:100%;height:auto!important;overflow:visible!important;position:relative;box-sizing:border-box;padding-bottom:14px;}
+.kenoLiveLayout{display:grid;grid-template-columns:72px 1fr 112px;align-items:center;gap:6px;margin:3px 6px 2px;height:178px;}
+.kenoLastColumn{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.kenoSectionLabel,.kenoDrawLabel,.kenoRecentLabel{color:#aaa;font-size:10px;font-weight:700;text-align:center;letter-spacing:.2px;}
+.kenoLastBall{width:43px;height:43px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#555,#191919 62%,#090909);border:2px solid #6f2525;color:#fff;font-size:13px;font-weight:900;box-shadow:inset 0 2px 7px rgba(255,255,255,.08),0 0 5px rgba(160,0,0,.25);}
+.kenoCenterColumn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;}
+.kenoDrawLabel{margin-bottom:3px;}
+.kenoBilliardBall{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,#fff 0,#f7f7f7 48%,#d7d7d7 78%,#aaa 100%);border:7px solid #f5b900;box-shadow:0 0 0 3px #ffcf33,0 0 22px rgba(255,187,0,.35),inset -9px -10px 18px rgba(0,0,0,.16),inset 8px 8px 15px rgba(255,255,255,.9);}
+.kenoBilliardBall span{color:#111;font-size:38px;font-weight:1000;line-height:1;text-shadow:0 1px 0 #fff;}
+.kenoBilliardBall span.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+.kenoStatsColumn{display:flex;flex-direction:column;gap:7px;}
+.kenoStatBox{height:58px;border-radius:12px;background:#202020;border:1px solid #4b2929;display:flex;flex-direction:column;justify-content:center;padding:0 9px;box-sizing:border-box;box-shadow:inset 0 0 10px rgba(0,0,0,.35);}
+.kenoStatBox strong{font-size:19px;color:#fff;line-height:1.05;}
+.kenoStatBox span{font-size:10px;color:#aaa;margin-top:2px;}
+.kenoRecentLabel{text-align:left;margin:1px 8px 2px;}
+.kenoRecentCalls{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:2px 7px 4px;scrollbar-width:none;white-space:nowrap;}
+.kenoRecentCalls::-webkit-scrollbar{display:none;}
+.kenoRecentCalls .recentBall{flex:0 0 35px;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#151515;border:2px solid #672525;color:#fff;font-size:10px;font-weight:900;}
+#kenoGame .drawStatus{padding:2px 0!important;font-size:8px!important;min-height:10px;}
+#kenoGame .kenoSelectedRows{display:none!important;}
+#kenoGame .kenoBoard{padding:3px 5px!important;gap:3px!important;}
+#kenoGame .kenoNumber{min-width:0!important;width:100%!important;aspect-ratio:1!important;font-size:9px!important;pointer-events:auto!important;touch-action:manipulation!important;}
+#kenoGame .betSlots{display:flex!important;flex-direction:column!important;gap:6px!important;padding:3px 5px!important;}
+#kenoGame .betSlot{width:100%!important;min-height:62px!important;padding:5px 6px!important;box-sizing:border-box!important;}
+#kenoGame .slotNumbersInline{display:flex;flex-wrap:wrap;gap:3px;min-height:18px;align-items:center;margin:2px 0 3px;}
+#kenoGame .slotNumbersInline .selectedNumber{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:#b40000;border:1px solid #ef1b1b;color:#fff;font-size:9px;font-weight:900;box-sizing:border-box;}
+#kenoGame .slotNumbersInline .muted{font-size:8px;color:#888;}
+#kenoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
+#kenoGame .feed,#kenoGame .historyBox{display:none!important;}
+
+/* BINGO — compact header/draw area matching supplied reference */
+#bingoGame{min-height:100%;height:auto!important;overflow:visible!important;position:relative;padding-bottom:14px;}
+#bingoGame .bingoStakeScreen{padding:6px!important;}
+#bingoGame .bingoPlayArea{min-height:100%;height:auto!important;overflow:visible!important;}
+#bingoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
+#bingoGame .countdown{padding:4px!important;font-size:10px!important;}
+#bingoGame .bingoAnimation{height:180px!important;}
+#bingoGame .bingoMachine{width:118px!important;height:118px!important;}
+#bingoGame .bingoLatestDraw{font-size:42px!important;}
+#bingoGame .cartelaChooser{margin:2px 5px!important;}
+#bingoGame .cartelaPicker{
+  display:grid!important;
+  grid-template-rows:repeat(5,24px)!important;
+  grid-template-columns:repeat(24,28px)!important;
+  grid-auto-flow:column!important;
+  grid-auto-columns:28px!important;
+  gap:3px!important;
+  width:100%!important;
+  max-height:132px!important;
+  height:132px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x!important;
+  scrollbar-width:thin;
+  box-sizing:border-box!important;
+}
+#bingoGame .cartelaPick{height:24px!important;min-height:24px!important;width:28px!important;font-size:8px!important;padding:0!important;touch-action:manipulation!important;}
+#bingoGame .cartelaTabs{margin:3px 5px!important;}
+#bingoGame .cartelaGridWrap{max-height:none!important;overflow:visible!important;}
+#bingoGame .betSlots{gap:4px!important;padding:4px!important;}
+#bingoGame .betSlot{min-height:58px!important;padding:4px!important;}
+#bingoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
+#bingoGame .feed,#bingoGame .historyBox{display:none!important;}
+
+/* ONE-CONTINUOUS-SCROLL MINI-APP: no page-height slide/paging.
+   Each screen has one vertical scroll area when its content is taller than
+   the Android viewport. Horizontal Cartela navigation remains independent. */
+html,body{
+  overflow:hidden!important;
+  width:100%!important;
+  height:100%!important;
+  overscroll-behavior:none!important;
+}
+#home,#gameScreen,#walletScreen,#profileScreen{
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+#home{overflow:hidden!important;}
+#gameScreen .gameArea{
+  height:calc(100vh - 126px)!important;
+  max-height:none!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  padding-bottom:120px!important;
+  box-sizing:border-box!important;
+}
+/* Keep the complete Bingo cartela visible above the fixed bottom navigation.
+   The game remains one continuous vertical scroll surface. */
+#bingoGame #cartelaGridWrap{
+  display:block!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin-bottom:12px!important;
+  padding-bottom:8px!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+#bingoGame .cartelaGrid{
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+#bingoGame .betSlots{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  margin:12px 8px 36px!important;
+  padding:0!important;
+  position:relative!important;
+  clear:both!important;
+  align-items:stretch!important;
+}
+#bingoGame .betSlot{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  position:relative!important;
+}
+#bingoGame .betSlot{
+  width:100%!important;
+  box-sizing:border-box!important;
+  position:relative!important;
+}
+#bingoGame .cartelaStatus{
+  margin:4px 8px 0!important;
+  position:relative!important;
+  clear:both!important;
+}
+#bingoGame #cartelaGridWrap{
+  position:relative!important;
+  z-index:1!important;
+}
+#bingoGame .betSlots{
+  position:relative!important;
+  z-index:2!important;
 }
 
-const PLAYER_TELEGRAM_COMMANDS = [
-    { command: "start", description: "ደስታ PLAY ለመጀመር" },
-    { command: "help", description: "እንዴት እንደሚጠቀሙ እና እርዳታ ለማግኘት" },
-    { command: "games", description: "ያሉትን ጨዋታዎች ይመልከቱ" },
-    { command: "wallet", description: "የገንዘብ ቀሪ ሂሳብዎን እና የዋሌት መረጃዎን ይመልከቱ" },
-    { command: "profile", description: "የግል መረጃዎን እና የመለያ ሁኔታዎን ይመልከቱ" },
-    { command: "support", description: "ለእርዳታ እና ጥያቄዎች ያግኙን" },
-    { command: "invite", description: "መለያዎን ለጓደኞችዎ ያጋሩ" },
-    { command: "deposit", description: "ገንዘብ ወደ መለያዎ ያስገቡ" },
-    { command: "withdraw", description: "ገንዘብ ከመለያዎ ለማውጣት" },
-    { command: "transactions", description: "የገንዘብ ግብይቶችዎን ይመልከቱ" },
-    { command: "bonus", description: "የቦነስ ነጥቦችዎን ይመልከቱ" },
-    { command: "status", description: "የመለያዎን ሁኔታ ይመልከቱ" }
-];
-
-async function configurePlayerTelegramCommands() {
-    return telegramApi("setMyCommands", { commands: PLAYER_TELEGRAM_COMMANDS });
+#walletScreen,#profileScreen{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  padding-bottom:90px!important;
+}
+#gameStakeLobby{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+}
+#bingoGame .cartelaChooser{
+  min-height:0!important;
+  overflow:visible!important;
+}
+#bingoGame .cartelaPicker{
+  overscroll-behavior-y:none!important;
 }
 
-/* setMyCommands creates the Telegram command menu only. Register the actual
-   webhook as well, otherwise Telegram has nowhere to deliver player commands. */
-async function configurePlayerTelegramWebhook() {
-    if (!TELEGRAM_BOT_TOKEN || !PUBLIC_APP_URL) return { ok:false, skipped:true };
-    const payload = {
-        url: `${PUBLIC_APP_URL}/api/admin/telegram/webhook`,
-        allowed_updates: ["message", "callback_query"]
+/* WALLET HEADER + HELP */
+.walletPageHead{display:flex;align-items:center;justify-content:space-between;padding:0 8px 2px;}
+.walletPageHead .pageTitle{margin:0;}
+.walletHelpBtn{width:34px;height:34px;border:1px solid #632020;border-radius:50%;background:#171717;color:#ffd43c;font-size:20px;font-weight:900;line-height:1;cursor:pointer;touch-action:manipulation;}
+.walletHelpBtn:active{transform:scale(.95);}
+
+/* BINGO — same compact live-game language as Keno reference */
+.bingoLiveLayout{display:grid;grid-template-columns:72px 1fr 112px;align-items:center;gap:6px;margin:3px 6px 2px;min-height:178px;}
+.bingoLastColumn{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.bingoSectionLabel,.bingoDrawLabel,.bingoRecentLabel{color:#aaa;font-size:10px;font-weight:700;text-align:center;letter-spacing:.2px;}
+.bingoLastBall{width:43px;height:43px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#555,#191919 62%,#090909);border:2px solid #6f2525;color:#fff;font-size:13px;font-weight:900;box-shadow:inset 0 2px 7px rgba(255,255,255,.08),0 0 5px rgba(160,0,0,.25);}
+.bingoCenterColumn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;}
+.bingoDrawLabel{margin-bottom:3px;}
+.bingoBilliardBall{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,#fff 0,#f7f7f7 48%,#d7d7d7 78%,#aaa 100%);border:7px solid #f5b900;box-shadow:0 0 0 3px #ffcf33,0 0 22px rgba(255,187,0,.35),inset -9px -10px 18px rgba(0,0,0,.16),inset 8px 8px 15px rgba(255,255,255,.9);}
+.bingoBilliardBall span{color:#111;font-size:38px;font-weight:1000;line-height:1;text-shadow:0 1px 0 #fff;}
+.bingoBilliardBall span.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+.bingoStatsColumn{display:flex;flex-direction:column;gap:7px;}
+.bingoStatBox{height:58px;border-radius:12px;background:#202020;border:1px solid #4b2929;display:flex;flex-direction:column;justify-content:center;padding:0 9px;box-sizing:border-box;box-shadow:inset 0 0 10px rgba(0,0,0,.35);}
+.bingoStatBox strong{font-size:19px;color:#fff;line-height:1.05;}.bingoStatBox span{font-size:10px;color:#aaa;margin-top:2px;}
+.bingoRecentLabel{text-align:left;margin:1px 8px 2px;}
+.bingoRecentCalls{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:2px 7px 4px;scrollbar-width:none;white-space:nowrap;}
+.bingoRecentCalls::-webkit-scrollbar{display:none;}
+.bingoRecentCalls .recentBall{flex:0 0 35px;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#151515;border:2px solid #672525;color:#fff;font-size:10px;font-weight:900;}
+.bingoMarkControls{display:grid;grid-template-columns:1fr 1fr auto;gap:5px;align-items:center;margin:4px 6px 6px;}
+.bingoModeBtn{min-height:30px;border:1px solid #632020;border-radius:7px;background:#190909;color:#ffd43b;font-weight:900;font-size:10px;touch-action:manipulation;}
+.bingoModeBtn.active{background:linear-gradient(180deg,#ffcf3b,#bd7900);color:#160900;border-color:#ffe47b;}
+#bingoMarkModeText{font-size:8px;color:#aaa;white-space:nowrap;}
+/* One vertical scroll surface for the whole live game; Cartela numbers scroll horizontally only. */
+#bingoGame .cartelaPicker{display:grid!important;grid-template-rows:repeat(5,24px)!important;grid-auto-flow:column!important;grid-auto-columns:28px!important;grid-template-columns:none!important;gap:4px!important;max-height:132px!important;height:132px!important;overflow-x:auto!important;overflow-y:hidden!important;white-space:normal!important;padding:4px!important;touch-action:pan-x!important;}
+#bingoGame .cartelaPick{height:24px!important;min-height:24px!important;width:28px!important;font-size:8px!important;padding:0!important;touch-action:manipulation!important;}
+/* Prevent accidental transparent/overlay layers from blocking game controls. */
+#kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
+</style>
+</head>
+
+    <body>
+
+    <!-- ======================================================
+         ACCOUNT
+    ====================================================== -->
+
+    <section id="accountScreen" class="hidden">
+
+      <div class="accountPanel">
+
+        <div class="accountLogo">DESTA PLAY</div>
+
+        <div class="accountWelcome" id="accountWelcome">
+          Welcome. Create your DESTA PLAY account.
+        </div>
+
+        <div class="accountInfo">
+
+          <div class="accountInfoRow">
+            <span>Telegram name</span>
+            <span id="telegramName">Loading...</span>
+          </div>
+
+          <div class="accountInfoRow">
+            <span>Player ID</span>
+            <span id="playerId">Generating...</span>
+          </div>
+
+        </div>
+
+        <div id="accountCreateFields">
+          <label class="accountLabel">
+            PHONE NUMBER
+          </label>
+
+          <input
+            id="registrationPhone"
+            class="accountInput"
+            type="tel"
+            autocomplete="tel"
+            placeholder="Share your Telegram phone number"
+            readonly>
+
+          <button
+            class="accountBtn"
+            type="button"
+            onclick="shareRegistrationPhone()">
+            SHARE PHONE NUMBER THROUGH TELEGRAM
+          </button>
+
+          <div id="registrationPhoneStatus" class="accountMessage"></div>
+
+          <label class="accountLabel">
+            DESTA PLAY PASSWORD
+          </label>
+
+          <input
+            id="password"
+            class="accountInput"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Create password">
+
+          <label class="accountLabel">
+            CONFIRM PASSWORD
+          </label>
+
+          <input
+            id="passwordConfirm"
+            class="accountInput"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Confirm password">
+
+          <label class="accountLabel">
+            INVITATION CODE (OPTIONAL)
+          </label>
+
+          <input
+            id="registrationReferralCode"
+            class="accountInput"
+            type="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            placeholder="Enter invitation code (optional)">
+
+          <button
+            class="accountBtn"
+            onclick="createAccount()">
+            CREATE ACCOUNT
+          </button>
+
+        </div>
+
+        <div id="accountLoginFields" class="hidden">
+          <label class="accountLabel">PHONE NUMBER</label>
+          <input id="loginPhone" class="accountInput" type="tel" autocomplete="tel" placeholder="Enter your registered phone number">
+          <label class="accountLabel">DESTA PLAY PASSWORD</label>
+          <input id="loginPassword" class="accountInput" type="password" autocomplete="current-password" placeholder="Enter your password">
+          <button class="accountBtn" type="button" onclick="loginAccount()">LOGIN</button>
+          <button class="accountBtn" type="button" onclick="showForgotPassword()">FORGOT PASSWORD</button>
+          <button class="accountBtn" type="button" onclick="showCreateAccount()">CREATE ACCOUNT</button>
+        </div>
+
+        <div id="accountResetFields" class="hidden">
+          <label class="accountLabel">PHONE NUMBER</label>
+          <input id="resetPhone" class="accountInput" type="tel" autocomplete="tel" placeholder="Enter your registered phone number">
+
+          <button class="accountBtn" type="button" onclick="requestPasswordReset()">
+            SEND RECOVERY CODE
+          </button>
+
+          <div id="resetCodeFields" class="hidden">
+            <label class="accountLabel">RECOVERY CODE</label>
+            <input id="resetCode" class="accountInput" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="Enter the 6-digit code">
+            <button class="accountBtn" type="button" onclick="verifyPasswordResetCode()">
+              VERIFY CODE
+            </button>
+          </div>
+
+          <div id="resetNewPasswordFields" class="hidden">
+            <label class="accountLabel">NEW PASSWORD</label>
+            <input id="resetNewPassword" class="accountInput" type="password" autocomplete="new-password" placeholder="Create new password">
+
+            <label class="accountLabel">CONFIRM NEW PASSWORD</label>
+            <input id="resetNewPasswordConfirm" class="accountInput" type="password" autocomplete="new-password" placeholder="Confirm new password">
+
+            <button class="accountBtn" type="button" onclick="completePasswordReset()">
+              CREATE NEW PASSWORD
+            </button>
+          </div>
+
+          <button class="accountBtn" type="button" onclick="cancelPasswordReset()">
+            BACK TO HOME
+          </button>
+        </div>
+
+        <div
+          id="accountMessage"
+          class="accountMessage">
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         HOME
+    ====================================================== -->
+
+    <section id="home" class="hidden" style="height:calc(100vh - 68px);overflow:hidden;box-sizing:border-box;">
+
+      <div class="homeHeader">
+
+        <div class="logo">
+          DESTA PLAY
+        </div>
+
+      </div>
+
+      <div class="languageBox">
+
+        <button
+          id="langEN"
+          class="active"
+          onclick="setLanguage('en')">
+          English
+        </button>
+
+        <button
+          id="langAM"
+          onclick="setLanguage('am')">
+          አማርኛ
+        </button>
+
+      </div>
+
+      <div class="playerSummary">
+
+        <div>
+          <small>Player</small><br>
+          <strong id="homePlayerName">Player</strong>
+        </div>
+
+        <div>
+          <small>ID</small><br>
+          <strong id="homePlayerId">DP-000000</strong>
+        </div>
+
+      </div>
+
+      <div class="gameGrid">
+
+        <div class="gameCard">
+
+          <h3>BINGO</h3>
+
+          <div class="bingoHomeBalls">
+            <span>7</span>
+            <span>30</span>
+            <span>52</span>
+            <span>71</span>
+          </div>
+
+          <small>Cartela • Draw</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('bingo')">
+            PLAY
+          </button>
+
+        </div>
+
+
+        <div class="gameCard">
+
+          <h3>KENO</h3>
+
+          <div class="kenoHome">
+            <span>7</span>
+            <span>22</span>
+            <span>31</span>
+            <span>48</span>
+            <span>73</span>
+          </div>
+
+          <small>1–80 • 20 Draw</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('keno')">
+            PLAY
+          </button>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         GAME SCREEN
+    ====================================================== -->
+
+    <section id="gameScreen">
+
+      <header class="gameHeader">
+
+        <button class="gameBackBtn" type="button" onclick="backToGames()">← GAMES</button>
+
+        <div class="roundInfo">
+          ROUND <span id="roundNumber">----</span>
+        </div>
+
+        <div class="headerRight">
+
+          <div class="balance">
+            💰 <span id="balance">0.00</span> ETB
+          </div>
+
+          <button
+            class="helpBtn"
+            onclick="openHelp()">
+            ?
+          </button>
+
+          <button
+            class="helpBtn voiceBtn"
+            id="voiceToggle"
+            type="button"
+            onclick="activateGameVoice()"
+            aria-label="Activate game voice">
+            🔊
+          </button>
+
+        </div>
+
+      </header>
+
+
+      <section id="gameStakeLobby" class="stakeLobby hidden">
+        <div class="stakeLobbyHead">
+          <h2 id="stakeLobbyTitle">STAKE</h2>
+          <p>Choose your stake. The number of players at each stake is shown below.</p>
+        </div>
+        <div class="stakeTimer">
+          <strong id="stakeLobbyTimer">--</strong>
+          <span>SECONDS</span>
+        </div>
+        <div id="stakeLobbyGrid" class="stakeGrid"></div>
+        <div class="stakeWalletChoice">
+          <div class="stakeWalletLabel">PLAY WITH:</div>
+          <div class="stakeWalletButtons">
+            <button id="stakeWalletBonus" class="stakeWalletBtn" type="button" onclick="selectStakeWallet('bonus')">⭐ BONUS</button>
+            <button id="stakeWalletCash" class="stakeWalletBtn active" type="button" onclick="selectStakeWallet('cash')">💰 REAL MONEY</button>
+          </div>
+          <div class="stakeWalletBalances">
+            <span id="stakeBonusBalance">Bonus: 0 pts</span>
+            <span id="stakeCashBalance">Cash: 0 ETB</span>
+          </div>
+        </div>
+        <div id="stakeLobbyStatus" class="stakeLobbyStatus">Select a stake to continue.</div>
+        <div class="stakeActionRow"><button id="stakeLobbyJoin" class="stakeJoin" type="button" disabled>JOIN</button><button id="stakeLobbyWatch" class="stakeWatch" type="button">WATCH LIVE</button></div>
+      </section>
+
+      <div
+        class="gameTitle"
+        id="gameTitle">
+        KENO
+      </div>
+
+
+      <main class="gameArea">
+
+
+        <!-- ==================================================
+             KENO
+        ================================================== -->
+
+        <div id="kenoGame" class="hidden">
+
+          <div class="selectedStakeBanner">STAKE: <span id="kenoSelectedStakeDisplay">—</span> ETB</div>
+          <div class="countdown" id="kenoCountdown">BETTING 40s</div>
+
+          <section class="kenoLiveLayout" aria-label="Keno live game">
+            <div class="kenoLastColumn">
+              <div class="kenoSectionLabel">LAST</div>
+              <div class="kenoLastBall" id="kenoLast1">—</div>
+              <div class="kenoLastBall" id="kenoLast2">—</div>
+              <div class="kenoLastBall" id="kenoLast3">—</div>
+            </div>
+
+            <div class="kenoCenterColumn">
+              <div class="kenoDrawLabel">DRAWN NUMBER</div>
+              <div class="kenoBilliardBall" id="kenoDrawCircle" aria-label="Latest Keno drawn number">
+                <span id="kenoLatestDraw">—</span>
+              </div>
+              <div class="drawStatus" id="kenoDrawStatus">Waiting for draw...</div>
+            </div>
+
+            <div class="kenoStatsColumn">
+              <div class="kenoStatBox">
+                <strong id="kenoCallsStat">0</strong>
+                <span>CALLS</span>
+              </div>
+              <div class="kenoStatBox">
+                <strong id="kenoPlayersStat">0</strong>
+                <span>PLAYERS</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="kenoRecentLabel">RECENT CALLS</div>
+          <div class="kenoRecentCalls" id="kenoRecentCalls"></div>
+
+          <div class="kenoSelectedRows">
+            <div class="selectedRow">
+              <strong>SLOT 1</strong>
+              <div id="kenoSlot1Numbers"><span class="muted">No numbers</span></div>
+            </div>
+            <div class="selectedRow">
+              <strong>SLOT 2</strong>
+              <div id="kenoSlot2Numbers"><span class="muted">No numbers</span></div>
+            </div>
+          </div>
+
+          <div class="kenoBoard" id="kenoBoard"></div>
+
+          <div id="kenoDrawBalls" aria-hidden="true" style="display:none"></div>
+
+          <div class="betSlots">
+            <div class="betSlot" id="kenoBetSlot1" onclick="activateKenoSlot(1)">
+              <div class="slotTitle">SLOT 1</div>
+              <div class="slotNumbersInline" id="kenoBetSlot1Numbers"><span class="muted">Choose 3–10 numbers</span></div>
+              <div class="selectedStakeBanner" style="margin:4px 0">STAKE: <span id="k1StakeDisplay">—</span> ETB</div>
+              <div class="livePayout" id="kenoPayout1"></div>
+              <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(1)">PLACE BET</button>
+            </div>
+            <div class="betSlot" id="kenoBetSlot2" onclick="activateKenoSlot(2)">
+              <div class="slotTitle">SLOT 2</div>
+              <div class="slotNumbersInline" id="kenoBetSlot2Numbers"><span class="muted">Choose 3–10 numbers</span></div>
+              <div class="selectedStakeBanner" style="margin:4px 0">STAKE: <span id="k2StakeDisplay">—</span> ETB</div>
+              <div class="livePayout" id="kenoPayout2"></div>
+              <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(2)">PLACE BET</button>
+            </div>
+          </div>
+
+          <div class="feed">
+            <div class="feedRow"><span>Active slot</span><span id="activeKenoSlot">SLOT 1</span></div>
+            <div class="feedRow"><span>Slot 1 selected</span><span id="kenoSelected1">0 / 10</span></div>
+            <div class="feedRow"><span>Slot 2 selected</span><span id="kenoSelected2">0 / 10</span></div>
+            <div class="feedRow"><span>Players in round</span><span id="kenoPlayers">0</span></div>
+          </div>
+
+          <div class="historyBox">
+            <div class="historyHeader">LAST 10 KENO ROUNDS</div>
+            <div id="kenoHistory"></div>
+          </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             BINGO
+        ================================================== -->
+
+        <div id="bingoGame" class="hidden">
+
+          <div id="bingoStakeScreen" class="bingoStakeScreen hidden">
+
+            <div class="pageTitle" style="margin:12px 0 8px">BINGO STAKE</div>
+
+            <div style="text-align:center;color:#aaa;font-size:11px;margin-bottom:10px">Choose your stake before entering Bingo.</div>
+
+            <div class="amountGrid" id="bingoStakeAmounts"></div>
+
+            <button class="placeBtn" id="bingoEnterButton" onclick="enterBingoWithStake()" disabled>
+              ENTER BINGO
+            </button>
+
+          </div>
+
+          <div id="bingoPlayArea" class="hidden">
+
+          <div class="selectedStakeBanner">STAKE: <span id="bingoSelectedStakeDisplay">—</span> ETB</div>
+
+          <div class="countdown" id="bingoCountdown">
+            BETTING 30s
+          </div>
+
+          <section class="bingoLiveLayout" aria-label="Bingo live game">
+            <div class="bingoLastColumn">
+              <div class="bingoSectionLabel">LAST</div>
+              <div class="bingoLastBall" id="bingoLast1">—</div>
+              <div class="bingoLastBall" id="bingoLast2">—</div>
+              <div class="bingoLastBall" id="bingoLast3">—</div>
+            </div>
+
+            <div class="bingoCenterColumn">
+              <div class="bingoDrawLabel">DRAWN NUMBER</div>
+              <div class="bingoBilliardBall" id="bingoDrawCircle" aria-label="Latest Bingo drawn number">
+                <span id="bingoLatestDraw">—</span>
+              </div>
+              <div class="drawStatus" id="bingoStatus">Waiting for next draw...</div>
+            </div>
+
+            <div class="bingoStatsColumn">
+              <div class="bingoStatBox">
+                <strong id="bingoCallsStat">0</strong>
+                <span>CALLS</span>
+              </div>
+              <div class="bingoStatBox">
+                <strong id="bingoPlayersStat">0</strong>
+                <span>PLAYERS</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="bingoRecentLabel">RECENT CALLS</div>
+          <div class="bingoRecentCalls" id="bingoRecentCalls"></div>
+
+          <div class="bingoMarkControls" aria-label="Cartela marking mode">
+            <button type="button" id="bingoAutoBtn" class="bingoModeBtn active" onclick="setBingoMarkMode('auto')">AUTO</button>
+            <button type="button" id="bingoManualBtn" class="bingoModeBtn" onclick="setBingoMarkMode('manual')">MANUAL</button>
+            <span id="bingoMarkModeText">AUTO MARK</span>
+          </div>
+
+          <div class="cartelaChooser">
+
+            <div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:900;margin:8px 0 4px">
+              CHOOSE YOUR CARTELA
+            </div>
+
+            <div
+              class="cartelaPicker"
+              id="cartelaPicker">
+            </div>
+
+          </div>
+
+          <div class="cartelaTabs">
+
+            <div
+              class="cartelaTab active"
+              id="cartelaTab1"
+              onclick="selectCartela(1)">
+              CARTELA 1
+            </div>
+
+            <div
+              class="cartelaTab"
+              id="cartelaTab2"
+              onclick="selectCartela(2)">
+              CARTELA 2
+            </div>
+
+          </div>
+
+          <div
+            class="cartelaGridWrap"
+            id="cartelaGridWrap">
+          </div>
+
+          <div
+            class="cartelaStatus"
+            id="cartelaStatus">
+            Choose a Cartela from 1 to 120.
+          </div>
+
+          <div class="betSlots">
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                CARTELA 1 BET
+              </div>
+
+              <div
+                id="bingoAmount1"
+                style="text-align:center;color:#ffd43c;font-weight:bold">
+                10 ETB
+              </div>
+
+              <button
+                class="placeBtn"
+                id="bingoPlaceBtn1"
+                type="button"
+                onclick="placeBingoBet(1)">
+                PLACE BET
+              </button>
+
+              <div
+                class="livePayout"
+                id="bingoPayout1">
+              </div>
+
+            </div>
+
+
+            <div class="betSlot">
+
+              <div class="slotTitle">
+                CARTELA 2 BET
+              </div>
+
+              <div
+                id="bingoAmount2"
+                style="text-align:center;color:#ffd43c;font-weight:bold">
+                10 ETB
+              </div>
+
+              <button
+                class="placeBtn"
+                id="bingoPlaceBtn2"
+                type="button"
+                onclick="placeBingoBet(2)">
+                PLACE BET
+              </button>
+
+              <div
+                class="livePayout"
+                id="bingoPayout2">
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="amountGrid" id="bingoAmounts"></div>
+
+          </div>
+
+        </div>
+
+
+      </main>
+
+
+      <div class="mainTabs">
+
+        <button
+          id="tabMy"
+          class="active"
+          onclick="showTab('my')">
+          MY BETS
+        </button>
+
+        <button
+          id="tabTop"
+          onclick="showTab('top')">
+          TOP
+        </button>
+
+      </div>
+
+      <div
+        id="topSubTabs"
+        class="subTabs hidden">
+
+        <button
+          class="active"
+          onclick="showTop('daily',this)">
+          DAILY
+        </button>
+
+        <button
+          onclick="showTop('weekly',this)">
+          WEEKLY
+        </button>
+
+        <button
+          onclick="showTop('monthly',this)">
+          MONTHLY
+        </button>
+
+      </div>
+
+      <div
+        id="feedPanel"
+        class="feed">
+
+        <div id="feedContent"></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         WALLET
+    ====================================================== -->
+
+    <section id="walletScreen">
+
+      <button class="pageBackBtn" type="button" onclick="showPage('home')">← BACK</button>
+
+      <div class="walletPageHead">
+        <div class="pageTitle">WALLET</div>
+        <button class="walletHelpBtn" type="button" onclick="openWalletHelp()" aria-label="Wallet help">?</button>
+      </div>
+
+      <div class="walletBalance">
+        <small>AVAILABLE BALANCE</small>
+        <strong><span id="walletBalance">0.00</span> ETB</strong>
+      </div>
+
+      <div class="walletStats">
+        <div class="walletStat"><small>WITHDRAWABLE</small><strong><span id="withdrawableBalance">0.00</span> ETB</strong></div>
+        <div class="walletStat"><small>LOCKED DEPOSIT</small><strong><span id="lockedBalance">0.00</span> ETB</strong></div>
+      </div>
+
+      <div class="walletButtons">
+        <button class="walletBtn" onclick="openDeposit()">DEPOSIT</button>
+        <button class="walletBtn" onclick="openWithdraw()">WITHDRAW</button>
+      </div>
+
+      <div class="walletCard">
+        <h3>TRANSACTIONS</h3>
+        <div id="transactions">No transactions yet.</div>
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         PROFILE
+    ====================================================== -->
+
+    <section id="profileScreen">
+
+      <button class="pageBackBtn" type="button" onclick="showPage('home')">← BACK</button>
+
+      <div class="pageTitle">
+        PROFILE
+      </div>
+
+      <div class="profileCard">
+
+        <div class="profileRow">
+          <span>Telegram name</span>
+          <span id="profileName">—</span>
+        </div>
+
+        <div class="profileRow">
+          <span>Player ID</span>
+          <span id="profileId">—</span>
+        </div>
+
+        <div class="profileRow">
+          <span>Balance</span>
+          <span>
+            <span id="profileBalance">0.00</span> ETB
+          </span>
+        </div>
+
+        <div class="profileRow">
+          <span>Account</span>
+          <span>ACTIVE</span>
+        </div>
+
+      </div>
+
+      <div class="profileCard inviteCard" style="margin-top:12px">
+        <h3>INVITATION</h3>
+        <p>Invite 1 player and earn <strong>10 bonus points</strong>.</p>
+        <div class="profileRow"><span>Your Invite Code</span><strong id="profileInviteCode">—</strong></div>
+        <div class="profileRow"><span>Players Invited</span><strong id="profileInviteCount">0</strong></div>
+        <div class="profileRow"><span>Points Earned</span><strong id="profileInviteEarnedPoints">0.00</strong></div>
+        <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
+        <div class="profileRow"><span>Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
+        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
+        <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
+        <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
+        <div id="inviteStatus" class="walletStatus"></div>
+      </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         BOTTOM MENU
+    ====================================================== -->
+
+    <nav class="bottomNav">
+
+      <button
+        id="navHome"
+        class="active"
+        onclick="showPage('home')">
+
+        <span>🏠</span>
+        HOME
+
+      </button>
+
+      <button
+        id="navGame"
+        onclick="showPage('game')">
+
+        <span>🎮</span>
+        GAME
+
+      </button>
+
+      <button
+        id="navWallet"
+        onclick="showPage('wallet')">
+
+        <span>👛</span>
+        WALLET
+
+      </button>
+
+      <button id="navProfile" onclick="showPage('profile')">
+        <span>👤</span>
+        PROFILE
+      </button>
+
+    </nav>
+
+
+    <!-- ======================================================
+         HELP
+    ====================================================== -->
+
+    <div
+      id="helpOverlay"
+      class="helpOverlay hidden">
+
+      <div class="helpPanel">
+
+        <h2 id="helpTitle">
+          How to Play
+        </h2>
+
+        <div id="helpContent"></div>
+
+        <button
+          class="closeHelp"
+          onclick="closeHelp()">
+          CLOSE
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <script>
+
+    /* =========================================================
+       TELEGRAM
+    ========================================================= */
+
+    const tg =
+      window.Telegram &&
+      window.Telegram.WebApp
+        ? window.Telegram.WebApp
+        : null;
+
+    if(tg){
+
+      tg.ready();
+      tg.expand();
+
+    }
+
+
+    /* =========================================================
+       STATE
+    ========================================================= */
+
+    const state = {
+
+      language:"en",
+
+      page:"home",
+
+      game:"keno",
+
+      balance:0,
+
+      accountCreated:false,
+
+      playerId:"",
+
+      telegramId:"",
+
+      telegramUsername:"",
+
+      telegramName:"Player",
+
+      referralCode:(new URLSearchParams(location.search).get("ref") || "").trim(),
+
+      telegramStartApp:"",
+
+      rounds:{
+        keno:0,
+        bingo:0,
+        roulette:0,
+        aviator:0
+      },
+
+      displayRoundCounters:{
+        keno:0,
+        bingo:0,
+        roulette:0,
+        aviator:0
+      },
+
+      displayRoundSeen:{
+        keno:"",
+        bingo:"",
+        roulette:"",
+        aviator:""
+      },
+
+      bingoSelectedStake:null,
+
+      kenoSelectedStake:null,
+
+      stakeLobbyGame:"",
+      watchOnly:false,
+      stakeLobbyTimer:0,
+      stakeLobbyTimerId:null,
+      stakePlayerCounts:{},
+      selectedWalletType:"cash",
+      bonusPoints:0,
+      bonusPlayValue:0,
+
+      activeKenoSlot:1,
+
+      kenoSelections:{
+        1:[],
+        2:[]
+      },
+
+      kenoBets:{
+        1:null,
+        2:null
+      },
+
+      kenoDraw:[],
+
+      kenoHistory:[],
+
+      bingoAmounts:{
+        1:10,
+        2:10
+      },
+
+      bingoCartelas:{
+        1:null,
+        2:null
+      },
+
+      activeCartela:1,
+
+      bingoBoards:{
+        1:[],
+        2:[]
+      },
+
+      bingoMarks:{
+        1:[],
+        2:[]
+      },
+
+      bingoDraw:[],
+
+      bingoBets:{1:null,2:null},
+
+      bingoMarkMode:"auto",
+
+
+      rouletteSelection:{
+        1:{type:null,value:null},
+        2:{type:null,value:null}
+      },
+
+      rouletteActiveSlot:1,
+
+      rouletteWinner:null,
+
+      rouletteHistory:[],
+
+      rouletteAnimatedRoundId:"",
+
+      aviatorBets:{
+        1:null,
+        2:null
+      },
+
+      aviatorHistory:[],
+
+      aviatorCrash:1,
+
+      aviatorMultiplier:1,
+
+      bettingOpen:true,
+
+      countdown:40,
+
+      bettingOpenByGame:{
+        keno:false,
+        bingo:false,
+        roulette:false,
+        aviator:false
+      },
+
+      serverRoundIds:{
+        keno:"",
+        bingo:"",
+        roulette:"",
+        aviator:""
+      },
+
+      roundIds:{
+        keno:"",
+        bingo:"",
+        roulette:"",
+        aviator:""
+      },
+
+      /* Telegram /startapp command target. Reserved values open the
+         requested DESTA PLAY page after Telegram authentication. */
+      commandTarget:""
+
     };
-    if (TELEGRAM_WEBHOOK_SECRET) payload.secret_token = TELEGRAM_WEBHOOK_SECRET;
-    const result = await telegramApi("setWebhook", payload);
-    if (result.ok) console.log(`[TELEGRAM] Webhook configured: ${payload.url}`);
-    else console.error("[TELEGRAM] Webhook configuration failed:", result.error || result);
-    return result;
-}
 
-async function sendAdminTelegramMessage(text, replyMarkup = null) {
-    if (!ADMIN_TELEGRAM_ID) {
-        console.warn("[ADMIN] ADMIN_TELEGRAM_ID is not configured");
-        return { ok: false, skipped: true };
-    }
 
-    return telegramApi("sendMessage", {
-        chat_id: ADMIN_TELEGRAM_ID,
-        text,
-        parse_mode: "HTML",
-        ...(replyMarkup ? { reply_markup: replyMarkup } : {})
-    });
-}
+    /* =========================================================
+       TELEGRAM USER
+    ========================================================= */
 
-async function sendAdminGroupAudit(text) {
-    if (!ADMIN_PRIVATE_GROUP_ID) {
-        console.warn("[ADMIN] ADMIN_PRIVATE_GROUP_ID is not configured");
-        return { ok: false, skipped: true };
-    }
+    function loadTelegramUser(){
 
-    return telegramApi("sendMessage", {
-        chat_id: ADMIN_PRIVATE_GROUP_ID,
-        text,
-        parse_mode: "HTML"
-    });
-}
+      if(tg && tg.initDataUnsafe){
 
-function transactionDescription(data) {
-    return safeJson({
-        edition: data.edition || null,
-        method: data.method || null,
-        recipient: data.recipient || null,
-        senderPhone: data.senderPhone || null,
-        recipientPhone: data.recipientPhone || null,
-        transactionId: data.transactionId || null,
-        referenceId: data.referenceId || null,
-        requestId: data.requestId || null,
-        requestedAt: data.requestedAt || null,
-        smsText: data.smsText || null
-    });
-}
+        const user=
+          tg.initDataUnsafe.user;
 
-async function findTransactionById(id) {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+        if(user){
 
-    if (error) {
-        await dbError("findTransactionById", error);
-        throw new Error("Transaction lookup failed");
-    }
+          state.telegramStartApp=
+            String(tg.initDataUnsafe.start_param || "").trim().toLowerCase();
 
-    return data;
-}
+          const commandTargets = new Set([
+            "home","wallet","profile","support","invite","deposit",
+            "withdraw","transactions","bonus","status","bingo","keno"
+          ]);
 
-async function findPendingDeposits() {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("*")
-        .eq("type", "deposit")
-        .eq("status", "PENDING")
-        .order("created_at", { ascending: true })
-        .limit(100);
+          if(commandTargets.has(state.telegramStartApp)){
+            state.commandTarget=state.telegramStartApp;
+          }else if(state.telegramStartApp && !state.referralCode){
+            /* Non-command startapp values remain referral codes. */
+            state.referralCode=state.telegramStartApp;
+          }
 
-    if (error) {
-        await dbError("findPendingDeposits", error);
-        throw new Error("Could not load pending deposits");
-    }
+          state.telegramId=
+            String(user.id || "");
 
-    return data || [];
-}
+          state.telegramUsername=
+            String(user.username || "");
 
-async function hasSuccessfulDepositReference(referenceId) {
-    const ref = normalizeReference(referenceId);
-    if (!ref) return false;
-
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("id")
-        .eq("type", "deposit")
-        .eq("reference_id", ref)
-        .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
-        .limit(1);
-
-    if (error) {
-        await dbError("hasSuccessfulDepositReference", error);
-        throw new Error("Could not check duplicate payment reference");
-    }
-
-    return Array.isArray(data) && data.length > 0;
-}
-
-const paymentProcessingLocks = new Set();
-
-async function approveDepositTransaction(transaction, verification) {
-    if (!transaction) throw new Error("Deposit transaction not found");
-
-    const referenceId = normalizeReference(
-        verification.referenceId || transaction.reference_id
-    );
-
-    if (!referenceId) {
-        throw new Error("Payment reference is required");
-    }
-
-    if (paymentProcessingLocks.has(referenceId)) {
-        throw new Error("Payment verification is already being processed");
-    }
-
-    paymentProcessingLocks.add(referenceId);
-
-    try {
-        if (await hasSuccessfulDepositReference(referenceId)) {
-            throw new Error("This payment has already been credited");
-        }
-
-        const pending = await findTransactionById(transaction.id);
-
-        if (!pending || pending.status !== "PENDING") {
-            if (pending?.status === "SUCCESS" || pending?.status === "APPROVED" || pending?.status === "COMPLETED") {
-                throw new Error("This payment has already been credited");
-            }
-            throw new Error("Deposit is no longer pending");
-        }
-
-        const expectedAmount = Number(pending.amount);
-        const actualAmount = Number(verification.amount);
-
-        if (!Number.isFinite(actualAmount) || actualAmount !== expectedAmount) {
-            throw new Error("Payment amount does not match the pending deposit");
-        }
-
-        const { data: marked, error: markError } = await supabase
-            .from("transactions")
-            .update({
-                status: "APPROVED",
-                reference_id: referenceId,
-                description: transactionDescription({
-                    edition: 4,
-                    method: "telebirr",
-                    recipient: verification.receiver || null,
-                    senderPhone: verification.senderPhone || null,
-                    transactionId: referenceId,
-                    referenceId,
-                    requestId: pending.id,
-                    requestedAt: pending.created_at,
-                    smsText: verification.smsText || null
-                })
-            })
-            .eq("id", pending.id)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
-
-        if (markError) {
-            await dbError("approveDepositTransaction mark", markError);
-            throw new Error("Could not approve deposit");
-        }
-
-        if (!marked) {
-            throw new Error("Deposit was already processed or changed");
-        }
-
-        const balanceAfter = await changeBalance({
-            playerId: pending.player_id,
-            amount: expectedAmount,
-            type: "deposit_credit",
-            description: "Verified Telebirr deposit",
-            roundId: referenceId,
-            metadata: {
-                referenceId,
-                verifiedAmount: expectedAmount,
-                sender: verification.sender || null,
-                senderPhone: verification.senderPhone || null,
-                receiver: verification.receiver || null,
-                receiverPhone: verification.receiverPhone || null,
-                smsTime: verification.smsTime || null
-            }
-        });
-
-        /* FIRST DEPOSIT BONUS: 300% as bonus points.
-         * Bonus points are separate from cash balance.
-         * Play value: 1 point = 1 ETB. Withdrawal value: 10 points = 1 ETB.
-         */
-        try {
-            const { data: priorCredits, error: priorCreditError } = await supabase
-                .from("transactions")
-                .select("id")
-                .eq("player_id", pending.player_id)
-                .eq("type", "deposit_credit")
-                .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
-                .limit(2);
-
-            if (priorCreditError) throw priorCreditError;
-
-            if (!Array.isArray(priorCredits) || priorCredits.length <= 1) {
-                const bonusPoints = Number((expectedAmount * 3).toFixed(2));
-                if (bonusPoints > 0) {
-                    await writeBonusTransaction({
-                        playerId: pending.player_id,
-                        points: bonusPoints,
-                        type: "first_deposit_bonus",
-                        description: JSON.stringify({
-                            reason: "300% first deposit bonus",
-                            depositAmount: expectedAmount,
-                            bonusPoints
-                        }),
-                        referenceId
-                    });
-                }
-            }
-        } catch (bonusError) {
-            console.error("[BONUS] First deposit bonus could not be recorded:", bonusError);
-        }
-
-        await sendAdminGroupAudit(
-            `DEPOSIT VERIFIED\nPlayer: ${pending.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`
-        );
-
-        return {
-            transaction: marked,
-            balanceAfter,
-            referenceId
-        };
-    } finally {
-        paymentProcessingLocks.delete(referenceId);
-    }
-}
-
-function withdrawalReplyMarkup(requestId) {
-    return {
-        inline_keyboard: [
+          state.telegramName=
             [
-                { text: "ACCEPT", callback_data: `dpw:accept:${requestId}` },
-                { text: "REJECT", callback_data: `dpw:reject:${requestId}` },
-                { text: "COMPLETED", callback_data: `dpw:completed:${requestId}` }
+              user.first_name || "",
+              user.last_name || ""
             ]
-        ]
+            .join(" ")
+            .trim() ||
+            user.username ||
+            "Player";
+
+        }
+
+      }
+
+      if(!state.telegramName)
+        state.telegramName="Player";
+
+      const savedRegistrationPhone=localStorage.getItem("destaRegistrationPhone") || "";
+      const registrationPhoneInput=document.getElementById("registrationPhone");
+      if(registrationPhoneInput) registrationPhoneInput.value=savedRegistrationPhone;
+
+      state.playerId=
+        createPlayerId(
+          state.telegramId
+        );
+
+      document
+        .getElementById("telegramName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("playerId")
+        .textContent=
+          state.playerId;
+
+    }
+
+
+    function createPlayerId(telegramId){
+
+      if(telegramId){
+
+        const digits=
+          telegramId
+            .replace(/\D/g,"")
+            .slice(-6);
+
+        return "DP-"+digits.padStart(6,"0");
+
+      }
+
+      let stored=
+        localStorage.getItem(
+          "destaPlayerId"
+        );
+
+      if(!stored){
+
+        stored=
+          "DP-"+Math.floor(
+            100000+
+            Math.random()*900000
+          );
+
+        localStorage.setItem(
+          "destaPlayerId",
+          stored
+        );
+
+      }
+
+      return stored;
+
+    }
+
+
+    /* =========================================================
+       ACCOUNT
+    ========================================================= */
+
+    async function safeJsonResponse(response){
+      const text=await response.text();
+
+      if(!text){
+        return {};
+      }
+
+      try{
+        return JSON.parse(text);
+      }catch(error){
+        console.warn(
+          "Expected JSON but server returned non-JSON:",
+          response.url,
+          text.slice(0,200)
+        );
+        return {};
+      }
+    }
+
+    function clearAccountMessage(){
+      const message=document.getElementById("accountMessage");
+      if(message){
+        message.className="accountMessage";
+        message.textContent="";
+      }
+    }
+
+    function showCreateAccount(){
+      document.getElementById("accountWelcome").textContent="Welcome. Create your DESTA PLAY account.";
+      document.getElementById("accountResetFields").classList.add("hidden");
+      document.getElementById("accountLoginFields").classList.add("hidden");
+      document.getElementById("accountCreateFields").classList.remove("hidden");
+      const referralInput=document.getElementById("registrationReferralCode");
+      if(referralInput){
+        referralInput.value=state.referralCode || "";
+      }
+      clearAccountMessage();
+    }
+
+    function showLogin(){
+      document.getElementById("accountWelcome").textContent="Welcome back. Log in to DESTA PLAY.";
+      document.getElementById("accountCreateFields").classList.add("hidden");
+      document.getElementById("accountResetFields").classList.add("hidden");
+      document.getElementById("accountLoginFields").classList.remove("hidden");
+      const input=document.getElementById("loginPhone");
+      if(input && !input.value) input.value=localStorage.getItem("destaRegistrationPhone") || "";
+      clearAccountMessage();
+    }
+
+    function showForgotPassword(){
+      document.getElementById("accountWelcome").textContent="Forgot your DESTA PLAY password?";
+      document.getElementById("accountCreateFields").classList.add("hidden");
+      document.getElementById("accountLoginFields").classList.add("hidden");
+      document.getElementById("accountResetFields").classList.remove("hidden");
+      document.getElementById("resetCodeFields").classList.add("hidden");
+      document.getElementById("resetNewPasswordFields").classList.add("hidden");
+      passwordResetToken="";
+      const savedPhone=localStorage.getItem("destaResetPhone") || "";
+      document.getElementById("resetPhone").value=savedPhone;
+      document.getElementById("resetCode").value="";
+      clearAccountMessage();
+    }
+
+    let passwordResetToken="";
+
+    async function shareRegistrationPhone(){
+      const message=document.getElementById("accountMessage");
+      const status=document.getElementById("registrationPhoneStatus");
+      if(!tg || typeof tg.requestContact !== "function"){
+        if(status){ status.className="accountMessage error"; status.textContent="Telegram phone sharing is not available here. Open the Mini App from Telegram."; }
+        return;
+      }
+      if(status){ status.className="accountMessage"; status.textContent="Waiting for Telegram phone sharing…"; }
+      try{
+        tg.requestContact(async function(shared){
+          if(shared !== true && shared !== "true"){
+            if(status){ status.className="accountMessage error"; status.textContent="Phone sharing was cancelled."; }
+            return;
+          }
+          if(status){ status.className="accountMessage"; status.textContent="Phone shared. Checking…"; }
+          for(let i=0;i<15;i++){
+            try{
+              const response=await fetch("https://desta-play.onrender.com/api/account/registration-contact?telegramId="+encodeURIComponent(state.telegramId),{cache:"no-store",headers:{"Accept":"application/json"}});
+              const data=await safeJsonResponse(response);
+              if(response.ok && data.success && data.shared){
+                document.getElementById("registrationPhone").value=data.phone || "";
+                localStorage.setItem("destaRegistrationPhone",data.phone || "");
+                if(status){ status.className="accountMessage success"; status.textContent="Phone number received successfully."; }
+                return;
+              }
+            }catch(e){ console.warn("Registration phone check:",e); }
+            await new Promise(resolve=>setTimeout(resolve,800));
+          }
+          if(status){ status.className="accountMessage error"; status.textContent="Telegram sent the contact, but the server has not received it yet. Try again."; }
+        });
+      }catch(error){
+        if(status){ status.className="accountMessage error"; status.textContent=error.message || "Could not share phone number."; }
+      }
+    }
+
+    function cancelPasswordReset(){
+      passwordResetToken="";
+      document.getElementById("accountScreen").classList.add("hidden");
+      document.getElementById("home").classList.remove("hidden");
+      showHome();
+    }
+
+    function resetMessage(text, type=""){
+      const message=document.getElementById("accountMessage");
+      message.className="accountMessage" + (type ? " " + type : "");
+      message.textContent=text;
+    }
+
+    async function requestPasswordReset(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      if(!phone){ resetMessage("Enter your registered phone number.","error"); return; }
+      resetMessage("Sending recovery code through Telegram…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-request",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not send recovery code.");
+        document.getElementById("resetCodeFields").classList.remove("hidden");
+        document.getElementById("resetNewPasswordFields").classList.add("hidden");
+        localStorage.setItem("destaResetPhone",phone);
+        localStorage.setItem("destaResetRequestId",data.requestId || "");
+        resetMessage("A recovery code was sent by the Telegram bot. It is valid for 5 minutes.","success");
+      }catch(error){ console.error("Password reset request error:",error); resetMessage(error.message || "Could not send recovery code.","error"); }
+    }
+
+    async function verifyPasswordResetCode(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      const requestId=localStorage.getItem("destaResetRequestId") || "";
+      const code=document.getElementById("resetCode").value.trim();
+      if(!phone || !requestId || !code){ resetMessage("Enter the recovery code sent by Telegram.","error"); return; }
+      resetMessage("Verifying recovery code…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-verify-code",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone,requestId,code})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not verify recovery code.");
+        passwordResetToken=data.resetToken || "";
+        document.getElementById("resetCodeFields").classList.add("hidden");
+        document.getElementById("resetNewPasswordFields").classList.remove("hidden");
+        resetMessage("Code verified. Create your new password.","success");
+        document.getElementById("resetNewPassword").focus();
+      }catch(error){ console.error("Password reset code error:",error); resetMessage(error.message || "Could not verify recovery code.","error"); }
+    }
+
+    async function completePasswordReset(){
+      const phone=document.getElementById("resetPhone").value.trim();
+      const requestId=localStorage.getItem("destaResetRequestId") || "";
+      const password=document.getElementById("resetNewPassword").value;
+      const confirm=document.getElementById("resetNewPasswordConfirm").value;
+      if(!passwordResetToken){ resetMessage("Verify the recovery code first.","error"); return; }
+      if(password.length<6 || password.length>128 || !/^[A-Za-z0-9#@]+$/.test(password)){ resetMessage("Password must be at least 6 characters and may contain only letters, numbers, #, or @.","error"); return; }
+      if(password!==confirm){ resetMessage("Passwords do not match.","error"); return; }
+      resetMessage("Creating new password…");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/password-reset-complete",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({phone,requestId,resetToken:passwordResetToken,password})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not reset password.");
+        passwordResetToken="";
+        localStorage.removeItem("destaResetPhone");
+        localStorage.removeItem("destaResetRequestId");
+        document.getElementById("resetCode").value="";
+        document.getElementById("resetNewPassword").value="";
+        document.getElementById("resetNewPasswordConfirm").value="";
+        document.getElementById("resetNewPasswordFields").classList.add("hidden");
+        resetMessage("Password changed successfully. Your old password is no longer valid.","success");
+        setTimeout(showHome,900);
+      }catch(error){ console.error("Password reset completion error:",error); resetMessage(error.message || "Could not reset password.","error"); }
+    }
+
+    async function loginAccount(){
+      const phone=(document.getElementById("loginPhone")?.value || "").trim();
+      const password=document.getElementById("loginPassword").value;
+      const message=document.getElementById("accountMessage");
+      if(!phone){ message.className="accountMessage error"; message.textContent="Enter your registered phone number."; return; }
+      if(!password){ message.className="accountMessage error"; message.textContent="Enter your password."; return; }
+      if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
+      message.className="accountMessage"; message.textContent="Logging in...";
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/login",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,phone,password})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Login failed.");
+        state.authToken=data.token || "";
+        localStorage.setItem("destaAuthToken",state.authToken);
+        localStorage.setItem("destaAccountCreated","true");
+        state.accountCreated=true;
+        state.balance=Number(data.player?.balance || 0);
+        state.playerId=data.player?.playerId || state.playerId;
+        state.telegramName=data.player?.telegramName || state.telegramName;
+        message.className="accountMessage success"; message.textContent="Login successful.";
+        updatePlayerDisplays();
+        setTimeout(()=>{ showHome(); if(state.commandTarget) openTelegramCommandTarget(); },300);
+      }catch(error){ console.error("Account login error:",error); message.className="accountMessage error"; message.textContent=error.message || "Login failed."; }
+    }
+
+    async function createAccount(){
+      const password=document.getElementById("password").value;
+      const confirm=document.getElementById("passwordConfirm").value;
+      const message=document.getElementById("accountMessage");
+      if(password.length<6 || password.length>128 || !/^[A-Za-z0-9#@]+$/.test(password)){ message.className="accountMessage error"; message.textContent="Password must be at least 6 characters and may contain only letters, numbers, #, or @."; return; }
+      if(password!==confirm){ message.className="accountMessage error"; message.textContent="Passwords do not match."; return; }
+      const registrationReferralCode=(document.getElementById("registrationReferralCode")?.value || state.referralCode || "").trim().toUpperCase();
+      state.referralCode=registrationReferralCode;
+      const registrationPhone=document.getElementById("registrationPhone").value.trim();
+      if(!registrationPhone){ message.className="accountMessage error"; message.textContent="Share your phone number through Telegram first."; return; }
+      if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
+      message.className="accountMessage"; message.textContent="Creating account...";
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/register",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify({telegramId:state.telegramId,telegramName:state.telegramName,telegramUsername:state.telegramUsername,password,phone:document.getElementById("registrationPhone").value.trim(),referralCode:state.referralCode || ""})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not create account.");
+        state.authToken=data.token || "";
+        localStorage.setItem("destaAuthToken",state.authToken);
+        localStorage.setItem("destaAccountCreated","true");
+        state.accountCreated=true;
+        state.balance=Number(data.player?.balance || 0);
+        message.className="accountMessage success"; message.textContent="Account created.";
+        updatePlayerDisplays();
+        setTimeout(()=>{ showHome(); if(state.commandTarget) openTelegramCommandTarget(); },300);
+      }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
+    }
+
+    function showHome(){
+
+      document
+        .getElementById("accountScreen")
+        .classList.add("hidden");
+
+      document
+        .getElementById("home")
+        .classList.remove("hidden");
+
+      updatePlayerDisplays();
+
+      showPage("home");
+
+    }
+
+
+    /* =========================================================
+       PLAYER DISPLAY
+    ========================================================= */
+
+    function updatePlayerDisplays(){
+
+      document
+        .getElementById("homePlayerName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("homePlayerId")
+        .textContent=
+          state.playerId;
+
+      document
+        .getElementById("profileName")
+        .textContent=
+          state.telegramName;
+
+      document
+        .getElementById("profileId")
+        .textContent=
+          state.playerId;
+
+      updateBalance();
+
+    }
+
+
+    /* =========================================================
+       LANGUAGE
+    ========================================================= */
+
+    /* =========================================================
+       FULL UI LANGUAGE SYSTEM — ENGLISH / AMHARIC
+       ========================================================= */
+
+    const AMHARIC_UI = {
+      "Telegram name":"የቴሌግራም ስም",
+      "Player ID":"የተጫዋች መለያ",
+      "Generating...":"በመፍጠር ላይ...",
+      "Loading...":"በመጫን ላይ...",
+      "PHONE NUMBER":"ስልክ ቁጥር",
+      "RECOVERY CODE":"የመመለሻ ኮድ",
+      "NEW PASSWORD":"አዲስ የይለፍ ቃል",
+      "CONFIRM NEW PASSWORD":"አዲሱን የይለፍ ቃል ያረጋግጡ",
+      "Player":"ተጫዋች",
+      "ID":"መለያ",
+      "Fly • Cash Out":"በረር • ገንዘብ ውሰድ",
+      "Cartela • Draw":"ካርቴላ • ስዕል",
+      "1–80 • 20 Draw":"1–80 • 20 ስዕሎች",
+      "Spin • Number • Color":"ዙር • ቁጥር • ቀለም",
+      "← GAMES":"← ጨዋታዎች",
+      "ROUND":"ዙር",
+      "HOME":"መነሻ",
+      "GAME":"ጨዋታ",
+      "WALLET":"ዋሌት",
+      "PROFILE":"መገለጫ",
+      "INVITE":"ግብዣ",
+      "Invite Bonus":"የግብዣ ሽልማት",
+      "Invite 1 player and earn 10 bonus points.":"አንድ ተጫዋች ይጋብዙ እና 10 የቦነስ ነጥቦችን ያግኙ።",
+      "Your Invite Code":"የግብዣ ኮድዎ",
+      "Successful Invites":"የተሳካ ግብዣ",
+      "COPY INVITE LINK":"የግብዣ ሊንክ ቅዳ",
+      "SHARE INVITE":"ግብዣ አጋራ",
+      "INVITE":"ግብዣ",
+      "AVIATOR":"አቪዬተር",
+      "BINGO":"ቢንጎ",
+      "KENO":"ኬኖ",
+      "ROULETTE":"ሩሌት",
+      "SLOT 1":"ስሎት 1",
+      "SLOT 2":"ስሎት 2",
+      "Active slot":"ንቁ ስሎት",
+      "Slot 1 selected":"ስሎት 1 የተመረጠ",
+      "Slot 2 selected":"ስሎት 2 የተመረጠ",
+      "Players in round":"በዙሩ ውስጥ ተጫዋቾች",
+      "BINGO STAKE":"የቢንጎ ውርርድ",
+      "Choose your stake before entering the live round.":"የቀጥታ ዙሩን ከመግባትዎ በፊት የውርርድ መጠንዎን ይምረጡ።",
+      "ENTER BINGO":"ቢንጎ ግባ",
+      "SELECT A NUMBER OR COLOR":"ቁጥር ወይም ቀለም ይምረጡ",
+      "SELECT A NUMBER":"ቁጥር ይምረጡ",
+      "SELECT NUMBERS ABOVE.":"ከላይ ያሉትን ቁጥሮች ይምረጡ።",
+      "Place Bet":"ውርርድ አስገባ",
+      "BET PLACED":"ውርርድ ተቀምጧል",
+      "RED":"ቀይ",
+      "BLACK":"ጥቁር",
+      "GREEN 0":"አረንጓዴ 0",
+      "RESULT":"ውጤት",
+      "MY BETS":"የእኔ ውርርዶች",
+      "Current round activity":"የአሁኑ ዙር እንቅስቃሴ",
+      "PLAYERS":"ተጫዋቾች",
+      "ACTIVE WINNERS":"ንቁ አሸናፊዎች",
+      "AVAILABLE BALANCE":"ያለ ቀሪ ሂሳብ",
+      "WITHDRAWABLE":"ሊወጣ የሚችል",
+      "LOCKED DEPOSIT":"የተቆለፈ ተቀማጭ",
+      "DEPOSIT":"ተቀማጭ",
+      "WITHDRAW":"ማውጣት",
+      "DEPOSIT VERIFICATION":"የተቀማጭ ማረጋገጫ",
+      "WITHDRAWAL":"ማውጣት",
+      "TRANSACTIONS":"ግብይቶች",
+      "No transactions yet.":"እስካሁን ግብይት የለም።",
+      "ACCOUNT ID":"የመለያ መታወቂያ",
+      "YOUR PAYMENT PHONE NUMBER":"የክፍያ ስልክ ቁጥርዎ",
+      "DEPOSIT AMOUNT (ETB)":"የተቀማጭ መጠን (ETB)",
+      "PAYMENT METHOD":"የክፍያ ዘዴ",
+      "PAY":"ክፈል",
+      "PAYMENT INFORMATION":"የክፍያ መረጃ",
+      "NAME:":"ስም፦",
+      "PAYMENT NUMBER:":"የክፍያ ቁጥር፦",
+      "COPY PAYMENT NUMBER":"የክፍያ ቁጥር ቅዳ",
+      "I HAVE PAID":"ከፍያለሁ",
+      "SUBMIT":"ላክ",
+      "WITHDRAW AMOUNT (ETB)":"የማውጣት መጠን (ETB)",
+      "WITHDRAWAL METHOD":"የማውጣት ዘዴ",
+      "WITHDRAWAL PHONE NUMBER":"የማውጫ ስልክ ቁጥር",
+      "VERIFY":"አረጋግጥ",
+      "FORGOT PASSWORD?":"የይለፍ ቃል ረስተዋል?",
+      "DESTA PLAY PASSWORD":"የDESTA PLAY ይለፍ ቃል",
+      "History":"ታሪክ",
+      "Draw":"ስዕል",
+      "Win":"አሸነፍ",
+      "Lose":"ተሸነፍ",
+      "Round":"ዙር",
+      "Choose a slot":"ስሎት ይምረጡ",
+      "Choose numbers":"ቁጥሮችን ይምረጡ",
+      "Place bet":"ውርርድ ያስገቡ",
+      "Live multiplier":"የቀጥታ ማባዣ",
+      "Cash Out":"ገንዘብ ውሰድ",
+      "Crash":"ብልሽት",
+      "Spin":"ዙር",
+      "Could not place roulette bet.":"የሩሌት ውርርድ ማስገባት አልተቻለም።",
+      "Select a roulette number or color first.":"መጀመሪያ የሩሌት ቁጥር ወይም ቀለም ይምረጡ።",
+      "Betting is closed.":"የውርርድ ጊዜ ተዘግቷል።",
+      "Insufficient balance.":"በቂ ቀሪ ሂሳብ የለም።",
+      "Please open your DESTA PLAY account first.":"መጀመሪያ የDESTA PLAY መለያዎን ይክፈቱ።",
+      "Waiting for next round":"ቀጣዩን ዙር በመጠበቅ ላይ",
+      "Select at least one number":"ቢያንስ አንድ ቁጥር ይምረጡ",
+      "Maximum 10 Keno numbers":"ከፍተኛው 10 የኬኖ ቁጥሮች ነው።",
+      "BINGO":"ቢንጎ",
+      "KENO":"ኬኖ",
+      "ROULETTE":"ሩሌት",
+      "AVIATOR":"አቪዬተር",
+      "ACTIVE":"ንቁ",
+      "English":"English",
+      "Paste transaction message link":"የግብይት መልዕክት ሊንክ ያስገቡ",
+      "Your payment phone number":"የክፍያ ስልክ ቁጥርዎ",
+      "Phone number receiving the money":"ገንዘቡን የሚቀበለው ስልክ ቁጥር",
+      "Enter your password":"የይለፍ ቃልዎን ያስገቡ"
     };
-}
 
-/*
-|--------------------------------------------------------------------------
-| PLAYER DATABASE
-|--------------------------------------------------------------------------
-|
-| The canonical player ID is players.id.
-|
-|--------------------------------------------------------------------------
-*/
-
-async function findPlayerByTelegramId(telegramId) {
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("telegram_id", String(telegramId))
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findPlayerByTelegramId", error);
-        throw new Error("Database error");
+    function translateDynamicText(text, lang){
+      if(lang !== "am") return text;
+      const s=String(text);
+      if(AMHARIC_UI[s]) return AMHARIC_UI[s];
+      let m=s.match(/^SLOT (\d+) — SELECT A NUMBER OR COLOR$/);
+      if(m) return `ስሎት ${m[1]} — ቁጥር ወይም ቀለም ይምረጡ`;
+      m=s.match(/^SLOT (\d+): NUMBER (\d+)$/);
+      if(m) return `ስሎት ${m[1]}፦ ቁጥር ${m[2]}`;
+      m=s.match(/^SLOT (\d+): COLOR (.+)$/);
+      if(m) return `ስሎት ${m[1]}፦ ቀለም ${AMHARIC_UI[m[2]]||m[2]}`;
+      m=s.match(/^RESULT: (\d+) — (RED|BLACK|GREEN)$/i);
+      if(m) return `ውጤት፦ ${m[1]} — ${AMHARIC_UI[m[2].toUpperCase()]||m[2]}`;
+      m=s.match(/^CALLED (\d+) \/ (\d+)(?: — (\d+))?$/);
+      if(m) return `የተጠሩ ${m[1]} / ${m[2]}${m[3]?` — ${m[3]}`:""}`;
+      m=s.match(/^ROUND (\d+)$/);
+      if(m) return `ዙር ${m[1]}`;
+      m=s.match(/^Minimum roulette bet is (.+)$/);
+      if(m) return `የሩሌት ዝቅተኛ ውርርድ ${m[1]} ነው።`;
+      return AMHARIC_UI[s] || text;
     }
 
-    return data;
-}
-
-async function findPlayerByPhone(phone) {
-    const normalized = normalizePhone(phone);
-
-    if (!normalized) return null;
-
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("phone", normalized)
-        .maybeSingle();
-
-    if (error) {
-        await dbError("findPlayerByPhone", error);
-        throw new Error("Database error");
+    function translateAttributes(lang){
+      document.querySelectorAll("input[placeholder], textarea[placeholder]").forEach(el=>{
+        if(!el.dataset.enPlaceholder) el.dataset.enPlaceholder=el.getAttribute("placeholder")||"";
+        const en=el.dataset.enPlaceholder;
+        el.setAttribute("placeholder", lang==="am" ? translateDynamicText(en,"am") : en);
+      });
+      document.querySelectorAll("input[aria-label],button[aria-label]").forEach(el=>{
+        if(!el.dataset.enAria) el.dataset.enAria=el.getAttribute("aria-label")||"";
+        const en=el.dataset.enAria;
+        el.setAttribute("aria-label", lang==="am" ? translateDynamicText(en,"am") : en);
+      });
     }
 
-    return data;
-}
+    function applyLanguageToUI(){
+      const lang=state.language||"en";
+      document.documentElement.lang=lang;
 
-/*
-|--------------------------------------------------------------------------
-| TELEGRAM MINI APP ACCOUNT BOOTSTRAP
-|--------------------------------------------------------------------------
-| Existing Telegram players receive a session automatically. New players
-| are sent to the registration screen. No login is required for entry.
-|--------------------------------------------------------------------------
-*/
+      const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+      const nodes=[];
+      while(walker.nextNode()) nodes.push(walker.currentNode);
 
-app.get(
-    "/api/account/bootstrap",
-    async (req, res) => {
-        try {
-            const telegramId = String(
-                req.query.telegramId || ""
-            ).trim();
+      nodes.forEach(node=>{
+        const parent=node.parentElement;
+        if(!parent) return;
+        if(["SCRIPT","STYLE","NOSCRIPT"].includes(parent.tagName)) return;
+        if(parent.closest("#langEN,#langAM")) return;
 
-            if (!telegramId) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Telegram account information is not available."
-                });
-            }
+        const raw=node.textContent||"";
+        const trimmed=raw.trim();
+        if(!trimmed) return;
 
-            const player =
-                await findPlayerByTelegramId(telegramId);
-
-            if (!player) {
-                return res.json({
-                    success: true,
-                    registered: false,
-                    registrationRequired: true
-                });
-            }
-
-            const token = createSession(player);
-
-            return res.json({
-                success: true,
-                registered: true,
-                registrationRequired: false,
-                token,
-                player: publicPlayer(player)
-            });
-        } catch (error) {
-            console.error("Account bootstrap error:", error);
-
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not initialize account"
-            });
+        if(!node.__destaEnglishText){
+          const knownEnglish=Object.keys(AMHARIC_UI).find(key=>key===trimmed);
+          node.__destaEnglishText=knownEnglish || trimmed;
         }
+
+        const en=node.__destaEnglishText;
+        const translated=lang==="am" ? translateDynamicText(en,"am") : en;
+        const lead=raw.match(/^\s*/)?.[0]||"";
+        const trail=raw.match(/\s*$/)?.[0]||"";
+        const target=lead+translated+trail;
+        if(node.textContent!==target) node.textContent=target;
+      });
+
+      translateAttributes(lang);
+      document.getElementById("langEN")?.classList.toggle("active",lang==="en");
+      document.getElementById("langAM")?.classList.toggle("active",lang==="am");
     }
-);
 
-async function findPlayerById(playerId) {
-    const { data, error } = await supabase
-        .from("players")
-        .select("*")
-        .eq("id", playerId)
-        .maybeSingle();
+    function setLanguage(lang){
+      lang=(lang==="am" ? "am" : "en");
+      state.language=lang;
+      localStorage.setItem("destaLanguage",lang);
+      applyLanguageToUI();
+      const helpOverlay=document.getElementById("helpOverlay");
+      if(helpOverlay && !helpOverlay.classList.contains("hidden")) openHelp();
+      const walletHelpModal=document.getElementById("walletHelpModal");
+      if(walletHelpModal && !walletHelpModal.classList.contains("hidden")) openWalletHelp();
 
-    if (error) {
-        await dbError("findPlayerById", error);
-        throw new Error("Database error");
+      /* A language change must never leave queued speech from the old
+         language playing after the player switches languages. */
+      clearVoiceQueue();
     }
 
-    return data;
-}
+    document.addEventListener("click",function(event){
+      const button=event.target.closest("#langEN,#langAM,#gameLangEN,#gameLangAM");
+      if(!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLanguage(button.id.endsWith("AM") ? "am" : "en");
+    },true);
 
-/*
-|--------------------------------------------------------------------------
-| PUBLIC PLAYER OBJECT
-|--------------------------------------------------------------------------
-*/
+    function initLanguage(){
+      const saved=localStorage.getItem("destaLanguage");
+      state.language=(saved==="am" ? "am" : "en");
+      applyLanguageToUI();
 
-function publicPlayer(player) {
-    if (!player) {
-        return null;
-    }    return {
-        playerId: player.id,
-        telegramId: player.telegram_id,
-        telegramName: player.username || "Player",
-        balance: Number(player.balance || 0),
-        createdAt: player.created_at,
-        inviteCode: makeInviteCode(player.id),
-        inviteLink: makeInviteLink(player.id)
-    };
-}
+      const en=document.getElementById("langEN");
+      const am=document.getElementById("langAM");
 
-/*
-|--------------------------------------------------------------------------
-| TRANSACTION LEDGER
-|--------------------------------------------------------------------------
-*/
+      if(en){
+        en.type="button";
+        en.onclick=function(event){
+          if(event) event.preventDefault();
+          setLanguage("en");
+          return false;
+        };
+      }
 
-async function writeTransaction({
-    playerId,
-    type,
-    amount,
-    balanceBefore,
-    balanceAfter,
-    status = "SUCCESS",
-    description = null,
-    referenceId = null
-}) {
-    const { error } = await supabase
-        .from("transactions")
-        .insert({
-            id: makeId("TX"),
-            player_id: playerId,
-            type,
-            amount,
-            balance_before: balanceBefore,
-            balance_after: balanceAfter,
-            status,
-            description,
-            reference_id: referenceId,
-            created_at: nowIso()
-        });
+      if(am){
+        am.type="button";
+        am.onclick=function(event){
+          if(event) event.preventDefault();
+          setLanguage("am");
+          return false;
+        };
+      }
 
-    if (error) {
-        await dbError("writeTransaction", error);
-
-        /*
-        |------------------------------------------------------------------
-        | IMPORTANT
-        |------------------------------------------------------------------
-        | The balance operation has already happened.
-        | Do not reverse it automatically here.
-        | The database ledger error is logged for investigation.
-        |------------------------------------------------------------------
-        */
-
-        throw new Error("Transaction ledger error");
+      window.setLanguage=setLanguage;
     }
-}
 
-/*
-|--------------------------------------------------------------------------
-| BONUS POINT LEDGER
-|--------------------------------------------------------------------------
-|
-| Uses the existing transactions table so no new database column is needed.
-| Bonus points never change the cash balance.
-| 1 point = 1 ETB play value.
-| 10 points = 1 ETB withdrawal value.
-|--------------------------------------------------------------------------
-*/
-async function writeBonusTransaction({ playerId, points, type, description = null, referenceId = null }) {
-    const value = Number(points);
-    if (!Number.isFinite(value) || value === 0) return;
-    const player = await findPlayerById(playerId);
-    if (!player) throw new Error("Player not found");
-    await writeTransaction({
-        playerId,
-        type,
-        amount: value,
-        balanceBefore: Number(player.balance || 0),
-        balanceAfter: Number(player.balance || 0),
-        status: "SUCCESS",
-        description,
-        referenceId
+    /* Re-translate newly rendered game/wallet elements as the UI changes. */
+    const languageObserver=new MutationObserver(()=>{
+      if(window.__languageApplying) return;
+      window.__languageApplying=true;
+      try{ applyLanguageToUI(); } finally { window.__languageApplying=false; }
     });
-}
+    languageObserver.observe(document.body,{childList:true,subtree:true});
 
-async function getBonusLedger(playerId) {
-    const { data, error } = await supabase
-        .from("transactions")
-        .select("id,type,amount,description,reference_id,created_at")
-        .eq("player_id", playerId)
-        .in("type", [
-            "invite_bonus_points",
-            "first_deposit_bonus",
-            "bonus_play",
-            "bonus_win",
-            "bonus_adjustment"
-        ])
-        .eq("status", "SUCCESS")
-        .order("created_at", { ascending: true })
-        .limit(500);
-    if (error) {
-        await dbError("getBonusLedger", error);
-        throw new Error("Could not load bonus points");
-    }
-    return data || [];
-}
 
-async function getBonusPoints(playerId) {
-    const rows = await getBonusLedger(playerId);
-    return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
-}
+    /* =========================================================
+       NAVIGATION
+    ========================================================= */
 
-/*
-|--------------------------------------------------------------------------
-| BALANCE ENGINE
-|--------------------------------------------------------------------------
-*/
+    function showPage(page){
 
-async function changeBalance({
-    playerId,
-    amount,
-    type,
-    game = null,
-    roundId = null,
-    description = null,
-    metadata = {}
-}) {
-    const numeric = numericAmount(amount);
+      /* Leaving the GAME screen ends WATCH LIVE mode. The view-only
+         restriction must never follow the player back to HOME or into a
+         fresh game lobby. It remains active only while the current GAME
+         screen is open in watch-only mode. */
+      if(page!=="game" && state.page==="game") {
+        state.watchOnly=false;
+        try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
+      }
 
-    const player = await findPlayerById(playerId);
+      if(
+        !state.accountCreated &&
+        !localStorage.getItem("destaAccountCreated")
+      ){
 
-    if (!player) {
-        throw new Error("Player not found");
-    }
+        return;
 
-    const before = Number(player.balance || 0);
-    const after = before + numeric;
+      }
 
-    if (after < 0) {
-        throw new Error("Insufficient balance");
-    }
+      state.page=page;
 
-    const { data, error } = await supabase
-        .from("players")
-        .update({
-            balance: after,
-            updated_at: nowIso()
-        })
-        .eq("id", playerId)
-        .select("*")
-        .maybeSingle();
+      ["home","gameScreen","walletScreen","profileScreen"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.scrollTop=0;
+      });
+      const gameArea=document.querySelector("#gameScreen .gameArea");
+      if(gameArea) gameArea.scrollTop=0;
 
-    if (error) {
-        await dbError("changeBalance update", error);
-        throw new Error("Could not update balance");
-    }
+      document
+        .getElementById("home")
+        .classList.add("hidden");
 
-    if (!data) {
-        throw new Error("Could not update player balance");
-    }
+      document
+        .getElementById("gameScreen")
+        .style.display="none";
 
-    const finalDescription =
-        description ||
-        `${type}${game ? ` | ${game}` : ""}`;
+      document
+        .getElementById("walletScreen")
+        .style.display="none";
 
-    await writeTransaction({
-        playerId,
-        type,
-        amount: numeric,
-        balanceBefore: before,
-        balanceAfter: after,
-        status: "SUCCESS",
-        description: finalDescription,
-        referenceId: roundId
-    });
+      document
+        .getElementById("profileScreen")
+        .style.display="none";
 
-    console.log(
-        `[BALANCE] ${playerId} | ${before} -> ${after} | ${type}`
-    );
 
-    return after;
-}
-
-/*
-|--------------------------------------------------------------------------
-| SESSION SYSTEM
-|--------------------------------------------------------------------------
-|
-| Sessions are intentionally kept in server memory.
-|
-| Permanent account data remains in Supabase.
-|
-| If Render restarts, users simply authenticate again.
-|
-|--------------------------------------------------------------------------
-*/
-
-const sessions = new Map();
-
-function createSession(player) {
-    const token = crypto.randomBytes(32).toString("hex");
-
-    const tokenHash = crypto
-        .createHmac("sha256", SESSION_SECRET)
-        .update(token)
-        .digest("hex");
-
-    sessions.set(tokenHash, {
-        playerId: player.id,
-        createdAt: Date.now()
-    });
-
-    return token;
-}
-
-function getSessionPlayer(req) {
-    const authorization =
-        req.headers.authorization || "";
-
-    if (!authorization.startsWith("Bearer ")) {
-        return null;
-    }
-
-    const token =
-        authorization
-            .slice(7)
-            .trim();
-
-    if (!token) {
-        return null;
-    }
-
-    const tokenHash = crypto
-        .createHmac("sha256", SESSION_SECRET)
-        .update(token)
-        .digest("hex");
-
-    return sessions.get(tokenHash) || null;
-}
-
-async function requirePlayer(req, res, next) {
-    try {
-        const session = getSessionPlayer(req);
-
-        if (!session) {
-            return res.status(401).json({
-                success: false,
-                error: "Unauthorized"
-            });
-        }
-
-        const player =
-            await findPlayerById(session.playerId);
-
-        if (!player) {
-            return res.status(401).json({
-                success: false,
-                error: "Player not found"
-            });
-        }
-
-        req.player = player;
-
-        next();
-    } catch (error) {
-        console.error("Authentication middleware error:", error);
-
-        return res.status(401).json({
-            success: false,
-            error: "Authentication failed"
-        });
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| ENGINE VALIDATION
-|--------------------------------------------------------------------------
-|
-| The game files are authoritative for minimum bet amounts.
-|
-|--------------------------------------------------------------------------
-*/
-
-function validateEngineBet(engine, amount) {
-    const value = Number(amount);
-
-    if (!Number.isFinite(value) || value <= 0) {
-        throw new Error("Invalid bet amount");
-    }
-
-    const validator =
-        engine?.validateBetAmount ||
-        engine?.default?.validateBetAmount;
-
-    if (typeof validator === "function") {
-        const result = validator(value);
-
-        /*
-        |--------------------------------------------------------------
-        | Support validators that:
-        |   - return boolean
-        |   - return an object
-        |   - throw an error
-        |--------------------------------------------------------------
-        */
-
-        if (result === false) {
-            throw new Error("Invalid bet amount");
-        }
-
-        if (
-            result &&
-            typeof result === "object" &&
-            result.valid === false
-        ) {
-            throw new Error(
-                result.error ||
-                result.message ||
-                "Invalid bet amount"
-            );
-        }
-
-        return value;
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Do NOT invent a new minimum here.
-    | If an engine doesn't expose a validator, the caller should
-    | handle that engine-specific limitation.
-    |--------------------------------------------------------------
-    */
-
-    return value;
-}
-
-/*
-|--------------------------------------------------------------------------
-| AUTH ROUTES
-|--------------------------------------------------------------------------
-*/
-
-/*
-|------------------------------------------------------------------
-| REGISTER
-|------------------------------------------------------------------
-*/
-
-async function registerHandler(req, res) {
-    try {
-        const {
-            telegramId,
-            telegramName,
-            telegramUsername,
-            password,
-            phone,
-            referralCode
-        } = req.body;
-
-        if (
-            telegramId === undefined ||
-            telegramId === null ||
-            String(telegramId).trim() === ""
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: "Missing Telegram ID"
-            });
-        }
-
-        const normalizedReferralCode = String(referralCode || "").trim().toUpperCase();
-        const referrerPlayerId = inviteCodeToPlayerId(normalizedReferralCode);
-        let validReferrer = null;
-
-        if (referrerPlayerId) {
-            validReferrer = await findPlayerById(referrerPlayerId);
-        }
-
-        if (normalizedReferralCode && !validReferrer) {
-            return res.status(400).json({
-                success: false,
-                error: "Invalid invite code"
-            });
-        }
-
-        if (!validPassword(password)) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    "Password must be at least 6 characters and may contain only letters, numbers, #, or @"
-            });
-        }
-
-        const normalizedPhone =
-            normalizePhone(phone);
-
-        if (!normalizedPhone) {
-            return res.status(400).json({
-                success: false,
-                error: "Verified Telegram phone number is required"
-            });
-        }
-
-        const pendingPhone =
-            getRegistrationContact(telegramId);
-
-        if (pendingPhone && pendingPhone !== normalizedPhone) {
-            return res.status(400).json({
-                success: false,
-                error: "Phone number verification does not match Telegram contact"
-            });
-        }
-
-        const phoneOwner =
-            await findPlayerByPhone(normalizedPhone);
-
-        if (phoneOwner) {
-            return res.status(400).json({
-                success: false,
-                error: "This phone number is already registered"
-            });
-        }
-
-        const existing =
-            await findPlayerByTelegramId(telegramId);
-
-        if (existing) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    "Account already exists. Please login."
-            });
-        }
-
-        const passwordHash =
-            await argon2.hash(password);
-
-        const playerId = makePlayerId();
-
-        const safeName =
-            normalizeTelegramName(telegramName);
-
-        const { data: insertedPlayer, error } =
-            await supabase
-                .from("players")
-                .insert({
-                    id: playerId,
-                    telegram_id: String(telegramId),
-                    username: safeName,
-                    telegram_username: String(telegramUsername || "").trim(),
-                    phone: normalizedPhone,
-                    password_hash: passwordHash,
-                    balance: 0,
-                    created_at: nowIso(),
-                    updated_at: nowIso()
-                })
-                .select("*")
-                .single();
-
-        if (error) {
-            await dbError(
-                "Register insert",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    "Failed to create player account"
-            });
-        }
-
-        if (validReferrer) {
-            try {
-                await writeBonusTransaction({
-                    playerId: validReferrer.id,
-                    points: 10,
-                    type: "invite_bonus_points",
-                    description: JSON.stringify({
-                        reason: "Successful invitation",
-                        invitedPlayerId: insertedPlayer.id,
-                        referralCode: normalizedReferralCode,
-                        rewardPoints: 10
-                    }),
-                    referenceId: insertedPlayer.id
-                });
-            } catch (bonusError) {
-                console.error("[BONUS] Invite reward could not be recorded:", bonusError);
-            }
-        }
-
-        const token =
-            createSession(insertedPlayer);
-
-        return res.json({
-            success: true,
-            token,
-            player: publicPlayer(insertedPlayer),
-            inviteCode: makeInviteCode(insertedPlayer.id),
-            inviteLink: makeInviteLink(insertedPlayer.id),
-            referredBy: validReferrer ? validReferrer.id : null
-        });
-    } catch (error) {
-        console.error("Registration error:", error);
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Registration failed"
-        });
-    }
-}
-
-app.post(
-    "/api/auth/register",
-    registerHandler
-);
-
-app.post(
-    "/api/account/register",
-    registerHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| REGISTRATION CONTACT
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/account/registration-contact",
-    async (req, res) => {
-        try {
-            const telegramId = String(
-                req.query.telegramId || ""
-            ).trim();
-
-            if (!telegramId) {
-                return res.status(400).json({
-                    success: false,
-                    shared: false,
-                    error: "Telegram ID is required"
-                });
-            }
-
-            const phone =
-                getRegistrationContact(telegramId);
-
-            if (!phone) {
-                return res.json({
-                    success: true,
-                    shared: false
-                });
-            }
-
-            return res.json({
-                success: true,
-                shared: true,
-                phone
-            });
-        } catch (error) {
-            console.error(
-                "Registration contact lookup error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                shared: false,
-                error: "Could not check Telegram phone contact"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| LOGIN
-|--------------------------------------------------------------------------
-*/
-
-async function loginHandler(req, res) {
-    try {
-        const {
-            telegramId,
-            password
-        } = req.body;
-
-        if (
-            telegramId === undefined ||
-            telegramId === null ||
-            !password
-        ) {
-            return res.status(400).json({
-                success: false,
-                error: "Missing credentials"
-            });
-        }
-
-        const player =
-            await findPlayerByTelegramId(telegramId);
-
-        if (!player) {
-            return res.status(404).json({
-                success: false,
-                error:
-                    "Account not found. Please register first."
-            });
-        }
-
-        if (!player.password_hash) {
-            return res.status(401).json({
-                success: false,
-                error:
-                    "This account does not have a valid password. Please contact support."
-            });
-        }
-
-        const valid =
-            await argon2.verify(
-                player.password_hash,
-                password
-            );
-
-        if (!valid) {
-            return res.status(401).json({
-                success: false,
-                error: "Incorrect password"
-            });
-        }
-
-        const token =
-            createSession(player);
-
-        return res.json({
-            success: true,
-            token,
-            player: publicPlayer(player)
-        });
-    } catch (error) {
-        console.error("Login error:", error);
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Login failed"
-        });
-    }
-}
-
-app.post(
-    "/api/auth/login",
-    loginHandler
-);
-
-app.post(
-    "/api/account/login",
-    loginHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 1 — PASSWORD RESET
-|--------------------------------------------------------------------------
-*/
-
-function passwordResetReplyMarkup(requestId) {
-    return {
-        inline_keyboard: [[
-            {
-                text: "APPROVE RESET",
-                callback_data: `dpr:approve:${requestId}`
-            },
-            {
-                text: "REJECT RESET",
-                callback_data: `dpr:reject:${requestId}`
-            }
-        ]]
-    };
-}
-
-async function findPasswordResetRequest(
-    requestId,
-    phone = null
-) {
-    let query =
-        supabase
-            .from("password_reset_requests")
-            .select("*")
-            .eq("id", requestId);
-
-    if (phone) {
-        query =
-            query.eq(
-                "phone",
-                normalizePhone(phone)
-            );
-    }
-
-    const { data, error } =
-        await query.maybeSingle();
-
-    if (error) {
-        await dbError(
-            "findPasswordResetRequest",
-            error
+      document
+        .querySelectorAll(".bottomNav button")
+        .forEach(b=>
+          b.classList.remove("active")
         );
 
-        throw new Error("Database error");
+      if(page==="home"){
+
+        document
+          .getElementById("home")
+          .classList.remove("hidden");
+
+        document
+          .getElementById("navHome")
+          .classList.add("active");
+
+      }
+
+      if(page==="game"){
+
+        document
+          .getElementById("gameScreen")
+          .style.display="block";
+
+        document
+          .getElementById("navGame")
+          .classList.add("active");
+
+      }
+
+      if(page==="wallet"){
+
+        document
+          .getElementById("walletScreen")
+          .style.display="block";
+
+        document
+          .getElementById("navWallet")
+          .classList.add("active");
+
+        updateBalance();
+
+      }
+
+      if(page==="invite"){
+        /* Invitation belongs under PROFILE; keep old calls compatible. */
+        page="profile";
+        state.page="profile";
+      }
+
+      if(page==="profile"){
+        document
+          .getElementById("profileScreen")
+          .style.display="block";
+        document
+          .getElementById("navProfile")
+          .classList.add("active");
+        updatePlayerDisplays();
+        loadInviteData();
+      }
+
     }
 
-    return data;
-}
 
-const passwordResetCodes = new Map();
-const passwordResetTokens = new Map();
-
-function createPasswordResetCode(requestId) {
-    const code = String(crypto.randomInt(100000, 1000000));
-    passwordResetCodes.set(String(requestId), {
-        code,
-        expiresAt: Date.now() + 5 * 60 * 1000
-    });
-    return code;
-}
-
-function consumePasswordResetCode(requestId, code) {
-    const key = String(requestId || "");
-    const entry = passwordResetCodes.get(key);
-    if (!entry || Date.now() > entry.expiresAt || String(code || "") !== entry.code) {
-        if (entry && Date.now() > entry.expiresAt) passwordResetCodes.delete(key);
-        return false;
-    }
-    passwordResetCodes.delete(key);
-    return true;
-}
-
-function createPasswordResetToken(requestId) {
-    const token = crypto.randomBytes(32).toString("hex");
-    passwordResetTokens.set(token, {
-        requestId: String(requestId),
-        expiresAt: Date.now() + 5 * 60 * 1000
-    });
-    return token;
-}
-
-function consumePasswordResetToken(token, requestId) {
-    const entry = passwordResetTokens.get(String(token || ""));
-    if (!entry || entry.requestId !== String(requestId || "") || Date.now() > entry.expiresAt) {
-        if (entry && Date.now() > entry.expiresAt) passwordResetTokens.delete(String(token));
-        return false;
-    }
-    passwordResetTokens.delete(String(token));
-    return true;
-}
-
-async function processPasswordResetAction(
-    action,
-    requestId
-) {
-    const request =
-        await findPasswordResetRequest(requestId);
-
-    if (!request) {
-        throw new Error(
-            "Password reset request not found"
-        );
+    async function loadInviteData(){
+      const codeEl=document.getElementById("profileInviteCode");
+      if(!codeEl) return;
+      try{
+        const headers={"Accept":"application/json"};
+        if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch("https://desta-play.onrender.com/api/invite",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not load invite information.");
+        codeEl.textContent=data.inviteCode || "—";
+        const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+        setText("profileInviteCount",Number(data.invitedPlayers||0));
+        setText("profileInviteEarnedPoints",Number(data.earnedPoints||0).toFixed(2));
+        setText("profileBonusPoints",Number(data.bonusPoints||0).toFixed(2));
+        setText("profileInvitePlayValue",Number(data.playValue||0).toFixed(2));
+        setText("profileInviteWithdrawalValue",Number(data.withdrawalValue||0).toFixed(2));
+        state.inviteCode=data.inviteCode || "";
+        state.inviteLink=data.inviteLink || "";
+      }catch(error){
+        if(codeEl) codeEl.textContent="—";
+        const status=document.getElementById("inviteStatus");
+        if(status) status.textContent=error.message || "Could not load invite information.";
+      }
     }
 
-    if (
-        request.status === "PENDING" &&
-        action === "approve"
-    ) {
-        const { data, error } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "APPROVED",
-                    approved_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "PENDING")
-                .select("*")
-                .maybeSingle();
-
-        if (error) {
-            await dbError(
-                "password reset approve",
-                error
-            );
-
-            throw new Error(
-                "Could not approve password reset"
-            );
-        }
-
-        if (!data) {
-            throw new Error(
-                "Password reset request was already processed"
-            );
-        }
-
-        const resetCode = createPasswordResetCode(requestId);
-
-        const resetPlayer = await findPlayerById(request.player_id);
-        if (resetPlayer?.telegram_id) {
-            await telegramApi("sendMessage", {
-                chat_id: String(resetPlayer.telegram_id),
-                text: `DESTA PLAY password reset\n\nYour verification code is: ${resetCode}\n\nThis code expires in 5 minutes. Do not share it with anyone.`
-            }).catch(error => {
-                console.warn("[PASSWORD RESET] Could not send code to player:", error.message);
-            });
-        }
-
-        await sendAdminGroupAudit(
-            `PASSWORD RESET APPROVED\nRequest: ${requestId}\nPlayer: ${request.player_id}\nVerification code issued for 5 minutes.`
-        );
-
-        return "RESET APPROVED";
+    function getInviteLink(){
+      return state.inviteLink || (state.inviteCode ? `${location.origin}${location.pathname}?ref=${encodeURIComponent(state.inviteCode)}` : "");
     }
 
-    if (
-        request.status === "PENDING" &&
-        action === "reject"
-    ) {
-        const { data, error } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "REJECTED",
-                    rejected_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "PENDING")
-                .select("*")
-                .maybeSingle();
-
-        if (error) {
-            await dbError(
-                "password reset reject",
-                error
-            );
-
-            throw new Error(
-                "Could not reject password reset"
-            );
-        }
-
-        if (!data) {
-            throw new Error(
-                "Password reset request was already processed"
-            );
-        }
-
-        await sendAdminGroupAudit(
-            `PASSWORD RESET REJECTED\nRequest: ${requestId}\nPlayer: ${request.player_id}`
-        );
-
-        return "RESET REJECTED";
+    async function copyInviteLink(){
+      const link=getInviteLink();
+      const status=document.getElementById("inviteStatus");
+      if(!link){ if(status)status.textContent="Invite link is not ready yet."; return; }
+      try{
+        await navigator.clipboard.writeText(link);
+        if(status)status.textContent="Invite link copied.";
+      }catch(e){
+        if(status)status.textContent=link;
+      }
     }
 
-    throw new Error(
-        `Cannot ${action} reset in ${request.status} status`
-    );
-}
-
-app.post(
-    "/api/account/password-reset-request",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.body.phone);
-
-            if (!phone) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Phone number is required"
-                });
-            }
-
-            const player =
-                await findPlayerByPhone(phone);
-
-            if (!player) {
-                return res.status(404).json({
-                    success: false,
-                    error: "Account not found"
-                });
-            }
-
-            const requestId =
-                makeId("RST");
-
-            const { data, error } =
-                await supabase
-                    .from("password_reset_requests")
-                    .insert({
-                        id: requestId,
-                        player_id: player.id,
-                        phone,
-                        status: "PENDING",
-                        created_at: nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "password reset request insert",
-                    error
-                );
-
-                throw new Error(
-                    "Could not create password reset request"
-                );
-            }
-
-            const text =
-                `<b>DESTA PLAY — PASSWORD RESET REQUEST</b>\n` +
-                `Account/Player ID: ${String(player.id)}\n` +
-                `Phone: ${phone}\n` +
-                `Telegram name: ${String(player.username || "Player")}\n` +
-                `Telegram ID: ${String(player.telegram_id || "Not available")}\n` +
-                `Request ID: ${requestId}\n` +
-                `Request time: ${nowIso()}\n\n` +
-                `No password or password hash is included.`;
-
-            await sendAdminTelegramMessage(
-                text,
-                passwordResetReplyMarkup(requestId)
-            );
-
-            await sendAdminGroupAudit(
-                text.replace(/<[^>]+>/g, "")
-            );
-
-            return res.json({
-                success: true,
-                status: data.status,
-                requestId,
-                message:
-                    "Reset request submitted. Wait for administrator approval."
-            });
-        } catch (error) {
-            console.error(
-                "Password reset request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not submit password reset request"
-            });
+    async function shareInviteLink(){
+      const link=getInviteLink();
+      const status=document.getElementById("inviteStatus");
+      if(!link){ if(status)status.textContent="Invite link is not ready yet."; return; }
+      try{
+        if(navigator.share){
+          await navigator.share({title:"DESTA PLAY",text:"Join me on DESTA PLAY and earn bonus points.",url:link});
+        }else{
+          await copyInviteLink();
         }
+      }catch(e){
+        if(e && e.name==="AbortError") return;
+        if(status)status.textContent="Could not open sharing. Invite link copied instead.";
+        try{ await navigator.clipboard.writeText(link); }catch(_e){}
+      }
     }
-);
 
-app.get(
-    "/api/account/password-reset-status",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.query.phone);
+    /* =========================================================
+       OPEN GAME
+    ========================================================= */
 
-            const requestId =
-                String(
-                    req.query.requestId || ""
-                ).trim();
-
-            if (!phone || !requestId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Phone number and reset request ID are required"
-                });
-            }
-
-            const request =
-                await findPasswordResetRequest(
-                    requestId,
-                    phone
-                );
-
-            if (!request) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Password reset request not found"
-                });
-            }
-
-            return res.json({
-                success: true,
-                status: request.status,
-                requestId: request.id
-            });
-        } catch (error) {
-            console.error(
-                "Password reset status error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not check password reset status"
-            });
-        }
+    async function ensureTelegramAuthentication(){
+      if(state.authToken && await loadServerAccount()) return true;
+      if(state.telegramId && await bootstrapTelegramAccount()) return true;
+      return false;
     }
-);
 
-app.post(
-    "/api/account/password-reset-verify-code",
-    async (req, res) => {
-        try {
-            const phone = normalizePhone(req.body.phone);
-            const requestId = String(req.body.requestId || "").trim();
-            const code = String(req.body.code || "").trim();
+    async function openGame(game){
+      if(game!=="bingo" && game!=="keno") return;
+      if(state.watchOnly){ alert("You are watching this game live. Go back and choose a stake to play."); return; }
 
-            if (!phone || !requestId || !/^\d{6}$/.test(code)) {
-                return res.status(400).json({success:false,error:"Phone number, reset request ID and 6-digit code are required"});
-            }
-
-            const request = await findPasswordResetRequest(requestId, phone);
-            if (!request) return res.status(404).json({success:false,error:"Password reset request not found"});
-            if (request.status !== "APPROVED") {
-                return res.status(400).json({success:false,error:request.status === "REJECTED" ? "Password reset was rejected by the administrator" : "Password reset is waiting for administrator approval"});
-            }
-
-            if (!consumePasswordResetCode(requestId, code)) {
-                return res.status(400).json({success:false,error:"Invalid or expired verification code"});
-            }
-
-            const resetToken = createPasswordResetToken(requestId);
-            return res.json({success:true,resetToken,expiresInSeconds:300});
-        } catch (error) {
-            console.error("Password reset code verification error:", error);
-            return res.status(500).json({success:false,error:error.message || "Could not verify recovery code"});
+      /* Existing Telegram players must be authenticated automatically.
+         Do not send them to phone/password login before attempting the
+         existing session and Telegram bootstrap flows. */
+      if(!state.accountCreated || !state.authToken){
+        const authenticated=await ensureTelegramAuthentication();
+        if(!authenticated){
+          showLogin();
+          document.getElementById("accountScreen").classList.remove("hidden");
+          return;
         }
+      }
+
+      state.game=game;
+      state.gameJoined=false;
+      state.stakeLobbyGame=game;
+
+      // A fresh stake screen must never show selections from a previous visit.
+      state.kenoSelections={1:[],2:[]};
+      state.kenoBets={1:null,2:null};
+      state.activeKenoSlot=1;
+      state.bingoMarkMode="auto";
+      state.bingoCartelas={1:null,2:null};
+      state.bingoBets={1:null,2:null};
+      state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
+      state.bingoMarks[1][12]=true;
+      state.bingoMarks[2][12]=true;
+      state.bingoBoards={1:null,2:null};
+      state.bettingOpen=!!state.bettingOpenByGame?.[game];
+      showPage("game");
+      document.getElementById("gameTitle").textContent=game.toUpperCase();
+      hideAllGames();
+      const gameEl=document.getElementById(game+"Game");
+      if(gameEl) gameEl.classList.remove("hidden");
+      buildGame();
+
+      const lobby=document.getElementById("gameStakeLobby");
+      const title=document.getElementById("stakeLobbyTitle");
+      const join=document.getElementById("stakeLobbyJoin");
+      if(lobby) lobby.classList.remove("hidden");
+      if(title) title.textContent=game.toUpperCase()+" STAKE";
+      if(join){ join.disabled=true; join.textContent="JOIN"; join.onclick=()=>joinStakeLobby(); }
+      const watch=document.getElementById("stakeLobbyWatch");
+      if(watch){ watch.disabled=false; watch.textContent="WATCH LIVE"; watch.onclick=()=>watchLiveGame(game); }
+      buildStakeLobby(game);
+      refreshStakeWallet();
+      updateRound();
+      fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : (state.kenoSelectedStake || null));
+      fetchStakePlayerCounts(game);
     }
-);
 
-app.post(
-    "/api/account/password-reset-complete",
-    async (req, res) => {
-        try {
-            const phone =
-                normalizePhone(req.body.phone);
+    function watchLiveGame(game){
+      state.watchOnly=true; state.gameJoined=false; state.stakeLobbyGame=game; clearInterval(state.stakeLobbyTimerId);
 
-            const requestId =
-                String(
-                    req.body.requestId || ""
-                ).trim();
+      /* WATCH LIVE is a user gesture. If game voice is already enabled, use
+         this gesture to unlock mobile speech synthesis before the first
+         asynchronous server draw arrives. Do not change the player's voice
+         preference if voice is OFF. */
+      if(voiceState.enabled){
+        voiceState.unlocked=true;
+        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+        try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
+        /* Establish a WATCH LIVE voice session immediately from the user's
+           tap.  Do not wait for the asynchronous /round response. */
+        try{
+          if(window.DestaVoice && typeof window.DestaVoice.enterLiveGame==="function")
+            window.DestaVoice.enterLiveGame(game,null,null);
+        }catch(e){}
+        try{
+          const useAm=String(state.language||"en").toLowerCase()==="am";
+          if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
+            window.DestaVoice.speakText(useAm ? "ድምጽ ንቁ ነው።" : "Voice on.",useAm?"am":"en");
+        }catch(e){}
+      }
 
-            const password =
-                req.body.password;
-            const resetToken = String(req.body.resetToken || "").trim();
+      const lobby=document.getElementById("gameStakeLobby"); if(lobby) lobby.classList.add("hidden");
+      const title=document.getElementById("gameTitle"); if(title) title.textContent=game.toUpperCase()+" • LIVE";
+      if(game==="bingo"){ const play=document.getElementById("bingoPlayArea"); if(play) play.classList.remove("hidden"); buildBingo(); const current=state.lastServerRounds?.bingo; if(current) primeLiveDrawPresentation("bingo",current); fetchLiveRound("bingo",null); }
+      if(game==="keno"){ const g=document.getElementById("kenoGame"); if(g) g.classList.remove("hidden"); const current=state.lastServerRounds?.keno; if(current) primeLiveDrawPresentation("keno",current); fetchLiveRound("keno",null); }
+      alert("WATCH LIVE mode: you can only watch. To play, go back and choose a stake."); startLiveRoundSync();
+    }
+    function requirePlayableSession(){ if(state.watchOnly){ alert("Watch Live is view-only. Go back and choose a stake before you can play."); return false; } return true; }
 
-            if (!phone || !requestId || !resetToken) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Phone number and reset request ID are required"
-                });
-            }
+    async function refreshStakeWallet(){
+      const headers={"Accept":"application/json"};
+      if(state.authToken) headers.Authorization="Bearer "+state.authToken;
 
-            if (!validPassword(password)) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Password must be between 8 and 128 characters"
-                });
-            }
-
-            const request =
-                await findPasswordResetRequest(
-                    requestId,
-                    phone
-                );
-
-            if (!request) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Password reset request not found"
-                });
-            }
-
-            if (request.status !== "APPROVED") {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        request.status === "REJECTED"
-                            ? "Password reset was rejected by the administrator"
-                            : request.status === "COMPLETED"
-                                ? "Password reset has already been completed"
-                                : "Password reset is waiting for administrator approval"
-                });
-            }
-
-            const tokenEntry = passwordResetTokens.get(resetToken);
-            if (!tokenEntry || tokenEntry.requestId !== requestId || Date.now() > tokenEntry.expiresAt) {
-                if (tokenEntry && Date.now() > tokenEntry.expiresAt) passwordResetTokens.delete(resetToken);
-                return res.status(400).json({success:false,error:"Invalid or expired reset token. Verify the recovery code again."});
-            }
-
-            passwordResetTokens.delete(resetToken);
-
-            const passwordHash =
-                await argon2.hash(password);
-
-            const {
-                data: updatedPlayer,
-                error: playerError
-            } =
-                await supabase
-                    .from("players")
-                    .update({
-                        password_hash: passwordHash,
-                        updated_at: nowIso()
-                    })
-                    .eq("id", request.player_id)
-                    .eq("phone", phone)
-                    .select("*")
-                    .maybeSingle();
-
-            if (playerError) {
-                await dbError(
-                    "password reset player update",
-                    playerError
-                );
-
-                throw new Error(
-                    "Could not change password"
-                );
-            }
-
-            if (!updatedPlayer) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Player account not found"
-                });
-            }
-                    const { data: completedRequest, error: requestError } =
-            await supabase
-                .from("password_reset_requests")
-                .update({
-                    status: "COMPLETED",
-                    completed_at: nowIso()
-                })
-                .eq("id", requestId)
-                .eq("status", "APPROVED")
-                .select("*")
-                .maybeSingle();
-
-        if (requestError) {
-            await dbError(
-                "password reset completion",
-                requestError
-            );
-
-            throw new Error(
-                "Password changed, but reset status could not be finalized"
-            );
+      /* Refresh the REAL MONEY balance first. The old version only read
+         state.balance, which could still be 0 when the stake lobby opened.
+         That made JOIN stay disabled even when the player had cash. */
+      try{
+        const walletResponse=await fetch("https://desta-play.onrender.com/api/wallet",{cache:"no-store",headers});
+        const walletData=await safeJsonResponse(walletResponse);
+        if(walletResponse.ok && walletData?.success){
+          const wallet=walletData.wallet||walletData;
+          const balance=Number(wallet.balance ?? wallet.availableBalance);
+          if(Number.isFinite(balance)) state.balance=balance;
         }
+      }catch(e){}
 
-        if (!completedRequest) {
-            throw new Error(
-                "Password reset request was already completed"
-            );
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bonus",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(response.ok && data?.success){
+          state.bonusPoints=Number(data.bonusPoints||0);
+          state.bonusPlayValue=Number(data.playValue||state.bonusPoints||0);
         }
+      }catch(e){}
 
-        return res.json({
-            success: true,
-            status: "COMPLETED",
-            message: "Password changed successfully"
+      const cashEl=document.getElementById("stakeCashBalance");
+      if(cashEl) cashEl.textContent=`Cash: ${Number(state.balance||0).toFixed(2)} ETB`;
+      const bonusEl=document.getElementById("stakeBonusBalance");
+      if(bonusEl) bonusEl.textContent=`Bonus: ${Number(state.bonusPlayValue||0).toFixed(2)} pts`;
+
+      /* Recalculate JOIN using the freshly loaded wallet balance. */
+      selectStakeWallet(state.selectedWalletType||"cash",true);
+    }
+
+    function selectStakeWallet(type,silent=false){
+      type=String(type||"cash").toLowerCase()==="bonus"?"bonus":"cash";
+      state.selectedWalletType=type;
+      const bonus=document.getElementById("stakeWalletBonus");
+      const cash=document.getElementById("stakeWalletCash");
+      if(bonus) bonus.classList.toggle("active",type==="bonus");
+      if(cash) cash.classList.toggle("active",type==="cash");
+      const stake=Number(state.stakeLobbyGame==="bingo"?state.bingoSelectedStake:state.kenoSelectedStake)||0;
+      const available=type==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
+      const status=document.getElementById("stakeLobbyStatus");
+      const join=document.getElementById("stakeLobbyJoin");
+      if(join) join.disabled=!(stake>0 && available>=stake);
+      if(!silent && status){
+        status.textContent=stake>0 ? `${type==="bonus"?"Bonus points":"Real money"} selected for ${stake} ETB stake.` : "Select a stake to continue.";
+      }
+    }
+
+    function buildStakeLobby(game){
+      const grid=document.getElementById("stakeLobbyGrid");
+      if(!grid) return;
+      const stakes=[10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000];
+      grid.innerHTML="";
+      stakes.forEach(amount=>{
+        const b=document.createElement("button");
+        b.type="button";
+        b.className="stakeChoice";
+        b.dataset.stake=String(amount);
+        b.innerHTML=`<strong>${amount} ETB</strong><small class="stakePlayers" id="${game}StakePlayers${amount}">0 players</small>`;
+        b.onclick=()=>selectLobbyStake(amount);
+        grid.appendChild(b);
+      });
+      const selected=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      if(selected) selectLobbyStake(selected);
+      else {
+        const status=document.getElementById("stakeLobbyStatus");
+        if(status) status.textContent="Select a stake to continue.";
+      }
+    }
+
+    function selectLobbyStake(amount){
+      amount=Number(amount);
+      if(!Number.isFinite(amount)) return;
+      if(state.stakeLobbyGame==="bingo") state.bingoSelectedStake=amount;
+      if(state.stakeLobbyGame==="keno") state.kenoSelectedStake=amount;
+      document.querySelectorAll("#stakeLobbyGrid .stakeChoice").forEach(b=>b.classList.toggle("active",Number(b.dataset.stake)===amount));
+      const join=document.getElementById("stakeLobbyJoin");
+      if(join) join.disabled=false;
+      const status=document.getElementById("stakeLobbyStatus");
+      if(status) status.textContent=`Selected ${amount} ETB. Tap JOIN to enter the live round.`;
+      if(state.stakeLobbyGame==="bingo") selectBingoStake(amount);
+      if(state.stakeLobbyGame==="keno") updateKenoStakeDisplays();
+      selectStakeWallet(state.selectedWalletType||"cash",true);
+      if(status) status.textContent=`Selected ${amount} ETB. ${state.selectedWalletType==="bonus"?"Bonus points":"Real money"} selected. Tap JOIN to enter the live round.`;
+    }
+
+    function joinStakeLobby(){
+      if(!requirePlayableSession()) return;
+      const game=state.stakeLobbyGame;
+      const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      if(!stake) return;
+      const wallet=state.selectedWalletType||"cash";
+      const available=wallet==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
+      if(stake>available){
+        alert(wallet==="bonus"?"Insufficient bonus points.":"Insufficient real money balance.");
+        return;
+      }
+      state.watchOnly=false;
+      state.gameJoined=true;
+      voiceState.enabled=true;
+      voiceState.unlocked=true;
+      try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+      updateVoiceButton();
+      /* JOIN is already a user gesture; DestaVoice owns speech playback. */
+      /* Provisional local state only until the authoritative server round
+         arrives. This makes the number/slot controls responsive immediately. */
+      state.bettingOpen=true;
+      const lobby=document.getElementById("gameStakeLobby");
+      if(lobby) lobby.classList.add("hidden");
+      if(game==="bingo") enterBingoWithStake();
+      if(game==="keno"){
+        const g=document.getElementById("kenoGame");
+        if(g) g.classList.remove("hidden");
+        document.getElementById("gameTitle").textContent="KENO";
+        updateKenoStakeDisplays();
+        const currentKenoRound=state.lastServerRounds?.keno;
+        if(currentKenoRound) primeLiveDrawPresentation("keno",currentKenoRound);
+        fetchLiveRound("keno",stake);
+      }
+      startLiveRoundSync();
+    }
+
+    function startStakeLobbyTimer(seconds){
+      clearInterval(state.stakeLobbyTimerId);
+      state.stakeLobbyTimer=Math.max(0,Math.floor(Number(seconds)||0));
+      const tick=()=>{
+        const el=document.getElementById("stakeLobbyTimer");
+        if(el) el.textContent=String(Math.max(0,state.stakeLobbyTimer)).padStart(2,"0");
+        if(state.stakeLobbyTimer<=0){ clearInterval(state.stakeLobbyTimerId); return; }
+        state.stakeLobbyTimer--;
+      };
+      tick();
+      state.stakeLobbyTimerId=setInterval(tick,1000);
+    }
+
+    async function fetchStakePlayerCounts(game){
+      try{
+        const response=await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/stake-counts`,{cache:"no-store",headers:{"Accept":"application/json"}});
+        if(!response.ok) return;
+        const data=await safeJsonResponse(response);
+        if(!data || !data.success || !data.counts) return;
+        state.stakePlayerCounts[game]=data.counts;
+        Object.entries(data.counts).forEach(([stake,count])=>{
+          const el=document.getElementById(`${game}StakePlayers${stake}`);
+          if(el) el.textContent=`${Number(count)||0} players`;
         });
-    } catch (error) {
-        console.error(
-            "Password reset completion error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            error:
-                error.message ||
-                "Could not reset password"
-        });
+      }catch(e){ console.warn("Stake count connection error:",e); }
     }
-});
 
-/*
-|--------------------------------------------------------------------------
-| CURRENT ACCOUNT
-|--------------------------------------------------------------------------
-*/
-
-async function meHandler(req, res) {
-    return res.json({
-        success: true,
-        player: publicPlayer(req.player)
-    });
-}
-
-app.get(
-    "/api/auth/me",
-    requirePlayer,
-    meHandler
-);
-
-app.get(
-    "/api/account/me",
-    requirePlayer,
-    meHandler
-);
-
-/*
-|--------------------------------------------------------------------------
-| BONUS POINTS
-|--------------------------------------------------------------------------
-*/
-const BONUS_WITHDRAWAL_MIN_POINTS = 3000;
-app.get("/api/bonus", requirePlayer, async (req, res) => {
-    try {
-        const points = await getBonusPoints(req.player.id);
-        return res.json({
-            success:true,
-            bonusPoints:Math.max(0, points),
-            playValue:Number(Math.max(0, points).toFixed(2)),
-            withdrawalValue:Number((Math.max(0, points) / 10).toFixed(2)),
-            playRate:"1 point = 1 ETB play value",
-            withdrawalRate:"10 points = 1 ETB withdrawal value",
-            bonusWithdrawalMinimumPoints:BONUS_WITHDRAWAL_MIN_POINTS,
-            bonusWithdrawalEligible:Math.max(0, points) >= BONUS_WITHDRAWAL_MIN_POINTS,
-            eligibleGames:["bingo","keno"]
-        });
-    } catch (error) {
-        return res.status(500).json({success:false,error:error.message || "Could not load bonus points"});
+    function updateKenoStakeDisplays(){
+      const stake=Number(state.kenoSelectedStake||0);
+      ["kenoSelectedStakeDisplay","k1StakeDisplay","k2StakeDisplay"].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.textContent=stake||"—";
+      });
     }
-});
 
-/*
-|--------------------------------------------------------------------------
-| PLAYER INVITE
-|--------------------------------------------------------------------------
-|
-| Returns the unique invite code/link for the authenticated player. The
-| code is derived from the server-generated player ID, so every player has
-| a different code and the code does not change after refresh/restart.
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/invite",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const inviteCode = makeInviteCode(req.player.id);
-            const ledger = await getBonusLedger(req.player.id);
-            let invitedPlayers = 0;
-            for (const row of ledger) {
-                if (row.type !== "invite_bonus_points") continue;
-                try {
-                    const meta = JSON.parse(row.description || "{}");
-                    if (meta.invitedPlayerId) invitedPlayers += 1;
-                } catch (_) {}
-            }
-            const earnedPoints = Number(ledger
-                .filter(r => ["invite_bonus_points", "first_deposit_bonus", "bonus_win", "bonus_adjustment"].includes(r.type))
-                .reduce((sum, r) => sum + Number(r.amount || 0), 0).toFixed(2));
-            const usedPoints = Number(ledger
-                .filter(r => r.type === "bonus_play")
-                .reduce((sum, r) => sum + Math.abs(Number(r.amount || 0)), 0).toFixed(2));
-            const bonusPoints = Number((earnedPoints - usedPoints).toFixed(2));
-            return res.json({
-                success: true,
-                inviteCode,
-                inviteLink: makeInviteLink(req.player.id),
-                invitedPlayers,
-                earnedPoints,
-                usedPoints,
-                bonusPoints: Math.max(0, bonusPoints),
-                playValue: Math.max(0, bonusPoints),
-                withdrawalValue: Number((Math.max(0, bonusPoints) / 10).toFixed(2)),
-                bonusWithdrawalMinimumPoints: BONUS_WITHDRAWAL_MIN_POINTS,
-                bonusWithdrawalEligible: Math.max(0, bonusPoints) >= BONUS_WITHDRAWAL_MIN_POINTS
-            });
-        } catch (error) {
-            return res.status(500).json({ success:false, error:error.message || "Could not load invite information" });
-        }
+    function clearGameSelections(){
+      state.kenoSelections={1:[],2:[]};
+      state.kenoBets={1:null,2:null};
+      state.activeKenoSlot=1;
+      state.bingoCartelas={1:null,2:null};
+      state.bingoBets={1:null,2:null};
+      state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
+      state.bingoMarks[1][12]=true;
+      state.bingoMarks[2][12]=true;
+      state.bingoBoards={1:null,2:null};
+      const board=document.getElementById("kenoBoard");
+      if(board) board.innerHTML="";
+      const picker=document.getElementById("cartelaPicker");
+      if(picker) picker.innerHTML="";
+      const s1=document.getElementById("kenoSlot1Numbers");
+      const s2=document.getElementById("kenoSlot2Numbers");
+      if(s1) s1.innerHTML='<span class="muted">No numbers</span>';
+      if(s2) s2.innerHTML='<span class="muted">No numbers</span>';
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| LOGOUT
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/auth/logout",
-    requirePlayer,
-    (req, res) => {
-        const authorization =
-            req.headers.authorization || "";
-
-        const token =
-            authorization.slice(7).trim();
-
-        if (token) {
-            const tokenHash =
-                crypto
-                    .createHmac(
-                        "sha256",
-                        SESSION_SECRET
-                    )
-                    .update(token)
-                    .digest("hex");
-
-            sessions.delete(tokenHash);
-        }
-
-        res.json({
-            success: true
-        });
+    function backToGames(){
+      try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+      clearVoiceQueue();
+      hideAllGames();
+      clearGameSelections();
+      state.game="";
+      state.stakeLobbyGame="";
+      state.gameJoined=false;
+      state.watchOnly=false;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
+      state.bettingOpen=false;
+      liveRoundSyncActive=false;
+      clearTimeout(liveRoundTimer);
+      const wheel=document.getElementById("rouletteWheel");
+      if(wheel){
+        wheel.classList.remove("spinning","resultSpin");
+        wheel.style.transform="rotate(0deg)";
+      }
+      showPage("home");
     }
-);
 
-app.post(
-    "/api/account/logout",
-    requirePlayer,
-    (req, res) => {
-        const authorization =
-            req.headers.authorization || "";
 
-        const token =
-            authorization.slice(7).trim();
+    /* =========================================================
+       HIDE GAMES
+    ========================================================= */
 
-        if (token) {
-            const tokenHash =
-                crypto
-                    .createHmac(
-                        "sha256",
-                        SESSION_SECRET
-                    )
-                    .update(token)
-                    .digest("hex");
+    function hideAllGames(){
 
-            sessions.delete(tokenHash);
-        }
+      [
+        "keno",
+        "bingo"
+      ].forEach(g=>{
 
-        res.json({
-            success: true
-        });
+        document
+          .getElementById(g+"Game")
+          .classList.add("hidden");
+
+      });
+
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| BALANCE
-|--------------------------------------------------------------------------
-*/
 
-app.get(
-    "/api/account/balance",
-    requirePlayer,
-    (req, res) => {
-        res.json({
-            success: true,
-            balance: Number(
-                req.player.balance || 0
-            )
-        });
+    /* =========================================================
+       BUILD GAME
+    ========================================================= */
+
+    function buildGame(){
+
+      if(state.game==="keno")
+        buildKeno();
+
+      if(state.game==="bingo")
+        buildBingo();
+
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 2 — PUBLIC PAYMENT CONFIGURATION
-|--------------------------------------------------------------------------
-*/
 
-app.get(
-    "/api/payment/config",
-    requirePlayer,
-    (req, res) => {
-        return res.json({
-            success: true,
-            minimumDeposit: MIN_DEPOSIT_AMOUNT,
-            methods: {
-                telebirr: {
-                    available: true,
-                    ownerName: PAYMENT_OWNER_NAME,
-                    phone: PAYMENT_PHONE,
-                    account: TELEBIRR_ACCOUNT
-                },
-                mpesa: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
-                },
-                cbeBirr: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
-                }
-            }
-        });
+    /* =========================================================
+       ROUND
+    ========================================================= */
+
+    function updateRound(){
+
+      const raw=Number(state.rounds?.[state.game]);
+      const el=document.getElementById("roundNumber");
+      if(!el) return;
+
+      if(!Number.isFinite(raw) || raw < 1){
+        el.textContent="----";
+        return;
+      }
+
+      el.textContent=String(Math.floor(raw)).padStart(3,"0");
+
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 3 — DEPOSIT REQUEST
-|--------------------------------------------------------------------------
-*/
 
-app.post(
-    "/api/deposit/request",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const amount =
-                Number(req.body.amount);
+    /* =========================================================
+       BALANCE
+    ========================================================= */
 
-            const method =
-                String(
-                    req.body.method ||
-                    "telebirr"
-                )
-                    .trim()
-                    .toLowerCase();
+    function updateBalance(){
 
-            const transactionId =
-                normalizeReference(
-                    req.body.transactionId
-                );
+      const value=
+        state.balance.toFixed(2);
 
-            const referenceId =
-                normalizeReference(
-                    req.body.referenceId ||
-                    transactionId
-                );
+      document
+        .getElementById("balance")
+        .textContent=value;
 
-            const recipient =
-                String(
-                    req.body.recipient ||
-                    PAYMENT_OWNER_NAME
-                )
-                    .trim()
-                    .slice(0, 120);
+      document
+        .getElementById("walletBalance")
+        .textContent=value;
 
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone
-                );
+      document
+        .getElementById("profileBalance")
+        .textContent=value;
 
-            if (
-                !Number.isFinite(amount) ||
-                amount < MIN_DEPOSIT_AMOUNT
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
-                });
-            }
-
-            if (
-                !SUPPORTED_DEPOSIT_METHODS[method]
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        method === "mpesa" ||
-                        method === "cbe_birr"
-                            ? "Payment method is not available now."
-                            : "Unsupported payment method"
-                });
-            }
-
-            if (!referenceId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Payment transaction/reference link is required"
-                });
-            }
-
-            if (
-                await hasSuccessfulDepositReference(
-                    referenceId
-                )
-            ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference has already been credited"
-                });
-            }
-
-            const {
-                data: existingPending,
-                error: duplicateError
-            } =
-                await supabase
-                    .from("transactions")
-                    .select("id,status")
-                    .eq("type", "deposit")
-                    .eq(
-                        "reference_id",
-                        referenceId
-                    )
-                    .in(
-                        "status",
-                        [
-                            "PENDING",
-                            "APPROVED",
-                            "SUCCESS",
-                            "COMPLETED"
-                        ]
-                    )
-                    .limit(1);
-
-            if (duplicateError) {
-                await dbError(
-                    "deposit duplicate check",
-                    duplicateError
-                );
-
-                throw new Error(
-                    "Could not check payment reference"
-                );
-            }
-
-            if (existingPending?.length) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference is already submitted"
-                });
-            }
-
-            const requestId =
-                makeId("DEP");
-
-            const { data, error } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id: req.player.id,
-                        type: "deposit",
-                        amount,
-                        balance_before:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        balance_after:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        status: "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 3,
-                                method,
-                                recipient,
-                                senderPhone,
-                                transactionId,
-                                referenceId,
-                                requestId,
-                                requestedAt: nowIso()
-                            }),
-                        reference_id: referenceId,
-                        created_at: nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "deposit request insert",
-                    error
-                );
-
-                throw new Error(
-                    "Could not create deposit request"
-                );
-            }
-
-            await sendAdminGroupAudit(
-                `DEPOSIT PENDING\nPlayer: ${req.player.id}\nAmount: ${amount} ETB\nReference: ${referenceId}\nRequest: ${requestId}`
-            );
-
-            return res.json({
-                success: true,
-                status: "PENDING",
-                requestId,
-                amount,
-                minimumDeposit:
-                    MIN_DEPOSIT_AMOUNT,
-                referenceId:
-                    data.reference_id
-            });
-        } catch (error) {
-            console.error(
-                "Deposit request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not create deposit request"
-            });
-        }
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 4 — SMS PAYMENT VERIFICATION
-|--------------------------------------------------------------------------
-|
-| The SMS forwarder can POST the complete SMS text here. The endpoint
-| never credits a deposit from the player's submission alone. A forwarded
-| payment must contain a matching amount and transaction/reference value.
-|--------------------------------------------------------------------------
-*/
 
-app.post(
-    "/api/payment/sms",
-    async (req, res) => {
-        try {
-            if (SMS_WEBHOOK_SECRET) {
-                const supplied =
-                    String(
-                        req.headers[
-                            "x-sms-webhook-secret"
-                        ] ||
-                        req.headers[
-                            "x-webhook-secret"
-                        ] ||
-                        ""
-                    );
+    /* =========================================================
+       KENO
+    ========================================================= */
 
-                if (
-                    supplied !==
-                    SMS_WEBHOOK_SECRET
-                ) {
-                    return res.status(401).json({
-                        success: false,
-                        error: "Unauthorized"
-                    });
-                }
-            }
+    function buildKeno(){
 
-            const smsText =
-                String(
-                    req.body.message ||
-                    req.body.text ||
-                    req.body.sms ||
-                    req.body.body ||
-                    ""
-                ).trim();
-
-            if (!smsText) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "SMS message is required"
-                });
-            }
-
-            const forwardedAmount =
-                Number(req.body.amount) ||
-                parseFirstAmount(smsText);
-
-            const referenceCandidates = [
-                normalizeReference(
-                    req.body.transactionId
-                ),
-                normalizeReference(
-                    req.body.referenceId
-                ),
-                ...extractReferenceCandidates(
-                    smsText
-                )
-            ].filter(Boolean);
-
-            const sender =
-                String(
-                    req.body.sender ||
-                    req.body.senderName ||
-                    ""
-                ).trim();
-
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone ||
-                    req.body.from ||
-                    ""
-                );
-
-            const receiver =
-                String(
-                    req.body.receiver ||
-                    req.body.recipient ||
-                    ""
-                ).trim();
-
-            const receiverPhone =
-                normalizePhone(
-                    req.body.receiverPhone ||
-                    req.body.to ||
-                    ""
-                );
-
-            const pending =
-                await findPendingDeposits();
-
-            let matched = null;
-
-            for (const deposit of pending) {
-                const description =
-                    String(
-                        deposit.description || ""
-                    );
-
-                const referenceMatches =
-                    referenceCandidates.includes(
-                        String(
-                            deposit.reference_id || ""
-                        )
-                    ) ||
-                    referenceCandidates.some(
-                        token =>
-                            description.includes(
-                                token
-                            )
-                    );
-
-                const amountMatches =
-                    Number.isFinite(
-                        forwardedAmount
-                    ) &&
-                    Number(deposit.amount) ===
-                        Number(
-                            forwardedAmount
-                        );
-
-                if (
-                    referenceMatches &&
-                    amountMatches
-                ) {
-                    matched = deposit;
-                    break;
-                }
-            }
-
-            if (!matched) {
-                return res.status(200).json({
-                    success: true,
-                    verified: false,
-                    credited: false,
-                    message:
-                        "No pending deposit matched this SMS"
-                });
-            }
-
-            const referenceId =
-                String(
-                    matched.reference_id ||
-                    referenceCandidates[0] ||
-                    ""
-                );
-
-            const result =
-                await approveDepositTransaction(
-                    matched,
-                    {
-                        amount:
-                            forwardedAmount,
-                        referenceId,
-                        sender,
-                        senderPhone,
-                        receiver,
-                        receiverPhone,
-                        smsTime:
-                            req.body.timestamp ||
-                            req.body.time ||
-                            null,
-                        smsText
-                    }
-                );
-
-            return res.json({
-                success: true,
-                verified: true,
-                credited: true,
-                playerId:
-                    matched.player_id,
-                amount:
-                    Number(matched.amount),
-                referenceId:
-                    result.referenceId,
-                balanceAfter:
-                    result.balanceAfter
-            });
-        } catch (error) {
-            console.error(
-                "SMS verification error:",
-                error
-            );
-
-            return res.status(400).json({
-                success: false,
-                verified: false,
-                credited: false,
-                error:
-                    error.message ||
-                    "Payment verification failed"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 5 — WITHDRAWAL REQUEST
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/withdraw/request",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const amount =
-                Number(req.body.amount);
-
-            const recipientName =
-                String(
-                    req.body.recipientName ||
-                    req.body.fullName ||
-                    ""
-                )
-                    .trim()
-                    .slice(0, 120);
-
-            const recipientPhone =
-                normalizePhone(
-                    req.body.recipientPhone ||
-                    req.body.phone
-                );
-
-            const password =
-                String(
-                    req.body.password || ""
-                );
-
-            if (
-                !Number.isFinite(amount) ||
-                amount <= 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Invalid withdrawal amount"
-                });
-            }
-
-            const before =
-                Number(
-                    req.player.balance || 0
-                );
-
-            if (amount > before) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Insufficient balance",
-                    balanceBefore: before
-                });
-            }
-
-            if (
-                !recipientName ||
-                !recipientPhone
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Recipient full name and phone are required"
-                });
-            }
-
-            if (!validPassword(password)) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Password is required"
-                });
-            }
-
-            if (!req.player.password_hash) {
-                return res.status(401).json({
-                    success: false,
-                    error:
-                        "Account password is not configured"
-                });
-            }
-
-            const valid =
-                await argon2.verify(
-                    req.player.password_hash,
-                    password
-                );
-
-            if (!valid) {
-                return res.status(401).json({
-                    success: false,
-                    error:
-                        "Incorrect password"
-                });
-            }
-
-            const after =
-                before - amount;
-
-            const requestId =
-                makeId("WDR");
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-                amount: -amount,
-                type:
-                    "withdrawal_reserve",
-                description:
-                    `Withdrawal reservation ${requestId}`,
-                roundId:
-                    requestId,
-                metadata: {
-                    requestId,
-                    recipientName,
-                    recipientPhone
-                }
-            });
-
-            const {
-                data,
-                error
-            } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id:
-                            req.player.id,
-                        type:
-                            "withdrawal",
-                        amount,
-                        balance_before:
-                            before,
-                        balance_after:
-                            after,
-                        status:
-                            "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 5,
-                                recipient:
-                                    recipientName,
-                                recipientPhone,
-                                requestId,
-                                requestedAt:
-                                    nowIso()
-                            }),
-                        reference_id:
-                            requestId,
-                        created_at:
-                            nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "withdrawal request insert",
-                    error
-                );
-
-                /*
-                 * Reservation was already recorded; return it so a failed
-                 * request insert does not silently consume player funds.
-                 */
-                await changeBalance({
-                    playerId:
-                        req.player.id,
-                    amount,
-                    type:
-                        "withdrawal_reservation_reversal",
-                    description:
-                        `Withdrawal request rollback ${requestId}`,
-                    roundId:
-                        requestId
-                });
-
-                throw new Error(
-                    "Could not create withdrawal request"
-                );
-            }
-
-            const text =
-                `<b>DESTA PLAY — WITHDRAWAL REQUEST</b>\n` +
-                `Telegram name: ${String(req.player.username || "Player")}\n` +
-                `Username: ${String(req.player.telegram_username || "Not available")}\n` +
-                `Account/Player ID: ${String(req.player.id)}\n` +
-                `Recipient: ${recipientName}\n` +
-                `Phone: ${recipientPhone}\n` +
-                `Amount: ${amount} ETB\n` +
-                `Balance before: ${before} ETB\n` +
-                `Balance after: ${after} ETB\n` +
-                `Request ID: ${requestId}\n` +
-                `Request time: ${nowIso()}`;
-
-            await sendAdminTelegramMessage(
-                text,
-                withdrawalReplyMarkup(
-                    requestId
-                )
-            );
-
-            await sendAdminGroupAudit(
-                text.replace(
-                    /<[^>]+>/g,
-                    ""
-                )
-            );
-
-            return res.json({
-                success: true,
-                status: "PENDING",
-                requestId,
-                amount,
-                balanceBefore: before,
-                balanceAfter: after
-            });
-        } catch (error) {
-            console.error(
-                "Withdrawal request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not create withdrawal request"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 6 — TELEGRAM WITHDRAWAL CONTROL
-|--------------------------------------------------------------------------
-|
-| Telegram callback buttons are processed through the webhook below.
-| Passwords and password hashes are never sent to Telegram.
-|--------------------------------------------------------------------------
-*/
-
-async function processWithdrawalAction(
-    action,
-    requestId
-) {
-    const transaction =
-        await findTransactionById(
-            requestId
+      const board=
+        document.getElementById(
+          "kenoBoard"
         );
 
-    if (
-        !transaction ||
-        transaction.type !==
-            "withdrawal"
-    ) {
-        throw new Error(
-            "Withdrawal request not found"
-        );
+      board.innerHTML="";
+
+      for(let n=1;n<=80;n++){
+
+        const b=
+          document.createElement("button");
+
+        b.className="kenoNumber";
+
+        b.textContent=
+          String(n).padStart(2,"0");
+
+        if(
+          state.kenoSelections[
+            state.activeKenoSlot
+          ].includes(n)
+        ){
+
+          b.classList.add("selected");
+
+        }
+
+        b.onclick=
+          ()=>selectKeno(n,b);
+
+        board.appendChild(b);
+
+      }
+
+      updateKenoSelectionDisplay();
+
+      updateKenoSlotVisuals();
+
     }
 
-    if (action === "accept") {
-        if (
-            transaction.status !==
-            "PENDING"
-        ) {
-            throw new Error(
-                `Cannot ACCEPT withdrawal in ${transaction.status} status`
-            );
-        }
-                const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "APPROVED" })
-            .eq("id", requestId)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
 
-        if (error) {
-            await dbError("withdrawal accept", error);
-            throw new Error("Could not accept withdrawal");
-        }
+    function activateKenoSlot(slot){
 
-        if (!data) throw new Error("Withdrawal was already processed");
+      if(slot!==1 && slot!==2) return;
+      state.activeKenoSlot=slot;
 
-        await sendAdminGroupAudit(
-            `WITHDRAWAL ACCEPTED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
+      document
+        .getElementById("activeKenoSlot")
+        .textContent=
+          "SLOT "+slot;
 
-        return "ACCEPTED";
+      buildKeno();
+
     }
 
-    if (action === "reject") {
-        if (transaction.status !== "PENDING") {
-            throw new Error(`Cannot REJECT withdrawal in ${transaction.status} status`);
+
+    function updateKenoSlotVisuals(){
+
+      document
+        .getElementById("kenoBetSlot1")
+        .classList.toggle(
+          "active",
+          state.activeKenoSlot===1
+        );
+
+      document
+        .getElementById("kenoBetSlot2")
+        .classList.toggle(
+          "active",
+          state.activeKenoSlot===2
+        );
+
+    }
+
+
+    function selectKeno(n,button){
+
+      if(!requirePlayableSession()) return;
+
+      /* Allow immediate touch selection after JOIN while the first server
+         round response is arriving. Once the server reports DRAWING/closed,
+         its authoritative state still wins. */
+      if(!state.bettingOpen && !(state.gameJoined && Number(state.countdown||0)>0))
+        return;
+
+      const slot=
+        state.activeKenoSlot;
+
+      const selected=
+        state.kenoSelections[slot];
+
+      const index=
+        selected.indexOf(n);
+
+      if(index>=0){
+
+        selected.splice(index,1);
+
+      }else{
+
+        if(selected.length>=10){
+
+          alert(
+            "Maximum 10 numbers per slot."
+          );
+
+          return;
+
         }
 
-        const player = await findPlayerById(transaction.player_id);
-        if (!player) throw new Error("Player not found");
+        selected.push(n);
 
-        const amount = Number(transaction.amount);
-        const before = Number(player.balance || 0);
+      }
 
-        const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "REJECTED" })
-            .eq("id", requestId)
-            .eq("status", "PENDING")
-            .select("*")
-            .maybeSingle();
+      buildKeno();
 
-        if (error) {
-            await dbError("withdrawal reject", error);
-            throw new Error("Could not reject withdrawal");
-        }
+    }
 
-        if (!data) throw new Error("Withdrawal was already processed");
 
-        await changeBalance({
-            playerId: transaction.player_id,
-            amount,
-            type: "withdrawal_reversal",
-            description: `Withdrawal rejected ${requestId}`,
-            roundId: requestId
+    function updateKenoSelectionDisplay(){
+
+      [1,2].forEach(slot=>{
+
+        const target=
+          document.getElementById(
+            "kenoSlot"+slot+"Numbers"
+          );
+
+        const selected=
+          state.kenoSelections[slot];
+
+        const chips = selected.length
+          ? selected.map(n=>`<span class="selectedNumber">${n}</span>`).join("")
+          : `<span class="muted">Choose 3–10 numbers</span>`;
+
+        target.innerHTML = chips;
+
+        const slotTarget = document.getElementById(`kenoBetSlot${slot}Numbers`);
+        if(slotTarget) slotTarget.innerHTML = chips;
+
+        document
+          .getElementById(
+            "kenoSelected"+slot
+          )
+          .textContent=
+            selected.length+
+            " / 10";
+
+      });
+
+    }
+
+
+    async function placeKenoBet(slot){
+
+      if(!requirePlayableSession()) return;
+      if(slot!==1 && slot!==2) return;
+
+      if(!state.bettingOpen){
+        alert("Betting is closed.");
+        return;
+      }
+
+      const numbers=[...(state.kenoSelections[slot] || [])];
+
+      if(numbers.length<3 || numbers.length>10){
+        alert("Select 3 to 10 numbers for Slot "+slot+".");
+        return;
+      }
+
+      const amount=Number(state.kenoSelectedStake || 0);
+      if(amount<=0){
+        alert("Select a stake first.");
+        return;
+      }
+
+      if(state.kenoBets[slot]){
+        alert("This slot is already placed.");
+        return;
+      }
+
+      const button=document.querySelectorAll("#kenoGame .placeBtn")[slot-1];
+      if(button){ button.disabled=true; button.textContent="PLACING..."; }
+
+      try{
+        const headers={"Content-Type":"application/json","Accept":"application/json"};
+        if(state.authToken) headers["Authorization"]="Bearer "+state.authToken;
+
+        const response=await fetch("https://desta-play.onrender.com/api/game/keno/bet",{
+          method:"POST",
+          headers,
+          body:JSON.stringify({
+            stake:amount,
+            slotIndex:slot,
+            slots:[numbers],
+            roundId:state.serverRoundIds?.keno || "",
+            walletType:state.selectedWalletType||"cash"
+          })
         });
 
-        await sendAdminGroupAudit(
-            `WITHDRAWAL REJECTED\nRequest: ${requestId}\nAmount returned: ${amount} ETB\nBalance before return: ${before} ETB`
-        );
-
-        return "REJECTED";
-    }
-
-    if (action === "completed") {
-        if (transaction.status !== "APPROVED") {
-            throw new Error("COMPLETED is allowed only after ACCEPT");
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){
+          throw new Error(data?.error || "Keno bet was not accepted by the server.");
         }
 
-        const { data, error } = await supabase
-            .from("transactions")
-            .update({ status: "COMPLETED" })
-            .eq("id", requestId)
-            .eq("status", "APPROVED")
-            .select("*")
-            .maybeSingle();
-
-        if (error) {
-            await dbError("withdrawal completed", error);
-            throw new Error("Could not complete withdrawal");
-        }
-
-        if (!data) throw new Error("Withdrawal was already processed");
-
-        await sendAdminGroupAudit(
-            `WITHDRAWAL COMPLETED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
-
-        return "COMPLETED";
-    }
-
-    throw new Error("Unknown withdrawal action");
-}
-
-app.post(
-    "/api/admin/telegram/webhook",
-    async (req, res) => {
-        try {
-            if (TELEGRAM_WEBHOOK_SECRET) {
-                const supplied = String(
-                    req.headers["x-telegram-bot-api-secret-token"] ||
-                    ""
-                );
-
-                if (supplied !== TELEGRAM_WEBHOOK_SECRET) {
-                    return res.status(401).json({ success: false, error: "Unauthorized" });
-                }
-            }
-
-            const message = req.body?.message;
-            const contact = message?.contact;
-
-            /* =========================================================
-               PLAYER TELEGRAM COMMANDS
-               These commands are shortcuts into the existing DESTA PLAY
-               account system. Only the command replies/buttons are handled
-               here; game, wallet, deposit, withdrawal and payout engines
-               remain unchanged.
-               ========================================================= */
-            if (message && !contact) {
-                const chatId = message?.chat?.id;
-                const fromId = String(message?.from?.id || "").trim();
-                const text = String(message?.text || "").trim();
-                const commandMatch = text.match(/^\/([a-zA-Z0-9_]+)(?:@[^\s]+)?(?:\s+.*)?$/);
-
-                if (chatId && fromId && commandMatch) {
-                    const command = commandMatch[1].toLowerCase();
-                    const player = await findPlayerByTelegramId(fromId);
-                    const name = String(message?.from?.first_name || player?.username || "Player").trim();
-                    const appUrl = TELEGRAM_MINI_APP_URL;
-                    const esc = value => String(value ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-
-                    const miniAppLink = (target = "") => {
-                        const base = String(appUrl || "").replace(/[?&]startapp=[^&]*/i, "").replace(/[?&]$/, "");
-                        if (!target) return base;
-                        return `${base}${base.includes("?") ? "&" : "?"}startapp=${encodeURIComponent(target)}`;
-                    };
-
-                    const button = (text, target) => ({
-                        inline_keyboard: [[{ text, url: miniAppLink(target) }]]
-                    });
-
-                    const sendPlayer = async (html, replyMarkup = null) => {
-                        await telegramApi("sendMessage", {
-                            chat_id: chatId,
-                            text: html,
-                            parse_mode: "HTML",
-                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
-                        });
-                    };
-
-                    if (command === "start") {
-                        await sendPlayer(
-                            `ሰላም ${esc(name)}! 👋\n\n<strong>ደስታ PLAY</strong> ላይ እንኳን ደህና መጡ።\n\nቢንጎ እና ኬኖን ለመጫወት ከታች ያለውን ቁልፍ ይጫኑ።`,
-                            button("🎮 OPEN DESTA PLAY", "home")
-                        );
-                    } else if (command === "help") {
-                        await sendPlayer(
-                            `<strong>🎮 ደስታ PLAY — እርዳታ</strong>\n\n<strong>መጀመሪያ እንዴት መጫወት ይቻላል?</strong>\nDESTA PLAYን ይክፈቱ፣ መለያዎን ይጠቀሙ እና የሚወዱትን ጨዋታ ይምረጡ።\n\n<strong>🎯 ያሉት ጨዋታዎች</strong>\n• 🎱 Bingo — 75-ball Bingo\n• 🔢 Keno — 1–80\n\n<strong>💰 ውርርድ መጠን</strong>\nጨዋታውን ከመጀመርዎ በፊት ካሉት የውርርድ መጠኖች አንዱን ይምረጡ።\n\n<strong>🎟️ ውርርድ እንዴት ይሰራል?</strong>\nየሚጫወቱበትን ዋሌት ይምረጡ፣ የውርርድ መጠንዎን ይምረጡ እና JOIN ይጫኑ። ውርርዱ ከተረጋገጠ በኋላ ወደ ዙሩ ይገባሉ።\n\n<strong>🎱 Bingo</strong>\nየBingo ካርድዎን ይምረጡ። ጨዋታው ሲጀምር ቁጥሮች በቀጥታ ይወጣሉ። ካርድዎን ተከታትለው ይጫወቱ።\n\n<strong>🔢 Keno</strong>\nከ1–80 መካከል 3–10 ቁጥሮችን ይምረጡ። እስከ 2 ስሎት መጠቀም ይችላሉ።\n\n<strong>🏆 Prize Pool</strong>\nየPrize Pool መሠረት በተቀበሉ ውርርዶች እና በተሳተፉ ተጫዋቾች ይመሰረታል።\n<strong>ውርርድ መጠን × ተሳታፊ ተጫዋቾች = የPrize Pool መሠረት</strong>\n\n<strong>💳 Wallet</strong>\nበWallet ውስጥ ቀሪ ሂሳብዎን ይመልከቱ፣ ገንዘብ ያስገቡ፣ ያውጡ እና ግብይቶችዎን ይመልከቱ።\n\n<strong>💵 Deposit & Withdrawal</strong>\nDeposit በመጠቀም ገንዘብ ያስገቡ። Withdrawal በመጠቀም የማውጣት ጥያቄ ያቅርቡ።\n\n<strong>🤝 Invitation & Referral</strong>\nየግብዣ ኮድዎን ለጓደኞችዎ ያጋሩ እና የግብዣ መረጃዎን ይከታተሉ።\n\n<strong>👤 Account & Status</strong>\nከProfile የግል መረጃዎን እና የመለያዎን ሁኔታ ይመልከቱ።\n\nሌላ ጥያቄ ካለዎት Support ያግኙ።`
-                        );
-                    } else if (command === "games") {
-                        await sendPlayer(
-                            `<strong>🎮 የሚገኙ ጨዋታዎች</strong>\n\n🎱 <strong>Bingo</strong>\n75-ball Bingo\n\n🔢 <strong>Keno</strong>\n1–80 Keno\n\nየሚፈልጉትን ጨዋታ ይምረጡ።`,
-                            { inline_keyboard: [
-                                [{ text: "🎱 PLAY BINGO", url: miniAppLink("bingo") }],
-                                [{ text: "🔢 PLAY KENO", url: miniAppLink("keno") }]
-                            ] }
-                        );
-                    } else if (command === "wallet") {
-                        await sendPlayer(
-                            player
-                                ? `<strong>💰 ዋሌት</strong>\n\nቀሪ ሂሳብ: <strong>${Number(player.balance || 0).toFixed(2)} ETB</strong>\n\nሙሉ የWallet መረጃዎን ለማየት ከታች ያለውን ቁልፍ ይጫኑ።`
-                                : `የዋሌት መረጃዎን ለማየት DESTA PLAYን ይክፈቱ።`,
-                            button("💰 OPEN WALLET", "wallet")
-                        );
-                    } else if (command === "profile") {
-                        await sendPlayer(
-                            player
-                                ? `<strong>👤 የግል መረጃ</strong>\n\nስም: ${esc(player.username || name)}\nPlayer ID: <code>${esc(player.id)}</code>`
-                                : `የግል መረጃዎን ለማየት DESTA PLAYን ይክፈቱ።`,
-                            button("👤 OPEN PROFILE", "profile")
-                        );
-                    } else if (command === "support") {
-                        const support = SUPPORT_TELEGRAM_USERNAME.startsWith("@") ? SUPPORT_TELEGRAM_USERNAME : `@${SUPPORT_TELEGRAM_USERNAME}`;
-                        await sendPlayer(
-                            `<strong>🆘 የድጋፍ ክፍል</strong>\n\nበጨዋታው፣ በዋሌትዎ ወይም በመለያዎ ላይ ችግር ካጋጠመዎት እባክዎ አስተዳዳሪውን ያግኙ።\n\nSupport: <strong>${esc(support)}</strong>`,
-                            { inline_keyboard: [[{ text: "💬 CONTACT SUPPORT", url: `https://t.me/${support.replace(/^@/, "")}` }]] }
-                        );
-                    } else if (command === "invite") {
-                        await sendPlayer(
-                            `<strong>🤝 የግብዣ መረጃ</strong>\n\nየግብዣ ኮድዎን እና የግብዣ መረጃዎን DESTA PLAY ውስጥ ይመልከቱ።`,
-                            button("🤝 OPEN INVITATION", "invite")
-                        );
-                    } else if (command === "deposit") {
-                        await sendPlayer(
-                            `<strong>💳 ገንዘብ ማስገባት</strong>\n\nበDESTA PLAY Wallet ውስጥ Deposit ይክፈቱ እና የክፍያ መመሪያውን ይከተሉ።\n\nዝቅተኛ የDeposit መጠን: <strong>${MIN_DEPOSIT_AMOUNT} ETB</strong>`,
-                            button("💳 OPEN DEPOSIT", "deposit")
-                        );
-                    } else if (command === "withdraw") {
-                        await sendPlayer(
-                            `<strong>💸 ገንዘብ ማውጣት</strong>\n\nበDESTA PLAY Wallet ውስጥ Withdrawal ይክፈቱ እና የማውጣት ጥያቄዎን ያስገቡ።`,
-                            button("💸 OPEN WITHDRAWAL", "withdraw")
-                        );
-                    } else if (command === "transactions") {
-                        await sendPlayer(
-                            `<strong>📋 የግብይት ታሪክ</strong>\n\nሙሉ የግብይት ታሪክዎን በWallet ውስጥ ይመልከቱ።`,
-                            button("📋 OPEN TRANSACTIONS", "transactions")
-                        );
-                    } else if (command === "bonus") {
-                        await sendPlayer(
-                            `<strong>⭐ ቦነስ</strong>\n\nየቦነስ መረጃዎን በDESTA PLAY ውስጥ ይመልከቱ።`,
-                            button("⭐ OPEN BONUS", "bonus")
-                        );
-                    } else if (command === "status") {
-                        await sendPlayer(
-                            `<strong>📊 የመለያ ሁኔታ</strong>\n\nየመለያዎን ሁኔታ እና መረጃ በDESTA PLAY ውስጥ ይመልከቱ።`,
-                            button("📊 OPEN ACCOUNT STATUS", "status")
-                        );
-                    }
-
-                    return res.json({ success: true, command });
-                }
-            }
-
-            if (contact) {
-                const fromId = String(message?.from?.id || "");
-                const contactUserId = String(contact.user_id || "");
-
-                /* Accept only a contact shared by the same Telegram user. */
-                if (fromId && contactUserId && fromId === contactUserId) {
-                    const stored = storeRegistrationContact(
-                        fromId,
-                        contact.phone_number
-                    );
-
-                    if (stored) {
-                        console.log(
-                            `[REGISTRATION] Telegram phone received for ${fromId}`
-                        );
-                    }
-                }
-
-                return res.json({ success: true });
-            }
-
-            const callback = req.body?.callback_query;
-            if (!callback) return res.json({ success: true });
-
-            const fromId = String(callback.from?.id || "");
-            if (!ADMIN_TELEGRAM_ID || fromId !== ADMIN_TELEGRAM_ID) {
-                await telegramApi("answerCallbackQuery", {
-                    callback_query_id: callback.id,
-                    text: "Not authorized",
-                    show_alert: true
-                });
-                return res.json({ success: true });
-            }
-
-            const resetMatch = String(callback.data || "").match(/^dpr:(approve|reject):(.+)$/);
-
-            if (resetMatch) {
-                const resetResult = await processPasswordResetAction(resetMatch[1], resetMatch[2]);
-                await telegramApi("answerCallbackQuery", { callback_query_id: callback.id, text: resetResult, show_alert: false });
-                if (callback.message?.chat?.id && callback.message?.message_id) {
-                    await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
-                }
-                return res.json({ success: true, result: resetResult });
-            }
-
-            const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
-            if (!match) return res.json({ success: true });
-
-            const action = match[1];
-            const requestId = match[2];
-
-            const result = await processWithdrawalAction(action, requestId);
-
-            await telegramApi("answerCallbackQuery", {
-                callback_query_id: callback.id,
-                text: result,
-                show_alert: false
-            });
-
-            if (callback.message?.chat?.id && callback.message?.message_id) {
-                await telegramApi("editMessageReplyMarkup", {
-                    chat_id: callback.message.chat.id,
-                    message_id: callback.message.message_id,
-                    reply_markup: { inline_keyboard: [] }
-                });
-            }
-
-            return res.json({ success: true, result });
-        } catch (error) {
-            console.error("Telegram withdrawal webhook error:", error);
-
-            if (req.body?.callback_query?.id) {
-                await telegramApi("answerCallbackQuery", {
-                    callback_query_id: req.body.callback_query.id,
-                    text: error.message || "Action failed",
-                    show_alert: true
-                });
-            }
-
-            return res.status(400).json({
-                success: false,
-                error: error.message || "Telegram action failed"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| EDITION 7 — TRANSACTION HISTORY
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/wallet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const { data, error } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("player_id", req.player.id)
-                .order("created_at", { ascending: false })
-                .limit(50);
-
-            if (error) {
-                await dbError("wallet transactions", error);
-                throw new Error("Could not load wallet transactions");
-            }
-
-            return res.json({
-                success: true,
-                balance: Number(req.player.balance || 0),
-                transactions: data || []
-            });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not load wallet"
-            });
-        }
-    }
-);
-
-app.get(
-    "/api/account/transactions",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const { data, error } = await supabase
-                .from("transactions")
-                .select("*")
-                .eq("player_id", req.player.id)
-                .order("created_at", { ascending: false })
-                .limit(50);
-
-            if (error) {
-                await dbError("account transactions", error);
-                throw new Error("Could not load transactions");
-            }
-
-            return res.json({ success: true, transactions: data || [] });
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not load transactions"
-            });
-        }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ENGINE HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function getBingoCartela(number) {
-    const value = Number(number);
-
-    const getCartela =
-        bingo.getCartela ||
-        bingo.default?.getCartela;
-
-    if (typeof getCartela !== "function") {
-        throw new Error(
-            "Bingo cartela engine is unavailable"
-        );
-    }
-
-    return getCartela(value);
-}
-
-function bingoBetIsValid(amount) {
-    return validateEngineBet(
-        bingo,
-        amount
-    );
-}
-
-function isWinningBingoCard(
-    card,
-    drawnNumbers
-) {
-    const checkWinningPatterns =
-        bingo.checkWinningPatterns ||
-        bingo.default?.checkWinningPatterns;
-
-    if (
-        typeof checkWinningPatterns !==
-        "function"
-    ) {
-        return false;
-    }
-
-    const numberSet =
-        drawnNumbers instanceof Set
-            ? drawnNumbers
-            : new Set(
-                (drawnNumbers || []).map(Number)
-            );
-
-    return Boolean(
-        checkWinningPatterns(
-            card,
-            numberSet
-        )
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| SERVER-SIDE BINGO CLAIM VERIFICATION
-|--------------------------------------------------------------------------
-| The client is never trusted for the Cartela combination or the winning
-| pattern.  At claim time the backend rebuilds the fixed Cartela from the
-| submitted Cartela number, compares it with the Cartela stored in the
-| current room, and then checks that the current server-drawn numbers
-| actually complete a horizontal, vertical, or diagonal line.
-|--------------------------------------------------------------------------
-*/
-function sameBingoCartela(first, second) {
-    if (!Array.isArray(first) || !Array.isArray(second)) {
-        return false;
-    }
-
-    if (first.length !== second.length) {
-        return false;
-    }
-
-    return first.every(
-        (value, index) =>
-            Number(value) === Number(second[index])
-    );
-}
-
-function verifyBingoClaim(room, player, submittedCartelaNumber) {
-    if (!room || !player) {
-        return {
-            valid: false,
-            error: "Bingo player was not found"
+        state.kenoBets[slot]={
+          amount:Number(data.stake || amount),
+          numbers:[...numbers],
+          placed:true,
+          accepted:true,
+          betId:data.betId,
+          roundId:data.roundId,
+          slotIndex:slot
         };
+
+        if(Number.isFinite(Number(data.balanceAfter))){
+          state.balance=Number(data.balanceAfter);
+          updateBalance();
+        }
+        if(Number.isFinite(Number(data.bonusPointsAfter))) state.bonusPlayValue=Number(data.bonusPointsAfter);
+        refreshStakeWallet();
+
+        updateKenoSelectionDisplay();
+        renderServerKeno({
+          status: state.bettingOpen ? "BETTING" : "DRAWING",
+          drawnNumbers: state.kenoDraw || [],
+          playersInRoom: data.playersInRoom || 0,
+          totalDraws:20
+        });
+
+      }catch(error){
+        if(button){ button.disabled=false; button.textContent="PLACE BET"; }
+        alert(error.message || "Could not place Keno bet.");
+      }
     }
 
-    const cartelaNumber = Number(submittedCartelaNumber);
 
-    if (
-        !Number.isInteger(cartelaNumber) ||
-        cartelaNumber < 1 ||
-        cartelaNumber > 120
-    ) {
-        return {
-            valid: false,
-            error: "Invalid Cartela number"
-        };
-    }
+    /* =========================================================
+       KENO DRAW
+    ========================================================= */
 
-    if (
-        Number(player.cartelaNumber) !==
-        cartelaNumber
-    ) {
-        return {
-            valid: false,
-            error: "Cartela number does not match your entry"
-        };
-    }
+    function generateKenoDraw(){
 
-    let canonicalCartela;
-
-    try {
-        canonicalCartela = getBingoCartela(cartelaNumber);
-    } catch (error) {
-        return {
-            valid: false,
-            error: "Could not verify Cartela combination"
-        };
-    }
-
-    if (!sameBingoCartela(player.cartela, canonicalCartela)) {
-        return {
-            valid: false,
-            error: "Cartela combination does not match the server"
-        };
-    }
-
-    if (!Array.isArray(room.drawnNumbers) || room.drawnNumbers.length === 0) {
-        return {
-            valid: false,
-            error: "No Bingo numbers have been drawn yet"
-        };
-    }
-
-    if (!isWinningBingoCard(canonicalCartela, room.drawnNumbers)) {
-        return {
-            valid: false,
-            error: "BINGO is not valid for the current drawn numbers"
-        };
-    }
-
-    return {
-        valid: true,
-        cartela: canonicalCartela,
-        cartelaNumber
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO DRAW
-|--------------------------------------------------------------------------
-*/
-
-function generateBingoDraw() {
-    const numbers =
+      const pool=
         Array.from(
-            { length: 75 },
-            (_, index) => index + 1
+          {length:80},
+          (_,i)=>i+1
         );
 
-    const result = [];
+      const result=[];
 
-    while (numbers.length > 0) {
-        const index =
-            crypto.randomInt(
-                0,
-                numbers.length
-            );
+      while(result.length<20){
+
+        const index=
+          Math.floor(
+            Math.random()*pool.length
+          );
 
         result.push(
-            numbers.splice(index, 1)[0]
+          pool.splice(index,1)[0]
         );
+
+      }
+
+      return result;
+
     }
 
-    return result;
-}
 
-/*
-|--------------------------------------------------------------------------
-| SAVE BINGO ROUND
-|--------------------------------------------------------------------------
-*/
+    function runKenoDraw(){
 
-async function saveBingoRound(tier) {
-    const room =
-        bingoRooms[tier];
+      state.bettingOpen=false;
 
-    if (!room) {
+      state.kenoDraw=
+        generateKenoDraw();
+
+      const balls=
+        document.getElementById(
+          "kenoDrawBalls"
+        );
+
+      if(balls) balls.innerHTML="";
+
+      let i=0;
+
+      const timer=
+        setInterval(()=>{
+
+          if(i>=state.kenoDraw.length){
+
+            clearInterval(timer);
+
+            finishKeno();
+
+            return;
+
+          }
+
+          const n=
+            state.kenoDraw[i];
+
+          const latestEl=document.getElementById("kenoLatestDraw");
+          if(latestEl){ latestEl.textContent=String(n).padStart(2,"0"); latestEl.classList.remove("pop"); void latestEl.offsetWidth; latestEl.classList.add("pop"); }
+          const callsEl=document.getElementById("kenoCallsStat");
+          if(callsEl) callsEl.textContent=String(i+1);
+          [1,2,3].forEach((pos)=>{ const el=document.getElementById("kenoLast"+pos); if(el) el.textContent=(i+1>=pos)?String(state.kenoDraw[i+1-pos]).padStart(2,"0"):"—"; });
+          const recent=document.getElementById("kenoRecentCalls");
+          if(recent){ const rn=state.kenoDraw.slice(0,i+1).slice(-10).reverse(); recent.innerHTML=rn.map(x=>`<span class="recentBall">${String(x).padStart(2,"0")}</span>`).join(""); }
+
+          const ball=
+            document.createElement("div");
+
+          ball.className="ball";
+
+          ball.textContent=
+            String(n).padStart(2,"0");
+
+          balls.appendChild(ball);
+
+          document
+            .getElementById("kenoDrawStatus")
+            .textContent=
+              "DRAWING "+
+              (i+1)+
+              " / 20";
+
+          document
+            .querySelectorAll(".kenoNumber")
+            .forEach((button,index)=>{
+
+              if(index===n-1){
+
+                button.classList.add("drawn");
+
+                if(
+                  state.kenoSelections[1]
+                    .includes(n) ||
+                  state.kenoSelections[2]
+                    .includes(n)
+                ){
+
+                  button.classList.add("hit");
+
+                }
+
+              }
+
+            });
+
+          i++;
+
+        },700);
+
+    }
+
+
+    function finishKeno(){
+
+      document
+        .getElementById("kenoDrawStatus")
+        .textContent=
+          "DRAW COMPLETE";
+
+      const round=
+        state.rounds.keno;
+
+      state.kenoHistory.unshift({
+        round,
+        numbers:[...state.kenoDraw]
+      });
+
+      state.kenoHistory=
+        state.kenoHistory.slice(0,10);
+
+      renderKenoHistory();
+
+      settleKeno();
+
+    }
+
+
+    function settleKeno(){
+
+      [1,2].forEach(slot=>{
+
+        const bet=
+          state.kenoBets[slot];
+
+        if(!bet)
+          return;
+
+        const hits=
+          bet.numbers.filter(
+            n=>state.kenoDraw.includes(n)
+          ).length;
+
+        /*
+          Frontend display only.
+          Final payout calculation belongs on server.js.
+        */
+
+        document
+          .getElementById(
+            "kenoPayout"+slot
+          )
+          .textContent=
+            hits+
+            " matches";
+
+      });
+
+    }
+
+
+    function renderKenoHistory(){
+
+      const box=
+        document.getElementById(
+          "kenoHistory"
+        );
+
+      box.innerHTML=
+        state.kenoHistory
+          .map((item,index)=>`
+
+            <div
+              class="historyRound"
+              onclick="viewKenoHistory(${index})">
+
+              <strong>
+                ROUND ${String(item.round).padStart(3,"0")}
+              </strong>
+
+              <br>
+
+              <span class="historyNums">
+                ${item.numbers.join(" • ")}
+              </span>
+
+            </div>
+
+          `)
+          .join("");
+
+    }
+
+
+    function viewKenoHistory(index){
+
+      const item=
+        state.kenoHistory[index];
+
+      if(!item)
         return;
+
+      document
+        .getElementById("kenoDrawStatus")
+        .textContent=
+          "ROUND "+
+          String(item.round).padStart(3,"0")+
+          " — "+
+          item.numbers.join(" • ");
+
     }
 
-    const payload = {
-        id: room.id,
-        round_id: room.id,
-        game: "bingo",
-        tier_id: tier,
-        status: room.status,
-        betting_seconds:
-            BETTING_TIMERS.bingo,
-        betting_started_at:
-            new Date(
-                room.bettingStartedAt
-            ).toISOString(),
-        betting_ends_at:
-            new Date(
-                room.bettingEndsAt
-            ).toISOString(),
-        drawn_numbers:
-            room.drawnNumbers,
-        current_number:
-            room.currentNumber,
-        result:
-            room.winner
-                ? {
-                    winner:
-                        room.winner.playerId,
-                    prize:
-                        room.winnerPrize
-                }
-                : null,
-        engine_state: {
-            drawIndex:
-                room.drawIndex,
 
-            players:
-                room.players.map(
-                    player => ({
-                        playerId:
-                            player.playerId,
-                        telegramName:
-                            player.telegramName,
-                        cartelaNumber:
-                            player.cartelaNumber,
-                        cartela:
-                            player.cartela
-                    })
-                ),
+    /* =========================================================
+       BINGO
+    ========================================================= */
 
-            winner:
-                room.winner
-                    ? {
-                        playerId:
-                            room.winner.playerId,
-                        telegramName:
-                            room.winner.telegramName,
-                        cartelaNumber:
-                            room.winner.cartelaNumber
-                    }
-                    : null,
+    function buildBingo(){
 
-            winners:
-                (room.winners || []).map(player => ({
-                    playerId: player.playerId,
-                    telegramName: player.telegramName,
-                    cartelaNumber: player.cartelaNumber
-                })),
+      buildBingoAmounts();
+      renderCartelaPicker();
+      renderCartela();
 
-            claimWindowOpen:
-                Boolean(room.claimWindowOpen),
-
-            claimWindowEndsAt:
-                Number(room.claimWindowEndsAt || 0),
-
-            totalPool:
-                room.totalPool,
-
-            roundNumber:
-                Number(room.roundNumber || 1),
-            roundNumberLabel:
-                String(Number(room.roundNumber || 1)).padStart(3, "0"),
-
-            houseRake:
-                room.houseRake,
-
-            winnerPrize:
-                room.winnerPrize
-        },
-        updated_at: nowIso()
-    };
-
-    const { error } =
-        await supabase
-            .from("game_rounds")
-            .upsert(
-                payload,
-                {
-                    onConflict: "id"
-                }
-            );
-
-    if (error) {
-        await dbError(
-            `saveBingoRound tier ${tier}`,
-            error
-        );
     }
-}
 
-/*
-|--------------------------------------------------------------------------
-| START BINGO ROUND
-|--------------------------------------------------------------------------
-*/
 
-async function seedBingoRoundCounter(tier) {
-    try {
-        const { data, error } = await supabase
-            .from("game_rounds")
-            .select("engine_state, updated_at")
-            .eq("game", "bingo")
-            .eq("tier_id", Number(tier))
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+    function buildBingoAmounts(){
 
-        if (!error && data) {
-            const saved = Number(
-                data.engine_state?.roundNumber ||
-                0
-            );
+      const amounts=[
+        10,20,30,40,50,60,70,80,90,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,850,900,950,1000
+      ];
 
-            if (Number.isFinite(saved) && saved > 0) {
-                bingoRoundCounters[Number(tier)] = Math.max(
-                    Number(bingoRoundCounters[Number(tier)] || 0),
-                    Math.floor(saved)
-                );
-            }
+      const box=document.getElementById("bingoAmounts");
+      const stakeBox=document.getElementById("bingoStakeAmounts");
+
+      const renderBox=(target)=>{
+        if(!target)return;
+        target.innerHTML="";
+        amounts.forEach(amount=>{
+          const b=document.createElement("button");
+          b.className="amountPreset";
+          b.textContent=amount+" ETB";
+          b.onclick=()=>selectBingoStake(amount);
+          target.appendChild(b);
+        });
+      };
+
+      renderBox(box);
+      renderBox(stakeBox);
+
+      if(box) box.classList.add("hidden");
+    }
+
+    function selectBingoStake(amount){
+      state.bingoSelectedStake=Number(amount);
+      state.bingoAmounts[1]=Number(amount);
+      state.bingoAmounts[2]=Number(amount);
+
+      ["bingoAmount1","bingoAmount2"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.textContent=amount+" ETB";
+      });
+
+      document.querySelectorAll("#bingoStakeAmounts .amountPreset").forEach(b=>{
+        b.classList.toggle("active",Number.parseInt(b.textContent,10)===Number(amount));
+      });
+
+      const enter=document.getElementById("bingoEnterButton");
+      if(enter)enter.disabled=false;
+    }
+
+    function enterBingoWithStake(){
+      if(!state.bingoSelectedStake)return;
+      const stake=document.getElementById("bingoStakeScreen");
+      const play=document.getElementById("bingoPlayArea");
+      const lobby=document.getElementById("gameStakeLobby");
+      if(stake)stake.classList.add("hidden");
+      if(lobby)lobby.classList.add("hidden");
+      if(play)play.classList.remove("hidden");
+      const display=document.getElementById("bingoSelectedStakeDisplay");
+      if(display)display.textContent=state.bingoSelectedStake;
+      buildBingo();
+      /* The draw engine continues in the backend while the player is outside
+         the game. If we already have the latest server round, make that exact
+         point the visual starting point instead of replaying old draws. */
+      const currentBingoRound=state.lastServerRounds?.bingo;
+      if(currentBingoRound) primeLiveDrawPresentation("bingo",currentBingoRound);
+      fetchLiveRound("bingo",state.bingoSelectedStake);
+    }
+
+
+    function chooseCartela(value){
+      if(!requirePlayableSession()) return;
+      value=Number(value);
+      if(!Number.isInteger(value) || value<1 || value>120) return;
+      if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent="Betting is closed. Cartela selection is locked.";
+        return;
+      }
+      const slot=state.activeCartela;
+      const otherSlot=slot===1 ? 2 : 1;
+      if(state.bingoBets[slot]){
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent="This slot is already bet. Cartela selection is locked.";
+        return;
+      }
+      if(state.bingoCartelas[otherSlot]===value){
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent="That Cartela is already selected in the other slot.";
+        return;
+      }
+      state.bingoCartelas[slot]=value;
+      state.bingoBoards[slot]=generateCartela(value);
+      state.bingoMarks[slot]=Array(25).fill(false);
+      state.bingoMarks[slot][12]=true;
+      if(state.bingoMarkMode==="auto") autoMarkBingoCartela(slot);
+      const status=document.getElementById("cartelaStatus");
+      if(status) status.textContent="Cartela "+value+" selected for Slot "+slot+". Place the bet before the countdown ends.";
+      renderCartelaPicker();
+      renderCartela();
+    }
+
+
+    function renderCartelaPicker(){
+
+      const picker=document.getElementById("cartelaPicker");
+      if(!picker) return;
+
+      picker.innerHTML="";
+
+      for(let n=1;n<=120;n++){
+        const button=document.createElement("button");
+        button.type="button";
+        button.className="cartelaPick";
+        if(state.bingoCartelas[1]===n || state.bingoCartelas[2]===n){
+          button.classList.add("selected");
         }
-    } catch (error) {
-        console.warn(
-            `[BINGO ${tier}] Could not restore round counter:`,
-            error.message
-        );
+        const closed=!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0);
+        const slotLocked=!!state.bingoBets[state.activeCartela];
+        button.disabled=closed || slotLocked;
+        button.textContent=n;
+        button.onclick=()=>chooseCartela(n);
+        picker.appendChild(button);
+      }
     }
-}
 
-function startNewBingoRound(tier) {
-    let entryFee;
 
-    try {
-        entryFee =
-            bingoBetIsValid(tier);
-    } catch (error) {
-        console.error(
-            `[BINGO] Engine rejected configured tier ${tier}:`,
-            error.message
+    function selectCartela(slot){
+
+      state.activeCartela=slot;
+
+      document
+        .getElementById("cartelaTab1")
+        .classList.toggle(
+          "active",
+          slot===1
+        );
+
+      document
+        .getElementById("cartelaTab2")
+        .classList.toggle(
+          "active",
+          slot===2
+        );
+
+      renderCartelaPicker();
+      renderCartela();
+
+    }
+
+
+    function generateCartela(seed){
+      /* Deterministic fixed 120-card catalogue: the same Cartela number always
+         produces the same valid Bingo layout. B=1-15, I=16-30, N=31-45,
+         G=46-60, O=61-75; center is FREE. */
+      let value=(Number(seed)||1)>>>0;
+      const rand=()=>{
+        value=(value*1664525+1013904223)>>>0;
+        return value/4294967296;
+      };
+      const pick=(start,end,count)=>{
+        const pool=[];
+        for(let n=start;n<=end;n++) pool.push(n);
+        for(let i=pool.length-1;i>0;i--){
+          const j=Math.floor(rand()*(i+1));
+          [pool[i],pool[j]]=[pool[j],pool[i]];
+        }
+        return pool.slice(0,count);
+      };
+      const cols=[
+        pick(1,15,5),pick(16,30,5),pick(31,45,5),
+        pick(46,60,5),pick(61,75,5)
+      ];
+      const board=[];
+      for(let r=0;r<5;r++){
+        for(let c=0;c<5;c++) board.push(c===2 && r===2 ? 0 : cols[c][r]);
+      }
+      return board;
+    }
+
+
+    function setBingoMarkMode(mode){
+      state.bingoMarkMode=(mode==="manual" ? "manual" : "auto");
+      const auto=document.getElementById("bingoAutoBtn");
+      const manual=document.getElementById("bingoManualBtn");
+      const text=document.getElementById("bingoMarkModeText");
+      if(auto) auto.classList.toggle("active",state.bingoMarkMode==="auto");
+      if(manual) manual.classList.toggle("active",state.bingoMarkMode==="manual");
+      if(text) text.textContent=state.bingoMarkMode==="auto" ? "AUTO MARK" : "MANUAL MARK";
+      if(state.bingoMarkMode==="auto") autoMarkBingoCartela(state.activeCartela);
+      renderCartela();
+    }
+
+    function autoMarkBingoCartela(slot){
+      const board=state.bingoBoards[slot] || [];
+      if(!board.length) return;
+      const called=new Set(state.bingoDraw || []);
+      state.bingoMarks[slot]=state.bingoMarks[slot] || Array(25).fill(false);
+      for(let i=0;i<board.length;i++){
+        const n=Number(board[i]);
+        if(n===0 || called.has(n)) state.bingoMarks[slot][i]=(n===0 || called.has(n));
+      }
+      state.bingoMarks[slot][12]=true;
+    }
+
+    function renderCartela(){
+      const wrap=document.getElementById("cartelaGridWrap");
+      if(!wrap) return;
+
+      const slot=state.activeCartela;
+      const cartela=state.bingoCartelas[slot];
+      if(!cartela){
+        wrap.innerHTML="";
+        return;
+      }
+
+      const board=state.bingoBoards[slot] || [];
+      const marks=state.bingoMarks[slot] || [];
+      const called=new Set(state.bingoDraw || []);
+      const letters=["B","I","N","G","O"];
+      const colClass=["colB","colI","colN","colG","colO"];
+
+      wrap.innerHTML=
+        `<div style="text-align:center;color:#ffd43c;font-size:11px;font-weight:bold;margin-bottom:5px">
+          CARTELA ${cartela} — SLOT ${slot}
+        </div>
+        <div class="bingoColumnLetters">
+          ${letters.map((letter,c)=>`<div class="bingoColumnLetter ${colClass[c]}">${letter}</div>`).join("")}
+        </div>
+        <div class="cartelaGrid">
+          ${board.map((n,i)=>{
+            const marked=Boolean(marks[i]) || n===0;
+            const isCalled=n!==0 && called.has(Number(n));
+            return `
+              <button type="button"
+                class="cartelaCell ${colClass[i%5]} ${isCalled?"called":""} ${marked?"marked":""} ${n===0?"free":""}"
+                onclick="markCartelaCell(${slot},${i})">
+                ${n===0?"FREE":n}
+              </button>`;
+          }).join("")}
+        </div>`;
+    }
+
+
+    function markCartelaCell(slot,index){
+      if(state.bingoMarkMode!=="manual") return;
+      const board=state.bingoBoards[slot] || [];
+      const n=Number(board[index]);
+      if(!board.length || n===0) return;
+      if(!state.bingoDraw.includes(n)) return;
+
+      state.bingoMarks[slot]=state.bingoMarks[slot] || Array(25).fill(false);
+      state.bingoMarks[slot][index]=!state.bingoMarks[slot][index];
+      renderCartela();
+    }
+
+
+    async function placeBingoBet(slot){
+      if(!requirePlayableSession()) return;
+      if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){alert("Betting is closed.");return;}
+      const cartelaNumber=Number(state.bingoCartelas[slot]);
+      if(!cartelaNumber){alert("Add a Cartela to Slot "+slot+".");return;}
+      if(state.bingoBets[slot]){alert("This slot is already bet.");return;}
+      const amount=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
+      if(amount<=0 || amount>state.balance){alert("Insufficient balance.");return;}
+      const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
+      if(!roundId){alert("Waiting for the live Bingo round.");return;}
+      const btn=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
+      if(btn){btn.disabled=true;btn.textContent="PLACING...";}
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/game/bingo/bet",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({stake:amount,cartelaNumber,cardIndex:slot-1,roundId,walletType:state.selectedWalletType||"cash"})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not place Bingo bet");
+        state.bingoBets[slot]={amount,cartelaNumber,placed:true,roundId:data.roundId};
+        if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
+        if(Number.isFinite(Number(data.bonusPointsAfter))) state.bonusPlayValue=Number(data.bonusPointsAfter);
+        updateBalance();
+        refreshStakeWallet();
+        if(btn){
+          btn.disabled=true;
+          btn.textContent="BINGO";
+          btn.onclick=()=>claimBingo(slot);
+        }
+        const payout=document.getElementById("bingoPayout"+slot); if(payout)payout.textContent="BET ACCEPTED — "+amount+" ETB";
+        const status=document.getElementById("cartelaStatus"); if(status)status.textContent="Cartela "+cartelaNumber+" bet accepted for Slot "+slot+".";
+        renderCartelaPicker();
+      }catch(error){if(btn){btn.disabled=false;btn.textContent="PLACE BET";}alert(error.message || "Could not place Bingo bet.");}
+    }
+
+
+    function runBingoDraw(){
+
+      state.bettingOpen=false;
+
+      state.bingoDraw=[];
+
+      const display=
+        document.getElementById(
+          "bingoDraw"
+        );
+
+      if(display) display.innerHTML="";
+
+      let count=0;
+
+      const timer=
+        setInterval(()=>{
+
+          if(count>=20){
+
+            clearInterval(timer);
+
+            finishBingo();
+
+            return;
+
+          }
+
+          let n=
+            Math.floor(
+              Math.random()*75
+            )+1;
+
+          while(
+            state.bingoDraw.includes(n)
+          ){
+
+            n=
+              Math.floor(
+                Math.random()*75
+              )+1;
+
+          }
+
+          state.bingoDraw.push(n);
+
+          const ball=
+            document.createElement("div");
+
+          ball.className=
+            "bingoCalled";
+
+          ball.textContent=n;
+
+          if(display) display.appendChild(ball);
+
+          document
+            .getElementById("bingoStatus")
+            .textContent=
+              "CALLED "+
+              (count+1)+
+              " / 20 — "+
+              n;
+
+          count++;
+
+        },800);
+
+    }
+
+
+    function finishBingo(){
+
+      [1,2].forEach(slot=>{
+
+        const board=state.bingoBoards[slot] || [];
+        if(!board.length) return;
+
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        if(!place) return;
+
+        const accepted=!!state.bingoBets[slot];
+        const win=accepted && checkBingo(board,slot);
+        place.disabled=!win || state.serverRoundStatus!=="DRAWING";
+        place.textContent="BINGO";
+        place.onclick=()=>claimBingo(slot);
+      });
+
+    }
+
+    function syncBingoSlotButtons(round){
+      if(!round) return;
+      [1,2].forEach(slot=>{
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        if(!place) return;
+        const accepted=!!state.bingoBets[slot];
+        const valid=accepted && checkBingo(state.bingoBoards[slot]||[],slot);
+        if(accepted){
+          place.disabled=!valid || round.status!=="DRAWING";
+          place.textContent="BINGO";
+          place.onclick=()=>claimBingo(slot);
+        }else{
+          place.disabled=round.status!=="BETTING";
+          place.textContent="PLACE BET";
+          place.onclick=()=>placeBingoBet(slot);
+        }
+      });
+    }
+
+
+    function checkBingo(board,slot=state.activeCartela){
+      const marks=state.bingoMarks[slot] || [];
+      const marked=i=>board[i]===0 || Boolean(marks[i]);
+
+      for(let r=0;r<5;r++){
+
+        if(
+          [0,1,2,3,4]
+            .map(c=>marked(r*5+c))
+            .every(Boolean)
+        )
+          return true;
+
+      }
+
+      for(let c=0;c<5;c++){
+
+        if(
+          [0,1,2,3,4]
+            .map(r=>marked(r*5+c))
+            .every(Boolean)
+        )
+          return true;
+
+      }
+
+      if(
+        [0,1,2,3,4]
+          .map(i=>marked(i*5+i))
+          .every(Boolean)
+      )
+        return true;
+
+      if(
+        [0,1,2,3,4]
+          .map(i=>marked(i*5+(4-i)))
+          .every(Boolean)
+      )
+        return true;
+
+      return false;
+
+    }
+
+
+    async function claimBingo(slot){
+      const board=state.bingoBoards[slot] || [];
+      const cartelaNumber=Number(state.bingoCartelas[slot]);
+      if(!cartelaNumber){alert("Choose a Cartela for Slot "+slot+" first.");return;}
+      if(!state.bingoBets[slot]){alert("Place the bet before claiming BINGO.");return;}
+      if(!board.length || !checkBingo(board,slot)){alert("Not BINGO yet — keep playing Cartela "+cartelaNumber+".");return;}
+      const tier=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
+      const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bingo/claim",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({tier,cartelaNumber,roundId})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "BINGO claim rejected");
+        alert("BINGO! Your claim has been registered.");
+        const btn=document.getElementById("bingoPlaceBtn"+slot); if(btn){btn.disabled=true;btn.textContent="BINGO CLAIMED";}
+      }catch(error){alert(error.message || "Could not claim BINGO.");}
+    }
+
+
+    /* =========================================================
+       ROULETTE
+    ========================================================= */
+
+    function rouletteColor(n){
+
+      if(n===0)
+        return "green";
+
+      const redNums=[
+        1,3,5,7,9,12,14,16,
+        18,19,21,23,25,27,
+        30,32,34,36
+      ];
+
+      return redNums.includes(n)
+        ?"red"
+        :"black";
+
+    }
+
+
+    function buildRoulette(){
+
+      const edge=
+        document.getElementById(
+          "rouletteEdgeNumbers"
+        );
+
+      edge.innerHTML="";
+
+      for(let n=0;n<=36;n++){
+
+        const span=
+          document.createElement("span");
+
+        span.className="edgeNumber";
+
+        const angle=
+          n*(360/37);
+
+        span.style.setProperty(
+          "--angle",
+          angle+"deg"
+        );
+
+        span.textContent=n;
+
+        edge.appendChild(span);
+
+      }
+
+      const grid=
+        document.getElementById(
+          "rouletteGrid"
+        );
+
+      grid.innerHTML="";
+
+      for(let n=0;n<=36;n++){
+
+        const b=
+          document.createElement("button");
+
+        b.className=
+          "rouletteNum "+
+          rouletteColor(n);
+
+        b.textContent=n;
+
+        b.onclick=
+          ()=>selectRouletteNumber(n);
+
+        grid.appendChild(b);
+
+      }
+
+    }
+
+
+    function selectRouletteSlot(slot){
+      slot=Number(slot);
+      if(![1,2].includes(slot)) return;
+      state.rouletteActiveSlot=slot;
+      document.getElementById("rouletteSlot1Btn")?.classList.toggle("active",slot===1);
+      document.getElementById("rouletteSlot2Btn")?.classList.toggle("active",slot===2);
+      updateRouletteSelectionInfo();
+    }
+
+    function updateRouletteSelectionInfo(){
+      const info=document.getElementById("rouletteSelectionInfo");
+      if(!info)return;
+      const slot=Number(state.rouletteActiveSlot||1);
+      const sel=state.rouletteSelection[slot];
+      info.textContent=sel?.type
+        ? `SLOT ${slot}: ${sel.type.toUpperCase()} ${sel.value}`
+        : `SLOT ${slot} — SELECT A NUMBER OR COLOR`;
+
+      document.querySelectorAll(".rouletteNum").forEach(b=>{
+        const n=Number(b.textContent);
+        b.classList.toggle("selected",sel?.type==="number" && sel.value===n);
+      });
+      document.querySelectorAll(".rouletteColorBtn").forEach(b=>{
+        const color=b.classList.contains("red")?"red":b.classList.contains("black")?"black":"green";
+        b.classList.toggle("selected",sel?.type==="color" && sel.value===color);
+      });
+    }
+
+    function selectRouletteNumber(n){
+      if(!state.bettingOpenByGame?.roulette){ alert("Betting is closed."); return; }
+      const slot=Number(state.rouletteActiveSlot||1);
+      state.rouletteSelection[slot]={type:"number",value:n};
+      updateRouletteSelectionInfo();
+    }
+
+    function selectRouletteColor(color){
+      if(!state.bettingOpenByGame?.roulette){ alert("Betting is closed."); return; }
+      const slot=Number(state.rouletteActiveSlot||1);
+      state.rouletteSelection[slot]={type:"color",value:color};
+      updateRouletteSelectionInfo();
+    }
+
+    async function placeRouletteBet(slot){
+      if(!state.authToken){ alert("Please open your DESTA PLAY account first."); return; }
+      if(!state.bettingOpenByGame?.roulette){ alert("Betting is closed."); return; }
+
+      const sel=state.rouletteSelection[slot];
+      if(!sel || !sel.type){
+        alert("Select a roulette number or color first.");
+        return;
+      }
+
+      const amount=Number(document.getElementById("r"+slot)?.value);
+      if(!Number.isFinite(amount) || amount<10){
+        alert("Minimum roulette bet is 10 ETB.");
+        return;
+      }
+      if(amount>Number(state.balance||0)){
+        alert("Insufficient balance.");
+        return;
+      }
+
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/roulette/bet",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "Accept":"application/json",
+            "Authorization":"Bearer "+state.authToken
+          },
+          body:JSON.stringify({
+            slot,
+            amount,
+            betType:sel.type,
+            number:sel.type==="number"?sel.value:null,
+            color:sel.type==="color"?sel.value:null
+          })
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data?.success){
+          alert(data?.error || "Could not place roulette bet.");
+          return;
+        }
+        state.balance=Number(data.balanceAfter ?? state.balance-amount);
+        updateBalance();
+        state.rouletteBets=state.rouletteBets||{};
+        state.rouletteBets[slot]={...sel,amount,betId:data.betId,placed:true};
+        const btn=document.querySelectorAll("#rouletteGame .placeBtn")[slot-1];
+        if(btn){btn.disabled=true;btn.textContent="BET PLACED";}
+      }catch(error){
+        console.error(error);
+        alert("Could not place roulette bet.");
+      }
+    }
+
+    function runRoulette(){
+
+      state.bettingOpen=false;
+
+      const winner=
+        Math.floor(
+          Math.random()*37
+        );
+
+      state.rouletteWinner=
+        winner;
+
+      const wheel=
+        document.getElementById(
+          "rouletteWheel"
+        );
+
+      wheel.style.transform=
+        `rotate(${1440+winner*9.73}deg)`;
+
+      setTimeout(()=>{
+
+        document
+          .getElementById(
+            "rouletteResult"
+          )
+          .textContent=
+            "RESULT: "+
+            winner+
+            " — "+
+            rouletteColor(winner).toUpperCase();
+
+        document
+          .querySelectorAll(".rouletteNum")
+          .forEach(b=>
+            b.classList.toggle(
+              "winner",
+              Number(b.textContent)===winner
+            )
+          );
+
+        state.rouletteHistory.unshift({
+
+          round:state.rounds.roulette,
+
+          result:winner,
+
+          color:rouletteColor(winner)
+
+        });
+
+        state.rouletteHistory=
+          state.rouletteHistory.slice(0,10);
+
+        renderRouletteHistory();
+
+      },4200);
+
+    }
+
+
+    function renderRouletteHistory(){
+
+      document
+        .getElementById(
+          "rouletteHistory"
+        )
+        .innerHTML=
+          state.rouletteHistory
+            .map(item=>`
+
+              <div class="historyRound">
+
+                <strong>
+                  ROUND ${String(item.round).padStart(3,"0")}
+                </strong>
+
+                <br>
+
+                <span class="historyNums">
+                  ${item.result}
+                  —
+                  ${item.color.toUpperCase()}
+                </span>
+
+              </div>
+
+            `)
+            .join("");
+
+    }
+
+
+    /* =========================================================
+       AVIATOR
+    ========================================================= */
+
+    function buildAviator(){
+
+      renderAviatorHistory();
+
+    }
+
+
+    function generateCrashPoint(){
+
+      /*
+        Secure/random server-side outcome must eventually
+        replace this frontend generator.
+
+        This intentionally does not use a fixed crash value.
+      */
+
+      const r=
+        Math.random();
+
+      return Math.max(
+        1.01,
+        Number(
+          (
+            1+
+            (-Math.log(
+              Math.max(
+                0.000001,
+                1-r
+              )
+            )*1.15)
+          ).toFixed(2)
+        )
+      );
+
+    }
+
+
+    function placeAviatorBet(slot){
+
+      if(!state.bettingOpen){
+
+        alert(
+          "The flight has already started."
         );
 
         return;
+
+      }
+
+      if(
+        state.aviatorBets[slot]
+      ){
+
+        return;
+
+      }
+
+      const amount=
+        Number(
+          document.getElementById(
+            "a"+slot
+          ).value
+        );
+
+      if(
+        amount<=0 ||
+        amount>state.balance
+      ){
+
+        alert("Invalid amount.");
+
+        return;
+
+      }
+
+      state.balance-=amount;
+
+      state.aviatorBets[slot]={
+        amount,
+        cashed:false,
+        cashout:null
+      };
+
+      updateBalance();
+
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASH OUT";
+
     }
 
-    const now =
-        Date.now();
 
-    const bettingEndsAt =
-        now +
-        BETTING_TIMERS.bingo *
-        1000;
+    function cashOutAviator(slot){
 
-    const room = {
-        id:
-            `bingo-${entryFee}-${now}-` +
-            crypto
-                .randomBytes(4)
-                .toString("hex"),
+      const bet=
+        state.aviatorBets[slot];
 
-        tierId: entryFee,
+      if(
+        !bet ||
+        bet.cashed ||
+        state.aviatorMultiplier<1
+      )
+        return;
 
-        entryFee,
+      const multiplier=
+        state.aviatorMultiplier;
 
-        status: "BETTING",
+      const payout=
+        Number(
+          (
+            bet.amount*
+            multiplier
+          ).toFixed(2)
+        );
 
-        createdAt: now,
+      bet.cashed=true;
+      bet.cashout=multiplier;
 
-        bettingStartedAt: now,
+      state.balance+=payout;
 
-        bettingEndsAt,
+      updateBalance();
 
-        players: [],
+      document
+        .getElementById(
+          "aviatorPayout"+slot
+        )
+        .textContent=
+          payout.toFixed(2)+
+          " ETB CASHED OUT";
 
-        secretDraw:
-            generateBingoDraw(),
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASHED OUT";
 
-        drawnNumbers: [],
+      setTimeout(()=>{
 
-        drawIndex: 0,
+        document
+          .getElementById(
+            "aviatorPayout"+slot
+          )
+          .textContent="";
 
-        currentNumber: null,
+      },2000);
 
-        winner: null,
+    }
 
-        totalPool: 0,
 
-        houseRake: 0,
+    function runAviator(){
 
-        winnerPrize: 0,
+      state.bettingOpen=true;
 
-        roundNumber: (bingoRoundCounters[entryFee] =
-            Number(bingoRoundCounters[entryFee] || 0) + 1)
+      state.aviatorCrash=
+        generateCrashPoint();
+
+      state.aviatorMultiplier=1;
+
+      let seconds=10;
+
+      const countdown=
+        document.getElementById(
+          "aviatorCountdown"
+        );
+
+      const timer=
+        setInterval(()=>{
+
+          countdown.textContent=
+            "BETTING "+
+            seconds+
+            "s";
+
+          seconds--;
+
+          if(seconds<0){
+
+            clearInterval(timer);
+
+            startAviatorFlight();
+
+          }
+
+        },1000);
+
+    }
+
+
+    function startAviatorFlight(){
+
+      state.bettingOpen=false;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "FLIGHT LIVE";
+
+      const timer=
+        setInterval(()=>{
+
+          state.aviatorMultiplier=
+            Number(
+              (
+                state.aviatorMultiplier+
+                0.02+
+                Math.random()*0.08
+              ).toFixed(2)
+            );
+
+          const value=
+            state.aviatorMultiplier;
+
+          document
+            .getElementById(
+              "aviatorMultiplier"
+            )
+            .textContent=
+              value.toFixed(2)+"x";
+
+          const plane=
+            document.getElementById(
+              "plane"
+            );
+
+          plane.style.left=
+            Math.min(
+              88,
+              20+(value-1)*12
+            )+"%";
+
+          plane.style.bottom=
+            Math.min(
+              85,
+              30+(value-1)*8
+            )+"px";
+
+          [1,2].forEach(slot=>{
+
+            const bet=
+              state.aviatorBets[slot];
+
+            if(
+              bet &&
+              !bet.cashed
+            ){
+
+              const live=
+                bet.amount*value;
+
+              document
+                .getElementById(
+                  "aviatorPayout"+slot
+                )
+                .textContent=
+                  live.toFixed(2)+
+                  " ETB @ "+
+                  value.toFixed(2)+"x";
+
+            }
+
+          });
+
+          if(
+            value>=state.aviatorCrash
+          ){
+
+            clearInterval(timer);
+
+            finishAviator();
+
+          }
+
+        },300);
+
+    }
+
+
+    function finishAviator(){
+
+      state.bettingOpen=false;
+
+      const crash=
+        state.aviatorMultiplier;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "CRASHED "+
+          crash.toFixed(2)+"x";
+
+      state.aviatorHistory.unshift(
+        crash.toFixed(2)+"x"
+      );
+
+      state.aviatorHistory=
+        state.aviatorHistory.slice(0,10);
+
+      renderAviatorHistory();
+
+      renderAviatorHistory();
+
+    }
+
+
+    let aviatorHistoryExpanded=false;
+
+    function aviatorHistoryMultiplier(item){
+      const obj=(item && typeof item === "object") ? item : {multiplier:Number(item)};
+      const mult=Number(obj.multiplier);
+      return Number.isFinite(mult) ? mult.toFixed(2)+"x" : "—";
+    }
+
+    function renderAviatorHistory(){
+      const line=document.getElementById("aviatorHistory");
+      const expanded=document.getElementById("aviatorHistoryExpanded");
+      if(!line) return;
+      const values=state.aviatorHistory.slice(0,25).map(aviatorHistoryMultiplier);
+      line.textContent=values.slice(0,10).join(", ");
+      if(expanded){
+        expanded.innerHTML=values.map(v=>`<div class="mult">${v}</div>`).join("");
+        expanded.classList.toggle("hidden",!aviatorHistoryExpanded);
+      }
+      const button=document.getElementById("aviatorHistoryExpand");
+      if(button){
+        button.textContent=aviatorHistoryExpanded ? "⌃" : "⌄";
+        button.setAttribute("aria-expanded",String(aviatorHistoryExpanded));
+      }
+    }
+
+    function toggleAviatorHistory(){
+      aviatorHistoryExpanded=!aviatorHistoryExpanded;
+      renderAviatorHistory();
+    }
+
+
+    /* =========================================================
+       AMOUNT
+    ========================================================= */
+
+    function changeAmount(id,delta){
+
+      const input=
+        document.getElementById(id);
+
+      let value=
+        Number(input.value)||0;
+
+      value+=delta;
+
+      if(value<1)
+        value=1;
+
+      input.value=value;
+
+    }
+
+
+    /* =========================================================
+       TABS
+    ========================================================= */
+
+    function showTab(tab){
+
+      document
+        .getElementById("tabMy")
+        .classList.toggle(
+          "active",
+          tab==="my"
+        );
+
+      document
+        .getElementById("tabLive")
+        .classList.toggle(
+          "active",
+          tab==="live"
+        );
+
+      document
+        .getElementById("tabTop")
+        .classList.toggle(
+          "active",
+          tab==="top"
+        );
+
+      document
+        .getElementById("topSubTabs")
+        .classList.toggle(
+          "hidden",
+          tab!=="top"
+        );
+
+      if(tab==="my"){
+
+        document
+          .getElementById("feedContent")
+          .innerHTML=
+            `<div class="feedRow">
+              <span>MY BETS</span>
+              <span>Current round activity</span>
+            </div>`;
+
+      }
+
+      if(tab==="live"){
+
+        renderLiveBets();
+
+      }
+
+      if(tab==="top"){
+
+        showTop(
+          "daily",
+          document.querySelector(
+            ".subTabs button"
+          )
+        );
+
+      }
+
+    }
+
+
+    function renderLiveBets(){
+
+      const players=
+        Math.floor(
+          12+
+          Math.random()*80
+        );
+
+      const wins=
+        Math.floor(
+          2+
+          Math.random()*players
+        );
+
+      document
+        .getElementById("feedContent")
+        .innerHTML=`
+
+          <div class="feedRow">
+            <span>ROUND</span>
+            <span>${String(
+              state.rounds[state.game]
+            ).padStart(3,"0")}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>PLAYERS</span>
+            <span>${players}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>ACTIVE WINNERS</span>
+            <span class="win">${wins}</span>
+          </div>
+
+          <div class="feedRow">
+            <span>GAME</span>
+            <span>${state.game.toUpperCase()}</span>
+          </div>
+        `;
+
+    }
+
+
+    function showTop(period,button){
+
+      document
+        .querySelectorAll(".subTabs button")
+        .forEach(b=>
+          b.classList.remove("active")
+        );
+
+      if(button)
+        button.classList.add("active");
+
+      const names=[
+        "Player001",
+        "Player007",
+        "Player021",
+        "Player044",
+        "Player090"
+      ];
+
+      document
+        .getElementById("feedContent")
+        .innerHTML=
+          names.map(
+            (name,i)=>`
+
+              <div class="feedRow">
+
+                <span>
+                  ${i+1}. ${name}
+                </span>
+
+                <span class="win">
+                  ${period.toUpperCase()}
+                </span>
+
+              </div>
+
+            `
+          ).join("");
+
+    }
+
+
+    /* =========================================================
+       HELP
+    ========================================================= */
+
+
+
+    function closeWalletHelp(){
+      const modal=document.getElementById("walletHelpModal");
+      if(modal) modal.classList.add("hidden");
+    }
+    function openWalletHelp(){
+      const modal=document.getElementById("walletHelpModal");
+      if(!modal) return;
+      const am=state.language==="am";
+      modal.innerHTML=am ? `<div class="walletHelpCard">
+        <div class="walletModalHead"><h2>የዋሌት እገዛ</h2><button class="walletModalClose" onclick="closeWalletHelp()">×</button></div>
+        <h3>ተቀማጭ</h3><p>1. ተቀማጭ ይጫኑ።<br>2. የላኪውን ስልክ ቁጥር እና የተቀማጭ መጠን ያስገቡ።<br>3. PAY ይጫኑ እና የክፍያ መመሪያውን ይከተሉ።<br>4. I HAVE PAID ይጫኑ።<br>5. የደረሰኝ ወይም የማጣቀሻ ቁጥር ያስገቡ እና SUBMIT ይጫኑ።</p>
+        <h3>ማውጣት</h3><p>1. WITHDRAW ይጫኑ።<br>2. የማውጣት መጠን እና ገንዘቡን የሚቀበለውን ስልክ ቁጥር ያስገቡ።<br>3. WITHDRAW ይጫኑ።<br>4. ለማረጋገጥ የDESTA PLAY ይለፍ ቃልዎን ያስገቡ።</p>
+      </div>` : `<div class="walletHelpCard">
+        <div class="walletModalHead"><h2>WALLET HELP</h2><button class="walletModalClose" onclick="closeWalletHelp()">×</button></div>
+        <h3>Deposit</h3><p>1. Tap DEPOSIT.<br>2. Enter the sender phone number and deposit amount.<br>3. Tap PAY and follow the payment instructions.<br>4. Tap I HAVE PAID.<br>5. Enter the receipt or reference number and tap SUBMIT.</p>
+        <h3>Withdrawal</h3><p>1. Tap WITHDRAW.<br>2. Enter the withdrawal amount and the phone number receiving the money.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.</p>
+      </div>`;
+      modal.classList.remove("hidden");
+    }
+
+    function openHelp(){
+
+      const help={
+
+        keno:{
+          en:{title:"How to Play Keno",html:`
+            <h3>Choose a slot</h3><p>Tap Slot 1 or Slot 2. Each slot has its own selection of up to 10 numbers.</p>
+            <h3>Choose numbers</h3><p>Select from numbers 1–80. You may select from 1 up to 10 numbers for each slot.</p>
+            <h3>Place bet</h3><p>Each slot has its own amount and Place Bet button.</p>
+            <h3>Draw</h3><p>Twenty numbers are called progressively. Matches are highlighted.</p>
+            <h3>Win / Lose</h3><p>The final result and matches are shown after the round finishes.</p>`},
+          am:{title:"ኬኖን እንዴት መጫወት ይቻላል?",html:`
+            <h3>ስሎት ይምረጡ</h3><p>ስሎት 1 ወይም ስሎት 2 ይንኩ። እያንዳንዱ ስሎት እስከ 10 ቁጥሮች የራሱ ምርጫ አለው።</p>
+            <h3>ቁጥሮችን ይምረጡ</h3><p>ከ1–80 ያሉ ቁጥሮች ይምረጡ። ለእያንዳንዱ ስሎት ከ1 እስከ 10 ቁጥሮች መምረጥ ይችላሉ።</p>
+            <h3>ውርርድ ያስገቡ</h3><p>እያንዳንዱ ስሎት የራሱ መጠን እና የውርርድ ማስገቢያ ቁልፍ አለው።</p>
+            <h3>ስዕል</h3><p>20 ቁጥሮች በተከታታይ ይጠራሉ። የተመሳሰሉ ቁጥሮች ይገለጣሉ።</p>
+            <h3>አሸነፍ / ተሸነፍ</h3><p>የመጨረሻ ውጤት እና ተመሳሳይ ቁጥሮች ዙሩ ከተጠናቀቀ በኋላ ይታያሉ።</p>`}
+        },
+        bingo:{
+          en:{title:"How to Play Bingo",html:`
+            <h3>Cartela</h3><p>Enter a Cartela number from 1–120 and press OK. The first Cartela goes to Slot 1. The next goes to Slot 2.</p>
+            <h3>Mark numbers</h3><p>When a called number appears on your Cartela, tap the matching cell.</p>
+            <h3>BINGO</h3><p>Complete a horizontal, vertical or diagonal line. When the round allows a win, press the BINGO button for the corresponding Cartela.</p>
+            <h3>Round</h3><p>Betting closes when the countdown reaches zero. Numbers are then called progressively.</p>`},
+          am:{title:"ቢንጎን እንዴት መጫወት ይቻላል?",html:`
+            <h3>ካርቴላ</h3><p>ከ1–120 የካርቴላ ቁጥር ያስገቡ እና OK ይጫኑ። የመጀመሪያው ካርቴላ ወደ ስሎት 1፣ ቀጣዩ ወደ ስሎት 2 ይሄዳል።</p>
+            <h3>ቁጥሮችን ምልክት ያድርጉ</h3><p>የተጠራ ቁጥር በካርቴላዎ ላይ ሲታይ ተመሳሳዩን ሳጥን ይንኩ።</p>
+            <h3>ቢንጎ</h3><p>አግድም፣ ቁመት ወይም ሰያፍ መስመር ያጠናቅቁ። ዙሩ ካሸነፉ የተዛማጅ ካርቴላውን BINGO ቁልፍ ይጫኑ።</p>
+            <h3>ዙር</h3><p>ቆጣሪው ወደ ዜሮ ሲደርስ ውርርድ ይዘጋል። ከዚያ ቁጥሮች በተከታታይ ይጠራሉ።</p>`}
+        }
+      };
+
+      const item=help[state.game]?.[state.language||"en"] || help[state.game]?.en;
+      if(!item) return;
+      document.getElementById("helpTitle").textContent=item.title;
+      document.getElementById("helpContent").innerHTML=item.html;
+      document.getElementById("helpOverlay").classList.remove("hidden");
+      return;
+    }
+
+    function closeHelp(){
+
+      document
+        .getElementById("helpOverlay")
+        .classList.add("hidden");
+
+    }
+
+
+    /* =========================================================
+       WALLET ACTIONS
+    ========================================================= */
+
+    const WALLET_API = {
+      deposit: "https://desta-play.onrender.com/api/deposit/request",
+      withdraw: "https://desta-play.onrender.com/api/withdraw/request"
     };
 
-    bingoRooms[entryFee] =
-        room;
-
-    console.log(
-        `[BINGO ${entryFee}] NEW ROUND ${room.id}`
-    );
-
-    saveBingoRound(
-        entryFee
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            const current =
-                bingoRooms[entryFee];
-
-            if (
-                !current ||
-                current.id !== room.id ||
-                current.status !==
-                    "BETTING"
-            ) {
-                return;
-            }
-
-            startBingoDrawPhase(
-                entryFee
-            );
-        },
-        BETTING_TIMERS.bingo *
-            1000
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| START BINGO DRAWING
-|--------------------------------------------------------------------------
-*/
-
-function startBingoDrawPhase(tier) {
-    const room =
-        bingoRooms[tier];
-
-    if (
-        !room ||
-        room.status !== "BETTING"
-    ) {
-        return;
+    function currentPlayerId(){
+      return String(
+        state.playerId ||
+        document.getElementById("profileId")?.textContent ||
+        ""
+      ).trim();
     }
 
-    room.status = "DRAWING";
-    room.drawIndex = 0;
-    room.drawnNumbers = [];
-    room.currentNumber = null;
+    let depositState={amount:0,phone:"",method:"telebirr",ownerName:"",paymentPhone:"",account:""};
 
-    saveBingoRound(
-        tier
-    ).catch(console.error);
-
-    revealNextBingoNumber(
-        tier
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| REVEAL BINGO NUMBER
-|--------------------------------------------------------------------------
-*/
-
-function revealNextBingoNumber(tier) {
-    const room =
-        bingoRooms[tier];
-
-    if (
-        !room ||
-        room.status !== "DRAWING" ||
-        room.claimWindowOpen
-    ) {
-        return;
+    function openDeposit(){
+      const id=currentPlayerId();
+      document.getElementById("depositAccountId").value=id || "";
+      document.getElementById("depositStep1").classList.remove("hidden");
+      document.getElementById("depositStep2").classList.add("hidden");
+      document.getElementById("depositStep3").classList.add("hidden");
+      document.getElementById("depositAmount").value="";
+      document.getElementById("depositSender").value=localStorage.getItem("destaDepositPhone") || "";
+      setWalletStatus("depositStatus","","");
+      document.getElementById("depositModal").classList.remove("hidden");
     }
 
-    if (
-        room.drawIndex >=
-        room.secretDraw.length
-    ) {
-        resolveBingoWinner(tier, []);
-
+    async function startDepositPayment(){
+      const amount=Number(document.getElementById("depositAmount").value);
+      const phone=document.getElementById("depositSender").value.trim();
+      const method=document.getElementById("depositMethod").value.trim().toLowerCase();
+      if(!amount || amount<=0 || !phone){
+        setWalletStatus("depositStatus","Enter your phone number and deposit amount.","err");
         return;
+      }
+      const button=document.getElementById("depositPayBtn");
+      if(button)button.disabled=true;
+      setWalletStatus("depositStatus","Loading payment information…","wait");
+      try{
+        const headers={"Accept":"application/json"};
+        if(state.authToken)headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch("https://desta-play.onrender.com/api/payment/config",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success)throw new Error(data.error || "Could not load payment information.");
+        const selected=data.methods?.[method];
+        if(!selected?.available)throw new Error(selected?.message || "Payment method is not available now.");
+        const min=Number(data.minimumDeposit || 50);
+        if(amount<min)throw new Error(`Minimum deposit amount is ${min} ETB`);
+        depositState={amount,phone,method,ownerName:selected.ownerName || "",paymentPhone:selected.phone || "",account:selected.account || ""};
+        localStorage.setItem("destaDepositPhone",phone);
+        document.getElementById("depositOwnerName").textContent=depositState.ownerName || "—";
+        document.getElementById("depositPaymentPhone").textContent=depositState.paymentPhone || depositState.account || "—";
+        document.getElementById("depositPaymentCopy").value=depositState.paymentPhone || depositState.account || "";
+        document.getElementById("depositStep1").classList.add("hidden");
+        document.getElementById("depositStep2").classList.remove("hidden");
+        setWalletStatus("depositStatus","Pay the exact amount externally, then return and tap I HAVE PAID.","ok");
+      }catch(error){ setWalletStatus("depositStatus",error.message || "Could not load payment information.","err"); }
+      finally{ if(button)button.disabled=false; }
     }
 
-    const number =
-        room.secretDraw[
-            room.drawIndex
-        ];
-
-    room.currentNumber =
-        number;
-
-    room.drawnNumbers.push(
-        number
-            );
-
-    room.drawIndex++;
-
-    console.log(
-        `[BINGO ${tier}] DRAW ${room.drawIndex}/75 -> ${number}`
-    );
-
-    saveBingoRound(
-        tier
-    ).catch(console.error);
-
-    /*
-    |--------------------------------------------------------------
-    | A completed pattern does NOT automatically win the round.
-    | The player must press the BINGO button.
-    |--------------------------------------------------------------
-    */
-
-    setTimeout(
-        () => {
-            const current =
-                bingoRooms[tier];
-
-            if (
-                !current ||
-                current.id !== room.id ||
-                current.status !==
-                    "DRAWING"
-            ) {
-                return;
-            }
-
-            revealNextBingoNumber(
-                tier
-            );
-        },
-        DRAW_INTERVALS.bingo
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| RESOLVE BINGO
-|--------------------------------------------------------------------------
-*/
-
-async function resolveBingoWinner(
-    tier,
-    winners = []
-) {
-    const room = bingoRooms[tier];
-
-    if (!room || room.status === "FINISHED") {
-        return;
+    function copyDepositPayment(){
+      const value=document.getElementById("depositPaymentCopy").value || "";
+      if(navigator.clipboard && value){
+        navigator.clipboard.writeText(value).then(()=>setWalletStatus("depositStatus","Payment number copied.","ok")).catch(()=>setWalletStatus("depositStatus","Select and copy the payment number.","err"));
+      }
     }
 
-    room.status = "FINISHED";
-    room.claimWindowOpen = false;
-    room.claimWindowEndsAt = 0;
+    function depositPaid(){
+      document.getElementById("depositStep2").classList.add("hidden");
+      document.getElementById("depositStep3").classList.remove("hidden");
+      setWalletStatus("depositStatus","Paste the Telegram transaction-message link, then submit.","wait");
+    }
 
-    const validWinners = Array.isArray(winners)
-        ? winners.filter(Boolean)
+    function openWithdraw(){
+      const id=currentPlayerId();
+      document.getElementById("withdrawAccountId").value=id || "";
+      document.getElementById("withdrawPasswordBox").classList.add("hidden");
+      document.getElementById("withdrawAmount").value="";
+      document.getElementById("withdrawAccount").value="";
+      setWalletStatus("withdrawStatus","","");
+      document.getElementById("withdrawModal").classList.remove("hidden");
+    }
+
+    function closeWalletModal(id){
+      document.getElementById(id)?.classList.add("hidden");
+    }
+
+    function setWalletStatus(id,message,type){
+      const el=document.getElementById(id);
+      if(!el)return;
+      el.textContent=message||"";
+      el.className="walletStatus"+(type?" "+type:"");
+    }
+
+    async function postWalletRequest(url,payload,statusId,buttonId){
+      const button=document.getElementById(buttonId);
+      if(button)button.disabled=true;
+      setWalletStatus(statusId,"Submitting securely to the server…","wait");
+      try{
+        const headers={"Content-Type":"application/json","Accept":"application/json"};
+        if(state.authToken)headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),cache:"no-store"});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success)throw new Error(data.message || data.error || "Request could not be completed.");
+        setWalletStatus(statusId,data.message || "Request submitted.","ok");
+        if(typeof loadWalletData === "function")loadWalletData();
+        if(typeof loadServerAccount === "function")await loadServerAccount();
+        if(typeof updatePlayerDisplays === "function")updatePlayerDisplays();
+        return data;
+      }catch(error){
+        setWalletStatus(statusId,error.message || "Request failed.","err");
+        return null;
+      }finally{ if(button)button.disabled=false; }
+    }
+
+    async function submitDeposit(){
+      const link=document.getElementById("depositReference").value.trim();
+      if(!depositState.amount || !depositState.phone || !link){
+        setWalletStatus("depositStatus","Enter the Telegram transaction-message link.","err");
+        return;
+      }
+      const data=await postWalletRequest(WALLET_API.deposit,{
+        amount:depositState.amount,
+        recipient:depositState.ownerName,
+        transactionId:link,
+        referenceId:link,
+        senderPhone:depositState.phone,
+        method:depositState.method
+      },"depositStatus","depositSubmitBtn");
+      if(data){
+        document.getElementById("depositStep3").classList.add("hidden");
+        document.getElementById("depositStep1").classList.remove("hidden");
+        document.getElementById("depositReference").value="";
+        setWalletStatus("depositStatus","Deposit is PENDING. Balance will be credited only after verification.","ok");
+      }
+    }
+
+    function showWithdrawalPasswordBox(){
+      const amount=Number(document.getElementById("withdrawAmount").value);
+      const account=document.getElementById("withdrawAccount").value.trim();
+      if(!amount || amount<=0 || !account){
+        setWalletStatus("withdrawStatus","Enter a valid withdrawal amount and withdrawal phone number.","err");
+        return;
+      }
+      document.getElementById("withdrawPasswordBox").classList.remove("hidden");
+      document.getElementById("withdrawPassword").value="";
+      document.getElementById("withdrawPassword").focus();
+      setWalletStatus("withdrawStatus","Enter your DESTA PLAY password to verify the withdrawal.","wait");
+    }
+
+    function showForgotPasswordFromWithdrawal(){
+      closeWalletModal("withdrawModal");
+      document.getElementById("accountScreen").classList.remove("hidden");
+      document.getElementById("home").classList.add("hidden");
+      showForgotPassword();
+    }
+
+    async function submitWithdraw(){
+      const payload={
+        amount:Number(document.getElementById("withdrawAmount").value),
+        method:document.getElementById("withdrawMethod").value,
+        account:document.getElementById("withdrawAccount").value.trim(),
+        password:document.getElementById("withdrawPassword").value
+      };
+      if(!payload.amount || payload.amount<=0 || !payload.account){
+        setWalletStatus("withdrawStatus","Enter a valid withdrawal amount and withdrawal phone number.","err");
+        return;
+      }
+      if(!payload.password){
+        setWalletStatus("withdrawStatus","Enter your password.","err");
+        return;
+      }
+      const data=await postWalletRequest(WALLET_API.withdraw,payload,"withdrawStatus","withdrawVerifyBtn");
+      if(data){
+        document.getElementById("withdrawPasswordBox").classList.add("hidden");
+        document.getElementById("withdrawAmount").value="";
+        document.getElementById("withdrawAccount").value="";
+        setWalletStatus("withdrawStatus",`Withdrawal pending. Balance updated to ${Number(data.balanceAfter || 0).toFixed(2)} ETB.`,"ok");
+      }
+    }
+
+    async function loadWalletData(){
+      if(!state.authToken)return;
+      try{
+        const headers={"Accept":"application/json","Authorization":"Bearer "+state.authToken};
+        const response=await fetch("https://desta-play.onrender.com/api/wallet",{cache:"no-store",headers});
+        if(!response.ok)return;
+        const data=await safeJsonResponse(response);
+        if(!data.success)return;
+        const wallet=data.wallet||data;
+        const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
+        const withdrawable=Number(wallet.withdrawable ?? wallet.withdrawableBalance ?? 0);
+        const locked=Number(wallet.lockedDeposit ?? wallet.lockedBalance ?? Math.max(0,balance-withdrawable));
+        const b=document.getElementById("walletBalance");
+        const w=document.getElementById("withdrawableBalance");
+        const l=document.getElementById("lockedBalance");
+        if(b)b.textContent=balance.toFixed(2);
+        if(w)w.textContent=withdrawable.toFixed(2);
+        if(l)l.textContent=locked.toFixed(2);
+        if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
+      }catch(error){console.warn("Wallet connection error:",error)}
+    }
+
+    function renderWalletTransactions(rows){
+      const box=document.getElementById("transactions");
+      if(!box)return;
+      if(!rows.length){box.textContent="No transactions yet.";return;}
+      box.innerHTML=rows.slice(0,20).map(tx=>{
+        const status=String(tx.status||"PENDING").toUpperCase();
+        const cls=status==="APPROVED"?"statusApproved":status==="REJECTED"?"statusRejected":"statusPending";
+        const type=String(tx.type||tx.kind||"TRANSACTION").toUpperCase();
+        const amount=Number(tx.amount||0).toFixed(2);
+        const ref=tx.transactionId||tx.referenceId||tx.reference||"";
+        return `<div class="transactionRow"><strong>${type}</strong> — ${amount} ETB<br><span class="transactionStatus ${cls}">${status}</span>${ref?` · ${escapeHtml(ref)}`:""}</div>`;
+      }).join("");
+    }
+
+    function escapeHtml(value){
+      return String(value).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+    }
+
+
+    /* =========================================================
+       SERVER-AUTHORITATIVE LIVE ROUND STATE
+       ========================================================= */
+
+    let liveRoundTimer = null;
+    let liveRoundBusy = false;
+    let lastServerRoundId = {};
+    let serverCountdownTimer = null;
+
+    /* =========================================================
+       VOICE ANNOUNCER — ALL GAMES
+       Uses the device/browser speech engine. Announcements are
+       server-driven and are emitted only when something changes.
+       ========================================================= */
+    const voiceState = {
+      enabled: false,
+      unlocked: false,
+      supported: true,
+      queue: [],
+      playing: false,
+      lastRoundId: {},
+      lastStatus: {},
+      lastDrawCount: {},
+      lastResult: {},
+      lastAviatorMilestone: {},
+      currentAudio: null,
+      requestSeq: 0
+    };
+
+    function voiceStorageKey(){ return "desta_play_voice_enabled"; }
+
+    function updateVoiceButton(){
+      const button=document.getElementById("voiceToggle");
+      if(!button) return;
+      button.classList.toggle("voiceActive", !!voiceState.enabled);
+      button.textContent=voiceState.enabled ? "🔊" : "🔇";
+      button.title=voiceState.enabled ? "Game voice is ON — tap to turn OFF" : "Tap to turn game voice ON";
+      button.setAttribute("aria-label", voiceState.enabled ? "Turn game voice off" : "Turn game voice on");
+    }
+
+    function clearVoiceQueue(){
+      voiceState.queue=[];
+      voiceState.requestSeq++;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.stopVoice==="function") window.DestaVoice.stopVoice(); }catch(e){}
+      voiceState.currentAudio=null;
+      voiceState.playing=false;
+    }
+
+    function queueGameVoice(en, am, priority=false){
+      const useAm=String(state.language||"en").toLowerCase()==="am";
+      const text=String(useAm ? (am||"") : (en||""));
+      if(!text.trim() || !voiceState.enabled) return;
+      try{
+        if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
+          window.DestaVoice.speakText(text,useAm?"am":"en");
+      }catch(e){}
+    }
+
+    function playNextGameVoice(){}
+
+    function voiceTestText(){
+      return String(state.language||"en").toLowerCase()==="am" ? "ድምጽ ንቁ ነው።" : "Voice on.";
+    }
+
+    function activateGameVoice(){
+      if(voiceState.enabled){
+        voiceState.enabled=false;
+        clearVoiceQueue();
+        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(false); }catch(e){}
+        try{ localStorage.setItem(voiceStorageKey(),"0"); }catch(e){}
+        updateVoiceButton();
+        return;
+      }
+
+      voiceState.enabled=true;
+      voiceState.unlocked=true;
+      try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+      updateVoiceButton();
+
+      /* The button gesture unlocks browser speech synthesis on mobile. */
+      queueGameVoice(voiceTestText(),voiceTestText(),true);
+    }
+
+    function speakGameVoice(en, am, priority=false){
+      if(!voiceState.enabled) return;
+      if(state.game!=="keno" && state.game!=="bingo") return;
+      if(!state.gameJoined && !state.watchOnly) return;
+      queueGameVoice(en,am,priority);
+    }
+
+    function bingoVoiceCall(n){
+      const num=Number(n);
+      if(num>=1 && num<=15) return `B-${num}`;
+      if(num>=16 && num<=30) return `I-${num}`;
+      if(num>=31 && num<=45) return `N-${num}`;
+      if(num>=46 && num<=60) return `G-${num}`;
+      if(num>=61 && num<=75) return `O-${num}`;
+      return `Bingo-${num}`;
+    }
+
+    function announceRoundVoice(round){
+      if(!round || !round.game) return;
+
+      const game=String(round.game||"").toLowerCase();
+      const id=String(round.id || "");
+
+      /* Only Bingo and Keno have voice announcements in this edition. */
+      if(game!=="bingo" && game!=="keno") return;
+
+      const previousId=voiceState.lastRoundId[game];
+      if(id && previousId!==id){
+        voiceState.lastRoundId[game]=id;
+        voiceState.lastDrawCount[game]=0;
+        voiceState.lastResult[game]="";
+      }
+
+      if(!Array.isArray(round.drawnNumbers)) return;
+
+      const count=round.drawnNumbers.length;
+      if(count<=Number(voiceState.lastDrawCount[game]||0)) return;
+
+      const n=round.drawnNumbers[count-1];
+      voiceState.lastDrawCount[game]=count;
+
+      let announced=false;
+      if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.announceDraw==="function"){
+        try{
+          announced=!!window.DestaVoice.announceDraw({
+            game,
+            roundId:id,
+            stake:round.stake||round.tier||null,
+            number:n,
+            language:state.language||"en"
+          });
+        }catch(e){ announced=false; }
+      }
+
+      if(!announced && game==="bingo"){
+        const call=bingoVoiceCall(n);
+        speakGameVoice(call,call);
+      }else if(!announced && game==="keno"){
+        speakGameVoice(String(n),String(n));
+      }
+    }
+
+    (function initServerVoice(){
+      let saved="0";
+      try{ saved=localStorage.getItem(voiceStorageKey())||"0"; }catch(e){}
+      voiceState.enabled=saved==="1";
+      voiceState.unlocked=voiceState.enabled;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(voiceState.enabled); }catch(e){}
+      updateVoiceButton();
+    })();
+
+    function updateCountdownFromServer(round){
+      const game = round.game;
+      const el = document.getElementById(game + "Countdown") ||
+                 document.getElementById(game + "Status");
+      if(!el) return;
+
+      clearInterval(serverCountdownTimer);
+
+      const betting = round.status === "BETTING";
+      const endsAt = Number(round.bettingEndsAt || 0);
+
+      const paint = () => {
+        if(round.status !== "BETTING"){
+          el.textContent =
+            round.status === "DRAWING" ? "DRAWING" :
+            round.status === "FLYING" ? "FLYING" :
+            round.status === "SPINNING" ? "SPINNING" :
+            round.status === "CRASHED" ? "CRASHED" :
+            "BETTING CLOSED";
+          el.classList.toggle("closed", true);
+          if(game==="bingo" && typeof renderCartelaPicker === "function") renderCartelaPicker();
+          return;
+        }
+
+        const serverRemaining = Number(round.remainingMilliseconds);
+        const remaining = Number.isFinite(serverRemaining) && serverRemaining >= 0
+          ? Math.max(0, serverRemaining - (Date.now() - Number(round.serverTime || Date.now())))
+          : Math.max(0, endsAt - Date.now());
+
+        const seconds = Math.ceil(remaining / 1000);
+        el.textContent = "BETTING " + seconds + "s";
+        el.classList.toggle("closed", seconds <= 0);
+        if(game==="bingo" && seconds<=0 && typeof renderCartelaPicker === "function") renderCartelaPicker();
+      };
+
+      paint();
+
+      if(betting && (endsAt > Date.now() || Number(round.remainingMilliseconds) > 0)){
+        serverCountdownTimer = setInterval(paint, 200);
+      }
+    }
+
+    /* Live draw presentation state. The server remains authoritative;
+       this queue only makes every newly received server draw visible smoothly. */
+    const liveDrawPresentation = {
+      keno:{roundId:"", seen:0, queue:[], running:false, generation:0},
+      bingo:{roundId:"", seen:0, queue:[], running:false, generation:0}
+    };
+
+    function setLiveDrawNumber(game, value, animate=true){
+      const latestId=document.getElementById(game+"LatestDraw");
+      const circle=document.getElementById(game+"DrawCircle");
+      if(!latestId) return;
+      latestId.textContent=game==="keno" ? String(value).padStart(2,"0") : String(value);
+      if(animate){
+        latestId.classList.remove("pop");
+        if(circle) circle.classList.remove("drawPop");
+        void latestId.offsetWidth;
+        latestId.classList.add("pop");
+        if(circle){ void circle.offsetWidth; circle.classList.add("drawPop"); }
+      }
+    }
+
+    function presentNextLiveDraw(game){
+      const box=liveDrawPresentation[game];
+      if(!box || box.running || !box.queue.length) return;
+      box.running=true;
+      const generation=box.generation;
+      const value=box.queue.shift();
+      setLiveDrawNumber(game,value,true);
+      setTimeout(()=>{
+        if(generation!==box.generation){ box.running=false; return; }
+        box.running=false;
+        presentNextLiveDraw(game);
+      },3000);
+    }
+
+    function primeLiveDrawPresentation(game,round){
+      const box=liveDrawPresentation[game];
+      if(!box || !round) return;
+      const roundId=String(round.id||"");
+      const nums=Array.isArray(round.drawnNumbers)
+        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
         : [];
 
-    const grossPool =
-        room.players.length * room.entryFee;
+      /* Entering the live game is a synchronization point. The server may
+         already be many draws ahead because its engine never pauses when the
+         player leaves the screen. Discard any old presentation queue and
+         start exactly at the number currently recorded by the server. */
+      box.roundId=roundId;
+      box.seen=nums.length;
+      box.queue=[];
+      box.generation++;
+      box.running=false;
 
-    /* 10% house edge, 90% shared by valid BINGO claimants. */
-    const houseRake = grossPool * 0.10;
-    const winnerPool = grossPool - houseRake;
-    const share = validWinners.length > 0
-        ? winnerPool / validWinners.length
-        : 0;
+      if(nums.length){
+        setLiveDrawNumber(game,nums[nums.length-1],false);
+      }else{
+        const latestId=document.getElementById(game+"LatestDraw");
+        if(latestId) latestId.textContent="—";
+      }
+    }
 
-    room.totalPool = grossPool;
-    room.houseRake = houseRake;
-    room.winnerPrize = share;
-    room.winners = validWinners;
-    room.winner = validWinners[0] || null;
+    function syncLiveDrawPresentation(game,round){
+      const box=liveDrawPresentation[game];
+      if(!box) return;
+      const roundId=String(round?.id||"");
+      const nums=Array.isArray(round?.drawnNumbers)
+        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
+        : [];
 
-    for (const winningPlayer of validWinners) {
-        try {
-            await changeBalance({
-                playerId: winningPlayer.playerId,
-                amount: share,
-                type: "bingo_win",
-                game: "bingo",
-                roundId: room.id,
-                description: `Bingo prize - tier ${tier}`,
-                metadata: {
-                    tier,
-                    grossPool,
-                    houseRake,
-                    winnerPool,
-                    winnersCount: validWinners.length,
-                    winnerShare: share,
-                    cartelaNumber: winningPlayer.cartelaNumber
-                }
-            });
+      if(box.roundId!==roundId){
+        box.roundId=roundId;
+        box.seen=0;
+        box.queue=[];
+        box.generation++;
+        box.running=false;
 
-            console.log(
-                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${share} ETB (${validWinners.length} winner(s))`
-            );
-        } catch (error) {
-            console.error(
-                `[BINGO ${tier}] PAYOUT ERROR for ${winningPlayer.playerId}:`,
-                error
-            );
+        /* A newly observed round starts from its current authoritative
+           position. Never replay numbers that were drawn before the player
+           entered the live screen. */
+        if(nums.length){
+          setLiveDrawNumber(game,nums[nums.length-1],false);
+          box.seen=nums.length;
         }
+      }
+
+      if(nums.length>box.seen){
+        for(let i=box.seen;i<nums.length;i++) box.queue.push(nums[i]);
+        box.seen=nums.length;
+        presentNextLiveDraw(game);
+      }
     }
 
-    if (!validWinners.length) {
-        console.log(`[BINGO ${tier}] No BINGO claim - round complete`);
-    }
+    function applyServerRound(round){
+      if(!round || !round.game) return;
 
-    await saveBingoRound(tier).catch(console.error);
-
-    setTimeout(() => {
-        startNewBingoRound(tier);
-    }, NEXT_ROUND_DELAY);
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO CLAIM
-|--------------------------------------------------------------------------
-| A valid horizontal, vertical, or diagonal pattern is required.
-| The first valid claim opens a very short server-side claim window so
-| simultaneous valid BINGO claims share the 90% winner pool equally.
-|--------------------------------------------------------------------------
-*/
-app.post(
-    "/api/bingo/claim",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const tier = Number(req.body?.tier);
-            const cartelaNumber = Number(req.body?.cartelaNumber);
-            const submittedRoundId = String(req.body?.roundId || "").trim();
-
-            if (!Number.isInteger(tier)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Invalid bingo tier"
-                });
-            }
-
-            const room = bingoRooms[tier];
-            if (!room) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Bingo room not found"
-                });
-            }
-
-            if (!submittedRoundId || submittedRoundId !== String(room.id)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "This Bingo round is no longer active"
-                });
-            }
-
-            if (room.status !== "DRAWING" && !room.claimWindowOpen) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Bingo claiming is closed"
-                });
-            }
-
-            const player = room.players.find(
-                p => p.playerId === req.player.id &&
-                     Number(p.cartelaNumber) === cartelaNumber
-            );
-
-            if (!player) {
-                return res.status(400).json({
-                    success: false,
-                    error: "You are not playing this cartela in the current round"
-                });
-            }
-
-            /*
-            |----------------------------------------------------------
-            | NEVER TRUST THE CLIENT
-            |----------------------------------------------------------
-            | The backend verifies all three pieces independently:
-            |   1. Cartela number belongs to this player/round.
-            |   2. Cartela combination exactly matches the fixed server
-            |      combination for that Cartela number.
-            |   3. The server's drawn numbers currently produce a real
-            |      horizontal, vertical, or diagonal winning pattern.
-            |----------------------------------------------------------
-            */
-            const verification = verifyBingoClaim(
-                room,
-                player,
-                cartelaNumber
-            );
-
-            if (!verification.valid) {
-                return res.status(400).json({
-                    success: false,
-                    winner: false,
-                    error: verification.error
-                });
-            }
-
-            room.claimedPlayers = room.claimedPlayers || [];
-            const alreadyClaimed = room.claimedPlayers.some(
-                p => p.playerId === player.playerId &&
-                     Number(p.cartelaNumber) === Number(player.cartelaNumber)
-            );
-
-            if (alreadyClaimed) {
-                return res.status(400).json({
-                    success: false,
-                    error: "BINGO already claimed"
-                });
-            }
-
-            room.claimedPlayers.push({
-                ...player,
-                cartela: verification.cartela,
-                cartelaNumber: verification.cartelaNumber
-            });
-
-            /* Keep the round open briefly to collect simultaneous valid claims. */
-            if (!room.claimWindowOpen) {
-                room.claimWindowOpen = true;
-                room.claimWindowEndsAt = Date.now() + 1500;
-
-                setTimeout(async () => {
-                    const current = bingoRooms[tier];
-                    if (!current || current.id !== room.id || !current.claimWindowOpen) {
-                        return;
-                    }
-                    await resolveBingoWinner(
-                        tier,
-                        current.claimedPlayers || []
-                    );
-                }, 1500);
-            }
-
-            await saveBingoRound(tier).catch(console.error);
-
-            const grossPool = room.players.length * room.entryFee;
-            const winnerPool = grossPool * 0.90;
-            const count = room.claimedPlayers.length;
-            const estimatedShare = winnerPool / count;
-
-            return res.json({
-                success: true,
-                winner: true,
-                pending: true,
-                roundId: room.id,
-                winnersCount: count,
-                estimatedPrize: estimatedShare,
-                claimWindowEndsAt: room.claimWindowEndsAt,
-                message: "Valid BINGO! Your claim is registered."
-            });
-        } catch (error) {
-            console.error("Bingo claim error:", error);
-            return res.status(400).json({
-                success: false,
-                error: error.message || "Could not claim BINGO"
-            });
+      const game=round.game;
+      if(state.game===game && (state.gameJoined || state.watchOnly)){
+        voiceState.unlocked=voiceState.enabled;
+        if(voiceState.enabled){
+          try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
         }
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| BINGO JOIN
-|--------------------------------------------------------------------------
-*/
-
-app.post(
-    "/api/bingo/join",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const {
-                tier,
-                cartelaNumber
-            } = req.body;
-
-            const selectedTier =
-                Number(tier);
-
-            const selectedCartela =
-                Number(cartelaNumber);
-
-            /*
-            |----------------------------------------------------------
-            | ENGINE VALIDATES BET AMOUNT
-            |----------------------------------------------------------
-            */
-
-            let entryFee;
-
-            try {
-                entryFee =
-                    bingoBetIsValid(
-                        selectedTier
-                    );
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        error.message ||
-                        "Invalid bingo bet amount"
-                });
+        if(voiceState.enabled && typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
+          try{
+            const voiceStateNow = typeof window.DestaVoice.getState === "function" ? window.DestaVoice.getState() : null;
+            const voiceStake = round.stake||round.tier||null;
+            if(!voiceStateNow || voiceStateNow.activeGame!==game || String(voiceStateNow.activeRoundId||"")!==String(round.id||"") || Number(voiceStateNow.activeStake||0)!==Number(voiceStake||0)){
+              window.DestaVoice.enterLiveGame(game,round.id,voiceStake);
             }
-
-            const room =
-                bingoRooms[entryFee];
-
-            if (
-                !room ||
-                room.status !== "BETTING"
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Betting is closed for this room"
-                });
-            }
-
-            if (
-                !Number.isInteger(
-                    selectedCartela
-                ) ||
-                selectedCartela < 1 ||
-                selectedCartela > 120
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Cartela number must be between 1 and 120"
-                });
-            }
-
-            const alreadyJoined =
-                room.players.some(
-                    player =>
-                        player.playerId ===
-                        req.player.id
-                );
-
-            if (alreadyJoined) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Player already joined this round"
-                });
-            }
-
-            const playerCartela =
-                getBingoCartela(
-                    selectedCartela
-                );
-
-            if (
-                !playerCartela ||
-                !Array.isArray(
-                    playerCartela
-                ) ||
-                playerCartela.length === 0
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Could not generate cartela"
-                });
-            }
-
-            /*
-            |----------------------------------------------------------
-            | DEBIT PLAYER
-            |----------------------------------------------------------
-            */
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-
-                amount:
-                    -entryFee,
-
-                type:
-                    "bingo_entry",
-
-                game:
-                    "bingo",
-
-                roundId:
-                    room.id,
-
-                description:
-                    `Bingo entry - tier ${entryFee}`,
-
-                metadata: {
-                    tier:
-                        entryFee,
-
-                    cartelaNumber:
-                        selectedCartela
-                }
-            });
-
-            room.players.push({
-                playerId:
-                    req.player.id,
-
-                telegramName:
-                    req.player.username ||
-                    "Player",
-
-                cartelaNumber:
-                    selectedCartela,
-
-                cartela:
-                    playerCartela
-            });
-
-            await saveBingoRound(
-                entryFee
-            );
-
-            const grossPool =
-                room.players.length *
-                room.entryFee;
-
-            const winnerPrize =
-                grossPool * 0.90;
-
-            return res.json({
-                success: true,
-
-                tier:
-                    entryFee,
-
-                roundId:
-                    room.id,
-
-                playersInRoom:
-                    room.players.length,
-
-                grossPool,
-
-                winnerPrize,
-
-                serverTime:
-                    Date.now(),
-
-                bettingEndsAt:
-                    room.bettingEndsAt,
-
-                bettingRemainingMilliseconds:
-                    Math.max(
-                        0,
-                        room.bettingEndsAt -
-                            Date.now()
-                    ),
-
-                cartela:
-                    playerCartela
-            });
-        } catch (error) {
-            console.error(
-                "Bingo join error:",
-                error
-            );
-
-            return res.status(400).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not join bingo"
-            });
+          }catch(e){}
         }
-    }
-);
+      }
 
-/*
-|--------------------------------------------------------------------------
-| BINGO CARTELA
-|--------------------------------------------------------------------------
-*/
+      /* Voice must enter the current live session before the server draw
+         event is announced. Otherwise the first authoritative draw can be
+         discarded as inactive. */
+      announceRoundVoice(round);
 
-app.get(
-    "/api/bingo/cartela/:number",
-    (req, res) => {
-        try {
-            const number =
-                Number(
-                    req.params.number
-                );
+      const previousId=lastServerRoundId[game];
+      const isNewRound=Boolean(previousId && previousId !== round.id);
+      state.lastServerRounds=state.lastServerRounds || {};
+      state.lastServerRounds[game]=round;
+      lastServerRoundId[game]=round.id;
 
-            if (
-                !Number.isInteger(
-                    number
-                ) ||
-                number < 1 ||
-                number > 120
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Cartela number must be between 1 and 120"
-                });
-            }
+      state.roundIds=state.roundIds || {};
+      state.roundIds[game]=round.id;
+      state.serverRoundIds[game]=String(round.id || "");
 
-            const cartela =
-                getBingoCartela(
-                    number
-                );
+      /* Server-authoritative round number. Never count locally. */
+      const serverRoundNumber=Number(round.roundNumber);
+      if(Number.isFinite(serverRoundNumber) && serverRoundNumber>=1){
+        state.rounds[game]=Math.floor(serverRoundNumber);
+        state.displayRoundCounters[game]=Math.floor(serverRoundNumber);
+        state.displayRoundSeen[game]=String(round.id || "");
+      }
+      state.bettingOpenByGame[game]=round.status === "BETTING";
+      if(state.game===game){
+        state.bettingOpen=state.bettingOpenByGame[game];
+        state.countdown=Number(round.remainingSeconds || 0);
+      }
 
-            return res.json({
-                success: true,
-                cartela
-            });
-        } catch (error) {
-            return res.status(400).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not generate cartela"
-            });
+      updateRound();
+      updateCountdownFromServer(round);
+      if(state.stakeLobbyGame===game && !document.getElementById("gameStakeLobby")?.classList.contains("hidden")){
+        startStakeLobbyTimer(Number(round.remainingSeconds || 0));
+        const status=document.getElementById("stakeLobbyStatus");
+        if(status && round.status!=="BETTING") status.textContent="Betting window closed. Waiting for the next round.";
+        if(state.stakeLobbyGame==="keno"){
+          const selected=Number(state.kenoSelectedStake||0);
+          const el=document.getElementById(`kenoStakePlayers${selected}`);
+          if(el) el.textContent=`${Number(round.playersInRoom)||0} players`;
         }
+        if(state.stakeLobbyGame==="bingo"){
+          const selected=Number(state.bingoSelectedStake||0);
+          const el=document.getElementById(`bingoStakePlayers${selected}`);
+          if(el) el.textContent=`${Number(round.playersInRoom)||0} players`;
+        }
+      }
+
+      if(game === "keno"){
+        const drawn=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const changed=JSON.stringify(state.kenoDraw)!==JSON.stringify(drawn);
+        state.kenoDraw=[...drawn];
+        if(isNewRound){
+          state.kenoSelections={1:[],2:[]};
+          state.kenoBets={1:null,2:null};
+        }
+        syncLiveDrawPresentation("keno",round);
+        if(changed || isNewRound || state.game===game)renderServerKeno(round);
+      }
+
+      if(game === "bingo"){
+        const called=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const changed=JSON.stringify(state.bingoDraw)!==JSON.stringify(called);
+        state.bingoDraw=[...called];
+        if(isNewRound){
+          state.bingoDraw=[];
+          state.bingoBets={1:null,2:null};
+          state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
+          state.bingoMarks[1][12]=true;
+          state.bingoMarks[2][12]=true;
+          [1,2].forEach(slot=>{
+            const place=document.getElementById("bingoPlaceBtn"+slot);
+            if(place){place.disabled=false;place.textContent="PLACE BET";place.onclick=()=>placeBingoBet(slot);}
+          });
+          [1,2].forEach(slot=>{const p=document.getElementById("bingoPayout"+slot);if(p)p.textContent="";});
+        }
+        syncLiveDrawPresentation("bingo",round);
+        if(changed || isNewRound || state.game===game)renderServerBingo(round);
+      }
+
+      if(game === "roulette"){
+        if(isNewRound){
+          state.rouletteSelection={1:{type:null,value:null},2:{type:null,value:null}};
+          state.rouletteActiveSlot=1;
+          state.rouletteBets={};
+          state.rouletteAnimatedRoundId="";
+          const info=document.getElementById("rouletteSelectionInfo");
+          if(info)info.textContent="SLOT 1 — SELECT A NUMBER OR COLOR";
+          document.getElementById("rouletteSlot1Btn")?.classList.add("active");
+          document.getElementById("rouletteSlot2Btn")?.classList.remove("active");
+          document.querySelectorAll("#rouletteGame .placeBtn").forEach((b,i)=>{b.disabled=false;b.textContent="PLACE BET";});
+        }
+        const wheel=document.getElementById("rouletteWheel");
+        if(wheel){
+          if(round.status === "SPINNING"){
+            wheel.classList.remove("resultSpin");
+            wheel.classList.add("spinning");
+          }else if(round.status === "BETTING"){
+            wheel.classList.remove("spinning","resultSpin");
+          }else if(round.status !== "FINISHED"){
+            wheel.classList.remove("spinning");
+          }
+        }
+
+        if(round.status === "FINISHED" && round.result != null){
+          const raw=typeof round.result === "object" ? round.result : {number:round.result};
+          const winner=Number(raw.number ?? raw.result ?? raw.winner ?? raw.value);
+          if(Number.isFinite(winner)) renderServerRoulette(winner,round.id);
+        }
+      }
+
+      if(game === "aviator"){
+        const multiplier=Number(round.multiplier || 1);
+        const el=document.getElementById("aviatorMultiplier");
+        const flight=document.querySelector(".aviatorFlight");
+        if(el)el.textContent=multiplier.toFixed(2)+"x";
+        if(flight){
+          flight.classList.toggle("flyingActive",round.status === "FLYING");
+          flight.classList.toggle("crashActive",round.status === "CRASHED");
+          if(round.status !== "CRASHED")flight.classList.remove("crashActive");
+        }
+        if(round.status === "CRASHED" && round.crashPoint != null){
+          if(el)el.textContent=Number(round.crashPoint).toFixed(2)+"x CRASH";
+        }
+      }
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| PUBLIC BINGO ROUND
-|--------------------------------------------------------------------------
-*/
+    function animateDrawPot(game,round,changed){
+      const pot=document.getElementById(game+"DrawPot");
+      if(!pot)return;
 
-function getPublicBingoRound(
-    tier
-) {
-    const room =
-        bingoRooms[tier];
+      if(round.status === "DRAWING" && changed){
+        const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+        const latest=nums.length ? nums[nums.length-1] : null;
 
-    if (!room) {
-        return null;
+        pot.classList.remove("spinning","reveal");
+        pot.querySelectorAll(".drawPotBall").forEach(el=>el.remove());
+
+        /* 18 visible balls make the draw machine look like a real lottery pot. */
+        const mixCount=18;
+        for(let i=0;i<mixCount;i++){
+          const ball=document.createElement("div");
+          ball.className="drawPotBall potMixBall";
+          const seed=(i*17 + (latest||1)*7 + nums.length*13) % (game==="bingo"?75:80) + 1;
+          ball.textContent=String(seed).padStart(2,"0");
+          ball.style.left=(8 + (i*29)%126)+"px";
+          ball.style.top=(8 + (i*17)%55)+"px";
+          ball.style.animationDelay=(-i*0.035)+"s";
+          pot.appendChild(ball);
+        }
+
+        if(latest != null){
+          const ball=document.createElement("div");
+          ball.className="drawPotBall drawnPotBall";
+          ball.textContent=String(latest).padStart(2,"0");
+          ball.style.left="66px";
+          ball.style.top="25px";
+          pot.appendChild(ball);
+        }
+
+        void pot.offsetWidth;
+        pot.classList.add("spinning");
+
+        /* Mix rapidly, then eject exactly the server-selected number. */
+        setTimeout(()=>{
+          pot.classList.remove("spinning");
+          pot.classList.add("reveal");
+          pot.querySelectorAll(".potMixBall").forEach((el,i)=>{
+            el.style.animationDelay=(i*0.015)+"s";
+          });
+          const drawn=pot.querySelector(".drawnPotBall");
+          if(drawn)drawn.classList.add("dropOut");
+          setTimeout(()=>{
+            pot.classList.remove("reveal");
+            pot.querySelectorAll(".drawPotBall").forEach(el=>el.remove());
+          },850);
+        },700);
+      }else if(round.status !== "DRAWING"){
+        pot.classList.remove("spinning","reveal");
+        pot.querySelectorAll(".drawPotBall").forEach(el=>el.remove());
+      }
     }
 
-    const now =
-        Date.now();
+    function renderServerKeno(round){
+      const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+      const callsEl=document.getElementById("kenoCallsStat");
+      if(callsEl) callsEl.textContent=String(nums.length);
+      const playersEl=document.getElementById("kenoPlayersStat");
+      if(playersEl) playersEl.textContent=String(Number(round.playersInRoom ?? round.players)||0);
+      const playersFeed=document.getElementById("kenoPlayers");
+      if(playersFeed) playersFeed.textContent=String(Number(round.playersInRoom)||0);
+      [1,2,3].forEach((pos)=>{
+        const el=document.getElementById("kenoLast"+pos);
+        if(el) el.textContent=nums.length>=pos ? String(nums[nums.length-pos]).padStart(2,"0") : "—";
+      });
+      const recent=document.getElementById("kenoRecentCalls");
+      if(recent){
+        const recentNums=nums.slice(-10).reverse();
+        recent.innerHTML=recentNums.length
+          ? recentNums.map(n=>`<span class="recentBall">${String(n).padStart(2,"0")}</span>`).join("")
+          : `<span class="muted">No calls yet</span>`;
+      }
 
-    const remaining =
-        Math.max(
-            0,
-            room.bettingEndsAt -
-                now
+      const status = document.getElementById("kenoDrawStatus");
+      if(status){
+        status.textContent = round.status === "DRAWING"
+          ? `DRAWING ${(round.drawnNumbers || []).length} / ${round.totalDraws || 20}`
+          : round.status === "FINISHED"
+            ? "DRAW COMPLETE"
+            : round.status === "BETTING"
+              ? "Waiting for draw..."
+              : round.status;
+      }
+
+      document.querySelectorAll(".kenoNumber").forEach(button => {
+        const n = Number(button.textContent);
+        button.classList.toggle("drawn", (round.drawnNumbers || []).includes(n));
+        button.classList.toggle("hit",
+          (round.drawnNumbers || []).includes(n) &&
+          ((state.kenoSelections[1] || []).includes(n) ||
+           (state.kenoSelections[2] || []).includes(n))
         );
+        button.disabled = round.status !== "BETTING";
+      });
 
-    return {
-        id:
-            room.id,
+      [1,2].forEach(slot=>{
+        const place=document.querySelectorAll("#kenoGame .placeBtn")[slot-1];
+        if(place){
+          const accepted=!!state.kenoBets[slot]?.accepted;
+          place.disabled = round.status !== "BETTING" || accepted;
+          place.textContent = accepted ? "ACCEPTED" : "PLACE BET";
+        }
+        const slotEl=document.getElementById("kenoBetSlot"+slot);
+        if(slotEl) slotEl.classList.toggle("locked",!!state.kenoBets[slot]?.accepted || round.status!=="BETTING");
+      });
+    }
 
-        roundNumber:
-            Number(room.roundNumber || 1),
-        roundNumberLabel:
-            String(Number(room.roundNumber || 1)).padStart(3, "0"),
+    function renderServerBingo(round){
+      const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
+      const callsEl=document.getElementById("bingoCallsStat");
+      if(callsEl) callsEl.textContent=String(nums.length);
+      const playersEl=document.getElementById("bingoPlayersStat");
+      if(playersEl) playersEl.textContent=String(Number(round.playersInRoom)||0);
 
-        game:
-            "bingo",
+      [1,2,3].forEach((pos)=>{
+        const el=document.getElementById("bingoLast"+pos);
+        if(el) el.textContent=nums.length>=pos ? String(nums[nums.length-pos]) : "—";
+      });
+      const recent=document.getElementById("bingoRecentCalls");
+      if(recent){
+        const recentNums=nums.slice(-10).reverse();
+        recent.innerHTML=recentNums.length
+          ? recentNums.map(n=>`<span class="recentBall">${String(n)}</span>`).join("")
+          : `<span class="muted">No calls yet</span>`;
+      }
+      const status=document.getElementById("bingoStatus");
+      if(status){
+        status.textContent=round.status === "DRAWING"
+          ? `CALLED ${nums.length} / ${round.totalDraws || 75}`
+          : round.status === "FINISHED"
+            ? "DRAW COMPLETE"
+            : round.status === "BETTING"
+              ? "Waiting for next draw..."
+              : round.status;
+      }
+      if(state.bingoMarkMode==="auto"){
+        [1,2].forEach(slot=>autoMarkBingoCartela(slot));
+      }
+      [1,2].forEach(slot=>{
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        const accepted=!!state.bingoBets[slot];
+        const valid=accepted && checkBingo(state.bingoBoards[slot]||[],slot);
+        if(place){
+          if(accepted){
+            place.disabled=!valid || round.status!=="DRAWING";
+            place.textContent="BINGO";
+            place.onclick=()=>claimBingo(slot);
+          }else{
+            place.disabled=round.status!=="BETTING";
+            place.textContent="PLACE BET";
+            place.onclick=()=>placeBingoBet(slot);
+          }
+        }
+      });
+      syncBingoSlotButtons(round);
+      if(typeof renderCartela === "function") renderCartela();
+      if(typeof renderCartelaPicker === "function") renderCartelaPicker();
+    }
 
-        tier:
-            room.entryFee,
+    function renderServerRoulette(winner, roundId=""){
+      winner=Number(winner);
+      if(!Number.isFinite(winner)) return;
 
-        status:
-            room.status,
+      state.rouletteWinner = winner;
+      const alreadyAnimated = roundId && state.rouletteAnimatedRoundId === String(roundId);
+      if(roundId) state.rouletteAnimatedRoundId=String(roundId);
 
-        serverTime:
-            now,
+      const wheel=document.getElementById("rouletteWheel");
+      if(wheel){
+        wheel.classList.remove("spinning");
+        if(!alreadyAnimated){
+          wheel.classList.remove("resultSpin");
+          void wheel.offsetWidth;
+          wheel.classList.add("resultSpin");
+          wheel.style.transform=`rotate(${1440 + winner*9.73}deg)`;
+        }
+      }
 
-        bettingStartedAt:
-            room.bettingStartedAt,
+      const result = document.getElementById("rouletteResult");
+      if(result) result.textContent = "RESULT: " + winner + " — " + rouletteColor(winner).toUpperCase();
 
-        bettingEndsAt:
-            room.bettingEndsAt,
+      document.querySelectorAll(".rouletteNum").forEach(b => {
+        b.classList.toggle("winner", Number(b.textContent) === winner);
+      });
+    }
 
-        remainingMilliseconds:
-            remaining,
-
-        remainingSeconds:
-            Math.ceil(
-                remaining / 1000
-            ),
-
-        drawnNumbers:
-            [...room.drawnNumbers],
-
-        totalDraws: 75,
-
-        drawIndex:
-            room.drawIndex,
-
-        currentNumber:
-            room.currentNumber,
-
-        playersInRoom:
-            room.players.length,
-
-        grossPool:
-            room.totalPool ||
-            room.players.length *
-                room.entryFee,
-
-        winnerPrize:
-            room.winnerPrize ||
-            (
-                room.players.length *
-                room.entryFee *
-                0.90
-            ),
-
-        winnersCount:
-            (room.winners || []).length,
-
-        claimWindowOpen:
-            Boolean(room.claimWindowOpen),
-
-        claimWindowEndsAt:
-            Number(room.claimWindowEndsAt || 0),
-
-        winner:
-            room.winner
-                ? {
-                    playerId:
-                        room.winner.playerId,
-                    telegramName:
-                        room.winner.telegramName
-                }
-                : null
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| BINGO ROUND ROUTES
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/bingo/round",
-    (req, res) => {
-        const tier =
-            Number(
-                req.query.tier
-            );
-
-        if (
-            Number.isInteger(tier) &&
-            bingoRooms[tier]
-        ) {
-            return res.json({
-                success: true,
-                serverTime:
-                    Date.now(),
-                round:
-                    getPublicBingoRound(
-                        tier
-                    )
-            });
+    async function fetchLiveRound(game, tier=null){
+      try{
+        let url;
+        if(game === "bingo"){
+          url = `https://desta-play.onrender.com/api/bingo/round`;
+          if(Number.isInteger(Number(tier))){
+            url += `?tier=${encodeURIComponent(Number(tier))}`;
+          }
+        }else{
+          url = `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
+          if(game === "keno" && Number.isFinite(Number(tier))){
+            url += `?stake=${encodeURIComponent(Number(tier))}`;
+          }
         }
 
-        const rooms = {};
-
-        for (
-            const [roomTier, room]
-            of Object.entries(
-                bingoRooms
-            )
-        ) {
-            rooms[roomTier] =
-                getPublicBingoRound(
-                    Number(roomTier)
-                );
+        const headers = {"Accept":"application/json"};
+        if(state.authToken){
+          headers["Authorization"] = "Bearer " + state.authToken;
         }
 
-        return res.json({
-            success: true,
-            serverTime:
-                Date.now(),
-            rooms
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        let response;
+        try{
+          response = await fetch(url, {cache:"no-store", headers, signal:controller.signal});
+        }finally{
+          clearTimeout(timeoutId);
+        }
+
+        if(!response.ok) return;
+
+        const data = await safeJsonResponse(response);
+        if(!data || !data.success) return;
+
+        if(data.round){
+          applyServerRound(data.round);
+          return;
+        }
+
+        /* Bingo has tiered rooms. If the selected tier is not available
+           (for example while the engine is using its exported fixed tiers),
+           use the first live server room as a synchronization fallback. */
+        if(game === "bingo" && data.rooms && typeof data.rooms === "object"){
+          const selectedTier = String(Number(tier));
+          const fallback = data.rooms[selectedTier] ||
+            Object.values(data.rooms).find(r => r && r.id);
+
+          if(fallback){
+            applyServerRound(fallback);
+          }
+        }
+      }catch(error){
+        console.warn("Live round connection error:", error);
+      }
+    }
+
+    async function fetchAllLiveRounds(){
+      if(liveRoundBusy) return;
+      liveRoundBusy=true;
+      try{
+        /* While inside a game, watch only that game at high frequency.
+           This prevents the other request from delaying the visible draw. */
+        if(state.gameJoined && (state.game==="keno" || state.game==="bingo")){
+          const stake=state.game==="keno" ? state.kenoSelectedStake : state.bingoSelectedStake;
+          await fetchLiveRound(state.game,stake);
+        }else{
+          await Promise.all([
+            fetchLiveRound("keno",state.kenoSelectedStake),
+            fetchLiveRound("bingo",state.bingoSelectedStake)
+          ]);
+        }
+      }finally{
+        state.bettingOpen=!!state.bettingOpenByGame[state.game];
+        liveRoundBusy=false;
+      }
+    }
+
+    async function loadRoundHistory(game){
+      try{
+        const response = await fetch(`https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/history?limit=25`, {
+          cache:"no-store",
+          headers:{"Accept":"application/json"}
         });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| GENERIC HOUSE GAME HELPERS
-|--------------------------------------------------------------------------
-*/
-
-function generateKenoDraw() {
-    const engineGenerator =
-        keno.createDraw ||
-        keno.generateDraw ||
-        keno.default?.createDraw ||
-        keno.default?.generateDraw;
-
-    if (
-        typeof engineGenerator ===
-        "function"
-    ) {
-        const generated =
-                        engineGenerator();
-
-        if (
-            Array.isArray(generated) &&
-            generated.length > 0
-        ) {
-            return generated;
-        }
-    }
-
-    /*
-    |--------------------------------------------------------------
-    | Secure fallback.
-    |--------------------------------------------------------------
-    */
-
-    const numbers =
-        Array.from(
-            { length: 80 },
-            (_, index) => index + 1
-        );
-
-    const result = [];
-
-    while (
-        result.length < 20
-    ) {
-        const index =
-            crypto.randomInt(
-                0,
-                numbers.length
-            );
-
-        result.push(
-            numbers.splice(
-                index,
-                1
-            )[0]
-        );
-    }
-
-    return result;
-}
-
-/*
-|--------------------------------------------------------------------------
-| SAVE HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-async function saveRound(
-    round
-) {
-    const payload = {
-        id:
-            round.id,
-
-        round_id:
-            round.id,
-
-        game:
-            round.game,
-
-        status:
-            round.status,
-
-        betting_seconds:
-            round.bettingSeconds,
-
-        betting_started_at:
-            new Date(
-                round.bettingStartedAt
-            ).toISOString(),
-
-        betting_ends_at:
-            new Date(
-                round.bettingEndsAt
-            ).toISOString(),
-
-        drawn_numbers:
-            round.drawnNumbers,
-
-        current_number:
-            round.currentNumber,
-
-        result:
-            round.result,
-
-        multiplier:
-            round.multiplier,
-
-        crash_point:
-            round.crashPoint,
-
-        engine_state: {
-            secretDraw:
-                round.secretDraw ||
-                null,
-
-            drawIndex:
-                round.drawIndex ||
-                0,
-
-            secretCrashPoint:
-                round.secretCrashPoint ||
-                null,
-
-            flyingStartedAt:
-                round.flyingStartedAt ||
-                null,
-
-            multiplier:
-                round.multiplier,
-
-            currentNumber:
-                round.currentNumber,
-
-            roundNumber:
-                Number(round.roundNumber || 1),
-
-            bets:
-                round.bets || [],
-
-        },
-
-        updated_at:
-            nowIso()
-    };
-
-    const { error } =
-        await supabase
-            .from("game_rounds")
-            .upsert(
-                payload,
-                {
-                    onConflict: "id"
-                }
-            );
-
-    if (error) {
-        await dbError(
-            "saveRound",
-            error
-        );
-
-        throw new Error(
-            "Could not save game round"
-        );
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| PUBLIC HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-function getPublicRound(
-    gameName
-) {
-    const round =
-        rounds[gameName];
-
-    if (!round) {
-        return null;
-    }
-
-    const now =
-        Date.now();
-
-    const remaining =
-        Math.max(
-            0,
-            round.bettingEndsAt -
-                now
-        );
-
-    return {
-        id:
-            round.id,
-
-        roundNumber:
-            Number(round.roundNumber || 1),
-
-        game:
-            round.game,
-
-        status:
-            round.status,
-
-        serverTime:
-            now,
-
-        serverTimeIso:
-            new Date(
-                now
-            ).toISOString(),
-
-        bettingSeconds:
-            round.bettingSeconds,
-
-        bettingStartedAt:
-            round.bettingStartedAt,
-
-        bettingEndsAt:
-            round.bettingEndsAt,
-
-        bettingEndsAtIso:
-            new Date(
-                round.bettingEndsAt
-            ).toISOString(),
-
-        remainingMilliseconds:
-            remaining,
-
-        remainingSeconds:
-            Math.ceil(
-                remaining / 1000
-            ),
-
-        drawnNumbers:
-            [
-                ...(round.drawnNumbers ||
-                    [])
-            ],
-
-        totalDraws:
-            gameName === "keno" ? 20 : 0,
-
-        playersInRoom:
-            gameName === "keno"
-                ? new Set((round.bets || []).map(b => String(b.playerId))).size
-                : 0,
-
-        grossPool:
-            gameName === "keno"
-                ? (round.bets || []).reduce((sum,b) => sum + Number(b.amount || 0), 0)
-                : 0,
-
-        drawIndex:
-            round.drawIndex || 0,
-
-        currentNumber:
-            round.currentNumber,
-
-        result:
-            round.result,
-
-        multiplier:
-            round.multiplier,
-
-        crashPoint:
-            (
-                round.status ===
-                    "CRASHED" ||
-                round.status ===
-                    "FINISHED"
-            )
-                ? round.crashPoint
-                : null
-    };
-}
-
-/*
-|--------------------------------------------------------------------------
-| START HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-function startHouseRound(gameName) {
-    if (gameName !== "keno") return;
-
-    const bettingSeconds = 40;
-    const now = Date.now();
-    const round = {
-        id: `keno-${now}-${crypto.randomBytes(4).toString("hex")}`,
-        game: "keno",
-        status: "BETTING",
-        createdAt: now,
-        startedAt: now,
-        bettingSeconds,
-        bettingStartedAt: now,
-        bettingEndsAt: now + bettingSeconds * 1000,
-        drawnNumbers: [],
-        drawIndex: 0,
-        currentNumber: null,
-        result: null,
-        crashPoint: null,
-        multiplier: 1.00,
-        roundNumber: ++roundCounters.keno,
-        bets: [],
-        secretDraw: generateKenoDraw()
-    };
-
-    rounds.keno = round;
-    console.log(`[KENO] NEW ROUND ${round.id} | BETTING ${bettingSeconds}s`);
-    saveRound(round).catch(console.error);
-
-    setTimeout(() => {
-        const current = rounds.keno;
-        if (!current || current.id !== round.id || current.status !== "BETTING") return;
-        startKenoDraw("keno", round.id);
-    }, bettingSeconds * 1000);
-}
-
-/*
-|--------------------------------------------------------------------------
-| KENO DRAW
-|--------------------------------------------------------------------------
-*/
-
-function startKenoDraw(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "BETTING"
-    ) {
-        return;
-    }
-
-    round.status =
-        "DRAWING";
-
-    round.drawIndex =
-        0;
-
-    round.drawnNumbers =
-        [];
-
-    round.currentNumber =
-        null;
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[KENO] DRAWING STARTED ${round.id}`
-    );
-
-    revealNextKenoNumber(
-        gameName,
-        round.id
-    );
-}
-
-function revealNextKenoNumber(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
-
-    if (
-        !round ||
-        round.id !== roundId ||
-        round.status !==
-            "DRAWING"
-    ) {
-        return;
-    }
-
-    if (
-        round.drawIndex >=
-        round.secretDraw.length
-    ) {
-        finishHouseRound(
-            gameName,
-            round.id
-        );
-
-        return;
-    }
-
-    const number =
-        round.secretDraw[
-            round.drawIndex
-        ];
-
-    round.currentNumber =
-        number;
-
-    round.drawnNumbers.push(
-        number
-    );
-
-    round.drawIndex++;
-
-    console.log(
-        `[KENO] DRAW ${round.drawIndex}/20 -> ${number}`
-    );
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    setTimeout(
-        () => {
-            revealNextKenoNumber(
-                gameName,
-                roundId
-            );
-        },
-        DRAW_INTERVALS.keno
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| FINISH HOUSE ROUND
-|--------------------------------------------------------------------------
-*/
-
-function finishHouseRound(
-    gameName,
-    roundId
-) {
-    const round =
-        rounds[gameName];
-
-    if (
-        !round ||
-        (
-            roundId &&
-            round.id !==
-                roundId
-        )
-    ) {
-        return;
-    }
-
-    if (
-        round.status !==
-        "CRASHED"
-    ) {
-        round.status =
-            "FINISHED";
-    }
-
-    saveRound(
-        round
-    ).catch(console.error);
-
-    console.log(
-        `[${gameName.toUpperCase()}] FINISHED -> NEW ROUND IN 5 SECONDS`
-    );
-
-    const finishedRoundId =
-        round.id;
-
-    setTimeout(
-        () => {
-            const current =
-                rounds[gameName];
-
-            if (
-                !current ||
-                current.id !==
-                    finishedRoundId
-            ) {
-                return;
-            }
-
-            startHouseRound(
-                gameName
-            );
-        },
-        NEXT_ROUND_DELAY
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| RESTORE KENO ROUND
-|--------------------------------------------------------------------------
-*/
-
-async function restoreHouseRound(gameName) {
-    if (gameName !== "keno") return;
-
-    try {
-        const { data, error } = await supabase
-            .from("game_rounds")
-            .select("*")
-            .eq("game", "keno")
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (error || !data) {
-            console.log("[KENO] No saved round. Starting new round.");
-            startHouseRound("keno");
-            return;
-        }
-
-        if (["FINISHED", "CRASHED"].includes(data.status)) {
-            const previousState = data.engine_state || {};
-            roundCounters.keno = Math.max(roundCounters.keno, Number(previousState.roundNumber || 0));
-            startHouseRound("keno");
-            return;
-        }
-
-        const state = data.engine_state || {};
-        const bettingStartedAt = new Date(data.betting_started_at).getTime();
-        const bettingEndsAt = new Date(data.betting_ends_at).getTime();
-        if (!Number.isFinite(bettingStartedAt) || !Number.isFinite(bettingEndsAt)) {
-            startHouseRound("keno");
-            return;
-        }
-
-        const round = {
-            id: data.round_id || data.id,
-            game: "keno",
-            status: data.status,
-            createdAt: bettingStartedAt,
-            startedAt: bettingStartedAt,
-            bettingSeconds: 40,
-            bettingStartedAt,
-            bettingEndsAt,
-            drawnNumbers: Array.isArray(data.drawn_numbers) ? data.drawn_numbers : [],
-            drawIndex: Number(state.drawIndex ?? data.drawn_numbers?.length ?? 0),
-            currentNumber: state.currentNumber ?? data.current_number ?? null,
-            result: data.result,
-            crashPoint: null,
-            multiplier: 1,
-            roundNumber: Math.max(1, Number(state.roundNumber || 1)),
-            bets: Array.isArray(state.bets) ? state.bets : [],
-            secretDraw: Array.isArray(state.secretDraw) && state.secretDraw.length === 20
-                ? state.secretDraw.map(Number)
-                : generateKenoDraw()
+        if(!response.ok) return;
+        const data = await safeJsonResponse(response);
+        if(!data.success || !Array.isArray(data.history)) return;
+
+        const rows = data.history.slice(0,25);
+        const historyRoundNumber = r => {
+          const n=Number(r?.engine_state?.roundNumber ?? r?.round_number);
+          return Number.isFinite(n) && n>0 ? Math.floor(n) : null;
         };
 
-        roundCounters.keno = Math.max(roundCounters.keno, round.roundNumber);
-        rounds.keno = round;
-        console.log(`[KENO] RESTORED ${round.id} | ${round.status}`);
-
-        if (round.status === "BETTING") {
-            const remaining = Math.max(0, round.bettingEndsAt - Date.now());
-            setTimeout(() => {
-                const current = rounds.keno;
-                if (!current || current.id !== round.id || current.status !== "BETTING") return;
-                startKenoDraw("keno", round.id);
-            }, remaining);
-            return;
+        if(game === "keno"){
+          state.kenoHistory = rows.map(r => ({
+            round:historyRoundNumber(r) ?? r.round_id,
+            numbers:Array.isArray(r.drawn_numbers) ? r.drawn_numbers : []
+          }));
+          renderKenoHistory();
         }
 
-        if (round.status === "DRAWING") {
-            revealNextKenoNumber("keno", round.id);
-            return;
+        if(game === "roulette"){
+          state.rouletteHistory = rows.map(r => {
+            const value = typeof r.result === "object"
+              ? Number(r.result.number ?? r.result.result ?? r.result.winner)
+              : Number(r.result);
+            return {
+              round:historyRoundNumber(r) ?? r.round_id,
+              result:value,
+              color:rouletteColor(value)
+            };
+          });
+          renderRouletteHistory();
         }
 
-        startHouseRound("keno");
-    } catch (error) {
-        console.error("[KENO] RESTORE ERROR:", error);
-        startHouseRound("keno");
+        if(game === "aviator"){
+          state.aviatorHistory = rows.map(r => ({
+            round:historyRoundNumber(r) ?? r.round_id,
+            multiplier:Number(r.crash_point ?? r.multiplier ?? 0)
+          }));
+          renderAviatorHistory();
+        }
+      }catch(error){
+        console.warn("History connection error:", error);
+      }
     }
-}
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 8 — SERVER-AUTHORITATIVE KENO BET
-|--------------------------------------------------------------------------
-|
-| One slot, up to 10 numbers from 1–80, manual amount, minimum 10 ETB.
-| The draw itself remains server-authoritative.
-|--------------------------------------------------------------------------
-*/
+    let liveRoundSyncActive=false;
 
-function kenoBetIsValid(amount) {
-    return validateEngineBet(keno, amount);
-}
-
-app.post(
-    "/api/keno/bet",
-    requirePlayer,
-    async (req, res) => {
-        try {
-            const round = rounds.keno;
-            const amount = Number(req.body.amount);
-            const rawNumbers = Array.isArray(req.body.numbers)
-                ? req.body.numbers
-                : [];
-
-            const numbers = [...new Set(
-                rawNumbers.map(Number)
-            )];
-
-            if (!round || round.status !== "BETTING") {
-                return res.status(400).json({
-                    success: false,
-                    error: "Keno betting is closed"
-                });
-            }
-
-            if (!Number.isFinite(amount) || amount < 10) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Minimum Keno bet is 10 ETB"
-                });
-            }
-
-            try {
-                kenoBetIsValid(amount);
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    error: error.message || "Invalid Keno bet amount"
-                });
-            }
-
-            if (numbers.length < 1 || numbers.length > 10) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Choose between 1 and 10 Keno numbers"
-                });
-            }
-
-            if (numbers.some(n => !Number.isInteger(n) || n < 1 || n > 80)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Keno numbers must be between 1 and 80"
-                });
-            }
-
-            const currentBalance = Number(req.player.balance || 0);
-            if (amount > currentBalance) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Insufficient balance"
-                });
-            }
-
-            if (!Array.isArray(round.bets)) round.bets = [];
-
-            if (round.bets.some(bet => bet.playerId === req.player.id)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "You already placed a Keno bet for this round"
-                });
-            }
-
-            const betId = makeId("KENOBET");
-
-            const balanceAfter = await changeBalance({
-                playerId: req.player.id,
-                amount: -amount,
-                type: "keno_bet",
-                game: "keno",
-                roundId: round.id,
-                description: "Keno bet",
-                metadata: {
-                    betId,
-                    numbers
-                }
-            });
-
-            round.bets.push({
-                betId,
-                playerId: req.player.id,
-                numbers,
-                amount,
-                placedAt: Date.now(),
-                cashedOut: false
-            });
-
-            await saveRound(round);
-
-            return res.json({
-                success: true,
-                betId,
-                roundId: round.id,
-                numbers,
-                amount,
-                balanceAfter,
-                bettingEndsAt: round.bettingEndsAt,
-                remainingMilliseconds: Math.max(0, round.bettingEndsAt - Date.now())
-            });
-        } catch (error) {
-            console.error("Keno bet error:", error);
-            return res.status(500).json({
-                success: false,
-                error: error.message || "Could not place Keno bet"
-            });
-        }
+    function startLiveRoundSync(){
+      clearTimeout(liveRoundTimer);
+      liveRoundSyncActive=true;
+      liveRoundBusy=false;
+      fetchAllLiveRounds();
+      ["keno","bingo"].forEach(loadRoundHistory);
+      const schedule=()=>{
+        if(!liveRoundSyncActive) return;
+        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
+        liveRoundTimer=setTimeout(async()=>{
+          await fetchAllLiveRounds();
+          schedule();
+        },delay);
+      };
+      schedule();
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| EDITION 8 — SERVER-AUTHORITATIVE ROULETTE BET
-|--------------------------------------------------------------------------
-*/
-
-/*
-|--------------------------------------------------------------------------
-| GAME HISTORY
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/game/:game/history",
-    async (req, res) => {
-        try {
-            const gameName =
-                String(
-                    req.params.game ||
-                    ""
-                ).toLowerCase();
-
-            if (
-                !games[gameName]
-            ) {
-                return res.status(404).json({
-                    success: false,
-                    error:
-                        "Game not found"
-                });
-            }
-
-            const limit =
-                Math.min(
-                    Math.max(
-                        Number(
-                            req.query.limit ||
-                            20
-                        ),
-                        1
-                    ),
-                    100
-                );
-
-            const {
-                data,
-                error
-            } = await supabase
-                .from("game_rounds")
-                .select(
-                    "id,round_id,game,status,result,drawn_numbers,current_number,multiplier,crash_point,engine_state,created_at,updated_at"
-                )
-                .eq(
-                    "game",
-                    gameName
-                )
-                .order(
-                    "created_at",
-                    {
-                        ascending:
-                            false
-                    }
-                )
-                .limit(limit);
-
-            if (error) {
-                await dbError(
-                    "Game history",
-                    error
-                );
-
-                return res.status(500).json({
-                    success: false,
-                    error:
-                        "Could not load game history"
-                });
-            }
-
-            return res.json({
-                success: true,
-                game:
-                    gameName,
-                history:
-                    data || []
-            });
-        } catch (error) {
-            console.error(
-                "History error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    "Could not load history"
-            });
-        }
+    /* The server owns the round. The browser never creates or advances rounds. */
+    function startGameRound(){
+      startLiveRoundSync();
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| STATUS
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/status",
-    (req, res) => {
-        const houseState = {};
-
-        for (
-            const gameName
-            of Object.keys(
-                games
-            )
-        ) {
-            houseState[
-                gameName
-            ] =
-                getPublicRound(
-                    gameName
-                );
-        }
-
-        const bingoState = {};
-
-        for (
-            const tier
-            of Object.keys(
-                bingoRooms
-            )
-        ) {
-            bingoState[tier] =
-                getPublicBingoRound(
-                    Number(tier)
-                );
-        }
-
-        return res.json({
-            success: true,
-
-            status:
-                "online",
-
-            serverTime:
-                Date.now(),
-
-            serverTimeIso:
-                nowIso(),
-
-            games:
-                houseState,
-
-            bingo:
-                bingoState
-        });
+    function startGameDraw(){
+      /* Server-authoritative: no local draw is generated here. */
+      fetchAllLiveRounds();
     }
-);
 
-/*
-|--------------------------------------------------------------------------
-| GENERIC ROUND API
-|--------------------------------------------------------------------------
-*/
+    function startNextRound(){
+      fetchAllLiveRounds();
+      loadRoundHistory(state.game);
+    }
 
-app.get(
-    "/api/game/:game/round",
-    requirePlayer,
-    (req, res) => {
-        const gameName =
-            String(
-                req.params.game ||
-                ""
-            ).toLowerCase();
+    /* =========================================================
+       INITIALIZE
+       ========================================================= */
 
-        /*
-        |--------------------------------------------------------------
-        | Bingo uses tier rooms rather than one global room.
-        |--------------------------------------------------------------
-        */
+    async function bootstrapTelegramAccount(){
+      if(!state.telegramId) return false;
 
-        if (gameName === "bingo") {
-            const requestedStake = editionStakeIsValid(req.query.stake);
-            const tier = requestedStake || EDITION_STAKES.find(n => bingoRooms[n]);
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/bootstrap?telegramId="+encodeURIComponent(state.telegramId),{cache:"no-store",headers:{"Accept":"application/json"}});
+        const data=await safeJsonResponse(response);
 
-            if (!tier || !bingoRooms[tier]) {
-                return res.status(503).json({
-                    success:false,
-                    error:"Bingo round is not ready"
-                });
-            }
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not initialize account.");
 
-            const round = getPublicBingoRound(tier);
-            round.variant = "bingo75";
-            round.stake = tier;
-            round.totalDraws = 75;
-            round.cards = [0,1].map(i => {
-                const number = editionCartelaNumber(req.player.id, i);
-                return getBingoCartela(number);
-            });
-            round.cardIds = [0,1].map(i =>
-                `cartela-${editionCartelaNumber(req.player.id,i)}`
-            );
-
-            return res.json({
-                success:true,
-                serverTime:Date.now(),
-                serverTimeIso:nowIso(),
-                round
-            });
+        if(data.registered){
+          /* Existing Telegram accounts receive a fresh session from bootstrap.
+             Never send an already-registered player to phone/password login on startup. */
+          state.authToken=data.token || "";
+          state.accountCreated=!!state.authToken;
+          if(data.player){
+            state.playerId=data.player.playerId || state.playerId;
+            state.telegramName=data.player.telegramName || state.telegramName;
+            state.balance=Number(data.player.balance || 0);
+          }
+          if(state.authToken){
+            localStorage.setItem("destaAuthToken",state.authToken);
+            localStorage.setItem("destaAccountCreated","true");
+            updatePlayerDisplays();
+            loadWalletData();
+            return true;
+          }
+          return false;
         }
 
-        if (
-            !games[gameName]
-        ) {
-            return res.status(404).json({
-                success: false,
-                error:
-                    "Game not found"
-            });
-        }
-
-        return res.json({
-            success: true,
-
-            serverTime:
-                Date.now(),
-
-            serverTimeIso:
-                nowIso(),
-
-            round:
-                getPublicRound(
-                    gameName
-                )
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| SERVER TIME
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/api/server-time",
-    (req, res) => {
-        const now =
-            Date.now();
-
-        res.json({
-            success: true,
-            serverTime:
-                now,
-            serverTimeIso:
-                new Date(
-                    now
-                ).toISOString()
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| HEALTH
-|--------------------------------------------------------------------------
-*/
-
-app.get(
-    "/health",
-    (req, res) => {
-        res.json({
-            success: true,
-            status:
-                "healthy",
-            serverTime:
-                Date.now()
-        });
-    }
-);
-
-/*
-|--------------------------------------------------------------------------
-| DATABASE TEST
-|--------------------------------------------------------------------------
-*/
-
-async function testDatabaseConnection() {
-    try {
-        const {
-            data,
-            error
-        } = await supabase
-            .from("players")
-            .select("id")
-            .limit(1);
-
-        if (error) {
-            await dbError(
-                "Supabase connection test",
-                error
-            );
-
-            return false;
-        }
-
-        console.log(
-            "[SUPABASE] DATABASE CONNECTION OK"
-        );
-
-        return true;
-    } catch (error) {
-        console.error(
-            "[SUPABASE] CONNECTION TEST FAILED:",
-            error
-        );
-
+        state.accountCreated=false;
+        localStorage.removeItem("destaAccountCreated");
+        showCreateAccount();
+        document.getElementById("accountScreen").classList.remove("hidden");
         return false;
-    }
-}
-
-/*
-|--------------------------------------------------------------------------
-| COMPACT PROJECT ROOT
-|--------------------------------------------------------------------------
-| index.html, server.js and games/ live at the project root.
-|--------------------------------------------------------------------------
-*/
-
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
-});
-
-
-
-function editionStakeIsValid(value) {
-    const n = Number(value);
-    return EDITION_STAKES.includes(n) ? n : null;
-}
-
-function editionBingoVariant(gameName) {
-    return gameName === "bingo" ? "bingo75" : null;
-}
-
-function editionCartelaNumber(playerId, cardIndex) {
-    const hash = crypto
-        .createHash("sha256")
-        .update(`${String(playerId)}:${Number(cardIndex)}`)
-        .digest();
-    const value = hash.readUInt32BE(0);
-    return (value % 120) + 1;
-}
-
-function editionPublicBingoCards(playerId, variant) {
-    if (variant !== "bingo75") return [];
-
-    return [0,1].map(index => {
-        const cartelaNumber = editionCartelaNumber(playerId, index);
-        return getBingoCartela(cartelaNumber);
-    });
-}
-
-function editionFindBingoRoom(stake) {
-    const tier = editionStakeIsValid(stake);
-    if (!tier) return null;
-    return bingoRooms[tier] || null;
-}
-
-/*
- * The existing generic round endpoint below is retained as the single
- * /api/game/:game/round route. The player-flow frontend should send
- * ?stake=<selected stake> so the server can return that exact room.
- */
-
-/*
- * Edition Bingo bet. A successful request is the commitment point.
- * A player may commit up to two cartellas in the same round/stake room.
- */
-app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
-    const gameName = String(req.params.game || "").toLowerCase();
-
-    if (gameName === "keno") {
-        return next();
+      }catch(error){
+        console.warn("Telegram account bootstrap unavailable:",error);
+        return false;
+      }
     }
 
-    if (gameName !== "bingo") {
-        return next();
+    async function loadServerAccount(){
+      if(!state.authToken) return false;
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/account/me",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+state.authToken}});
+        if(!response.ok) throw new Error("Session expired");
+        const data=await safeJsonResponse(response);
+        if(!data.success || !data.player) throw new Error("Invalid account response");
+        state.accountCreated=true; state.balance=Number(data.player.balance || 0);
+        state.playerId=data.player.playerId || state.playerId; state.telegramId=String(data.player.telegramId || state.telegramId); state.telegramName=data.player.telegramName || state.telegramName;
+        localStorage.setItem("destaAccountCreated","true"); updatePlayerDisplays(); loadWalletData(); return true;
+      }catch(error){
+        console.warn("Account session unavailable:",error); state.authToken=""; localStorage.removeItem("destaAuthToken"); localStorage.removeItem("destaAccountCreated"); return false;
+      }
     }
 
-    try {
-        const stake = editionStakeIsValid(req.body?.stake);
-        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-        const cardIndex = Number(req.body?.cardIndex);
-        const submittedRoundId = String(req.body?.roundId || "").trim();
+    loadTelegramUser();
+    try{ if(tg && typeof tg.ready==="function") tg.ready(); }catch(_e){}
+    try{ if(tg && typeof tg.expand==="function") tg.expand(); }catch(_e){}
 
-        if (!stake) return res.status(400).json({success:false,error:"Invalid stake"});
-        if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 1) {
-            return res.status(400).json({success:false,error:"Invalid cartela selection"});
-        }
+    async function openTelegramCommandTarget(){
+      const target=String(state.commandTarget||"").toLowerCase();
+      if(!target) return;
 
-        const room = bingoRooms[stake];
-        if (!room || room.status !== "BETTING") {
-            return res.status(400).json({success:false,error:"Bingo betting is closed"});
-        }
-        if (submittedRoundId && submittedRoundId !== String(room.id)) {
-            return res.status(400).json({success:false,error:"This Bingo round is no longer active"});
-        }
+      /* Consume it once so a later refresh does not unexpectedly reopen a
+         page. The existing application navigation remains untouched. */
+      state.commandTarget="";
 
-        const variant = editionBingoVariant(gameName);
-        const selectedCartela = Number(req.body?.cartelaNumber);
-        if (!Number.isInteger(selectedCartela) || selectedCartela < 1 || selectedCartela > 120) {
-            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
-        }
-        const cartelaNumber = selectedCartela;
-        const cartela = getBingoCartela(cartelaNumber);
-
-        const duplicate = room.players.some(p =>
-            Number(p.cartelaNumber) === cartelaNumber
-        );
-        if (duplicate) return res.status(400).json({success:false,error:"That Cartela is already in play"});
-
-        const playerCartelas = room.players.filter(p => p.playerId === req.player.id);
-        if (playerCartelas.length >= 2) {
-            return res.status(400).json({success:false,error:"Maximum 2 cartellas per round"});
-        }
-
-        let balanceAfter = Number(req.player.balance || 0);
-        let bonusPointsAfter = null;
-        if (walletType === "bonus") {
-            const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
-            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"bingo",stake,cartelaNumber,cardIndex}),referenceId:room.id});
-            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
-        } else {
-            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
-            balanceAfter = await changeBalance({
-                playerId:req.player.id,
-                amount:-stake,
-                type:"bingo_entry",
-                game:"bingo",
-                roundId:room.id,
-                description:`Bingo entry - stake ${stake}`,
-                metadata:{stake,cartelaNumber,cardIndex,variant,walletType}
-            });
-        }
-
-        room.players.push({
-            playerId:req.player.id,
-            telegramName:req.player.username || "Player",
-            cartelaNumber,
-            cartela,
-            cardIndex,
-            variant,
-            walletType
-        });
-
-        await saveBingoRound(stake);
-
-        return res.json({
-            success:true,
-            roundId:room.id,
-            stake,
-            cardIndex,
-            cartelaNumber,
-            cardId:`cartela-${cartelaNumber}`,
-            walletType,
-            balanceAfter,
-            bonusPointsAfter,
-            bettingEndsAt:room.bettingEndsAt,
-            remainingMilliseconds:Math.max(0,room.bettingEndsAt-Date.now())
-        });
-    } catch (error) {
-        console.error("Edition Bingo bet error:", error);
-        return res.status(400).json({success:false,error:error.message || "Could not place Bingo bet"});
+      if(target==="home") {
+        showHome();
+        return;
+      }
+      if(target==="bingo" || target==="keno") {
+        await openGame(target);
+        return;
+      }
+      if(target==="wallet") {
+        showPage("wallet");
+        return;
+      }
+      if(target==="profile" || target==="invite" || target==="bonus" || target==="status") {
+        showPage("profile");
+        setTimeout(()=>{
+          const selector = target==="invite" ? ".inviteCard" : target==="bonus" ? "#profileBonusPoints" : target==="status" ? ".profileCard" : null;
+          const el = selector ? document.querySelector(selector) : null;
+          if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+        },120);
+        return;
+      }
+      if(target==="transactions") {
+        showPage("wallet");
+        setTimeout(()=>document.getElementById("transactions")?.scrollIntoView({behavior:"smooth",block:"start"}),120);
+        return;
+      }
+      if(target==="deposit") {
+        showPage("wallet");
+        setTimeout(()=>openDeposit(),120);
+        return;
+      }
+      if(target==="withdraw") {
+        showPage("wallet");
+        setTimeout(()=>openWithdraw(),120);
+      }
     }
-});
 
-/* Edition Bingo claim adapter: translates cardIndex/cardId into the
- * server-side cartela claim API without trusting client card contents. */
-app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) => {
-    const gameName = String(req.params.game || "").toLowerCase();
-    if (gameName !== "bingo") return next();
+    (async function initializeDesta(){
+      loadTelegramUser();
 
-    try {
-        const cardIndex = Number(req.body?.cardIndex);
-        const roundId = String(req.body?.roundId || "").trim();
-        if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 1) {
-            return res.status(400).json({success:false,error:"Invalid cartela selection"});
-        }
+      let authenticated=await loadServerAccount();
+      if(!authenticated && state.telegramId){
+        authenticated=await bootstrapTelegramAccount();
+      }
 
-        const requestedCartela = Number(req.body?.cartelaNumber);
-        if (!Number.isInteger(requestedCartela) || requestedCartela < 1 || requestedCartela > 120) {
-            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
-        }
-        const cartelaNumber = requestedCartela;
-        const stake = EDITION_STAKES.find(t =>
-            bingoRooms[t] && bingoRooms[t].id === roundId
-        );
-        if (!stake) return res.status(400).json({success:false,error:"Bingo round not found"});
+      if(!authenticated){
+        document.getElementById("accountScreen").classList.remove("hidden");
+        showCreateAccount();
+      }else{
+        document.getElementById("accountScreen").classList.add("hidden");
+        showHome();
+      }
 
-        const room = bingoRooms[stake];
-        const player = room.players.find(p =>
-            p.playerId === req.player.id && Number(p.cartelaNumber) === cartelaNumber
-        );
-        if (!player) return res.status(400).json({success:false,error:"No accepted bet for this cartela"});
+      buildKeno(); buildBingo(); showTab("my"); startLiveRoundSync();
 
-        const verification = verifyBingoClaim(room, player, cartelaNumber);
-        if (!verification.valid) return res.status(400).json({success:false,winner:false,error:verification.error});
+      if(authenticated && state.commandTarget){
+        setTimeout(()=>openTelegramCommandTarget(),80);
+      }
+      initLanguage();
+      setInterval(loadWalletData, 5000);
+    })();
 
-        room.claimedPlayers = room.claimedPlayers || [];
-        if (room.claimedPlayers.some(p => p.playerId === req.player.id && Number(p.cartelaNumber) === cartelaNumber)) {
-            return res.status(400).json({success:false,error:"BINGO already claimed"});
-        }
+    </script>
 
-        room.claimedPlayers.push({...player,cartela:verification.cartela,cartelaNumber});
-        if (!room.claimWindowOpen) {
-            room.claimWindowOpen = true;
-            room.claimWindowEndsAt = Date.now() + 1500;
-            setTimeout(async () => {
-                const current = bingoRooms[stake];
-                if (!current || current.id !== room.id || !current.claimWindowOpen) return;
-                await resolveBingoWinner(stake,current.claimedPlayers || []);
-            },1500);
-        }
-        await saveBingoRound(stake).catch(console.error);
+    <!-- ======================================================
+         WALLET HELP MODAL
+    ====================================================== -->
+    <div id="walletHelpModal" class="walletModal hidden" onclick="if(event.target===this)closeWalletHelp()"></div>
 
-        return res.json({
-            success:true,
-            winner:true,
-            pending:true,
-            roundId:room.id,
-            winnersCount:room.claimedPlayers.length,
-            claimWindowEndsAt:room.claimWindowEndsAt,
-            message:"Valid BINGO! Your claim is registered."
-        });
-    } catch (error) {
-        console.error("Edition Bingo claim error:", error);
-        return res.status(400).json({success:false,error:error.message || "Could not claim BINGO"});
-    }
-});
+    <!-- ======================================================
+         DEPOSIT MODAL
+    ====================================================== -->
+    <div id="depositModal" class="walletModal hidden">
+      <div class="walletModalPanel">
+        <div class="walletModalHead"><h2>DEPOSIT</h2><button class="walletModalClose" onclick="closeWalletModal('depositModal')">×</button></div>
 
-/* Exact stake validation for the edition Keno endpoint. The original
- * Keno route remains available for backwards compatibility. */
-app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
-    try {
-        const stake = editionStakeIsValid(req.body?.stake);
-        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-        if (!stake) return res.status(400).json({success:false,error:"Invalid stake"});
+        <div id="depositStep1">
+          <div class="walletHint">Enter the phone number you will use to send the payment and the deposit amount. Tap PAY to view the payment account.</div>
+          <label class="walletFormLabel">ACCOUNT ID</label>
+          <input id="depositAccountId" class="walletFormInput" readonly>
+          <label class="walletFormLabel">YOUR PAYMENT PHONE NUMBER</label>
+          <input id="depositSender" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Your payment phone number">
+          <label class="walletFormLabel">DEPOSIT AMOUNT (ETB)</label>
+          <input id="depositAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
+          <label class="walletFormLabel">PAYMENT METHOD</label>
+          <select id="depositMethod" class="walletFormSelect">
+            <option value="telebirr">Telebirr</option>
+            <option value="mpesa">M-Pesa — Payment method is not available now.</option>
+            <option value="cbe_birr">CBE Birr — Payment method is not available now.</option>
+          </select>
+          <button id="depositPayBtn" class="walletSubmit" onclick="startDepositPayment()">PAY</button>
+        </div>
 
-        const round = rounds.keno;
-        const submittedRoundId = String(req.body?.roundId || "").trim();
-        const slots = Array.isArray(req.body?.slots) ? req.body.slots : [];
+        <div id="depositStep2" class="hidden">
+          <div class="walletHint">Send the exact deposit amount externally using the payment information below.</div>
+          <div class="walletCard"><h3>PAYMENT INFORMATION</h3>
+            <p><strong>NAME:</strong> <span id="depositOwnerName">—</span></p>
+            <p><strong>PAYMENT NUMBER:</strong> <span id="depositPaymentPhone">—</span></p>
+          </div>
+          <input id="depositPaymentCopy" class="walletFormInput" readonly>
+          <button class="walletSubmit" type="button" onclick="copyDepositPayment()">COPY PAYMENT NUMBER</button>
+          <button class="walletSubmit" type="button" onclick="depositPaid()">I HAVE PAID</button>
+        </div>
 
-        if (!round || round.status !== "BETTING") return res.status(400).json({success:false,error:"Keno betting is closed"});
-        if (submittedRoundId && submittedRoundId !== String(round.id)) return res.status(400).json({success:false,error:"This Keno round is no longer active"});
-        const slotIndex = Number(req.body?.slotIndex);
-        if (!Number.isInteger(slotIndex) || slotIndex < 1 || slotIndex > 2) {
-            return res.status(400).json({success:false,error:"Invalid Keno slot"});
-        }
-        if (slots.length !== 1) return res.status(400).json({success:false,error:"Place the Keno bet one slot at a time"});
+        <div id="depositStep3" class="hidden">
+          <div class="walletHint">Paste the Telegram transaction-message link for the payment you just made.</div>
+          <label class="walletFormLabel">TELEGRAM TRANSACTION-MESSAGE LINK</label>
+          <input id="depositReference" class="walletFormInput" type="text" autocomplete="off" placeholder="Paste transaction message link">
+          <button id="depositSubmitBtn" class="walletSubmit" onclick="submitDeposit()">SUBMIT</button>
+        </div>
 
-        const normalizedSlots = slots.map(slot => [...new Set((Array.isArray(slot)?slot:[]).map(Number))]);
-        if (normalizedSlots.some(s => s.length < 3 || s.length > 10)) return res.status(400).json({success:false,error:"Each Keno slot must contain 3 to 10 numbers"});
-        if (normalizedSlots.some(s => s.some(n => !Number.isInteger(n) || n < 1 || n > 80))) return res.status(400).json({success:false,error:"Keno numbers must be between 1 and 80"});
-        if (normalizedSlots.some(s => new Set(s).size !== s.length)) return res.status(400).json({success:false,error:"Keno numbers cannot repeat"});
+        <div id="depositStatus" class="walletStatus"></div>
+      </div>
+    </div>
 
-        if (!Array.isArray(round.bets)) round.bets=[];
-        const playerBets = round.bets.filter(b => b.playerId === req.player.id);
-        if (playerBets.length >= 2) return res.status(400).json({success:false,error:"You already placed both Keno slots for this round"});
-        if (playerBets.some(b => Number(b.slotIndex || 1) === slotIndex)) {
-            return res.status(400).json({success:false,error:`Keno Slot ${slotIndex} is already placed`});
-        }
+    <div id="withdrawModal" class="walletModal hidden">
+      <div class="walletModalPanel">
+        <div class="walletModalHead"><h2>WITHDRAW</h2><button class="walletModalClose" onclick="closeWalletModal('withdrawModal')">×</button></div>
+        <div class="walletHint">Enter the amount and the phone number that should receive the withdrawal. After tapping WITHDRAW, a password verification box will appear.</div>
+        <label class="walletFormLabel">ACCOUNT ID</label>
+        <input id="withdrawAccountId" class="walletFormInput" readonly>
+        <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
+        <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
+        <label class="walletFormLabel">WITHDRAWAL METHOD</label>
+        <select id="withdrawMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
+        <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
+        <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Phone number receiving the money">
+        <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
 
-        let balanceAfter = Number(req.player.balance || 0);
-        let bonusPointsAfter = null;
-        const betId = makeId("KENOBET");
-        if (walletType === "bonus") {
-            const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
-            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"keno",stake,slotIndex,slots:normalizedSlots,betId}),referenceId:round.id});
-            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
-        } else {
-            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
-            balanceAfter = await changeBalance({
-                playerId:req.player.id,
-                amount:-stake,
-                type:"keno_bet",
-                game:"keno",
-                roundId:round.id,
-                description:"Keno bet",
-                metadata:{betId,stake,slotIndex,slots:normalizedSlots,walletType}
-            });
-        }
+        <div id="withdrawPasswordBox" class="walletPasswordBox hidden">
+          <div class="walletHint">Password verification is required before the withdrawal is created.</div>
+          <label class="walletFormLabel">DESTA PLAY PASSWORD</label>
+          <input id="withdrawPassword" class="walletFormInput" type="password" autocomplete="current-password" placeholder="Enter your password">
+           <button class="walletSubmit" type="button" onclick="showForgotPasswordFromWithdrawal()">FORGOT PASSWORD?</button>
+          <button id="withdrawVerifyBtn" class="walletSubmit" onclick="submitWithdraw()">VERIFY</button>
+        </div>
 
-        round.bets.push({
-            betId,
-            playerId:req.player.id,
-            slotIndex,
-            numbers:normalizedSlots[0],
-            slots:normalizedSlots,
-            amount:stake,
-            walletType,
-            placedAt:Date.now()
-        });
-        await saveRound(round);
+        <div id="withdrawStatus" class="walletStatus"></div>
+      </div>
+    </div>
 
-        const playersInRoom = new Set(round.bets.map(b => String(b.playerId))).size;
-        const grossPool = round.bets.reduce((sum,b) => sum + Number(b.amount || 0), 0);
-        return res.json({success:true,betId,roundId:round.id,stake,slotIndex,slots:normalizedSlots,walletType,balanceAfter,bonusPointsAfter,playersInRoom,grossPool,bettingEndsAt:round.bettingEndsAt});
-    } catch (error) {
-        console.error("Edition Keno bet error:",error);
-        return res.status(400).json({success:false,error:error.message || "Could not place Keno bet"});
-    }
-});
+    
+<script id="desta-touch-repair">
+(function(){
+  document.addEventListener("touchstart",function(e){
+    const n=e.target.closest && e.target.closest(".kenoNumber");
+    if(n){ n.style.transform="scale(.96)"; setTimeout(()=>n.style.transform="",90); }
+  },{passive:true});
+})();
+</script>
+</body>
+    </html>
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    async () => {
-        await configurePlayerTelegramCommands().catch(error =>
-            console.error("[TELEGRAM] Could not configure player commands:", error)
-        );
 
-        await configurePlayerTelegramWebhook().catch(error =>
-            console.error("[TELEGRAM] Could not configure webhook:", error)
-        );
 
-        console.log(
-            "========================================"
-        );
 
-        console.log(
-            "       DESTA PLAY BACKEND SERVER"
-        );
-
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            `Port: ${PORT}`
-        );
-
-        console.log(
-            "Keno / Bingo"
-        );
-
-        console.log(
-            "Permanent Supabase Storage"
-        );
-
-        console.log(
-            "Argon2 Authentication"
-        );
-
-        console.log(
-            "Server-Authoritative Round Engine"
-        );
-
-        console.log(
-            "========================================"
-        );
-
-        const databaseOK =
-            await testDatabaseConnection();
-
-        if (!databaseOK) {
-            console.error(
-                "[BOOT] Database connection failed."
-            );
-            for (const tier of EDITION_STAKES) {
-    await seedBingoRoundCounter(tier);
-    startNewBingoRound(tier);
-            }
-
-            /*
-          
-            |----------------------------------------------------------
-            | Do not pretend the database is working.
-            | The server remains alive for Render health checks,
-            | but game/account operations requiring Supabase will fail.
-            |----------------------------------------------------------
-            */
-        }
-
-        /* Start the two active server-authoritative games only. */
-        await restoreHouseRound("keno");
-
-        for (const tier of EDITION_STAKES) {
-            await seedBingoRoundCounter(tier);
-            startNewBingoRound(tier);
-        }
-
-        console.log(
-            "========================================"
-        );
-
-        console.log(
-            "       DESTA PLAY ENGINE ONLINE"
-        );
-
-        console.log(
-            "========================================"
-        );
-    }
-);
