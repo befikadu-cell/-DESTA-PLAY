@@ -2031,6 +2031,7 @@ app.get(
 | BONUS POINTS
 |--------------------------------------------------------------------------
 */
+const BONUS_WITHDRAWAL_MIN_POINTS = 3000;
 app.get("/api/bonus", requirePlayer, async (req, res) => {
     try {
         const points = await getBonusPoints(req.player.id);
@@ -2041,6 +2042,8 @@ app.get("/api/bonus", requirePlayer, async (req, res) => {
             withdrawalValue:Number((Math.max(0, points) / 10).toFixed(2)),
             playRate:"1 point = 1 ETB play value",
             withdrawalRate:"10 points = 1 ETB withdrawal value",
+            bonusWithdrawalMinimumPoints:BONUS_WITHDRAWAL_MIN_POINTS,
+            bonusWithdrawalEligible:Math.max(0, points) >= BONUS_WITHDRAWAL_MIN_POINTS,
             eligibleGames:["bingo","keno"]
         });
     } catch (error) {
@@ -2090,7 +2093,9 @@ app.get(
                 usedPoints,
                 bonusPoints: Math.max(0, bonusPoints),
                 playValue: Math.max(0, bonusPoints),
-                withdrawalValue: Number((Math.max(0, bonusPoints) / 10).toFixed(2))
+                withdrawalValue: Number((Math.max(0, bonusPoints) / 10).toFixed(2)),
+                bonusWithdrawalMinimumPoints: BONUS_WITHDRAWAL_MIN_POINTS,
+                bonusWithdrawalEligible: Math.max(0, bonusPoints) >= BONUS_WITHDRAWAL_MIN_POINTS
             });
         } catch (error) {
             return res.status(500).json({ success:false, error:error.message || "Could not load invite information" });
