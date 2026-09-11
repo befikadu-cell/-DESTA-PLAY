@@ -6470,6 +6470,16 @@ html,body{
       return null;
     }
 
+    function bingoAmharicVoiceCall(n){
+      const num=Number(n);
+      if(num>=1 && num<=15) return `ቢ ${num}`;
+      if(num>=16 && num<=30) return `አይ ${num}`;
+      if(num>=31 && num<=45) return `ኤን ${num}`;
+      if(num>=46 && num<=60) return `ጂ ${num}`;
+      if(num>=61 && num<=75) return `ኦ ${num}`;
+      return null;
+    }
+
     function announceRoundVoice(round){
       if(!round || !round.game) return;
 
@@ -6511,7 +6521,8 @@ html,body{
 
       if(!announced && game==="bingo"){
         const call=bingoVoiceCall(n);
-        speakGameVoice(call,call);
+        const amCall=bingoAmharicVoiceCall(n);
+        speakGameVoice(call,amCall);
       }else if(!announced && game==="keno"){
         speakGameVoice(String(n),String(n));
       }
