@@ -72,6 +72,14 @@ const TELEGRAM_WEBHOOK_SECRET =
 const PUBLIC_APP_URL =
     String(process.env.PUBLIC_APP_URL || "https://desta-play.onrender.com/").trim().replace(/\/$/, "");
 
+/* Player support contact shown by the Telegram /support command.
+   Configure SUPPORT_TELEGRAM_USERNAME in Render environment variables. */
+const SUPPORT_TELEGRAM_USERNAME =
+    String(process.env.SUPPORT_TELEGRAM_USERNAME || "").trim();
+
+const TELEGRAM_MINI_APP_URL =
+    String(process.env.TELEGRAM_MINI_APP_URL || "https://t.me/Dasta_play_bot/Dasta").trim();
+
 const SMS_WEBHOOK_SECRET =
     String(process.env.SMS_WEBHOOK_SECRET || "").trim();
 
@@ -3025,6 +3033,119 @@ app.post(
 
             const message = req.body?.message;
             const contact = message?.contact;
+
+            /* =========================================================
+               PLAYER TELEGRAM COMMANDS
+               These commands are shortcuts into the existing DESTA PLAY
+               account system. They do not alter game engines, balances,
+               deposits, withdrawals, or payout logic.
+               ========================================================= */
+            if (message && !contact) {
+                const chatId = message?.chat?.id;
+                const fromId = String(message?.from?.id || "").trim();
+                const text = String(message?.text || "").trim();
+                const commandMatch = text.match(/^\/([a-zA-Z0-9_]+)(?:@[^\s]+)?(?:\s+.*)?$/);
+
+                if (chatId && fromId && commandMatch) {
+                    const command = commandMatch[1].toLowerCase();
+                    const player = await findPlayerByTelegramId(fromId);
+                    const name = String(message?.from?.first_name || player?.username || "Player").trim();
+                    const appUrl = TELEGRAM_MINI_APP_URL;
+                    const esc = value => String(value ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+                    const sendPlayer = async (html, replyMarkup = null) => {
+                        await telegramApi("sendMessage", {
+                            chat_id: chatId,
+                            text: html,
+                            parse_mode: "HTML",
+                            ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+                        });
+                    };
+
+                    if (command === "start") {
+                        if (player) {
+                            await sendPlayer(
+                                `ሰላም ${esc(name)}! 👋\n\n<strong>ደስታ PLAY</strong> እንኳን ደህና መጡ።\n\nቢንጎ እና ኬኖ ለመጫወት ወደ ጨዋታው ይግቡ።`,
+                                { inline_keyboard: [[{ text: "🎮 OPEN DESTA PLAY", url: appUrl }]] }
+                            );
+                        } else {
+                            await sendPlayer(
+                                `<strong>ደስታ PLAY</strong> 🎮\n\nእንኳን ደህና መጡ። መለያዎን ከፍተው ቢንጎ እና ኬኖ ይጫወቱ።`,
+                                { inline_keyboard: [[{ text: "🎮 OPEN DESTA PLAY", url: appUrl }]] }
+                            );
+                        }
+                    } else if (command === "help") {
+                        await sendPlayer(
+                            `<strong>ደስታ PLAY — እርዳታ</strong>\n\n/games — ጨዋታዎች\n/wallet — የዋሌት ሂሳብ\n/profile — የግል መረጃ\n/support — የድጋፍ እርዳታ\n/invite — የግብዣ መረጃ\n/deposit — ገንዘብ ማስገባት\n/withdraw — ገንዘብ ማውጣት\n/transactions — ግብይቶች\n/bonus — ቦነስ\n/status — የመለያ ሁኔታ`
+                        );
+                    } else if (command === "games") {
+                        await sendPlayer(
+                            `<strong>🎮 የሚገኙ ጨዋታዎች</strong>\n\n🔴 <strong>Bingo</strong> — 75-ball Bingo\n🟢 <strong>Keno</strong> — 1–80\n\nጨዋታውን ለመጀመር ወደ DESTA PLAY ይግቡ።`,
+                            { inline_keyboard: [[{ text: "🎮 PLAY NOW", url: appUrl }]] }
+                        );
+                    } else if (command === "wallet") {
+                        if (!player) {
+                            await sendPlayer("የዋሌት መረጃዎን ለማየት መጀመሪያ DESTA PLAY ውስጥ ይመዝገቡ።");
+                        } else {
+                            await sendPlayer(`<strong>💰 ዋሌት</strong>\n\nቀሪ ሂሳብ: <strong>${Number(player.balance || 0).toFixed(2)} ETB</strong>`);
+                        }
+                    } else if (command === "profile") {
+                        if (!player) {
+                            await sendPlayer("ይህን መረጃ ለማየት መጀመሪያ DESTA PLAY ውስጥ ይመዝገቡ።");
+                        } else {
+                            await sendPlayer(`<strong>👤 የግል መረጃ</strong>\n\nስም: ${esc(player.username || name)}\nPlayer ID: <code>${esc(player.id)}</code>\nInvite Code: <code>${esc(makeInviteCode(player.id))}</code>`);
+                        }
+                    } else if (command === "support") {
+                        const support = SUPPORT_TELEGRAM_USERNAME
+                            ? (SUPPORT_TELEGRAM_USERNAME.startsWith("@") ? SUPPORT_TELEGRAM_USERNAME : `@${SUPPORT_TELEGRAM_USERNAME}`)
+                            : "የድጋፍ መረጃ በቅርቡ ይጨመራል።";
+                        const markup = SUPPORT_TELEGRAM_USERNAME ? { inline_keyboard: [[{ text: "💬 CONTACT SUPPORT", url: `https://t.me/${support.replace(/^@/, "")}` }]] } : null;
+                        await sendPlayer(`<strong>🛟 ድጋፍ</strong>\n\n${esc(support)}`, markup);
+                    } else if (command === "invite") {
+                        if (!player) {
+                            await sendPlayer("የግብዣ መረጃዎን ለማየት መጀመሪያ DESTA PLAY ውስጥ ይመዝገቡ።");
+                        } else {
+                            const ledger = await getBonusLedger(player.id);
+                            let invitedPlayers = 0;
+                            for (const row of ledger) {
+                                if (row.type !== "invite_bonus_points") continue;
+                                try { if (JSON.parse(row.description || "{}").invitedPlayerId) invitedPlayers += 1; } catch (_) {}
+                            }
+                            const points = await getBonusPoints(player.id);
+                            await sendPlayer(`<strong>🤝 የግብዣ መረጃ</strong>\n\nInvite Code: <code>${esc(makeInviteCode(player.id))}</code>\nየጋበዙት: <strong>${invitedPlayers}</strong>\nቦነስ ነጥቦች: <strong>${points.toFixed(2)}</strong>\n\nየግብዣ ሊንኩን በDESTA PLAY ውስጥ ማጋራት ይችላሉ።`);
+                        }
+                    } else if (command === "deposit") {
+                        await sendPlayer(`<strong>💳 ገንዘብ ማስገባት</strong>\n\nየክፍያ መረጃዎን በDESTA PLAY ውስጥ ይመልከቱ።\nዝቅተኛ የገቢ ማስገቢያ: <strong>${MIN_DEPOSIT_AMOUNT} ETB</strong>`, { inline_keyboard: [[{ text: "💳 OPEN DEPOSIT", url: appUrl }]] });
+                    } else if (command === "withdraw") {
+                        await sendPlayer("<strong>💸 ገንዘብ ማውጣት</strong>\n\nየማውጣት ጥያቄዎን በDESTA PLAY Wallet ውስጥ ያስገቡ።", { inline_keyboard: [[{ text: "💸 OPEN WALLET", url: appUrl }]] });
+                    } else if (command === "transactions") {
+                        if (!player) {
+                            await sendPlayer("የግብይት ታሪክዎን ለማየት መጀመሪያ DESTA PLAY ውስጥ ይመዝገቡ።");
+                        } else {
+                            const { data, error } = await supabase.from("transactions").select("*").eq("player_id", player.id).order("created_at", { ascending:false }).limit(10);
+                            if (error) throw new Error("Could not load transactions");
+                            const rows = data || [];
+                            const body = rows.length ? rows.map(tx => `• ${esc(String(tx.type || "TRANSACTION").toUpperCase())}: ${Number(tx.amount || 0).toFixed(2)} ETB — ${esc(String(tx.status || "PENDING").toUpperCase())}`).join("\n") : "ምንም ግብይት እስካሁን የለም።";
+                            await sendPlayer(`<strong>📋 የግብይት ታሪክ</strong>\n\n${body}`);
+                        }
+                    } else if (command === "bonus") {
+                        if (!player) {
+                            await sendPlayer("የቦነስ መረጃዎን ለማየት መጀመሪያ DESTA PLAY ውስጥ ይመዝገቡ።");
+                        } else {
+                            const points = await getBonusPoints(player.id);
+                            await sendPlayer(`<strong>⭐ ቦነስ</strong>\n\nBonus Value: <strong>${Math.max(0, points).toFixed(2)} pts</strong>\nPlay Value: <strong>${Math.max(0, points).toFixed(2)} pts</strong>`);
+                        }
+                    } else if (command === "status") {
+                        if (!player) {
+                            await sendPlayer("መለያ አልተመዘገበም። DESTA PLAY ውስጥ በመግባት መጀመሪያ ይመዝገቡ።");
+                        } else {
+                            await sendPlayer(`<strong>📊 የመለያ ሁኔታ</strong>\n\nStatus: <strong>ACTIVE</strong>\nPlayer ID: <code>${esc(player.id)}</code>\nBalance: <strong>${Number(player.balance || 0).toFixed(2)} ETB</strong>`);
+                        }
+                    }
+
+                    return res.json({ success: true, command });
+                }
+            }
 
             if (contact) {
                 const fromId = String(message?.from?.id || "");
