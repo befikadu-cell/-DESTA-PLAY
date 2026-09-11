@@ -5,7 +5,7 @@
 |
 | GAME VOICE RULES
 |
-| BINGO / BINGO 75 / BINGO 90
+| BINGO (75-ball)
 |   → Announces LETTER + NUMBER
 |   → Example: "B 7", "I 18", "N 32", "G 55", "O 71"
 |
@@ -59,8 +59,8 @@ const DestaVoice = (() => {
   | G = 46-60
   | O = 61-75
   |
-  | For Bingo 90, the same B-I-N-G-O voice format is
-  | used as requested for DESTA PLAY.
+  | Amharic mode uses the same B-I-N-G-O column mapping while
+  | selecting the Amharic speech voice.
   |
   |--------------------------------------------------------------------------
   */
@@ -119,33 +119,33 @@ const DestaVoice = (() => {
   |--------------------------------------------------------------------------
   */
 
-  function buildAnnouncement(game, number) {
+  function buildAnnouncement(game, number, language = "en") {
 
     number = Number(number);
-
     if (!validNumber(number)) {
       return null;
     }
 
-    /*
-     * ALL BINGO GAMES
-     * Letter + number
-     */
+    language = String(language || "en").toLowerCase() === "am" ? "am" : "en";
+
+    /* BINGO: letter + number. Amharic uses the same B-I-N-G-O
+       columns, but the spoken text is sent to the Amharic voice. */
     if (BINGO_GAMES.has(game)) {
 
       const letter = getBingoLetter(number);
-
       if (!letter) {
         return null;
+      }
+
+      if (language === "am") {
+        const amLetter = { B: "ቢ", I: "አይ", N: "ኤን", G: "ጂ", O: "ኦ" }[letter];
+        return `${amLetter} ${number}`;
       }
 
       return `${letter} ${number}`;
     }
 
-    /*
-     * KENO
-     * Number only
-     */
+    /* KENO: number only. */
     if (game === KENO_GAME) {
       return `${number}`;
     }
@@ -177,7 +177,7 @@ const DestaVoice = (() => {
   |--------------------------------------------------------------------------
   */
 
-  function speak(text) {
+  function speak(text, language = "en") {
 
     if (!enabled) {
       return;
@@ -197,8 +197,11 @@ const DestaVoice = (() => {
 
     stopVoice();
 
+    language = String(language || "en").toLowerCase() === "am" ? "am" : "en";
+
     const utterance =
       new SpeechSynthesisUtterance(text);
+    utterance.lang = language === "am" ? "am-ET" : "en-US";
 
     /*
      * Clear, short live-game announcement.
@@ -322,7 +325,8 @@ const DestaVoice = (() => {
     game,
     roundId,
     stake,
-    number
+    number,
+    language = "en"
   }) {
 
     game = String(game || "").toLowerCase();
@@ -336,31 +340,24 @@ const DestaVoice = (() => {
 
     number = Number(number);
 
-    /*
-     * Prevent invalid announcements.
-     */
-    if (!validNumber(number)) {
-      return false;
-    }
-
-    /*
-     * Bingo 75 cannot exceed 75.
-     */
-    if (
-      game === "bingo" ||
-      game === "bingo75"
-    ) {
-
-      if (number > 75) {
+    /* Prevent invalid announcements for the selected active game. */
+    if (game === "bingo") {
+      if (!Number.isInteger(number) || number < 1 || number > 75) {
         return false;
       }
+    } else if (game === "keno") {
+      if (!Number.isInteger(number) || number < 1 || number > 80) {
+        return false;
+      }
+    } else {
+      return false;
     }
 
     /*
      * Build correct voice.
      */
     const announcement =
-      buildAnnouncement(game, number);
+      buildAnnouncement(game, number, language);
 
     if (!announcement) {
       return false;
@@ -379,7 +376,7 @@ const DestaVoice = (() => {
 
     lastAnnouncementKey = announcementKey;
 
-    speak(announcement);
+    speak(announcement, language);
 
     return true;
   }
