@@ -1,29 +1,15 @@
-/*
- * DESTA PLAY — NATURAL LIVE GAME VOICE
- *
- * Playback is server-generated Microsoft Neural TTS.
- * This deliberately does NOT depend on browser speechSynthesis, because
- * Telegram Android WebView may not expose a working speech engine.
- *
- * Rules:
- *   BINGO -> LETTER + NUMBER (B 12, G 47, O 71)
- *   KENO  -> NUMBER ONLY (12, 47, 71)
- *
- * The number is accepted only from the server-authoritative round state.
- * The same engine is used by the real room and Watch Live.
- */
 const DestaVoice = (() => {
   let activeGame = null;
   let activeRoundId = null;
   let activeStake = null;
-  let enabled = false;
+  let enabled = true;
   let speaking = false;
   let lastAnnouncementKey = null;
   let queue = [];
-  let requestSeq = 0;
   let currentAudio = null;
-  let unlocked = false;
-  const MAX_QUEUE = 8;
+  let requestSeq = 0;
+  const MAX_QUEUE = 12;
+  const VOICE_API_BASE = "https://desta-play.onrender.com";
 
   function getBingoLetter(number) {
     number = Number(number);
@@ -52,26 +38,19 @@ const DestaVoice = (() => {
       return `${letter} ${number}`;
     }
 
-    if (game === "keno" && number >= 1 && number <= 80) {
-      return String(number);
-    }
+    if (game === "keno" && number >= 1 && number <= 80) return String(number);
     return null;
   }
 
-  function stopCurrentAudio() {
-    const audio = currentAudio;
-    currentAudio = null;
-    if (!audio) return;
-    try { audio.pause(); } catch (_) {}
-    try { audio.currentTime = 0; } catch (_) {}
-    try { audio.removeAttribute("src"); audio.load(); } catch (_) {}
-  }
-
   function stopVoice() {
-    requestSeq++;
     queue = [];
+    requestSeq++;
+    if (currentAudio) {
+      try { currentAudio.pause(); } catch (_) {}
+      try { currentAudio.currentTime = 0; } catch (_) {}
+      currentAudio = null;
+    }
     speaking = false;
-    stopCurrentAudio();
   }
 
   function enterLiveGame(game, roundId, stake) {
@@ -98,74 +77,51 @@ const DestaVoice = (() => {
     return true;
   }
 
-  function audioUrl(text, language) {
-    return `/api/voice?lang=${encodeURIComponent(language)}&text=${encodeURIComponent(text)}`;
-  }
-
-  async function playItem(item, seq) {
-    if (!enabled || seq !== requestSeq) return false;
-    const text = String(item.text || "").trim();
-    if (!text) return false;
-
-    const audio = new Audio();
-    audio.preload = "auto";
-    audio.volume = 1;
-    currentAudio = audio;
-
-    const cleanup = () => {
-      if (currentAudio === audio) currentAudio = null;
-      speaking = false;
-    };
-
-    audio.onended = () => {
-      cleanup();
-      if (seq === requestSeq) playNext();
-    };
-    audio.onerror = () => {
-      cleanup();
-      if (seq === requestSeq) playNext();
-    };
-
-    try {
-      audio.src = audioUrl(text, item.language);
-      speaking = true;
-      await audio.play();
-      unlocked = true;
-      return true;
-    } catch (_) {
-      cleanup();
-      return false;
-    }
-  }
-
-  async function playNext() {
+  function playNext() {
     if (!enabled || speaking || !queue.length) return;
     const item = queue.shift();
     const seq = requestSeq;
-    const ok = await playItem(item, seq);
-    if (!ok && seq === requestSeq) {
-      speaking = false;
-      setTimeout(playNext, 0);
-    }
+    const lang = item.language === "am" ? "am" : "en";
+    const text = String(item.text || "").trim();
+    if (!text) return playNext();
+
+    speaking = true;
+    const url = VOICE_API_BASE + "/api/voice?lang=" + encodeURIComponent(lang) + "&text=" + encodeURIComponent(text);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    audio.preload = "auto";
+    audio.volume = 1;
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (seq === requestSeq) {
+        currentAudio = null;
+        speaking = false;
+        playNext();
+      }
+    };
+
+    audio.onended = finish;
+    audio.onerror = finish;
+    audio.onabort = finish;
+    setTimeout(finish, 8000);
+
+    audio.play().catch(() => finish());
   }
 
-  /* Called by the Voice button user gesture. A short natural test phrase
-     is intentionally handled by the normal server TTS endpoint. */
-  async function unlock() {
-    unlocked = true;
-    if (!enabled) return true;
+  function queueText(text, language = "en", priority = false) {
+    if (!enabled || !String(text || "").trim()) return false;
+    const item = { text:String(text), language:language === "am" ? "am" : "en" };
+    if (priority) queue.unshift(item); else queue.push(item);
+    if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
+    playNext();
     return true;
   }
 
   function speakText(text, language = "en") {
-    if (!enabled || !String(text || "").trim()) return false;
-    queue.unshift({
-      text: String(text),
-      language: String(language || "en").toLowerCase() === "am" ? "am" : "en"
-    });
-    if (queue.length > MAX_QUEUE) queue.length = MAX_QUEUE;
-    playNext();
-    return true;
+    return queueText(text, language, true);
   }
 
   function announceDraw({ game, roundId, stake, number, language = "en" }) {
@@ -184,16 +140,14 @@ const DestaVoice = (() => {
     if (key === lastAnnouncementKey) return false;
     lastAnnouncementKey = key;
 
-    queue.push({ text, language: lang });
-    if (queue.length > MAX_QUEUE) queue.shift();
-    playNext();
-    return true;
+    return queueText(text, lang, false);
   }
+
+  function unlock() { return true; }
 
   function setEnabled(value) {
     enabled = Boolean(value);
     if (!enabled) stopVoice();
-    else unlock();
   }
 
   function toggle() {
@@ -208,13 +162,15 @@ const DestaVoice = (() => {
       activeGame,
       activeRoundId,
       activeStake,
-      supported: true,
-      unlocked
+      supported: true
     };
   }
 
   if (typeof window !== "undefined") {
     window.addEventListener("pagehide", stopVoice);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) stopVoice();
+    });
   }
 
   return {
