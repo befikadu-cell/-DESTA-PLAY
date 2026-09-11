@@ -1920,7 +1920,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #gameScreen{position:relative;padding:0!important;}
 .gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
 #gameScreen .gameTitle{display:none!important;}
-#gameScreen .gameArea{height:calc(100vh - 126px)!important;max-height:none!important;margin:0 6px!important;box-sizing:border-box;overflow:hidden!important;border-radius:12px;}
+#gameScreen .gameArea{height:calc(100vh - 126px)!important;max-height:none!important;margin:0 6px!important;box-sizing:border-box;overflow-y:auto!important;overflow-x:hidden!important;border-radius:12px;}
 #gameScreen .stakeLobby{position:absolute!important;z-index:100!important;inset:0!important;width:100%!important;height:100%!important;max-height:none!important;margin:0!important;border:0!important;border-radius:0!important;box-sizing:border-box!important;overflow:hidden!important;padding:10px 8px!important;background:linear-gradient(145deg,#241010,#090909)!important;}
 #gameScreen .stakeLobby .stakeGrid{flex:1 1 auto;min-height:0;overflow:hidden;}
 #gameScreen .stakeLobby{display:flex;flex-direction:column;}
@@ -1939,7 +1939,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #kenoGame{height:100%;overflow:hidden;position:relative;}
 #kenoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
 #kenoGame .countdown{padding:4px!important;font-size:10px!important;}
-.kenoSelectedRows{display:grid!important;grid-template-columns:1fr 1fr;gap:4px!important;margin:2px 5px!important;}
+.kenoSelectedRows{display:none!important;}
 .kenoSelectedRows .selectedRow{min-height:27px!important;padding:3px 5px!important;box-sizing:border-box;}
 .kenoSelectedRows .selectedNumber{padding:2px 4px!important;font-size:8px!important;}
 .kenoBoard{padding:4px!important;gap:3px!important;grid-template-columns:repeat(10,1fr)!important;}
@@ -1947,7 +1947,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #kenoGame .drawNumberCircle{width:96px!important;height:96px!important;margin:4px auto!important;}
 #kenoGame .drawNumberCircle span{font-size:31px!important;}
 #kenoGame .drawStatus{padding:3px!important;font-size:9px!important;}
-#kenoGame .betSlots{display:grid!important;grid-template-columns:1fr 1fr;gap:5px!important;padding:4px!important;}
+#kenoGame .betSlots{display:flex!important;flex-direction:column!important;gap:6px!important;padding:4px 6px!important;}
 #kenoGame .betSlot{min-height:65px!important;padding:5px!important;cursor:pointer!important;pointer-events:auto!important;}
 #kenoGame .placeBtn{min-height:28px!important;padding:5px!important;font-size:9px!important;}
 #kenoGame .feed,#kenoGame .historyBox{display:none!important;}
@@ -1958,7 +1958,7 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .walletHelpCard p{margin:0;color:#ddd;font-size:12px;line-height:1.55;}
 
 /* KENO LIVE DRAW — reference-style compact layout */
-#kenoGame{height:100%;overflow:hidden!important;position:relative;box-sizing:border-box;}
+#kenoGame{min-height:100%;height:auto!important;overflow:visible!important;position:relative;box-sizing:border-box;padding-bottom:14px;}
 .kenoLiveLayout{display:grid;grid-template-columns:72px 1fr 112px;align-items:center;gap:6px;margin:3px 6px 2px;height:178px;}
 .kenoLastColumn{display:flex;flex-direction:column;align-items:center;gap:7px;}
 .kenoSectionLabel,.kenoDrawLabel,.kenoRecentLabel{color:#aaa;font-size:10px;font-weight:700;text-align:center;letter-spacing:.2px;}
@@ -1977,18 +1977,21 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .kenoRecentCalls::-webkit-scrollbar{display:none;}
 .kenoRecentCalls .recentBall{flex:0 0 35px;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#151515;border:2px solid #672525;color:#fff;font-size:10px;font-weight:900;}
 #kenoGame .drawStatus{padding:2px 0!important;font-size:8px!important;min-height:10px;}
-#kenoGame .kenoSelectedRows{margin:2px 5px!important;gap:4px!important;}
+#kenoGame .kenoSelectedRows{display:none!important;}
 #kenoGame .kenoBoard{padding:3px 5px!important;gap:3px!important;}
 #kenoGame .kenoNumber{min-width:0!important;width:100%!important;aspect-ratio:1!important;font-size:9px!important;pointer-events:auto!important;touch-action:manipulation!important;}
-#kenoGame .betSlots{gap:5px!important;padding:3px 5px!important;}
-#kenoGame .betSlot{min-height:55px!important;padding:4px!important;}
+#kenoGame .betSlots{display:flex!important;flex-direction:column!important;gap:6px!important;padding:3px 5px!important;}
+#kenoGame .betSlot{width:100%!important;min-height:62px!important;padding:5px 6px!important;box-sizing:border-box!important;}
+#kenoGame .slotNumbersInline{display:flex;flex-wrap:wrap;gap:3px;min-height:18px;align-items:center;margin:2px 0 3px;}
+#kenoGame .slotNumbersInline .selectedNumber{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;border-radius:6px;background:#b40000;border:1px solid #ef1b1b;color:#fff;font-size:9px;font-weight:900;box-sizing:border-box;}
+#kenoGame .slotNumbersInline .muted{font-size:8px;color:#888;}
 #kenoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
 #kenoGame .feed,#kenoGame .historyBox{display:none!important;}
 
 /* BINGO — compact header/draw area matching supplied reference */
-#bingoGame{height:100%;overflow:hidden;position:relative;}
+#bingoGame{min-height:100%;height:auto!important;overflow:visible!important;position:relative;padding-bottom:14px;}
 #bingoGame .bingoStakeScreen{padding:6px!important;}
-#bingoGame .bingoPlayArea{height:100%;overflow:hidden;}
+#bingoGame .bingoPlayArea{min-height:100%;height:auto!important;overflow:visible!important;}
 #bingoGame .selectedStakeBanner{padding:4px 7px!important;font-size:10px!important;margin:2px 6px!important;}
 #bingoGame .countdown{padding:4px!important;font-size:10px!important;}
 #bingoGame .bingoAnimation{height:180px!important;}
@@ -2021,25 +2024,46 @@ button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #bingoGame .placeBtn{min-height:27px!important;padding:4px!important;font-size:9px!important;}
 #bingoGame .feed,#bingoGame .historyBox{display:none!important;}
 
-/* STABLE MINI-WEB: page itself never scrolls; only the Cartela picker scrolls horizontally. */
+/* ONE-CONTINUOUS-SCROLL MINI-APP: no page-height slide/paging.
+   Each screen has one vertical scroll area when its content is taller than
+   the Android viewport. Horizontal Cartela navigation remains independent. */
 html,body{
   overflow:hidden!important;
   width:100%!important;
   height:100%!important;
-  position:fixed!important;
-  inset:0!important;
+  overscroll-behavior:none!important;
 }
-#gameScreen,#walletScreen,#profileScreen,#home{
+#home,#gameScreen,#walletScreen,#profileScreen{
   overflow:hidden!important;
   overscroll-behavior:none!important;
 }
+#home{overflow:hidden!important;}
 #gameScreen .gameArea{
-  overflow:hidden!important;
+  height:calc(100vh - 126px)!important;
+  max-height:none!important;
   min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  padding-bottom:18px!important;
+}
+#walletScreen,#profileScreen{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  padding-bottom:90px!important;
+}
+#gameStakeLobby{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
 }
 #bingoGame .cartelaChooser{
   min-height:0!important;
-  overflow:hidden!important;
+  overflow:visible!important;
 }
 #bingoGame .cartelaPicker{
   overscroll-behavior-y:none!important;
@@ -2051,6 +2075,30 @@ html,body{
 .walletHelpBtn{width:34px;height:34px;border:1px solid #632020;border-radius:50%;background:#171717;color:#ffd43c;font-size:20px;font-weight:900;line-height:1;cursor:pointer;touch-action:manipulation;}
 .walletHelpBtn:active{transform:scale(.95);}
 
+/* BINGO — same compact live-game language as Keno reference */
+.bingoLiveLayout{display:grid;grid-template-columns:72px 1fr 112px;align-items:center;gap:6px;margin:3px 6px 2px;min-height:178px;}
+.bingoLastColumn{display:flex;flex-direction:column;align-items:center;gap:7px;}
+.bingoSectionLabel,.bingoDrawLabel,.bingoRecentLabel{color:#aaa;font-size:10px;font-weight:700;text-align:center;letter-spacing:.2px;}
+.bingoLastBall{width:43px;height:43px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#555,#191919 62%,#090909);border:2px solid #6f2525;color:#fff;font-size:13px;font-weight:900;box-shadow:inset 0 2px 7px rgba(255,255,255,.08),0 0 5px rgba(160,0,0,.25);}
+.bingoCenterColumn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;}
+.bingoDrawLabel{margin-bottom:3px;}
+.bingoBilliardBall{width:116px;height:116px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 34% 28%,#fff 0,#f7f7f7 48%,#d7d7d7 78%,#aaa 100%);border:7px solid #f5b900;box-shadow:0 0 0 3px #ffcf33,0 0 22px rgba(255,187,0,.35),inset -9px -10px 18px rgba(0,0,0,.16),inset 8px 8px 15px rgba(255,255,255,.9);}
+.bingoBilliardBall span{color:#111;font-size:38px;font-weight:1000;line-height:1;text-shadow:0 1px 0 #fff;}
+.bingoBilliardBall span.pop{animation:latestDrawPop .65s cubic-bezier(.17,.89,.32,1.28);}
+.bingoStatsColumn{display:flex;flex-direction:column;gap:7px;}
+.bingoStatBox{height:58px;border-radius:12px;background:#202020;border:1px solid #4b2929;display:flex;flex-direction:column;justify-content:center;padding:0 9px;box-sizing:border-box;box-shadow:inset 0 0 10px rgba(0,0,0,.35);}
+.bingoStatBox strong{font-size:19px;color:#fff;line-height:1.05;}.bingoStatBox span{font-size:10px;color:#aaa;margin-top:2px;}
+.bingoRecentLabel{text-align:left;margin:1px 8px 2px;}
+.bingoRecentCalls{display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;padding:2px 7px 4px;scrollbar-width:none;white-space:nowrap;}
+.bingoRecentCalls::-webkit-scrollbar{display:none;}
+.bingoRecentCalls .recentBall{flex:0 0 35px;width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#151515;border:2px solid #672525;color:#fff;font-size:10px;font-weight:900;}
+.bingoMarkControls{display:grid;grid-template-columns:1fr 1fr auto;gap:5px;align-items:center;margin:4px 6px 6px;}
+.bingoModeBtn{min-height:30px;border:1px solid #632020;border-radius:7px;background:#190909;color:#ffd43b;font-weight:900;font-size:10px;touch-action:manipulation;}
+.bingoModeBtn.active{background:linear-gradient(180deg,#ffcf3b,#bd7900);color:#160900;border-color:#ffe47b;}
+#bingoMarkModeText{font-size:8px;color:#aaa;white-space:nowrap;}
+/* One vertical scroll surface for the whole live game; Cartela numbers scroll horizontally only. */
+#bingoGame .cartelaPicker{display:grid!important;grid-template-rows:repeat(5,24px)!important;grid-auto-flow:column!important;grid-auto-columns:28px!important;grid-template-columns:none!important;gap:4px!important;max-height:132px!important;height:132px!important;overflow-x:auto!important;overflow-y:hidden!important;white-space:normal!important;padding:4px!important;touch-action:pan-x!important;}
+#bingoGame .cartelaPick{height:24px!important;min-height:24px!important;width:28px!important;font-size:8px!important;padding:0!important;touch-action:manipulation!important;}
 /* Prevent accidental transparent/overlay layers from blocking game controls. */
 #kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
 </style>
@@ -2410,13 +2458,15 @@ html,body{
           <div class="betSlots">
             <div class="betSlot" id="kenoBetSlot1" onclick="activateKenoSlot(1)">
               <div class="slotTitle">SLOT 1</div>
-              <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k1StakeDisplay">—</span> ETB</div>
+              <div class="slotNumbersInline" id="kenoBetSlot1Numbers"><span class="muted">Choose 3–10 numbers</span></div>
+              <div class="selectedStakeBanner" style="margin:4px 0">STAKE: <span id="k1StakeDisplay">—</span> ETB</div>
               <div class="livePayout" id="kenoPayout1"></div>
               <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(1)">PLACE BET</button>
             </div>
             <div class="betSlot" id="kenoBetSlot2" onclick="activateKenoSlot(2)">
               <div class="slotTitle">SLOT 2</div>
-              <div class="selectedStakeBanner" style="margin:5px 0">STAKE: <span id="k2StakeDisplay">—</span> ETB</div>
+              <div class="slotNumbersInline" id="kenoBetSlot2Numbers"><span class="muted">Choose 3–10 numbers</span></div>
+              <div class="selectedStakeBanner" style="margin:4px 0">STAKE: <span id="k2StakeDisplay">—</span> ETB</div>
               <div class="livePayout" id="kenoPayout2"></div>
               <button class="placeBtn" onclick="event.stopPropagation();placeKenoBet(2)">PLACE BET</button>
             </div>
@@ -2465,16 +2515,41 @@ html,body{
             BETTING 30s
           </div>
 
-          <div class="bingoAnimation">
-            <div class="bingoMachine">
-              <div class="bingoLatestDraw" id="bingoLatestDraw">—</div>
+          <section class="bingoLiveLayout" aria-label="Bingo live game">
+            <div class="bingoLastColumn">
+              <div class="bingoSectionLabel">LAST</div>
+              <div class="bingoLastBall" id="bingoLast1">—</div>
+              <div class="bingoLastBall" id="bingoLast2">—</div>
+              <div class="bingoLastBall" id="bingoLast3">—</div>
             </div>
-          </div>
 
-          <div
-            class="drawStatus"
-            id="bingoStatus">
-            Waiting for next draw...
+            <div class="bingoCenterColumn">
+              <div class="bingoDrawLabel">DRAWN NUMBER</div>
+              <div class="bingoBilliardBall" id="bingoDrawCircle" aria-label="Latest Bingo drawn number">
+                <span id="bingoLatestDraw">—</span>
+              </div>
+              <div class="drawStatus" id="bingoStatus">Waiting for next draw...</div>
+            </div>
+
+            <div class="bingoStatsColumn">
+              <div class="bingoStatBox">
+                <strong id="bingoCallsStat">0</strong>
+                <span>CALLS</span>
+              </div>
+              <div class="bingoStatBox">
+                <strong id="bingoPlayersStat">0</strong>
+                <span>PLAYERS</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="bingoRecentLabel">RECENT CALLS</div>
+          <div class="bingoRecentCalls" id="bingoRecentCalls"></div>
+
+          <div class="bingoMarkControls" aria-label="Cartela marking mode">
+            <button type="button" id="bingoAutoBtn" class="bingoModeBtn active" onclick="setBingoMarkMode('auto')">AUTO</button>
+            <button type="button" id="bingoManualBtn" class="bingoModeBtn" onclick="setBingoMarkMode('manual')">MANUAL</button>
+            <span id="bingoMarkModeText">AUTO MARK</span>
           </div>
 
           <div class="cartelaChooser">
@@ -2680,16 +2755,6 @@ html,body{
       <div class="walletButtons">
         <button class="walletBtn" onclick="openDeposit()">DEPOSIT</button>
         <button class="walletBtn" onclick="openWithdraw()">WITHDRAW</button>
-      </div>
-
-      <div class="walletCard">
-        <h3>DEPOSIT VERIFICATION</h3>
-        <p>1. Enter your sender phone number and deposit amount.<br>2. Tap PAY and follow the payment instructions.<br>3. Complete the payment, then tap I HAVE PAID.<br>4. Submit the transaction/reference information and wait for confirmation.</p>
-      </div>
-
-      <div class="walletCard">
-        <h3>WITHDRAWAL</h3>
-        <p>1. Enter the amount you want to withdraw.<br>2. Enter your withdrawal phone number.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.<br>5. If the password is correct, the withdrawal request is submitted.</p>
       </div>
 
       <div class="walletCard">
@@ -2939,6 +3004,8 @@ html,body{
       },
 
       bingoDraw:[],
+
+      bingoMarkMode:"auto",
 
 
       rouletteSelection:{
@@ -3620,6 +3687,13 @@ html,body{
 
       state.page=page;
 
+      ["home","gameScreen","walletScreen","profileScreen"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.scrollTop=0;
+      });
+      const gameArea=document.querySelector("#gameScreen .gameArea");
+      if(gameArea) gameArea.scrollTop=0;
+
       document
         .getElementById("home")
         .classList.add("hidden");
@@ -3792,6 +3866,7 @@ html,body{
       state.kenoSelections={1:[],2:[]};
       state.kenoBets={1:null,2:null};
       state.activeKenoSlot=1;
+      state.bingoMarkMode="auto";
       state.bingoCartelas={1:null,2:null};
       state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
       state.bingoMarks[1][12]=true;
@@ -4156,14 +4231,14 @@ html,body{
         const selected=
           state.kenoSelections[slot];
 
-        target.innerHTML=
-          selected.length
-          ?selected
-            .map(n=>
-              `<span class="selectedNumber">${n}</span>`
-            )
-            .join("")
-          :`<span class="muted">No numbers</span>`;
+        const chips = selected.length
+          ? selected.map(n=>`<span class="selectedNumber">${n}</span>`).join("")
+          : `<span class="muted">Choose 3–10 numbers</span>`;
+
+        target.innerHTML = chips;
+
+        const slotTarget = document.getElementById(`kenoBetSlot${slot}Numbers`);
+        if(slotTarget) slotTarget.innerHTML = chips;
 
         document
           .getElementById(
@@ -4555,6 +4630,7 @@ html,body{
       state.bingoBoards[slot]=generateCartela(value);
       state.bingoMarks[slot]=Array(25).fill(false);
       state.bingoMarks[slot][12]=true;
+      if(state.bingoMarkMode==="auto") autoMarkBingoCartela(slot);
 
       const status=document.getElementById("cartelaStatus");
       if(status){
@@ -4641,6 +4717,30 @@ html,body{
     }
 
 
+    function setBingoMarkMode(mode){
+      state.bingoMarkMode=(mode==="manual" ? "manual" : "auto");
+      const auto=document.getElementById("bingoAutoBtn");
+      const manual=document.getElementById("bingoManualBtn");
+      const text=document.getElementById("bingoMarkModeText");
+      if(auto) auto.classList.toggle("active",state.bingoMarkMode==="auto");
+      if(manual) manual.classList.toggle("active",state.bingoMarkMode==="manual");
+      if(text) text.textContent=state.bingoMarkMode==="auto" ? "AUTO MARK" : "MANUAL MARK";
+      if(state.bingoMarkMode==="auto") autoMarkBingoCartela(state.activeCartela);
+      renderCartela();
+    }
+
+    function autoMarkBingoCartela(slot){
+      const board=state.bingoBoards[slot] || [];
+      if(!board.length) return;
+      const called=new Set(state.bingoDraw || []);
+      state.bingoMarks[slot]=state.bingoMarks[slot] || Array(25).fill(false);
+      for(let i=0;i<board.length;i++){
+        const n=Number(board[i]);
+        if(n===0 || called.has(n)) state.bingoMarks[slot][i]=(n===0 || called.has(n));
+      }
+      state.bingoMarks[slot][12]=true;
+    }
+
     function renderCartela(){
       const wrap=document.getElementById("cartelaGridWrap");
       if(!wrap) return;
@@ -4681,6 +4781,7 @@ html,body{
 
 
     function markCartelaCell(slot,index){
+      if(state.bingoMarkMode!=="manual") return;
       const board=state.bingoBoards[slot] || [];
       const n=Number(board[index]);
       if(!board.length || n===0) return;
@@ -6542,13 +6643,30 @@ html,body{
       const latest=nums.length ? nums[nums.length-1] : null;
       const latestEl=document.getElementById("bingoLatestDraw");
       if(latestEl){
-        const changed=String(latestEl.textContent)!==String(latest ?? "—");
-        latestEl.textContent=latest ?? "—";
+        const shown=latest!=null ? String(latest) : "—";
+        const changed=String(latestEl.textContent)!==shown;
+        latestEl.textContent=shown;
         if(changed && latest!=null){
           latestEl.classList.remove("pop");
           void latestEl.offsetWidth;
           latestEl.classList.add("pop");
         }
+      }
+      const callsEl=document.getElementById("bingoCallsStat");
+      if(callsEl) callsEl.textContent=String(nums.length);
+      const playersEl=document.getElementById("bingoPlayersStat");
+      if(playersEl) playersEl.textContent=String(Number(round.players)||0);
+
+      [1,2,3].forEach((pos)=>{
+        const el=document.getElementById("bingoLast"+pos);
+        if(el) el.textContent=nums.length>=pos ? String(nums[nums.length-pos]) : "—";
+      });
+      const recent=document.getElementById("bingoRecentCalls");
+      if(recent){
+        const recentNums=nums.slice(-10).reverse();
+        recent.innerHTML=recentNums.length
+          ? recentNums.map(n=>`<span class="recentBall">${String(n)}</span>`).join("")
+          : `<span class="muted">No calls yet</span>`;
       }
       const status=document.getElementById("bingoStatus");
       if(status){
@@ -6559,6 +6677,9 @@ html,body{
             : round.status === "BETTING"
               ? "Waiting for next draw..."
               : round.status;
+      }
+      if(state.bingoMarkMode==="auto"){
+        [1,2].forEach(slot=>autoMarkBingoCartela(slot));
       }
       if(typeof renderCartela === "function") renderCartela();
     }
