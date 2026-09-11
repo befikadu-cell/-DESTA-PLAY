@@ -1898,7 +1898,7 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 .stakeWalletBtn.active{background:linear-gradient(180deg,#8f1717,#4b0909);color:#fff;border-color:#e33;}
 .stakeWalletBalances{display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#aaa;font-size:9px;}
 .stakeLobbyStatus{text-align:center;min-height:16px;margin:5px 0;color:#aaa;font-size:9px;}
-.stakeJoin{width:100%;height:34px;border:0;border-radius:7px;background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-size:11px;font-weight:900;}
+.stakeActionRow{display:flex;gap:6px;width:100%;margin-top:2px;} .stakeActionRow .stakeJoin,.stakeActionRow .stakeWatch{flex:1 1 0;width:50%;height:34px;border:0;border-radius:7px;color:#fff;font-size:11px;font-weight:900;} .stakeJoin{background:linear-gradient(180deg,#ff3b2f,#a60000);} .stakeWatch{background:linear-gradient(180deg,#444,#202020);border:1px solid #777!important;} .stakeJoin:disabled{opacity:.45;}
 .stakeJoin:disabled{opacity:.45;}
 </style>
     <style id="desta-final-game-fix">
@@ -2452,7 +2452,7 @@ html,body{
           </div>
         </div>
         <div id="stakeLobbyStatus" class="stakeLobbyStatus">Select a stake to continue.</div>
-        <button id="stakeLobbyJoin" class="stakeJoin" type="button" disabled>JOIN</button>
+        <div class="stakeActionRow"><button id="stakeLobbyJoin" class="stakeJoin" type="button" disabled>JOIN</button><button id="stakeLobbyWatch" class="stakeWatch" type="button">WATCH LIVE</button></div>
       </section>
 
       <div
@@ -3012,6 +3012,7 @@ html,body{
       kenoSelectedStake:null,
 
       stakeLobbyGame:"",
+      watchOnly:false,
       stakeLobbyTimer:0,
       stakeLobbyTimerId:null,
       stakePlayerCounts:{},
@@ -3918,6 +3919,7 @@ html,body{
 
     async function openGame(game){
       if(game!=="bingo" && game!=="keno") return;
+      if(state.watchOnly){ alert("You are watching this game live. Go back and choose a stake to play."); return; }
 
       /* Existing Telegram players must be authenticated automatically.
          Do not send them to phone/password login before attempting the
@@ -3960,6 +3962,8 @@ html,body{
       if(lobby) lobby.classList.remove("hidden");
       if(title) title.textContent=game.toUpperCase()+" STAKE";
       if(join){ join.disabled=true; join.textContent="JOIN"; join.onclick=()=>joinStakeLobby(); }
+      const watch=document.getElementById("stakeLobbyWatch");
+      if(watch){ watch.disabled=false; watch.textContent="WATCH LIVE"; watch.onclick=()=>watchLiveGame(game); }
       buildStakeLobby(game);
       refreshStakeWallet();
       updateRound();
@@ -3967,13 +3971,34 @@ html,body{
       fetchStakePlayerCounts(game);
     }
 
+    function watchLiveGame(game){
+      state.watchOnly=true; state.gameJoined=false; state.stakeLobbyGame=game; clearInterval(state.stakeLobbyTimerId);
+      const lobby=document.getElementById("gameStakeLobby"); if(lobby) lobby.classList.add("hidden");
+      const title=document.getElementById("gameTitle"); if(title) title.textContent=game.toUpperCase()+" • LIVE";
+      if(game==="bingo"){ const play=document.getElementById("bingoPlayArea"); if(play) play.classList.remove("hidden"); buildBingo(); const current=state.lastServerRounds?.bingo; if(current) primeLiveDrawPresentation("bingo",current); fetchLiveRound("bingo",null); }
+      if(game==="keno"){ const g=document.getElementById("kenoGame"); if(g) g.classList.remove("hidden"); const current=state.lastServerRounds?.keno; if(current) primeLiveDrawPresentation("keno",current); fetchLiveRound("keno",null); }
+      alert("WATCH LIVE mode: you can only watch. To play, go back and choose a stake."); startLiveRoundSync();
+    }
+    function requirePlayableSession(){ if(state.watchOnly){ alert("Watch Live is view-only. Go back and choose a stake before you can play."); return false; } return true; }
+
     async function refreshStakeWallet(){
-      const cash=Number(state.balance||0);
-      const cashEl=document.getElementById("stakeCashBalance");
-      if(cashEl) cashEl.textContent=`Cash: ${cash.toFixed(2)} ETB`;
+      const headers={"Accept":"application/json"};
+      if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+
+      /* Refresh the REAL MONEY balance first. The old version only read
+         state.balance, which could still be 0 when the stake lobby opened.
+         That made JOIN stay disabled even when the player had cash. */
       try{
-        const headers={"Accept":"application/json"};
-        if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+        const walletResponse=await fetch("https://desta-play.onrender.com/api/wallet",{cache:"no-store",headers});
+        const walletData=await safeJsonResponse(walletResponse);
+        if(walletResponse.ok && walletData?.success){
+          const wallet=walletData.wallet||walletData;
+          const balance=Number(wallet.balance ?? wallet.availableBalance);
+          if(Number.isFinite(balance)) state.balance=balance;
+        }
+      }catch(e){}
+
+      try{
         const response=await fetch("https://desta-play.onrender.com/api/bonus",{cache:"no-store",headers});
         const data=await safeJsonResponse(response);
         if(response.ok && data?.success){
@@ -3981,8 +4006,13 @@ html,body{
           state.bonusPlayValue=Number(data.playValue||state.bonusPoints||0);
         }
       }catch(e){}
+
+      const cashEl=document.getElementById("stakeCashBalance");
+      if(cashEl) cashEl.textContent=`Cash: ${Number(state.balance||0).toFixed(2)} ETB`;
       const bonusEl=document.getElementById("stakeBonusBalance");
       if(bonusEl) bonusEl.textContent=`Bonus: ${Number(state.bonusPlayValue||0).toFixed(2)} pts`;
+
+      /* Recalculate JOIN using the freshly loaded wallet balance. */
       selectStakeWallet(state.selectedWalletType||"cash",true);
     }
 
@@ -4042,6 +4072,7 @@ html,body{
     }
 
     function joinStakeLobby(){
+      if(!requirePlayableSession()) return;
       const game=state.stakeLobbyGame;
       const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
       if(!stake) return;
@@ -4051,6 +4082,7 @@ html,body{
         alert(wallet==="bonus"?"Insufficient bonus points.":"Insufficient real money balance.");
         return;
       }
+      state.watchOnly=false;
       state.gameJoined=true;
       voiceState.enabled=true;
       voiceState.unlocked=true;
@@ -4320,6 +4352,8 @@ html,body{
 
     function selectKeno(n,button){
 
+      if(!requirePlayableSession()) return;
+
       /* Allow immediate touch selection after JOIN while the first server
          round response is arriving. Once the server reports DRAWING/closed,
          its authoritative state still wins. */
@@ -4396,6 +4430,7 @@ html,body{
 
     async function placeKenoBet(slot){
 
+      if(!requirePlayableSession()) return;
       if(slot!==1 && slot!==2) return;
 
       if(!state.bettingOpen){
@@ -4785,6 +4820,7 @@ html,body{
 
 
     function chooseCartela(value){
+      if(!requirePlayableSession()) return;
       value=Number(value);
       if(!Number.isInteger(value) || value<1 || value>120) return;
       if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){
@@ -4971,6 +5007,7 @@ html,body{
 
 
     async function placeBingoBet(slot){
+      if(!requirePlayableSession()) return;
       if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){alert("Betting is closed.");return;}
       const cartelaNumber=Number(state.bingoCartelas[slot]);
       if(!cartelaNumber){alert("Add a Cartela to Slot "+slot+".");return;}
