@@ -3113,7 +3113,11 @@ html,body{
         bingo:"",
         roulette:"",
         aviator:""
-      }
+      },
+
+      /* Telegram /startapp command target. Reserved values open the
+         requested DESTA PLAY page after Telegram authentication. */
+      commandTarget:""
 
     };
 
@@ -3132,9 +3136,17 @@ html,body{
         if(user){
 
           state.telegramStartApp=
-            String(tg.initDataUnsafe.start_param || "").trim();
+            String(tg.initDataUnsafe.start_param || "").trim().toLowerCase();
 
-          if(state.telegramStartApp && !state.referralCode){
+          const commandTargets = new Set([
+            "home","wallet","profile","support","invite","deposit",
+            "withdraw","transactions","bonus","status","bingo","keno"
+          ]);
+
+          if(commandTargets.has(state.telegramStartApp)){
+            state.commandTarget=state.telegramStartApp;
+          }else if(state.telegramStartApp && !state.referralCode){
+            /* Non-command startapp values remain referral codes. */
             state.referralCode=state.telegramStartApp;
           }
 
@@ -4101,6 +4113,7 @@ html,body{
       voiceState.enabled=true;
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
       updateVoiceButton();
       /* Use the actual JOIN tap to unlock mobile speech synthesis. */
       try{
@@ -6362,6 +6375,7 @@ html,body{
     function clearVoiceQueue(){
       voiceState.queue=[];
       voiceState.requestSeq++;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.stopVoice==="function") window.DestaVoice.stopVoice(); }catch(e){}
       if(voiceState.currentAudio){
         try{ voiceState.currentAudio.pause(); }catch(e){}
         try{ voiceState.currentAudio.currentTime=0; }catch(e){}
@@ -6407,6 +6421,7 @@ html,body{
       if(voiceState.enabled){
         voiceState.enabled=false;
         clearVoiceQueue();
+        try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(false); }catch(e){}
         try{ localStorage.setItem(voiceStorageKey(),"0"); }catch(e){}
         updateVoiceButton();
         return;
@@ -6485,6 +6500,7 @@ html,body{
       try{ saved=localStorage.getItem(voiceStorageKey())||"0"; }catch(e){}
       voiceState.enabled=saved==="1";
       voiceState.unlocked=voiceState.enabled;
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(voiceState.enabled); }catch(e){}
       updateVoiceButton();
     })();
 
@@ -6627,9 +6643,8 @@ html,body{
 
       const game=round.game;
       if(state.game===game && (state.gameJoined || state.watchOnly)){
-        voiceState.enabled=true;
-        voiceState.unlocked=true;
-        if(typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
+        voiceState.unlocked=voiceState.enabled;
+        if(voiceState.enabled && typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
           try{
             const voiceStateNow = typeof window.DestaVoice.getState === "function" ? window.DestaVoice.getState() : null;
             const voiceStake = round.stake||round.tier||null;
@@ -7178,6 +7193,46 @@ html,body{
     try{ if(tg && typeof tg.ready==="function") tg.ready(); }catch(_e){}
     try{ if(tg && typeof tg.expand==="function") tg.expand(); }catch(_e){}
 
+    async function openTelegramCommandTarget(){
+      const target=String(state.commandTarget||"").toLowerCase();
+      if(!target) return;
+
+      /* Consume it once so a later refresh does not unexpectedly reopen a
+         page. The existing application navigation remains untouched. */
+      state.commandTarget="";
+
+      if(target==="home") {
+        showHome();
+        return;
+      }
+      if(target==="bingo" || target==="keno") {
+        await openGame(target);
+        return;
+      }
+      if(target==="wallet") {
+        showPage("wallet");
+        return;
+      }
+      if(target==="profile" || target==="invite" || target==="bonus" || target==="status") {
+        showPage("profile");
+        return;
+      }
+      if(target==="transactions") {
+        showPage("wallet");
+        setTimeout(()=>document.getElementById("transactions")?.scrollIntoView({behavior:"smooth",block:"start"}),120);
+        return;
+      }
+      if(target==="deposit") {
+        showPage("wallet");
+        setTimeout(()=>openDeposit(),120);
+        return;
+      }
+      if(target==="withdraw") {
+        showPage("wallet");
+        setTimeout(()=>openWithdraw(),120);
+      }
+    }
+
     (async function initializeDesta(){
       loadTelegramUser();
 
@@ -7195,6 +7250,10 @@ html,body{
       }
 
       buildKeno(); buildBingo(); showTab("my"); startLiveRoundSync();
+
+      if(authenticated && state.commandTarget){
+        setTimeout(()=>openTelegramCommandTarget(),80);
+      }
       initLanguage();
       setInterval(loadWalletData, 5000);
     })();
