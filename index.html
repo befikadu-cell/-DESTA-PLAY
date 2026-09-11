@@ -1891,6 +1891,12 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 .stakeChoice small{font-size:7px;color:#888;margin-top:1px;}
 .stakeChoice.active{background:linear-gradient(180deg,#ffcf3b,#bd7900);border-color:#ffe47b;box-shadow:0 0 7px rgba(255,204,51,.35);}
 .stakeChoice.active strong,.stakeChoice.active small{color:#160900;}
+ .stakeWalletChoice{margin:8px 0 6px;padding:7px 8px;border:1px solid #3b2020;border-radius:9px;background:#101010;}
+.stakeWalletLabel{font-size:9px;font-weight:900;color:#aaa;margin-bottom:5px;}
+.stakeWalletButtons{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.stakeWalletBtn{border:1px solid #482222;border-radius:7px;padding:7px 5px;background:#181818;color:#bbb;font-size:10px;font-weight:900;}
+.stakeWalletBtn.active{background:linear-gradient(180deg,#8f1717,#4b0909);color:#fff;border-color:#e33;}
+.stakeWalletBalances{display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#aaa;font-size:9px;}
 .stakeLobbyStatus{text-align:center;min-height:16px;margin:5px 0;color:#aaa;font-size:9px;}
 .stakeJoin{width:100%;height:34px;border:0;border-radius:7px;background:linear-gradient(180deg,#ff3b2f,#a60000);color:#fff;font-size:11px;font-weight:900;}
 .stakeJoin:disabled{opacity:.45;}
@@ -2434,6 +2440,17 @@ html,body{
           <span>SECONDS</span>
         </div>
         <div id="stakeLobbyGrid" class="stakeGrid"></div>
+        <div class="stakeWalletChoice">
+          <div class="stakeWalletLabel">PLAY WITH:</div>
+          <div class="stakeWalletButtons">
+            <button id="stakeWalletBonus" class="stakeWalletBtn" type="button" onclick="selectStakeWallet('bonus')">⭐ BONUS</button>
+            <button id="stakeWalletCash" class="stakeWalletBtn active" type="button" onclick="selectStakeWallet('cash')">💰 REAL MONEY</button>
+          </div>
+          <div class="stakeWalletBalances">
+            <span id="stakeBonusBalance">Bonus: 0 pts</span>
+            <span id="stakeCashBalance">Cash: 0 ETB</span>
+          </div>
+        </div>
         <div id="stakeLobbyStatus" class="stakeLobbyStatus">Select a stake to continue.</div>
         <button id="stakeLobbyJoin" class="stakeJoin" type="button" disabled>JOIN</button>
       </section>
@@ -2998,6 +3015,9 @@ html,body{
       stakeLobbyTimer:0,
       stakeLobbyTimerId:null,
       stakePlayerCounts:{},
+      selectedWalletType:"cash",
+      bonusPoints:0,
+      bonusPlayValue:0,
 
       activeKenoSlot:1,
 
@@ -3941,9 +3961,46 @@ html,body{
       if(title) title.textContent=game.toUpperCase()+" STAKE";
       if(join){ join.disabled=true; join.textContent="JOIN"; join.onclick=()=>joinStakeLobby(); }
       buildStakeLobby(game);
+      refreshStakeWallet();
       updateRound();
       fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : (state.kenoSelectedStake || null));
       fetchStakePlayerCounts(game);
+    }
+
+    async function refreshStakeWallet(){
+      const cash=Number(state.balance||0);
+      const cashEl=document.getElementById("stakeCashBalance");
+      if(cashEl) cashEl.textContent=`Cash: ${cash.toFixed(2)} ETB`;
+      try{
+        const headers={"Accept":"application/json"};
+        if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+        const response=await fetch("https://desta-play.onrender.com/api/bonus",{cache:"no-store",headers});
+        const data=await safeJsonResponse(response);
+        if(response.ok && data?.success){
+          state.bonusPoints=Number(data.bonusPoints||0);
+          state.bonusPlayValue=Number(data.playValue||state.bonusPoints||0);
+        }
+      }catch(e){}
+      const bonusEl=document.getElementById("stakeBonusBalance");
+      if(bonusEl) bonusEl.textContent=`Bonus: ${Number(state.bonusPlayValue||0).toFixed(2)} pts`;
+      selectStakeWallet(state.selectedWalletType||"cash",true);
+    }
+
+    function selectStakeWallet(type,silent=false){
+      type=String(type||"cash").toLowerCase()==="bonus"?"bonus":"cash";
+      state.selectedWalletType=type;
+      const bonus=document.getElementById("stakeWalletBonus");
+      const cash=document.getElementById("stakeWalletCash");
+      if(bonus) bonus.classList.toggle("active",type==="bonus");
+      if(cash) cash.classList.toggle("active",type==="cash");
+      const stake=Number(state.stakeLobbyGame==="bingo"?state.bingoSelectedStake:state.kenoSelectedStake)||0;
+      const available=type==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
+      const status=document.getElementById("stakeLobbyStatus");
+      const join=document.getElementById("stakeLobbyJoin");
+      if(join) join.disabled=!(stake>0 && available>=stake);
+      if(!silent && status){
+        status.textContent=stake>0 ? `${type==="bonus"?"Bonus points":"Real money"} selected for ${stake} ETB stake.` : "Select a stake to continue.";
+      }
     }
 
     function buildStakeLobby(game){
@@ -3980,12 +4037,20 @@ html,body{
       if(status) status.textContent=`Selected ${amount} ETB. Tap JOIN to enter the live round.`;
       if(state.stakeLobbyGame==="bingo") selectBingoStake(amount);
       if(state.stakeLobbyGame==="keno") updateKenoStakeDisplays();
+      selectStakeWallet(state.selectedWalletType||"cash",true);
+      if(status) status.textContent=`Selected ${amount} ETB. ${state.selectedWalletType==="bonus"?"Bonus points":"Real money"} selected. Tap JOIN to enter the live round.`;
     }
 
     function joinStakeLobby(){
       const game=state.stakeLobbyGame;
       const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
       if(!stake) return;
+      const wallet=state.selectedWalletType||"cash";
+      const available=wallet==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
+      if(stake>available){
+        alert(wallet==="bonus"?"Insufficient bonus points.":"Insufficient real money balance.");
+        return;
+      }
       state.gameJoined=true;
       voiceState.enabled=true;
       voiceState.unlocked=true;
@@ -4370,7 +4435,8 @@ html,body{
             stake:amount,
             slotIndex:slot,
             slots:[numbers],
-            roundId:state.serverRoundIds?.keno || ""
+            roundId:state.serverRoundIds?.keno || "",
+            walletType:state.selectedWalletType||"cash"
           })
         });
 
@@ -4393,6 +4459,8 @@ html,body{
           state.balance=Number(data.balanceAfter);
           updateBalance();
         }
+        if(Number.isFinite(Number(data.bonusPointsAfter))) state.bonusPlayValue=Number(data.bonusPointsAfter);
+        refreshStakeWallet();
 
         updateKenoSelectionDisplay();
         renderServerKeno({
@@ -4914,12 +4982,14 @@ html,body{
       const btn=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
       if(btn){btn.disabled=true;btn.textContent="PLACING...";}
       try{
-        const response=await fetch("https://desta-play.onrender.com/api/game/bingo/bet",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({stake:amount,cartelaNumber,cardIndex:slot-1,roundId})});
+        const response=await fetch("https://desta-play.onrender.com/api/game/bingo/bet",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({stake:amount,cartelaNumber,cardIndex:slot-1,roundId,walletType:state.selectedWalletType||"cash"})});
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "Could not place Bingo bet");
         state.bingoBets[slot]={amount,cartelaNumber,placed:true,roundId:data.roundId};
         if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
+        if(Number.isFinite(Number(data.bonusPointsAfter))) state.bonusPlayValue=Number(data.bonusPointsAfter);
         updateBalance();
+        refreshStakeWallet();
         if(btn){
           btn.disabled=true;
           btn.textContent="BINGO";
