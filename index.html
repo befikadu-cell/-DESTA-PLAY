@@ -2065,7 +2065,31 @@ html,body{
   box-sizing:border-box!important;
 }
 #bingoGame .betSlots{
-  margin-bottom:24px!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  gap:8px!important;
+  margin:12px 8px 36px!important;
+  padding:0!important;
+  position:relative!important;
+  clear:both!important;
+}
+#bingoGame .betSlot{
+  width:100%!important;
+  box-sizing:border-box!important;
+  position:relative!important;
+}
+#bingoGame .cartelaStatus{
+  margin:4px 8px 0!important;
+  position:relative!important;
+  clear:both!important;
+}
+#bingoGame #cartelaGridWrap{
+  position:relative!important;
+  z-index:1!important;
+}
+#bingoGame .betSlots{
+  position:relative!important;
+  z-index:2!important;
 }
 
 #walletScreen,#profileScreen{
