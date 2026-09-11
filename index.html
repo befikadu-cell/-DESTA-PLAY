@@ -4007,6 +4007,12 @@ html,body{
       if(voiceState.enabled){
         voiceState.unlocked=true;
         try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+        /* Establish a WATCH LIVE voice session immediately from the user's
+           tap.  Do not wait for the asynchronous /round response. */
+        try{
+          if(window.DestaVoice && typeof window.DestaVoice.enterLiveGame==="function")
+            window.DestaVoice.enterLiveGame(game,null,null);
+        }catch(e){}
         try{
           const useAm=String(state.language||"en").toLowerCase()==="am";
           if(window.DestaVoice && typeof window.DestaVoice.speakText==="function")
