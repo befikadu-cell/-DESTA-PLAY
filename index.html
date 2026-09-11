@@ -3047,6 +3047,8 @@ html,body{
 
       bingoDraw:[],
 
+      bingoBets:{1:null,2:null},
+
       bingoMarkMode:"auto",
 
 
@@ -3910,6 +3912,7 @@ html,body{
       state.activeKenoSlot=1;
       state.bingoMarkMode="auto";
       state.bingoCartelas={1:null,2:null};
+      state.bingoBets={1:null,2:null};
       state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
       state.bingoMarks[1][12]=true;
       state.bingoMarks[2][12]=true;
@@ -4044,6 +4047,7 @@ html,body{
       state.kenoBets={1:null,2:null};
       state.activeKenoSlot=1;
       state.bingoCartelas={1:null,2:null};
+      state.bingoBets={1:null,2:null};
       state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
       state.bingoMarks[1][12]=true;
       state.bingoMarks[2][12]=true;
@@ -4608,6 +4612,7 @@ html,body{
       buildBingoAmounts();
       renderCartelaPicker();
       renderCartela();
+      [1,2].forEach(slot=>{const b=document.getElementById("bingoButton"+slot);if(b)b.disabled=true;});
 
     }
 
@@ -4673,31 +4678,32 @@ html,body{
 
 
     function chooseCartela(value){
-
       value=Number(value);
-
       if(!Number.isInteger(value) || value<1 || value>120) return;
-
+      if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent="Betting is closed. Cartela selection is locked.";
+        return;
+      }
       const slot=state.activeCartela;
       const otherSlot=slot===1 ? 2 : 1;
-
+      if(state.bingoBets[slot]){
+        const status=document.getElementById("cartelaStatus");
+        if(status) status.textContent="This slot is already bet. Cartela selection is locked.";
+        return;
+      }
       if(state.bingoCartelas[otherSlot]===value){
         const status=document.getElementById("cartelaStatus");
         if(status) status.textContent="That Cartela is already selected in the other slot.";
         return;
       }
-
       state.bingoCartelas[slot]=value;
       state.bingoBoards[slot]=generateCartela(value);
       state.bingoMarks[slot]=Array(25).fill(false);
       state.bingoMarks[slot][12]=true;
       if(state.bingoMarkMode==="auto") autoMarkBingoCartela(slot);
-
       const status=document.getElementById("cartelaStatus");
-      if(status){
-        status.textContent="Cartela "+value+" selected for Slot "+slot+".";
-      }
-
+      if(status) status.textContent="Cartela "+value+" selected for Slot "+slot+". Place the bet before the countdown ends.";
       renderCartelaPicker();
       renderCartela();
     }
@@ -4717,6 +4723,9 @@ html,body{
         if(state.bingoCartelas[1]===n || state.bingoCartelas[2]===n){
           button.classList.add("selected");
         }
+        const closed=!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0);
+        const slotLocked=!!state.bingoBets[state.activeCartela];
+        button.disabled=closed || slotLocked;
         button.textContent=n;
         button.onclick=()=>chooseCartela(n);
         picker.appendChild(button);
@@ -4854,49 +4863,29 @@ html,body{
     }
 
 
-    function placeBingoBet(slot){
-
-      if(!state.bettingOpen){
-
-        alert("Betting is closed.");
-
-        return;
-
-      }
-
-      if(
-        !state.bingoCartelas[slot]
-      ){
-
-        alert(
-          "Add a Cartela to Slot "+slot+"."
-        );
-
-        return;
-
-      }
-
-      const amount=
-        state.bingoAmounts[slot];
-
-      if(amount>state.balance){
-
-        alert("Insufficient balance.");
-
-        return;
-
-      }
-
-      state.balance-=amount;
-
-      updateBalance();
+    async function placeBingoBet(slot){
+      if(!state.bettingOpen || (state.gameJoined && Number(state.countdown||0)<=0)){alert("Betting is closed.");return;}
+      const cartelaNumber=Number(state.bingoCartelas[slot]);
+      if(!cartelaNumber){alert("Add a Cartela to Slot "+slot+".");return;}
+      if(state.bingoBets[slot]){alert("This slot is already bet.");return;}
+      const amount=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
+      if(amount<=0 || amount>state.balance){alert("Insufficient balance.");return;}
+      const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
+      if(!roundId){alert("Waiting for the live Bingo round.");return;}
       const btn=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
-      if(btn){btn.disabled=true;btn.textContent="BET PLACED";}
-      const payout=document.getElementById("bingoPayout"+slot);
-      if(payout)payout.textContent="BET PLACED — "+amount+" ETB";
-      const status=document.getElementById("cartelaStatus");
-      if(status)status.textContent="Cartela "+state.bingoCartelas[slot]+" bet placed for Slot "+slot+".";
-
+      if(btn){btn.disabled=true;btn.textContent="PLACING...";}
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/game/bingo/bet",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({stake:amount,cartelaNumber,cardIndex:slot-1,roundId})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not place Bingo bet");
+        state.bingoBets[slot]={amount,cartelaNumber,placed:true,roundId:data.roundId};
+        if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
+        updateBalance();
+        if(btn){btn.disabled=true;btn.textContent="BET PLACED";}
+        const payout=document.getElementById("bingoPayout"+slot); if(payout)payout.textContent="BET PLACED — "+amount+" ETB";
+        const status=document.getElementById("cartelaStatus"); if(status)status.textContent="Cartela "+cartelaNumber+" bet accepted for Slot "+slot+".";
+        renderCartelaPicker();
+      }catch(error){if(btn){btn.disabled=false;btn.textContent="PLACE BET";}alert(error.message || "Could not place Bingo bet.");}
     }
 
 
@@ -5039,25 +5028,21 @@ html,body{
     }
 
 
-    function claimBingo(slot){
-
+    async function claimBingo(slot){
       const board=state.bingoBoards[slot] || [];
-      if(!state.bingoCartelas[slot]){
-        alert("Choose a Cartela for Slot "+slot+" first.");
-        return;
-      }
-      if(!board.length || !checkBingo(board,slot)){
-        alert("Not BINGO yet — keep playing Cartela "+state.bingoCartelas[slot]+".");
-        return;
-      }
-      alert("BINGO — CARTELA "+state.bingoCartelas[slot]);
-
-      document
-        .getElementById(
-          "bingoButton"+slot
-        )
-        .disabled=true;
-
+      const cartelaNumber=Number(state.bingoCartelas[slot]);
+      if(!cartelaNumber){alert("Choose a Cartela for Slot "+slot+" first.");return;}
+      if(!state.bingoBets[slot]){alert("Place the bet before claiming BINGO.");return;}
+      if(!board.length || !checkBingo(board,slot)){alert("Not BINGO yet — keep playing Cartela "+cartelaNumber+".");return;}
+      const tier=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
+      const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/bingo/claim",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({tier,cartelaNumber,roundId})});
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "BINGO claim rejected");
+        alert("BINGO! Your claim has been registered.");
+        const btn=document.getElementById("bingoButton"+slot); if(btn){btn.disabled=true;btn.textContent="BINGO CLAIMED";}
+      }catch(error){alert(error.message || "Could not claim BINGO.");}
     }
 
 
@@ -6466,6 +6451,7 @@ html,body{
             round.status === "CRASHED" ? "CRASHED" :
             "BETTING CLOSED";
           el.classList.toggle("closed", true);
+          if(game==="bingo" && typeof renderCartelaPicker === "function") renderCartelaPicker();
           return;
         }
 
@@ -6477,6 +6463,7 @@ html,body{
         const seconds = Math.ceil(remaining / 1000);
         el.textContent = "BETTING " + seconds + "s";
         el.classList.toggle("closed", seconds <= 0);
+        if(game==="bingo" && seconds<=0 && typeof renderCartelaPicker === "function") renderCartelaPicker();
       };
 
       paint();
@@ -6518,7 +6505,7 @@ html,body{
         if(generation!==box.generation){ box.running=false; return; }
         box.running=false;
         presentNextLiveDraw(game);
-      },650);
+      },3000);
     }
 
     function syncLiveDrawPresentation(game,round){
@@ -6621,13 +6608,16 @@ html,body{
         state.bingoDraw=[...called];
         if(isNewRound){
           state.bingoDraw=[];
+          state.bingoBets={1:null,2:null};
           state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
           state.bingoMarks[1][12]=true;
           state.bingoMarks[2][12]=true;
           const b1=document.getElementById("bingoButton1");
           const b2=document.getElementById("bingoButton2");
-          if(b1){b1.disabled=false;b1.textContent="BINGO — CARTELA 1";}
-          if(b2){b2.disabled=false;b2.textContent="BINGO — CARTELA 2";}
+          if(b1){b1.disabled=true;b1.textContent="BINGO — CARTELA 1";}
+          if(b2){b2.disabled=true;b2.textContent="BINGO — CARTELA 2";}
+          document.querySelectorAll("#bingoGame .placeBtn").forEach(btn=>{btn.disabled=false;btn.textContent="PLACE BET";});
+          [1,2].forEach(slot=>{const p=document.getElementById("bingoPayout"+slot);if(p)p.textContent="";});
         }
         syncLiveDrawPresentation("bingo",round);
         if(changed || isNewRound || state.game===game)renderServerBingo(round);
@@ -6809,7 +6799,20 @@ html,body{
       if(state.bingoMarkMode==="auto"){
         [1,2].forEach(slot=>autoMarkBingoCartela(slot));
       }
+      [1,2].forEach(slot=>{
+        const btn=document.getElementById("bingoButton"+slot);
+        if(btn){
+          const valid=!!state.bingoBets[slot] && checkBingo(state.bingoBoards[slot]||[],slot);
+          btn.disabled=!valid || round.status!=="DRAWING";
+        }
+        const place=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
+        if(place){
+          place.disabled=round.status!=="BETTING" || !!state.bingoBets[slot];
+          if(!state.bingoBets[slot]) place.textContent="PLACE BET";
+        }
+      });
       if(typeof renderCartela === "function") renderCartela();
+      if(typeof renderCartelaPicker === "function") renderCartelaPicker();
     }
 
     function renderServerRoulette(winner, roundId=""){
