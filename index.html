@@ -2066,12 +2066,19 @@ html,body{
 }
 #bingoGame .betSlots{
   display:grid!important;
-  grid-template-columns:1fr!important;
+  grid-template-columns:1fr 1fr!important;
   gap:8px!important;
   margin:12px 8px 36px!important;
   padding:0!important;
   position:relative!important;
   clear:both!important;
+  align-items:stretch!important;
+}
+#bingoGame .betSlot{
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  position:relative!important;
 }
 #bingoGame .betSlot{
   width:100%!important;
@@ -4003,6 +4010,8 @@ html,body{
         if(g) g.classList.remove("hidden");
         document.getElementById("gameTitle").textContent="KENO";
         updateKenoStakeDisplays();
+        const currentKenoRound=state.lastServerRounds?.keno;
+        if(currentKenoRound) primeLiveDrawPresentation("keno",currentKenoRound);
         fetchLiveRound("keno",stake);
       }
       startLiveRoundSync();
@@ -4697,6 +4706,11 @@ html,body{
       const display=document.getElementById("bingoSelectedStakeDisplay");
       if(display)display.textContent=state.bingoSelectedStake;
       buildBingo();
+      /* The draw engine continues in the backend while the player is outside
+         the game. If we already have the latest server round, make that exact
+         point the visual starting point instead of replaying old draws. */
+      const currentBingoRound=state.lastServerRounds?.bingo;
+      if(currentBingoRound) primeLiveDrawPresentation("bingo",currentBingoRound);
       fetchLiveRound("bingo",state.bingoSelectedStake);
     }
 
@@ -6532,6 +6546,32 @@ html,body{
       },3000);
     }
 
+    function primeLiveDrawPresentation(game,round){
+      const box=liveDrawPresentation[game];
+      if(!box || !round) return;
+      const roundId=String(round.id||"");
+      const nums=Array.isArray(round.drawnNumbers)
+        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
+        : [];
+
+      /* Entering the live game is a synchronization point. The server may
+         already be many draws ahead because its engine never pauses when the
+         player leaves the screen. Discard any old presentation queue and
+         start exactly at the number currently recorded by the server. */
+      box.roundId=roundId;
+      box.seen=nums.length;
+      box.queue=[];
+      box.generation++;
+      box.running=false;
+
+      if(nums.length){
+        setLiveDrawNumber(game,nums[nums.length-1],false);
+      }else{
+        const latestId=document.getElementById(game+"LatestDraw");
+        if(latestId) latestId.textContent="—";
+      }
+    }
+
     function syncLiveDrawPresentation(game,round){
       const box=liveDrawPresentation[game];
       if(!box) return;
@@ -6547,8 +6587,9 @@ html,body{
         box.generation++;
         box.running=false;
 
-        /* On first view of an already-running round, show the authoritative
-           current number immediately. Do not replay old numbers. */
+        /* A newly observed round starts from its current authoritative
+           position. Never replay numbers that were drawn before the player
+           entered the live screen. */
         if(nums.length){
           setLiveDrawNumber(game,nums[nums.length-1],false);
           box.seen=nums.length;
@@ -6577,6 +6618,8 @@ html,body{
       }
       const previousId=lastServerRoundId[game];
       const isNewRound=Boolean(previousId && previousId !== round.id);
+      state.lastServerRounds=state.lastServerRounds || {};
+      state.lastServerRounds[game]=round;
       lastServerRoundId[game]=round.id;
 
       state.roundIds=state.roundIds || {};
