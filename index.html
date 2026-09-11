@@ -4114,6 +4114,7 @@ html,body{
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
       updateVoiceButton();
       /* JOIN is already a user gesture; DestaVoice owns speech playback. */
       /* Provisional local state only until the authoritative server round
@@ -6401,6 +6402,7 @@ html,body{
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
       try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
       updateVoiceButton();
 
       /* The button gesture unlocks browser speech synthesis on mobile. */
@@ -6617,6 +6619,7 @@ html,body{
         voiceState.unlocked=voiceState.enabled;
         if(voiceState.enabled){
           try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+          try{ if(window.DestaVoice && typeof window.DestaVoice.unlock==="function") window.DestaVoice.unlock(); }catch(e){}
         }
         if(voiceState.enabled && typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
           try{
