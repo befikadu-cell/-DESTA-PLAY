@@ -2234,7 +2234,9 @@ html,body{
             placeholder="Enter invitation code (optional)">
 
           <button
+            id="createAccountButton"
             class="accountBtn"
+            type="button"
             onclick="createAccount()">
             CREATE ACCOUNT
           </button>
@@ -3461,6 +3463,21 @@ html,body{
       }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
     }
 
+    /* Keep CREATE ACCOUNT responsive even when an inline handler is affected by
+       Telegram/WebView script scope behavior. This is registration-only. */
+    window.createAccount=createAccount;
+    document.addEventListener("DOMContentLoaded",function(){
+      const button=document.getElementById("createAccountButton");
+      if(button && !button.__destaCreateBound){
+        button.__destaCreateBound=true;
+        button.addEventListener("click",function(event){
+          event.preventDefault();
+          event.stopPropagation();
+          createAccount();
+        });
+      }
+    });
+
     function showHome(){
 
       document
@@ -3959,6 +3976,7 @@ html,body{
         }
       }
 
+      try{ if(window.DestaVoice && typeof window.DestaVoice.leaveLiveGame==="function") window.DestaVoice.leaveLiveGame(); }catch(e){}
       state.game=game;
       state.gameJoined=false;
       state.stakeLobbyGame=game;
@@ -6458,8 +6476,10 @@ html,body{
       const game=String(round.game||"").toLowerCase();
       const id=String(round.id || "");
 
-      /* Only Bingo and Keno have voice announcements in this edition. */
+      /* Voice belongs only to the game currently visible on the GAME screen.
+         Never announce a background round from another game or another page. */
       if(game!=="bingo" && game!=="keno") return;
+      if(state.page!=="game" || state.game!==game || !(state.gameJoined || state.watchOnly)) return;
 
       const previousId=voiceState.lastRoundId[game];
       if(id && previousId!==id){
