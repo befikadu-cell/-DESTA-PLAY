@@ -24,6 +24,8 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
+import fs from "fs/promises";
+import os from "os";
 import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
@@ -5868,66 +5870,108 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
 
 
 /* --------------------------------------------------------------------------
-   DESTA PLAY — SERVER-PROXIED LIVE VOICE
+   DESTA PLAY — SERVER-PROXIED NATURAL VOICE
+
    Voice-only endpoint. It does not change game, wallet, betting, winner,
    payout, or round logic.
+
+   Microsoft Edge Neural TTS is generated server-side so Telegram's WebView
+   does not need speechSynthesis support.
 -------------------------------------------------------------------------- */
+let EdgeTTSVoice = null;
+try {
+    const mod = await import("node-edge-tts");
+    EdgeTTSVoice = mod.EdgeTTS;
+    console.log("[VOICE] Microsoft Edge Neural TTS loaded");
+} catch (error) {
+    console.error(
+        "[VOICE] node-edge-tts is not installed. Run: npm install node-edge-tts",
+        error?.message || error
+    );
+}
+
+const VOICE_CACHE = new Map();
+const VOICE_CACHE_LIMIT = 100;
+const VOICE_CONFIG = {
+    en: {
+        voice: "en-US-AriaNeural",
+        lang: "en-US"
+    },
+    am: {
+        voice: "am-ET-MekdesNeural",
+        lang: "am-ET"
+    }
+};
+
+function voiceCacheSet(key, value) {
+    if (VOICE_CACHE.has(key)) VOICE_CACHE.delete(key);
+    VOICE_CACHE.set(key, value);
+    while (VOICE_CACHE.size > VOICE_CACHE_LIMIT) {
+        const first = VOICE_CACHE.keys().next().value;
+        VOICE_CACHE.delete(first);
+    }
+}
+
 app.get("/api/voice", async (req, res) => {
     try {
         const language =
             String(req.query?.lang || "en").toLowerCase() === "am"
                 ? "am"
                 : "en";
-
         const text = String(req.query?.text || "").trim();
 
         if (!text) {
-            return res.status(400).json({
-                success: false,
-                error: "Voice text is required"
-            });
+            return res.status(400).json({ success:false, error:"Voice text is required" });
         }
-
         if (text.length > 120) {
-            return res.status(400).json({
-                success: false,
-                error: "Voice text is too long"
+            return res.status(400).json({ success:false, error:"Voice text is too long" });
+        }
+        if (!EdgeTTSVoice) {
+            return res.status(503).json({
+                success:false,
+                error:"Natural voice engine is not installed on the server"
             });
         }
 
-        const target =
-            "https://translate.google.com/translate_tts" +
-            `?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(language)}` +
-            `&q=${encodeURIComponent(text)}`;
+        const config = VOICE_CONFIG[language];
+        const cacheKey = `${language}:${text}`;
+        const cached = VOICE_CACHE.get(cacheKey);
+        if (cached) {
+            res.setHeader("Content-Type", "audio/mpeg");
+            res.setHeader("Cache-Control", "public, max-age=86400");
+            res.setHeader("Content-Length", String(cached.length));
+            return res.status(200).send(cached);
+        }
 
-        const upstream = await fetch(target, {
-            headers: {
-                "User-Agent": "Mozilla/5.0"
-            }
+        const safeName = crypto.createHash("sha256")
+            .update(cacheKey)
+            .digest("hex");
+        const outputPath = path.join(os.tmpdir(), `desta-voice-${safeName}.mp3`);
+
+        const tts = new EdgeTTSVoice({
+            voice: config.voice,
+            lang: config.lang,
+            outputFormat: "audio-24khz-96kbitrate-mono-mp3",
+            rate: "-10%",
+            volume: "+0%",
+            timeout: 15000
         });
 
-        if (!upstream.ok) {
-            return res.status(502).json({
-                success: false,
-                error: "Voice service unavailable"
-            });
-        }
+        await tts.ttsPromise(text, outputPath);
+        const audioBuffer = await fs.readFile(outputPath);
+        await fs.unlink(outputPath).catch(() => {});
 
-        const contentType =
-            upstream.headers.get("content-type") || "audio/mpeg";
+        voiceCacheSet(cacheKey, audioBuffer);
 
-        const audioBuffer = Buffer.from(await upstream.arrayBuffer());
-
-        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Type", "audio/mpeg");
         res.setHeader("Cache-Control", "public, max-age=86400");
         res.setHeader("Content-Length", String(audioBuffer.length));
-
         return res.status(200).send(audioBuffer);
     } catch (error) {
-        console.error("[VOICE] TTS proxy error:", error);
+        console.error("[VOICE] Neural TTS error:", error);
         return res.status(502).json({
-            success: false,
-            error: "Voice playback unavailable"
+            success:false,
+            error:"Natural voice generation failed"
         });
     }
 });
