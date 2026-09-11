@@ -3430,7 +3430,7 @@ html,body{
         state.telegramName=data.player?.telegramName || state.telegramName;
         message.className="accountMessage success"; message.textContent="Login successful.";
         updatePlayerDisplays();
-        setTimeout(showHome,300);
+        setTimeout(()=>{ showHome(); if(state.commandTarget) openTelegramCommandTarget(); },300);
       }catch(error){ console.error("Account login error:",error); message.className="accountMessage error"; message.textContent=error.message || "Login failed."; }
     }
 
@@ -3457,7 +3457,7 @@ html,body{
         state.balance=Number(data.player?.balance || 0);
         message.className="accountMessage success"; message.textContent="Account created.";
         updatePlayerDisplays();
-        setTimeout(showHome,300);
+        setTimeout(()=>{ showHome(); if(state.commandTarget) openTelegramCommandTarget(); },300);
       }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
     }
 
@@ -6430,9 +6430,10 @@ html,body{
       voiceState.enabled=true;
       voiceState.unlocked=true;
       try{ localStorage.setItem(voiceStorageKey(),"1"); }catch(e){}
+      try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
       updateVoiceButton();
 
-      /* The button gesture starts a real server-hosted audio file. */
+      /* The button gesture unlocks browser speech synthesis on mobile. */
       queueGameVoice(voiceTestText(),voiceTestText(),true);
     }
 
@@ -6644,6 +6645,9 @@ html,body{
       const game=round.game;
       if(state.game===game && (state.gameJoined || state.watchOnly)){
         voiceState.unlocked=voiceState.enabled;
+        if(voiceState.enabled){
+          try{ if(window.DestaVoice && typeof window.DestaVoice.setEnabled==="function") window.DestaVoice.setEnabled(true); }catch(e){}
+        }
         if(voiceState.enabled && typeof window.DestaVoice!=="undefined" && typeof window.DestaVoice.enterLiveGame==="function"){
           try{
             const voiceStateNow = typeof window.DestaVoice.getState === "function" ? window.DestaVoice.getState() : null;
@@ -7215,6 +7219,11 @@ html,body{
       }
       if(target==="profile" || target==="invite" || target==="bonus" || target==="status") {
         showPage("profile");
+        setTimeout(()=>{
+          const selector = target==="invite" ? ".inviteCard" : target==="bonus" ? "#profileBonusPoints" : target==="status" ? ".profileCard" : null;
+          const el = selector ? document.querySelector(selector) : null;
+          if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+        },120);
         return;
       }
       if(target==="transactions") {
