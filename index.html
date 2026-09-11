@@ -3750,6 +3750,12 @@ html,body{
 
     function showPage(page){
 
+      /* Leaving the GAME screen ends WATCH LIVE mode. The view-only
+         restriction must never follow the player back to HOME or into a
+         fresh game lobby. It remains active only while the current GAME
+         screen is open in watch-only mode. */
+      if(page!=="game" && state.page==="game") state.watchOnly=false;
+
       if(
         !state.accountCreated &&
         !localStorage.getItem("destaAccountCreated")
@@ -4178,6 +4184,7 @@ html,body{
       state.game="";
       state.stakeLobbyGame="";
       state.gameJoined=false;
+      state.watchOnly=false;
       state.bettingOpen=false;
       liveRoundSyncActive=false;
       clearTimeout(liveRoundTimer);
