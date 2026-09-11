@@ -4067,7 +4067,8 @@ html,body{
       state.stakeLobbyGame="";
       state.gameJoined=false;
       state.bettingOpen=false;
-      liveRoundSyncActive=true;
+      liveRoundSyncActive=false;
+      clearTimeout(liveRoundTimer);
       const wheel=document.getElementById("rouletteWheel");
       if(wheel){
         wheel.classList.remove("spinning","resultSpin");
@@ -6492,42 +6493,57 @@ html,body{
       bingo:{roundId:"", seen:0, queue:[], running:false, generation:0}
     };
 
-    function presentNextLiveDraw(game){
-      const stateBox=liveDrawPresentation[game];
-      if(!stateBox || stateBox.running || !stateBox.queue.length) return;
-      stateBox.running=true;
-      const generation=stateBox.generation;
-      const value=stateBox.queue.shift();
+    function setLiveDrawNumber(game, value, animate=true){
       const latestId=document.getElementById(game+"LatestDraw");
       const circle=document.getElementById(game+"DrawCircle");
-      if(latestId){
-        latestId.textContent=game==="keno" ? String(value).padStart(2,"0") : String(value);
+      if(!latestId) return;
+      latestId.textContent=game==="keno" ? String(value).padStart(2,"0") : String(value);
+      if(animate){
         latestId.classList.remove("pop");
         if(circle) circle.classList.remove("drawPop");
         void latestId.offsetWidth;
         latestId.classList.add("pop");
         if(circle){ void circle.offsetWidth; circle.classList.add("drawPop"); }
       }
+    }
+
+    function presentNextLiveDraw(game){
+      const box=liveDrawPresentation[game];
+      if(!box || box.running || !box.queue.length) return;
+      box.running=true;
+      const generation=box.generation;
+      const value=box.queue.shift();
+      setLiveDrawNumber(game,value,true);
       setTimeout(()=>{
-        if(generation!==stateBox.generation) return;
-        stateBox.running=false;
+        if(generation!==box.generation){ box.running=false; return; }
+        box.running=false;
         presentNextLiveDraw(game);
-      },700);
+      },650);
     }
 
     function syncLiveDrawPresentation(game,round){
       const box=liveDrawPresentation[game];
       if(!box) return;
       const roundId=String(round?.id||"");
-      const nums=Array.isArray(round?.drawnNumbers)?round.drawnNumbers.map(Number).filter(Number.isFinite):[];
+      const nums=Array.isArray(round?.drawnNumbers)
+        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
+        : [];
+
       if(box.roundId!==roundId){
         box.roundId=roundId;
         box.seen=0;
         box.queue=[];
         box.generation++;
         box.running=false;
+
+        /* On first view of an already-running round, show the authoritative
+           current number immediately. Do not replay old numbers. */
+        if(nums.length){
+          setLiveDrawNumber(game,nums[nums.length-1],false);
+          box.seen=nums.length;
+        }
       }
-      /* Queue every newly received authoritative number. Never invent one. */
+
       if(nums.length>box.seen){
         for(let i=box.seen;i<nums.length;i++) box.queue.push(nums[i]);
         box.seen=nums.length;
@@ -6722,15 +6738,6 @@ html,body{
 
     function renderServerKeno(round){
       const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
-      const latest=nums.length ? nums[nums.length-1] : null;
-      const latestEl=document.getElementById("kenoLatestDraw");
-      const latestBall=document.getElementById("kenoDrawCircle");
-      if(latestEl){
-        const shown=latest!=null ? String(latest).padStart(2,"0") : "—";
-        const changed=String(latestEl.textContent)!==shown;
-        latestEl.textContent=shown;
-
-      }
       const callsEl=document.getElementById("kenoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
       const playersEl=document.getElementById("kenoPlayersStat");
@@ -6773,15 +6780,6 @@ html,body{
 
     function renderServerBingo(round){
       const nums=Array.isArray(round.drawnNumbers)?round.drawnNumbers:[];
-      const latest=nums.length ? nums[nums.length-1] : null;
-      const latestEl=document.getElementById("bingoLatestDraw");
-      const latestBall=document.getElementById("bingoDrawCircle");
-      if(latestEl){
-        const shown=latest!=null ? String(latest) : "—";
-        const changed=String(latestEl.textContent)!==shown;
-        latestEl.textContent=shown;
-
-      }
       const callsEl=document.getElementById("bingoCallsStat");
       if(callsEl) callsEl.textContent=String(nums.length);
       const playersEl=document.getElementById("bingoPlayersStat");
@@ -6843,14 +6841,17 @@ html,body{
 
     async function fetchLiveRound(game, tier=null){
       try{
-        let url = `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
-
-        if(game === "keno" && Number.isFinite(Number(tier))){
-          url += `?stake=${encodeURIComponent(Number(tier))}`;
-        }
-
-        if(game === "bingo" && Number.isInteger(Number(tier))){
-          url += `?stake=${encodeURIComponent(Number(tier))}`;
+        let url;
+        if(game === "bingo"){
+          url = `https://desta-play.onrender.com/api/bingo/round`;
+          if(Number.isInteger(Number(tier))){
+            url += `?tier=${encodeURIComponent(Number(tier))}`;
+          }
+        }else{
+          url = `https://desta-play.onrender.com/api/game/${encodeURIComponent(game)}/round`;
+          if(game === "keno" && Number.isFinite(Number(tier))){
+            url += `?stake=${encodeURIComponent(Number(tier))}`;
+          }
         }
 
         const headers = {"Accept":"application/json"};
@@ -6968,8 +6969,9 @@ html,body{
     let liveRoundSyncActive=false;
 
     function startLiveRoundSync(){
-      clearInterval(liveRoundTimer);
+      clearTimeout(liveRoundTimer);
       liveRoundSyncActive=true;
+      liveRoundBusy=false;
       fetchAllLiveRounds();
       ["keno","bingo"].forEach(loadRoundHistory);
       const schedule=()=>{
