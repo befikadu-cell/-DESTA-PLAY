@@ -1048,21 +1048,6 @@
       font-weight:bold;
     }
 
-    .bingoButtons{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:7px;
-      padding:8px;
-    }
-
-    .bingoBtn{
-      border:0;
-      border-radius:8px;
-      padding:10px;
-      background:linear-gradient(180deg,#ff3b2f,#a60000);
-      color:#fff;
-      font-weight:900;
-    }
 
     /* =========================================================
        ROULETTE
@@ -2718,24 +2703,6 @@ html,body{
 
           <div class="amountGrid" id="bingoAmounts"></div>
 
-          <div class="bingoButtons">
-
-            <button
-              class="bingoBtn"
-              id="bingoButton1"
-              onclick="claimBingo(1)">
-              BINGO — CARTELA 1
-            </button>
-
-            <button
-              class="bingoBtn"
-              id="bingoButton2"
-              onclick="claimBingo(2)">
-              BINGO — CARTELA 2
-            </button>
-
-          </div>
-
           </div>
 
         </div>
@@ -2877,7 +2844,6 @@ html,body{
         <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
         <div class="profileRow"><span>Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
         <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
-        <div class="profileRow"><span>Bonus Withdrawal</span><strong id="profileBonusWithdrawalStatus">Requires 3,000 points</strong></div>
         <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
         <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
         <div id="inviteStatus" class="walletStatus"></div>
@@ -3705,6 +3671,10 @@ html,body{
       state.language=lang;
       localStorage.setItem("destaLanguage",lang);
       applyLanguageToUI();
+      const helpOverlay=document.getElementById("helpOverlay");
+      if(helpOverlay && !helpOverlay.classList.contains("hidden")) openHelp();
+      const walletHelpModal=document.getElementById("walletHelpModal");
+      if(walletHelpModal && !walletHelpModal.classList.contains("hidden")) openWalletHelp();
     }
 
     document.addEventListener("click",function(event){
@@ -3874,7 +3844,6 @@ html,body{
         setText("profileBonusPoints",Number(data.bonusPoints||0).toFixed(2));
         setText("profileInvitePlayValue",Number(data.playValue||0).toFixed(2));
         setText("profileInviteWithdrawalValue",Number(data.withdrawalValue||0).toFixed(2));
-        setText("profileBonusWithdrawalStatus",data.bonusWithdrawalEligible ? "ELIGIBLE" : `Requires ${Number(data.bonusWithdrawalMinimumPoints||3000).toLocaleString()} points`);
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
       }catch(error){
@@ -4678,7 +4647,6 @@ html,body{
       buildBingoAmounts();
       renderCartelaPicker();
       renderCartela();
-      [1,2].forEach(slot=>{const b=document.getElementById("bingoButton"+slot);if(b)b.disabled=true;});
 
     }
 
@@ -5039,24 +5007,20 @@ html,body{
 
       [1,2].forEach(slot=>{
 
-        const board=
-          state.bingoBoards[slot];
+        const board=state.bingoBoards[slot] || [];
+        if(!board.length) return;
 
-        if(!board.length)
-          return;
+        const place=document.getElementById("bingoPlaceBtn"+slot);
+        if(!place) return;
 
-        const win=checkBingo(board,slot);
-
-        document
-          .getElementById(
-            "bingoButton"+slot
-          )
-          .disabled=!win;
-
+        const accepted=!!state.bingoBets[slot];
+        const win=accepted && checkBingo(board,slot);
+        place.disabled=!win || state.serverRoundStatus!=="DRAWING";
+        place.textContent="BINGO";
+        place.onclick=()=>claimBingo(slot);
       });
 
     }
-
 
     function syncBingoSlotButtons(round){
       if(!round) return;
@@ -5136,7 +5100,7 @@ html,body{
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "BINGO claim rejected");
         alert("BINGO! Your claim has been registered.");
-        const btn=document.getElementById("bingoButton"+slot); if(btn){btn.disabled=true;btn.textContent="BINGO CLAIMED";}
+        const btn=document.getElementById("bingoPlaceBtn"+slot); if(btn){btn.disabled=true;btn.textContent="BINGO CLAIMED";}
       }catch(error){alert(error.message || "Could not claim BINGO.");}
     }
 
@@ -5944,12 +5908,15 @@ html,body{
     function openWalletHelp(){
       const modal=document.getElementById("walletHelpModal");
       if(!modal) return;
-      modal.innerHTML=`<div class="walletHelpCard">
+      const am=state.language==="am";
+      modal.innerHTML=am ? `<div class="walletHelpCard">
+        <div class="walletModalHead"><h2>የዋሌት እገዛ</h2><button class="walletModalClose" onclick="closeWalletHelp()">×</button></div>
+        <h3>ተቀማጭ</h3><p>1. ተቀማጭ ይጫኑ።<br>2. የላኪውን ስልክ ቁጥር እና የተቀማጭ መጠን ያስገቡ።<br>3. PAY ይጫኑ እና የክፍያ መመሪያውን ይከተሉ።<br>4. I HAVE PAID ይጫኑ።<br>5. የደረሰኝ ወይም የማጣቀሻ ቁጥር ያስገቡ እና SUBMIT ይጫኑ።</p>
+        <h3>ማውጣት</h3><p>1. WITHDRAW ይጫኑ።<br>2. የማውጣት መጠን እና ገንዘቡን የሚቀበለውን ስልክ ቁጥር ያስገቡ።<br>3. WITHDRAW ይጫኑ።<br>4. ለማረጋገጥ የDESTA PLAY ይለፍ ቃልዎን ያስገቡ።</p>
+      </div>` : `<div class="walletHelpCard">
         <div class="walletModalHead"><h2>WALLET HELP</h2><button class="walletModalClose" onclick="closeWalletHelp()">×</button></div>
-        <h3>Deposit</h3>
-        <p>1. Tap DEPOSIT.<br>2. Enter the sender phone number and deposit amount.<br>3. Tap PAY and follow the payment instructions.<br>4. Tap I HAVE PAID.<br>5. Enter the receipt or reference number and tap SUBMIT.</p>
-        <h3>Withdrawal</h3>
-        <p>1. Tap WITHDRAW.<br>2. Enter the withdrawal amount and the phone number receiving the money.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.</p>
+        <h3>Deposit</h3><p>1. Tap DEPOSIT.<br>2. Enter the sender phone number and deposit amount.<br>3. Tap PAY and follow the payment instructions.<br>4. Tap I HAVE PAID.<br>5. Enter the receipt or reference number and tap SUBMIT.</p>
+        <h3>Withdrawal</h3><p>1. Tap WITHDRAW.<br>2. Enter the withdrawal amount and the phone number receiving the money.<br>3. Tap WITHDRAW.<br>4. Enter your DESTA PLAY password to confirm.</p>
       </div>`;
       modal.classList.remove("hidden");
     }
@@ -5959,151 +5926,40 @@ html,body{
       const help={
 
         keno:{
-          title:"How to Play Keno",
-          html:`
-            <h3>Choose a slot</h3>
-            <p>
-              Tap Slot 1 or Slot 2. Each slot has its own
-              selection of up to 10 numbers.
-            </p>
-
-            <h3>Choose numbers</h3>
-            <p>
-              Select from numbers 1–80. You may select
-              from 1 up to 10 numbers for each slot.
-            </p>
-
-            <h3>Place bet</h3>
-            <p>
-              Each slot has its own amount and Place Bet button.
-            </p>
-
-            <h3>Draw</h3>
-            <p>
-              Twenty numbers are called progressively.
-              Matches are highlighted.
-            </p>
-
-            <h3>Win / Lose</h3>
-            <p>
-              The final result and matches are shown after
-              the round finishes.
-            </p>
-          `
+          en:{title:"How to Play Keno",html:`
+            <h3>Choose a slot</h3><p>Tap Slot 1 or Slot 2. Each slot has its own selection of up to 10 numbers.</p>
+            <h3>Choose numbers</h3><p>Select from numbers 1–80. You may select from 1 up to 10 numbers for each slot.</p>
+            <h3>Place bet</h3><p>Each slot has its own amount and Place Bet button.</p>
+            <h3>Draw</h3><p>Twenty numbers are called progressively. Matches are highlighted.</p>
+            <h3>Win / Lose</h3><p>The final result and matches are shown after the round finishes.</p>`},
+          am:{title:"ኬኖን እንዴት መጫወት ይቻላል?",html:`
+            <h3>ስሎት ይምረጡ</h3><p>ስሎት 1 ወይም ስሎት 2 ይንኩ። እያንዳንዱ ስሎት እስከ 10 ቁጥሮች የራሱ ምርጫ አለው።</p>
+            <h3>ቁጥሮችን ይምረጡ</h3><p>ከ1–80 ያሉ ቁጥሮች ይምረጡ። ለእያንዳንዱ ስሎት ከ1 እስከ 10 ቁጥሮች መምረጥ ይችላሉ።</p>
+            <h3>ውርርድ ያስገቡ</h3><p>እያንዳንዱ ስሎት የራሱ መጠን እና የውርርድ ማስገቢያ ቁልፍ አለው።</p>
+            <h3>ስዕል</h3><p>20 ቁጥሮች በተከታታይ ይጠራሉ። የተመሳሰሉ ቁጥሮች ይገለጣሉ።</p>
+            <h3>አሸነፍ / ተሸነፍ</h3><p>የመጨረሻ ውጤት እና ተመሳሳይ ቁጥሮች ዙሩ ከተጠናቀቀ በኋላ ይታያሉ።</p>`}
         },
-
         bingo:{
-          title:"How to Play Bingo",
-          html:`
-            <h3>Cartela</h3>
-            <p>
-              Enter a Cartela number from 1–120 and press OK.
-              The first Cartela goes to Slot 1. The next goes
-              to Slot 2.
-            </p>
-
-            <h3>Mark numbers</h3>
-            <p>
-              When a called number appears on your Cartela,
-              tap the matching cell.
-            </p>
-
-            <h3>BINGO</h3>
-            <p>
-              Complete a horizontal, vertical or diagonal line.
-              When the round allows a win, press the BINGO button
-              for the corresponding Cartela.
-            </p>
-
-            <h3>Round</h3>
-            <p>
-              Betting closes when the countdown reaches zero.
-              Numbers are then called progressively.
-            </p>
-          `
-        },
-
-        roulette:{
-          title:"How to Play Roulette",
-          html:`
-            <h3>Choose a number</h3>
-            <p>
-              Tap a number. Your selected number is highlighted.
-              Each slot can have its own selection.
-            </p>
-
-            <h3>Spin</h3>
-            <p>
-              Betting closes when the countdown reaches zero.
-              The wheel spins and stops on one number.
-            </p>
-
-            <h3>Win</h3>
-            <p>
-              A number bet wins when the wheel stops on that number.
-              The winning number is highlighted.
-            </p>
-
-            <h3>Lose</h3>
-            <p>
-              A number bet loses when the wheel stops on another
-              number.
-            </p>
-          `
-        },
-
-        aviator:{
-          title:"How to Play Aviator",
-          html:`
-            <h3>Place a bet</h3>
-            <p>
-              Place your Slot 1 or Slot 2 bet before the flight starts.
-            </p>
-
-            <h3>Live multiplier</h3>
-            <p>
-              The multiplier increases while the plane is flying.
-              The current potential payout is displayed live.
-            </p>
-
-            <h3>Cash Out</h3>
-            <p>
-              During the flight, Place Bet changes to Cash Out.
-              Tap it to cash out at the current multiplier.
-            </p>
-
-            <h3>Crash</h3>
-            <p>
-              If the flight crashes before cash out, the unsettled
-              bet does not receive a cash-out payout.
-            </p>
-
-            <h3>History</h3>
-            <p>
-              The latest 10 completed round multipliers are retained.
-              When a new round is completed, the oldest result drops out.
-            </p>
-          `
+          en:{title:"How to Play Bingo",html:`
+            <h3>Cartela</h3><p>Enter a Cartela number from 1–120 and press OK. The first Cartela goes to Slot 1. The next goes to Slot 2.</p>
+            <h3>Mark numbers</h3><p>When a called number appears on your Cartela, tap the matching cell.</p>
+            <h3>BINGO</h3><p>Complete a horizontal, vertical or diagonal line. When the round allows a win, press the BINGO button for the corresponding Cartela.</p>
+            <h3>Round</h3><p>Betting closes when the countdown reaches zero. Numbers are then called progressively.</p>`},
+          am:{title:"ቢንጎን እንዴት መጫወት ይቻላል?",html:`
+            <h3>ካርቴላ</h3><p>ከ1–120 የካርቴላ ቁጥር ያስገቡ እና OK ይጫኑ። የመጀመሪያው ካርቴላ ወደ ስሎት 1፣ ቀጣዩ ወደ ስሎት 2 ይሄዳል።</p>
+            <h3>ቁጥሮችን ምልክት ያድርጉ</h3><p>የተጠራ ቁጥር በካርቴላዎ ላይ ሲታይ ተመሳሳዩን ሳጥን ይንኩ።</p>
+            <h3>ቢንጎ</h3><p>አግድም፣ ቁመት ወይም ሰያፍ መስመር ያጠናቅቁ። ዙሩ ካሸነፉ የተዛማጅ ካርቴላውን BINGO ቁልፍ ይጫኑ።</p>
+            <h3>ዙር</h3><p>ቆጣሪው ወደ ዜሮ ሲደርስ ውርርድ ይዘጋል። ከዚያ ቁጥሮች በተከታታይ ይጠራሉ።</p>`}
         }
-
       };
 
-      document
-        .getElementById("helpTitle")
-        .textContent=
-          help[state.game].title;
-
-      document
-        .getElementById("helpContent")
-        .innerHTML=
-          help[state.game].html;
-
-      document
-        .getElementById("helpOverlay")
-        .classList.remove("hidden");
-
+      const item=help[state.game]?.[state.language||"en"] || help[state.game]?.en;
+      if(!item) return;
+      document.getElementById("helpTitle").textContent=item.title;
+      document.getElementById("helpContent").innerHTML=item.html;
+      document.getElementById("helpOverlay").classList.remove("hidden");
+      return;
     }
-
 
     function closeHelp(){
 
@@ -6736,10 +6592,6 @@ html,body{
           state.bingoMarks={1:Array(25).fill(false),2:Array(25).fill(false)};
           state.bingoMarks[1][12]=true;
           state.bingoMarks[2][12]=true;
-          const b1=document.getElementById("bingoButton1");
-          const b2=document.getElementById("bingoButton2");
-          if(b1){b1.disabled=true;b1.textContent="BINGO — CARTELA 1";}
-          if(b2){b2.disabled=true;b2.textContent="BINGO — CARTELA 2";}
           [1,2].forEach(slot=>{
             const place=document.getElementById("bingoPlaceBtn"+slot);
             if(place){place.disabled=false;place.textContent="PLACE BET";place.onclick=()=>placeBingoBet(slot);}
@@ -6939,13 +6791,9 @@ html,body{
         [1,2].forEach(slot=>autoMarkBingoCartela(slot));
       }
       [1,2].forEach(slot=>{
-        const bingoBtn=document.getElementById("bingoButton"+slot);
         const place=document.getElementById("bingoPlaceBtn"+slot);
         const accepted=!!state.bingoBets[slot];
         const valid=accepted && checkBingo(state.bingoBoards[slot]||[],slot);
-        if(bingoBtn){
-          bingoBtn.disabled=!valid || round.status!=="DRAWING";
-        }
         if(place){
           if(accepted){
             place.disabled=!valid || round.status!=="DRAWING";
