@@ -5488,6 +5488,7 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
 
     try {
         const stake = editionStakeIsValid(req.body?.stake);
+        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
         const cardIndex = Number(req.body?.cardIndex);
         const submittedRoundId = String(req.body?.roundId || "").trim();
 
@@ -5522,15 +5523,25 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             return res.status(400).json({success:false,error:"Maximum 2 cartellas per round"});
         }
 
-        await changeBalance({
-            playerId:req.player.id,
-            amount:-stake,
-            type:"bingo_entry",
-            game:"bingo",
-            roundId:room.id,
-            description:`Bingo entry - stake ${stake}`,
-            metadata:{stake,cartelaNumber,cardIndex,variant}
-        });
+        let balanceAfter = Number(req.player.balance || 0);
+        let bonusPointsAfter = null;
+        if (walletType === "bonus") {
+            const bonusPoints = await getBonusPoints(req.player.id);
+            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
+            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"bingo",stake,cartelaNumber,cardIndex}),referenceId:room.id});
+            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
+        } else {
+            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
+            balanceAfter = await changeBalance({
+                playerId:req.player.id,
+                amount:-stake,
+                type:"bingo_entry",
+                game:"bingo",
+                roundId:room.id,
+                description:`Bingo entry - stake ${stake}`,
+                metadata:{stake,cartelaNumber,cardIndex,variant,walletType}
+            });
+        }
 
         room.players.push({
             playerId:req.player.id,
@@ -5538,7 +5549,8 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             cartelaNumber,
             cartela,
             cardIndex,
-            variant
+            variant,
+            walletType
         });
 
         await saveBingoRound(stake);
@@ -5550,7 +5562,9 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             cardIndex,
             cartelaNumber,
             cardId:`cartela-${cartelaNumber}`,
-            balanceAfter:Number(req.player.balance || 0) - stake,
+            walletType,
+            balanceAfter,
+            bonusPointsAfter,
             bettingEndsAt:room.bettingEndsAt,
             remainingMilliseconds:Math.max(0,room.bettingEndsAt-Date.now())
         });
@@ -5629,6 +5643,7 @@ app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) =>
 app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
     try {
         const stake = editionStakeIsValid(req.body?.stake);
+        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
         if (!stake) return res.status(400).json({success:false,error:"Invalid stake"});
 
         const round = rounds.keno;
@@ -5655,19 +5670,26 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
             return res.status(400).json({success:false,error:`Keno Slot ${slotIndex} is already placed`});
         }
 
-        const balance = Number(req.player.balance || 0);
-        if (stake > balance) return res.status(400).json({success:false,error:"Insufficient balance"});
-
+        let balanceAfter = Number(req.player.balance || 0);
+        let bonusPointsAfter = null;
         const betId = makeId("KENOBET");
-        const balanceAfter = await changeBalance({
-            playerId:req.player.id,
-            amount:-stake,
-            type:"keno_bet",
-            game:"keno",
-            roundId:round.id,
-            description:"Keno bet",
-            metadata:{betId,stake,slotIndex,slots:normalizedSlots}
-        });
+        if (walletType === "bonus") {
+            const bonusPoints = await getBonusPoints(req.player.id);
+            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
+            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"keno",stake,slotIndex,slots:normalizedSlots,betId}),referenceId:round.id});
+            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
+        } else {
+            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
+            balanceAfter = await changeBalance({
+                playerId:req.player.id,
+                amount:-stake,
+                type:"keno_bet",
+                game:"keno",
+                roundId:round.id,
+                description:"Keno bet",
+                metadata:{betId,stake,slotIndex,slots:normalizedSlots,walletType}
+            });
+        }
 
         round.bets.push({
             betId,
@@ -5676,13 +5698,14 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
             numbers:normalizedSlots[0],
             slots:normalizedSlots,
             amount:stake,
+            walletType,
             placedAt:Date.now()
         });
         await saveRound(round);
 
         const playersInRoom = new Set(round.bets.map(b => String(b.playerId))).size;
         const grossPool = round.bets.reduce((sum,b) => sum + Number(b.amount || 0), 0);
-        return res.json({success:true,betId,roundId:round.id,stake,slotIndex,slots:normalizedSlots,balanceAfter,playersInRoom,grossPool,bettingEndsAt:round.bettingEndsAt});
+        return res.json({success:true,betId,roundId:round.id,stake,slotIndex,slots:normalizedSlots,walletType,balanceAfter,bonusPointsAfter,playersInRoom,grossPool,bettingEndsAt:round.bettingEndsAt});
     } catch (error) {
         console.error("Edition Keno bet error:",error);
         return res.status(400).json({success:false,error:error.message || "Could not place Keno bet"});
