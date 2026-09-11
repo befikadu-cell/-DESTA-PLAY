@@ -4625,6 +4625,16 @@ function getPublicRound(
         totalDraws:
             gameName === "keno" ? 20 : 0,
 
+        playersInRoom:
+            gameName === "keno"
+                ? new Set((round.bets || []).map(b => String(b.playerId))).size
+                : 0,
+
+        grossPool:
+            gameName === "keno"
+                ? (round.bets || []).reduce((sum,b) => sum + Number(b.amount || 0), 0)
+                : 0,
+
         drawIndex:
             round.drawIndex || 0,
 
@@ -5622,7 +5632,11 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
 
         if (!round || round.status !== "BETTING") return res.status(400).json({success:false,error:"Keno betting is closed"});
         if (submittedRoundId && submittedRoundId !== String(round.id)) return res.status(400).json({success:false,error:"This Keno round is no longer active"});
-        if (slots.length < 1 || slots.length > 2) return res.status(400).json({success:false,error:"Choose 1 or 2 Keno slots"});
+        const slotIndex = Number(req.body?.slotIndex);
+        if (!Number.isInteger(slotIndex) || slotIndex < 1 || slotIndex > 2) {
+            return res.status(400).json({success:false,error:"Invalid Keno slot"});
+        }
+        if (slots.length !== 1) return res.status(400).json({success:false,error:"Place the Keno bet one slot at a time"});
 
         const normalizedSlots = slots.map(slot => [...new Set((Array.isArray(slot)?slot:[]).map(Number))]);
         if (normalizedSlots.some(s => s.length < 3 || s.length > 10)) return res.status(400).json({success:false,error:"Each Keno slot must contain 3 to 10 numbers"});
@@ -5630,7 +5644,11 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
         if (normalizedSlots.some(s => new Set(s).size !== s.length)) return res.status(400).json({success:false,error:"Keno numbers cannot repeat"});
 
         if (!Array.isArray(round.bets)) round.bets=[];
-        if (round.bets.some(b => b.playerId === req.player.id)) return res.status(400).json({success:false,error:"You already placed a Keno bet for this round"});
+        const playerBets = round.bets.filter(b => b.playerId === req.player.id);
+        if (playerBets.length >= 2) return res.status(400).json({success:false,error:"You already placed both Keno slots for this round"});
+        if (playerBets.some(b => Number(b.slotIndex || 1) === slotIndex)) {
+            return res.status(400).json({success:false,error:`Keno Slot ${slotIndex} is already placed`});
+        }
 
         const balance = Number(req.player.balance || 0);
         if (stake > balance) return res.status(400).json({success:false,error:"Insufficient balance"});
@@ -5643,12 +5661,13 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
             game:"keno",
             roundId:round.id,
             description:"Keno bet",
-            metadata:{betId,stake,slots:normalizedSlots}
+            metadata:{betId,stake,slotIndex,slots:normalizedSlots}
         });
 
         round.bets.push({
             betId,
             playerId:req.player.id,
+            slotIndex,
             numbers:normalizedSlots[0],
             slots:normalizedSlots,
             amount:stake,
@@ -5656,7 +5675,9 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
         });
         await saveRound(round);
 
-        return res.json({success:true,betId,roundId:round.id,stake,slots:normalizedSlots,balanceAfter,bettingEndsAt:round.bettingEndsAt});
+        const playersInRoom = new Set(round.bets.map(b => String(b.playerId))).size;
+        const grossPool = round.bets.reduce((sum,b) => sum + Number(b.amount || 0), 0);
+        return res.json({success:true,betId,roundId:round.id,stake,slotIndex,slots:normalizedSlots,balanceAfter,playersInRoom,grossPool,bettingEndsAt:round.bettingEndsAt});
     } catch (error) {
         console.error("Edition Keno bet error:",error);
         return res.status(400).json({success:false,error:error.message || "Could not place Keno bet"});
