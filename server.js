@@ -93,6 +93,7 @@ const TELEBIRR_ACCOUNT =
     String(process.env.TELEBIRR_ACCOUNT || "TEST TELEBIRR ACCOUNT").trim();
 
 const MIN_DEPOSIT_AMOUNT = 50;
+const DEPOSIT_WINDOW_MS = 30 * 60 * 1000;
 
 const EDITION_STAKES = [
     10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
@@ -381,6 +382,36 @@ function safeJson(value) {
     }
 }
 
+function htmlEscape(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[c]));
+}
+
+function depositRequestIsActive(transaction) {
+    const created = new Date(transaction?.created_at || 0).getTime();
+    return Number.isFinite(created) && Date.now() - created < DEPOSIT_WINDOW_MS;
+}
+
+function depositMinutesRemaining(transaction) {
+    const created = new Date(transaction?.created_at || 0).getTime();
+    if (!Number.isFinite(created)) return 0;
+    return Math.max(0, Math.ceil((DEPOSIT_WINDOW_MS - (Date.now() - created)) / 60000));
+}
+
+function depositDescriptionData(transaction) {
+    try {
+        const parsed = JSON.parse(String(transaction?.description || "{}"));
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
 function parseFirstAmount(text) {
     const matches = String(text || "").match(/(?:ETB|Birr|Amount|Paid|received|sent)?\s*([0-9]{1,9}(?:[.,][0-9]{1,2})?)/gi) || [];
 
@@ -514,7 +545,9 @@ function transactionDescription(data) {
         referenceId: data.referenceId || null,
         requestId: data.requestId || null,
         requestedAt: data.requestedAt || null,
-        smsText: data.smsText || null
+        smsText: data.smsText || null,
+        smsHash: data.smsHash || null,
+        paymentReference: data.paymentReference || null
     });
 }
 
@@ -2274,204 +2307,272 @@ app.post(
     requirePlayer,
     async (req, res) => {
         try {
-            const amount =
-                Number(req.body.amount);
+            const amount = Number(req.body.amount);
+            const method = String(req.body.method || "telebirr").trim().toLowerCase();
+            const recipient = String(req.body.recipient || PAYMENT_OWNER_NAME).trim().slice(0, 120);
+            const senderPhone = normalizePhone(req.body.senderPhone);
 
-            const method =
-                String(
-                    req.body.method ||
-                    "telebirr"
-                )
-                    .trim()
-                    .toLowerCase();
+            if (!Number.isFinite(amount) || amount < MIN_DEPOSIT_AMOUNT) {
+                return res.status(400).json({ success: false, error: `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB` });
+            }
 
-            const transactionId =
-                normalizeReference(
-                    req.body.transactionId
-                );
-
-            const referenceId =
-                normalizeReference(
-                    req.body.referenceId ||
-                    transactionId
-                );
-
-            const recipient =
-                String(
-                    req.body.recipient ||
-                    PAYMENT_OWNER_NAME
-                )
-                    .trim()
-                    .slice(0, 120);
-
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone
-                );
-
-            if (
-                !Number.isFinite(amount) ||
-                amount < MIN_DEPOSIT_AMOUNT
-            ) {
+            if (!SUPPORTED_DEPOSIT_METHODS[method]) {
                 return res.status(400).json({
                     success: false,
-                    error:
-                        `Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB`
+                    error: method === "mpesa" || method === "cbe_birr" ? "Payment method is not available now." : "Unsupported payment method"
                 });
             }
 
-            if (
-                !SUPPORTED_DEPOSIT_METHODS[method]
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        method === "mpesa" ||
-                        method === "cbe_birr"
-                            ? "Payment method is not available now."
-                            : "Unsupported payment method"
-                });
-            }
-
-            if (!referenceId) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "Payment transaction/reference link is required"
-                });
-            }
-
-            if (
-                await hasSuccessfulDepositReference(
-                    referenceId
-                )
-            ) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference has already been credited"
-                });
-            }
-
-            const {
-                data: existingPending,
-                error: duplicateError
-            } =
-                await supabase
-                    .from("transactions")
-                    .select("id,status")
-                    .eq("type", "deposit")
-                    .eq(
-                        "reference_id",
-                        referenceId
-                    )
-                    .in(
-                        "status",
-                        [
-                            "PENDING",
-                            "APPROVED",
-                            "SUCCESS",
-                            "COMPLETED"
-                        ]
-                    )
-                    .limit(1);
-
-            if (duplicateError) {
-                await dbError(
-                    "deposit duplicate check",
-                    duplicateError
-                );
-
-                throw new Error(
-                    "Could not check payment reference"
-                );
-            }
-
-            if (existingPending?.length) {
-                return res.status(409).json({
-                    success: false,
-                    error:
-                        "This payment reference is already submitted"
-                });
-            }
-
-            const requestId =
-                makeId("DEP");
-
-            const { data, error } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id: req.player.id,
-                        type: "deposit",
-                        amount,
-                        balance_before:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        balance_after:
-                            Number(
-                                req.player.balance || 0
-                            ),
-                        status: "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 3,
-                                method,
-                                recipient,
-                                senderPhone,
-                                transactionId,
-                                referenceId,
-                                requestId,
-                                requestedAt: nowIso()
-                            }),
-                        reference_id: referenceId,
-                        created_at: nowIso()
-                    })
-                    .select("*")
-                    .single();
+            const requestId = makeId("DEP");
+            const createdAt = nowIso();
+            const { data, error } = await supabase
+                .from("transactions")
+                .insert({
+                    id: requestId,
+                    player_id: req.player.id,
+                    type: "deposit",
+                    amount,
+                    balance_before: Number(req.player.balance || 0),
+                    balance_after: Number(req.player.balance || 0),
+                    status: "PENDING",
+                    description: transactionDescription({
+                        edition: 5,
+                        method,
+                        recipient,
+                        senderPhone,
+                        requestId,
+                        requestedAt: createdAt,
+                        paymentWindowMinutes: 30
+                    }),
+                    reference_id: null,
+                    created_at: createdAt
+                })
+                .select("*")
+                .single();
 
             if (error) {
-                await dbError(
-                    "deposit request insert",
-                    error
-                );
-
-                throw new Error(
-                    "Could not create deposit request"
-                );
+                await dbError("deposit request insert", error);
+                throw new Error("Could not create deposit request");
             }
-
-            await sendAdminGroupAudit(
-                `DEPOSIT PENDING\nPlayer: ${req.player.id}\nAmount: ${amount} ETB\nReference: ${referenceId}\nRequest: ${requestId}`
-            );
 
             return res.json({
                 success: true,
                 status: "PENDING",
                 requestId,
                 amount,
-                minimumDeposit:
-                    MIN_DEPOSIT_AMOUNT,
-                referenceId:
-                    data.reference_id
+                minimumDeposit: MIN_DEPOSIT_AMOUNT,
+                expiresAt: new Date(new Date(createdAt).getTime() + DEPOSIT_WINDOW_MS).toISOString(),
+                minutesRemaining: 30
             });
         } catch (error) {
-            console.error(
-                "Deposit request error:",
-                error
-            );
-
-            return res.status(500).json({
-                success: false,
-                error:
-                    error.message ||
-                    "Could not create deposit request"
-            });
+            console.error("Deposit request error:", error);
+            return res.status(500).json({ success: false, error: error.message || "Could not create deposit request" });
         }
     }
 );
+
+/*
+|--------------------------------------------------------------------------
+| MANUAL DEPOSIT SMS SUBMISSION
+|--------------------------------------------------------------------------
+| The player submits the complete original payment SMS unchanged. The
+| server checks the 30-minute request window and blocks reused SMS text or
+| payment references before anything is sent to the admin approval queue.
+|--------------------------------------------------------------------------
+*/
+
+async function findUsedDepositPayment(smsText, referenceCandidates) {
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("type", "deposit")
+        .in("status", ["PENDING", "APPROVED", "SUCCESS", "COMPLETED"])
+        .order("created_at", { ascending: false })
+        .range(0, 9999);
+
+    if (error) {
+        await dbError("findUsedDepositPayment", error);
+        throw new Error("Could not check whether this payment was already used");
+    }
+
+    const smsHash = crypto.createHash("sha256").update(String(smsText), "utf8").digest("hex");
+    const refs = new Set((referenceCandidates || []).map(normalizeReference).filter(Boolean));
+
+    for (const transaction of data || []) {
+        const details = depositDescriptionData(transaction);
+        if (details.smsHash && details.smsHash === smsHash) {
+            return { transaction, reason: "The exact payment SMS was already submitted/used." };
+        }
+
+        const storedReference = normalizeReference(transaction.reference_id || details.paymentReference || details.referenceId || details.transactionId);
+        if (storedReference && refs.has(storedReference)) {
+            return { transaction, reason: "The payment transaction/reference was already submitted/used." };
+        }
+    }
+
+    return null;
+}
+
+function depositApprovalReplyMarkup(requestId) {
+    return {
+        inline_keyboard: [[
+            { text: "APPROVE", callback_data: `dpd:approve:${requestId}` },
+            { text: "REJECT", callback_data: `dpd:reject:${requestId}` }
+        ]]
+    };
+}
+
+async function processDepositAction(action, requestId) {
+    const transaction = await findTransactionById(requestId);
+
+    if (!transaction || transaction.type !== "deposit") throw new Error("Deposit request not found");
+    if (transaction.status !== "PENDING") throw new Error(`Cannot ${action.toUpperCase()} deposit in ${transaction.status} status`);
+
+    if (action === "reject") {
+        const { data, error } = await supabase
+            .from("transactions")
+            .update({ status: "REJECTED" })
+            .eq("id", requestId)
+            .eq("status", "PENDING")
+            .select("*")
+            .maybeSingle();
+        if (error) { await dbError("deposit reject", error); throw new Error("Could not reject deposit"); }
+        if (!data) throw new Error("Deposit was already processed");
+        await sendAdminGroupAudit(`DEPOSIT REJECTED\nPlayer: ${transaction.player_id}\nAmount: ${transaction.amount} ETB\nRequest: ${requestId}`);
+        return "REJECTED";
+    }
+
+    if (action !== "approve") throw new Error("Unknown deposit action");
+
+    const details = depositDescriptionData(transaction);
+    const smsText = String(details.smsText || "");
+    if (!smsText) throw new Error("No payment SMS is attached to this request");
+
+    const referenceCandidates = extractReferenceCandidates(smsText);
+    const referenceId = normalizeReference(transaction.reference_id || details.paymentReference || referenceCandidates[0]);
+    if (!referenceId) throw new Error("No payment transaction/reference ID was found in the submitted SMS");
+
+    if (await hasSuccessfulDepositReference(referenceId)) throw new Error("This payment has already been credited");
+
+    const expectedAmount = Number(transaction.amount);
+    const lockKey = `${requestId}:${referenceId}`;
+    if (paymentProcessingLocks.has(lockKey)) throw new Error("Payment verification is already being processed");
+    paymentProcessingLocks.add(lockKey);
+
+    try {
+        const { data: marked, error: markError } = await supabase
+            .from("transactions")
+            .update({
+                status: "APPROVED",
+                reference_id: referenceId,
+                description: transactionDescription({
+                    ...details,
+                    edition: 6,
+                    transactionId: referenceId,
+                    referenceId,
+                    paymentReference: referenceId,
+                    smsText,
+                    smsHash: details.smsHash || crypto.createHash("sha256").update(smsText, "utf8").digest("hex")
+                })
+            })
+            .eq("id", requestId)
+            .eq("status", "PENDING")
+            .select("*")
+            .maybeSingle();
+
+        if (markError) { await dbError("deposit approve mark", markError); throw new Error("Could not approve deposit"); }
+        if (!marked) throw new Error("Deposit was already processed or changed");
+
+        const balanceAfter = await changeBalance({
+            playerId: transaction.player_id,
+            amount: expectedAmount,
+            type: "deposit_credit",
+            description: "Verified Telebirr deposit",
+            roundId: referenceId,
+            metadata: { referenceId, verifiedAmount: expectedAmount, smsHash: details.smsHash || null }
+        });
+
+        try {
+            const { data: priorCredits, error: priorCreditError } = await supabase
+                .from("transactions").select("id").eq("player_id", transaction.player_id)
+                .eq("type", "deposit_credit").in("status", ["SUCCESS", "APPROVED", "COMPLETED"]).limit(2);
+            if (priorCreditError) throw priorCreditError;
+            if (!Array.isArray(priorCredits) || priorCredits.length <= 1) {
+                const bonusPoints = Number((expectedAmount * 3).toFixed(2));
+                if (bonusPoints > 0) await writeBonusTransaction({ playerId: transaction.player_id, points: bonusPoints, type: "first_deposit_bonus", description: JSON.stringify({ reason: "300% first deposit bonus", depositAmount: expectedAmount, bonusPoints }), referenceId });
+            }
+        } catch (bonusError) { console.error("[BONUS] First deposit bonus could not be recorded:", bonusError); }
+
+        await sendAdminGroupAudit(`DEPOSIT VERIFIED\nPlayer: ${transaction.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`);
+        return "APPROVED";
+    } finally {
+        paymentProcessingLocks.delete(lockKey);
+    }
+}
+
+app.post("/api/deposit/submit-sms", requirePlayer, async (req, res) => {
+    try {
+        const requestId = String(req.body.requestId || "").trim();
+        const smsText = String(req.body.smsText || "");
+        if (!requestId || !smsText.trim()) return res.status(400).json({ success: false, error: "Complete payment SMS is required" });
+        if (smsText.length > 10000) return res.status(400).json({ success: false, error: "Payment SMS is too long" });
+
+        const transaction = await findTransactionById(requestId);
+        if (!transaction || transaction.type !== "deposit" || transaction.player_id !== req.player.id) return res.status(404).json({ success: false, error: "Deposit request not found" });
+        if (transaction.status !== "PENDING") return res.status(409).json({ success: false, error: "This deposit request is no longer active" });
+        if (!depositRequestIsActive(transaction)) return res.status(410).json({ success: false, error: "The 30-minute deposit verification window has expired" });
+
+        const cleanSms = smsText;
+        const referenceCandidates = extractReferenceCandidates(cleanSms);
+        const duplicate = await findUsedDepositPayment(cleanSms, referenceCandidates);
+        if (duplicate) {
+            await sendAdminGroupAudit(
+                `🚨 USED PAYMENT SMS DETECTED\nPlayer: ${req.player.id}\nRequested amount: ${transaction.amount} ETB\nRequest: ${requestId}\nReason: ${duplicate.reason}\nAction: BLOCKED\nAdmin verification: NOT SENT`
+            );
+            return res.status(409).json({ success: false, duplicate: true, error: "This payment SMS or payment reference has already been used. Your submission was blocked." });
+        }
+
+        const smsHash = crypto.createHash("sha256").update(cleanSms, "utf8").digest("hex");
+        const paymentReference = normalizeReference(referenceCandidates[0] || "");
+
+        const updatedDescription = transactionDescription({
+            ...depositDescriptionData(transaction),
+            edition: 5,
+            requestId,
+            requestedAt: transaction.created_at,
+            paymentReference: paymentReference || null,
+            referenceId: paymentReference || null,
+            transactionId: paymentReference || null,
+            smsHash,
+            smsText: cleanSms
+        });
+
+        const { data: saved, error } = await supabase
+            .from("transactions")
+            .update({ reference_id: paymentReference || null, description: updatedDescription })
+            .eq("id", requestId).eq("status", "PENDING")
+            .select("*").maybeSingle();
+        if (error) { await dbError("deposit SMS submission", error); throw new Error("Could not save payment SMS"); }
+        if (!saved) throw new Error("Deposit request was already changed");
+
+        const details = depositDescriptionData(saved);
+        const text =
+            `<b>DESTA PLAY — DEPOSIT VERIFICATION</b>\n` +
+            `Player: ${htmlEscape(saved.player_id)}\n` +
+            `Amount: ${htmlEscape(saved.amount)} ETB\n` +
+            `Request ID: ${htmlEscape(saved.id)}\n` +
+            `Reference: ${htmlEscape(paymentReference || "Not detected")}\n` +
+            `Time remaining: ${htmlEscape(depositMinutesRemaining(saved))} minutes\n\n` +
+            `<b>ORIGINAL PAYMENT SMS</b>\n<pre>${htmlEscape(cleanSms)}</pre>`;
+
+        await sendAdminTelegramMessage(text, depositApprovalReplyMarkup(saved.id));
+
+        return res.json({ success: true, status: "SUBMITTED", requestId: saved.id, expiresAt: new Date(new Date(saved.created_at).getTime() + DEPOSIT_WINDOW_MS).toISOString(), minutesRemaining: depositMinutesRemaining(saved) });
+    } catch (error) {
+        console.error("Deposit SMS submission error:", error);
+        return res.status(500).json({ success: false, error: error.message || "Could not submit payment SMS" });
+    }
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -2484,202 +2585,13 @@ app.post(
 |--------------------------------------------------------------------------
 */
 
-app.post(
-    "/api/payment/sms",
-    async (req, res) => {
-        try {
-            if (SMS_WEBHOOK_SECRET) {
-                const supplied =
-                    String(
-                        req.headers[
-                            "x-sms-webhook-secret"
-                        ] ||
-                        req.headers[
-                            "x-webhook-secret"
-                        ] ||
-                        ""
-                    );
-
-                if (
-                    supplied !==
-                    SMS_WEBHOOK_SECRET
-                ) {
-                    return res.status(401).json({
-                        success: false,
-                        error: "Unauthorized"
-                    });
-                }
-            }
-
-            const smsText =
-                String(
-                    req.body.message ||
-                    req.body.text ||
-                    req.body.sms ||
-                    req.body.body ||
-                    ""
-                ).trim();
-
-            if (!smsText) {
-                return res.status(400).json({
-                    success: false,
-                    error:
-                        "SMS message is required"
-                });
-            }
-
-            const forwardedAmount =
-                Number(req.body.amount) ||
-                parseFirstAmount(smsText);
-
-            const referenceCandidates = [
-                normalizeReference(
-                    req.body.transactionId
-                ),
-                normalizeReference(
-                    req.body.referenceId
-                ),
-                ...extractReferenceCandidates(
-                    smsText
-                )
-            ].filter(Boolean);
-
-            const sender =
-                String(
-                    req.body.sender ||
-                    req.body.senderName ||
-                    ""
-                ).trim();
-
-            const senderPhone =
-                normalizePhone(
-                    req.body.senderPhone ||
-                    req.body.from ||
-                    ""
-                );
-
-            const receiver =
-                String(
-                    req.body.receiver ||
-                    req.body.recipient ||
-                    ""
-                ).trim();
-
-            const receiverPhone =
-                normalizePhone(
-                    req.body.receiverPhone ||
-                    req.body.to ||
-                    ""
-                );
-
-            const pending =
-                await findPendingDeposits();
-
-            let matched = null;
-
-            for (const deposit of pending) {
-                const description =
-                    String(
-                        deposit.description || ""
-                    );
-
-                const referenceMatches =
-                    referenceCandidates.includes(
-                        String(
-                            deposit.reference_id || ""
-                        )
-                    ) ||
-                    referenceCandidates.some(
-                        token =>
-                            description.includes(
-                                token
-                            )
-                    );
-
-                const amountMatches =
-                    Number.isFinite(
-                        forwardedAmount
-                    ) &&
-                    Number(deposit.amount) ===
-                        Number(
-                            forwardedAmount
-                        );
-
-                if (
-                    referenceMatches &&
-                    amountMatches
-                ) {
-                    matched = deposit;
-                    break;
-                }
-            }
-
-            if (!matched) {
-                return res.status(200).json({
-                    success: true,
-                    verified: false,
-                    credited: false,
-                    message:
-                        "No pending deposit matched this SMS"
-                });
-            }
-
-            const referenceId =
-                String(
-                    matched.reference_id ||
-                    referenceCandidates[0] ||
-                    ""
-                );
-
-            const result =
-                await approveDepositTransaction(
-                    matched,
-                    {
-                        amount:
-                            forwardedAmount,
-                        referenceId,
-                        sender,
-                        senderPhone,
-                        receiver,
-                        receiverPhone,
-                        smsTime:
-                            req.body.timestamp ||
-                            req.body.time ||
-                            null,
-                        smsText
-                    }
-                );
-
-            return res.json({
-                success: true,
-                verified: true,
-                credited: true,
-                playerId:
-                    matched.player_id,
-                amount:
-                    Number(matched.amount),
-                referenceId:
-                    result.referenceId,
-                balanceAfter:
-                    result.balanceAfter
-            });
-        } catch (error) {
-            console.error(
-                "SMS verification error:",
-                error
-            );
-
-            return res.status(400).json({
-                success: false,
-                verified: false,
-                credited: false,
-                error:
-                    error.message ||
-                    "Payment verification failed"
-            });
-        }
-    }
-);
+/* Legacy SMS-forwarder verification endpoint intentionally disabled.
+ * Deposit verification is now manual: players submit the complete payment
+ * SMS through /api/deposit/submit-sms and an administrator approves/rejects it.
+ */
+app.post("/api/payment/sms", async (_req, res) => {
+    return res.status(410).json({ success: false, verified: false, credited: false, error: "Automatic SMS verification is disabled. Use manual deposit verification." });
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -3223,6 +3135,16 @@ app.post(
                     await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
                 }
                 return res.json({ success: true, result: resetResult });
+            }
+
+            const depositMatch = String(callback.data || "").match(/^dpd:(approve|reject):(.+)$/);
+            if (depositMatch) {
+                const result = await processDepositAction(depositMatch[1], depositMatch[2]);
+                await telegramApi("answerCallbackQuery", { callback_query_id: callback.id, text: result, show_alert: false });
+                if (callback.message?.chat?.id && callback.message?.message_id) {
+                    await telegramApi("editMessageReplyMarkup", { chat_id: callback.message.chat.id, message_id: callback.message.message_id, reply_markup: { inline_keyboard: [] } });
+                }
+                return res.json({ success: true, result });
             }
 
             const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
