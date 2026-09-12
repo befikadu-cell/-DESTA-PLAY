@@ -32,7 +32,8 @@ const DestaVoice = (() => {
       const letter = getBingoLetter(number);
       if (!letter) return null;
       if (lang === "am") {
-        const am = { B:"ቢ", I:"አይ", N:"ኤን", G:"ጂ", O:"ኦ" };
+        const am = { B:"ቢ", I:"አይ", N:"ኤን", G:"ጂ" };
+        if (letter === "O") return `ኦ ቁጥር ${number}`;
         return `${am[letter]} ${number}`;
       }
       if (letter === "O") return `O, ${number}`;
