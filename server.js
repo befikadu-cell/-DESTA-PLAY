@@ -293,7 +293,7 @@ function inviteCodeToPlayerId(inviteCode) {
 
 function makeInviteLink(playerId) {
     const code = makeInviteCode(playerId);
-    return code ? `${PUBLIC_APP_URL}/?ref=${encodeURIComponent(code)}` : "";
+    return code ? `${TELEGRAM_MINI_APP_URL.replace(/[?&]startapp=[^&]*/i, "").replace(/[?&]$/, "")}?startapp=${encodeURIComponent(code)}` : "";
 }
 
 function normalizeTelegramName(name) {
