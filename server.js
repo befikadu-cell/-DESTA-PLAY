@@ -78,7 +78,7 @@ const SUPPORT_TELEGRAM_USERNAME =
     String(process.env.SUPPORT_TELEGRAM_USERNAME || "@Bit_coinfam").trim();
 
 const TELEGRAM_MINI_APP_URL =
-    String(process.env.TELEGRAM_MINI_APP_URL || "https://t.me/Dasta_play_bot/Dasta").trim();
+    String(process.env.TELEGRAM_MINI_APP_URL || "https://t.me/DestaPlaybot/desta").trim();
 
 const SMS_WEBHOOK_SECRET =
     String(process.env.SMS_WEBHOOK_SECRET || "").trim();
