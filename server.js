@@ -777,6 +777,44 @@ async function findPlayerByTelegramId(telegramId) {
     return data;
 }
 
+function verifyTelegramWebAppInitData(initData) {
+    const raw = String(initData || "").trim();
+    if (!raw || !TELEGRAM_BOT_TOKEN) return null;
+
+    try {
+        const params = new URLSearchParams(raw);
+        const receivedHash = params.get("hash");
+        if (!receivedHash) return null;
+        params.delete("hash");
+
+        const dataCheckString = [...params.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, value]) => `${key}=${value}`)
+            .join("\n");
+
+        const secretKey = crypto
+            .createHmac("sha256", "WebAppData")
+            .update(TELEGRAM_BOT_TOKEN)
+            .digest();
+
+        const calculatedHash = crypto
+            .createHmac("sha256", secretKey)
+            .update(dataCheckString)
+            .digest("hex");
+
+        if (receivedHash.length !== calculatedHash.length) return null;
+        if (!crypto.timingSafeEqual(Buffer.from(receivedHash), Buffer.from(calculatedHash))) return null;
+
+        const userRaw = params.get("user");
+        if (!userRaw) return null;
+        const user = JSON.parse(userRaw);
+        return user && user.id ? user : null;
+    } catch (error) {
+        console.warn("Telegram initData verification failed:", error.message);
+        return null;
+    }
+}
+
 async function findPlayerByPhone(phone) {
     const normalized = normalizePhone(phone);
 
@@ -809,14 +847,27 @@ app.get(
     "/api/account/bootstrap",
     async (req, res) => {
         try {
-            const telegramId = String(
+            const requestedTelegramId = String(
                 req.query.telegramId || ""
+            ).trim();
+            const verifiedTelegramUser = verifyTelegramWebAppInitData(req.query.initData);
+            const telegramId = String(
+                verifiedTelegramUser?.id || requestedTelegramId
             ).trim();
 
             if (!telegramId) {
                 return res.status(400).json({
                     success: false,
                     error: "Telegram account information is not available."
+                });
+            }
+
+            /* When Telegram initData is available, never trust a different
+               browser-supplied Telegram ID. */
+            if (verifiedTelegramUser && requestedTelegramId && String(verifiedTelegramUser.id) !== requestedTelegramId) {
+                return res.status(403).json({
+                    success: false,
+                    error: "Telegram account verification failed."
                 });
             }
 
