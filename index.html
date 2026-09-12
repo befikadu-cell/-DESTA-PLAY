@@ -3117,7 +3117,10 @@ html,body{
 
       /* Telegram /startapp command target. Reserved values open the
          requested DESTA PLAY page after Telegram authentication. */
-      commandTarget:""
+      commandTarget:"",
+
+      telegramAccountRegistered:false,
+      telegramBootstrapError:false
 
     };
 
@@ -3990,7 +3993,12 @@ html,body{
       if(!state.accountCreated || !state.authToken){
         const authenticated=await ensureTelegramAuthentication();
         if(!authenticated){
-          showLogin();
+          if(state.telegramId){
+            alert(state.telegramBootstrapError ? "DESTA PLAY could not verify your Telegram account. Please reopen the Mini App from Telegram and try again." : "This Telegram account is not registered yet. Please create your DESTA PLAY account first.");
+            if(!state.telegramBootstrapError) showCreateAccount();
+          }else{
+            showLogin();
+          }
           document.getElementById("accountScreen").classList.remove("hidden");
           return;
         }
@@ -7236,14 +7244,19 @@ html,body{
       if(!state.telegramId) return false;
 
       try{
-        const response=await fetch("https://desta-play.onrender.com/api/account/bootstrap?telegramId="+encodeURIComponent(state.telegramId),{cache:"no-store",headers:{"Accept":"application/json"}});
+        const initData=(tg && tg.initData) ? tg.initData : "";
+        const response=await fetch("https://desta-play.onrender.com/api/account/bootstrap?telegramId="+encodeURIComponent(state.telegramId)+"&initData="+encodeURIComponent(initData),{cache:"no-store",headers:{"Accept":"application/json"}});
         const data=await safeJsonResponse(response);
+
+        if(response.status===404 || (response.ok && data.success && data.registered===false)){
+          state.telegramAccountRegistered=false;
+          return false;
+        }
 
         if(!response.ok || !data.success) throw new Error(data.error || "Could not initialize account.");
 
         if(data.registered){
-          /* Existing Telegram accounts receive a fresh session from bootstrap.
-             Never send an already-registered player to phone/password login on startup. */
+          state.telegramAccountRegistered=true;
           state.authToken=data.token || "";
           state.accountCreated=!!state.authToken;
           if(data.player){
@@ -7261,13 +7274,11 @@ html,body{
           return false;
         }
 
-        state.accountCreated=false;
-        localStorage.removeItem("destaAccountCreated");
-        showCreateAccount();
-        document.getElementById("accountScreen").classList.remove("hidden");
+        state.telegramAccountRegistered=false;
         return false;
       }catch(error){
         console.warn("Telegram account bootstrap unavailable:",error);
+        state.telegramBootstrapError=true;
         return false;
       }
     }
@@ -7342,12 +7353,27 @@ html,body{
 
       let authenticated=await loadServerAccount();
       if(!authenticated && state.telegramId){
-        authenticated=await bootstrapTelegramAccount();
+        for(let attempt=0; attempt<3 && !authenticated; attempt++){
+          state.telegramBootstrapError=false;
+          authenticated=await bootstrapTelegramAccount();
+          if(!authenticated && state.telegramAccountRegistered===false && !state.telegramBootstrapError) break;
+          if(!authenticated) await new Promise(resolve=>setTimeout(resolve,700));
+        }
       }
 
       if(!authenticated){
         document.getElementById("accountScreen").classList.remove("hidden");
-        showCreateAccount();
+        if(state.telegramId && !state.telegramBootstrapError && state.telegramAccountRegistered===false){
+          showCreateAccount();
+        }else if(state.telegramId){
+          document.getElementById("accountWelcome").textContent="Connecting to your Telegram account…";
+          document.getElementById("accountCreateFields").classList.add("hidden");
+          document.getElementById("accountLoginFields").classList.add("hidden");
+          document.getElementById("accountResetFields").classList.add("hidden");
+          document.getElementById("accountMessage").textContent="Please reopen DESTA PLAY from Telegram and try again. Your existing account has not been changed.";
+        }else{
+          showLogin();
+        }
       }else{
         document.getElementById("accountScreen").classList.add("hidden");
         showHome();
