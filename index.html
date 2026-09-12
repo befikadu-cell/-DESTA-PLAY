@@ -3313,9 +3313,10 @@ html,body{
       }
       if(status){ status.className="accountMessage"; status.textContent="Waiting for Telegram phone sharing…"; }
       try{
-        tg.requestContact(async function(shared){
+        await new Promise(resolve=>tg.requestContact(async function(shared){
           if(shared !== true && shared !== "true"){
             if(status){ status.className="accountMessage error"; status.textContent="Phone sharing was cancelled."; }
+            resolve();
             return;
           }
           if(status){ status.className="accountMessage"; status.textContent="Phone shared. Checking…"; }
@@ -3327,13 +3328,15 @@ html,body{
                 document.getElementById("registrationPhone").value=data.phone || "";
                 localStorage.setItem("destaRegistrationPhone",data.phone || "");
                 if(status){ status.className="accountMessage success"; status.textContent="Phone number received successfully."; }
+                resolve();
                 return;
               }
             }catch(e){ console.warn("Registration phone check:",e); }
             await new Promise(resolve=>setTimeout(resolve,800));
           }
           if(status){ status.className="accountMessage error"; status.textContent="Telegram sent the contact, but the server has not received it yet. Try again."; }
-        });
+          resolve();
+        }));
       }catch(error){
         if(status){ status.className="accountMessage error"; status.textContent=error.message || "Could not share phone number."; }
       }
@@ -3445,7 +3448,12 @@ html,body{
       const registrationReferralCode=(document.getElementById("registrationReferralCode")?.value || state.referralCode || "").trim().toUpperCase();
       state.referralCode=registrationReferralCode;
       const registrationPhone=document.getElementById("registrationPhone").value.trim();
-      if(!registrationPhone){ message.className="accountMessage error"; message.textContent="Share your phone number through Telegram first."; return; }
+      if(!registrationPhone){
+        message.className="accountMessage";
+        message.textContent="Please share your Telegram phone number first.";
+        try{ await shareRegistrationPhone(); }catch(e){}
+        return;
+      }
       if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
       message.className="accountMessage"; message.textContent="Creating account...";
       try{
@@ -3720,7 +3728,11 @@ html,body{
     function setLanguage(lang){
       lang=(lang==="am" ? "am" : "en");
       state.language=lang;
-      localStorage.setItem("destaLanguage",lang);
+      try{ localStorage.setItem("destaLanguage",lang); }catch(e){}
+      try{
+        if(tg && tg.CloudStorage && typeof tg.CloudStorage.setItem==="function")
+          tg.CloudStorage.setItem("destaLanguage",lang,()=>{});
+      }catch(e){}
       applyLanguageToUI();
       const helpOverlay=document.getElementById("helpOverlay");
       if(helpOverlay && !helpOverlay.classList.contains("hidden")) openHelp();
@@ -3740,9 +3752,17 @@ html,body{
       setLanguage(button.id.endsWith("AM") ? "am" : "en");
     },true);
 
-    function initLanguage(){
-      const saved=localStorage.getItem("destaLanguage");
+    async function initLanguage(){
+      let saved="";
+      try{ saved=localStorage.getItem("destaLanguage") || ""; }catch(e){}
+      if(tg && tg.CloudStorage && typeof tg.CloudStorage.getItem==="function") {
+        try{
+          const cloudSaved=await new Promise(resolve=>tg.CloudStorage.getItem("destaLanguage",(error,value)=>resolve(error ? "" : String(value||""))));
+          if(cloudSaved==="am" || cloudSaved==="en") saved=cloudSaved;
+        }catch(e){}
+      }
       state.language=(saved==="am" ? "am" : "en");
+      try{ localStorage.setItem("destaLanguage",state.language); }catch(e){}
       applyLanguageToUI();
 
       const en=document.getElementById("langEN");
@@ -3918,7 +3938,11 @@ html,body{
     }
 
     function getInviteLink(){
-      return state.inviteLink || (state.inviteCode ? `${location.origin}${location.pathname}?ref=${encodeURIComponent(state.inviteCode)}` : "");
+      if(state.inviteCode){
+        const base="https://t.me/Dasta_play_bot/Dasta";
+        return `${base}?startapp=${encodeURIComponent(state.inviteCode)}`;
+      }
+      return state.inviteLink || "";
     }
 
     async function copyInviteLink(){
@@ -7276,6 +7300,7 @@ html,body{
 
     (async function initializeDesta(){
       loadTelegramUser();
+      await initLanguage();
 
       let authenticated=await loadServerAccount();
       if(!authenticated && state.telegramId){
@@ -7295,7 +7320,6 @@ html,body{
       if(authenticated && state.commandTarget){
         setTimeout(()=>openTelegramCommandTarget(),80);
       }
-      initLanguage();
       setInterval(loadWalletData, 5000);
     })();
 
@@ -7361,7 +7385,7 @@ html,body{
         <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
         <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
         <label class="walletFormLabel">WITHDRAWAL METHOD</label>
-        <select id="withdrawMethod" class="walletFormSelect"><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
+        <select id="withdrawMethod" class="walletFormSelect"><option value="Telegram">Telegram</option><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
         <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
         <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Phone number receiving the money">
         <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
