@@ -1907,7 +1907,11 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none;}
 body{min-height:100vh;height:100vh;padding:0!important;}
 button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
-#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow:hidden;}
+#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow-y:auto!important;overflow-x:hidden!important;align-items:flex-start!important;padding:12px 10px 30px!important;-webkit-overflow-scrolling:touch;}
+#accountScreen .accountPanel{flex:0 0 auto!important;margin:0 auto 20px!important;}
+#accountCreateFields .accountBtn:first-of-type{width:86%!important;margin-left:auto!important;margin-right:auto!important;padding:9px 8px!important;font-size:10px!important;line-height:1.2!important;}
+#accountCreateFields .accountPhoneShareBtn{width:86%!important;min-height:36px!important;padding:9px 8px!important;font-size:10px!important;}
+#accountCreateFields #createAccountButton{width:100%!important;margin-bottom:12px!important;}
 #home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px)!important;min-height:0!important;max-height:calc(100vh - 68px);box-sizing:border-box;overflow:hidden!important;}
 #gameScreen{position:relative;padding:0!important;}
 .gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
@@ -2191,7 +2195,7 @@ html,body{
             readonly>
 
           <button
-            class="accountBtn"
+            class="accountBtn accountPhoneShareBtn"
             type="button"
             onclick="shareRegistrationPhone()">
             SHARE PHONE NUMBER THROUGH TELEGRAM
@@ -3471,20 +3475,22 @@ html,body{
       }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
     }
 
-    /* Keep CREATE ACCOUNT responsive even when an inline handler is affected by
-       Telegram/WebView script scope behavior. This is registration-only. */
+    /* Keep CREATE ACCOUNT responsive in Telegram/WebView. Registration-only. */
     window.createAccount=createAccount;
-    document.addEventListener("DOMContentLoaded",function(){
+    function bindCreateAccountButton(){
       const button=document.getElementById("createAccountButton");
       if(button && !button.__destaCreateBound){
         button.__destaCreateBound=true;
+        button.type="button";
         button.addEventListener("click",function(event){
           event.preventDefault();
           event.stopPropagation();
           createAccount();
         });
       }
-    });
+    }
+    if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindCreateAccountButton);
+    else bindCreateAccountButton();
 
     function showHome(){
 
@@ -3939,7 +3945,7 @@ html,body{
 
     function getInviteLink(){
       if(state.inviteCode){
-        const base="https://t.me/DestaPlaybot/desta";
+        const base="https://t.me/Dasta_play_bot/Dasta";
         return `${base}?startapp=${encodeURIComponent(state.inviteCode)}`;
       }
       return state.inviteLink || "";
@@ -6500,7 +6506,7 @@ html,body{
       if(num>=16 && num<=30) return `አይ ${num}`;
       if(num>=31 && num<=45) return `ኤን ${num}`;
       if(num>=46 && num<=60) return `ጂ ${num}`;
-      if(num>=61 && num<=75) return `O ${num}`;
+      if(num>=61 && num<=75) return `ኦ ቁጥር ${num}`;
       return null;
     }
 
