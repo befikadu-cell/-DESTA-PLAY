@@ -1907,11 +1907,7 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none;}
 body{min-height:100vh;height:100vh;padding:0!important;}
 button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
-#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow-y:auto!important;overflow-x:hidden!important;align-items:flex-start!important;padding:12px 10px 30px!important;-webkit-overflow-scrolling:touch;}
-#accountScreen .accountPanel{flex:0 0 auto!important;margin:0 auto 20px!important;}
-#accountCreateFields .accountBtn:first-of-type{width:86%!important;margin-left:auto!important;margin-right:auto!important;padding:9px 8px!important;font-size:10px!important;line-height:1.2!important;}
-#accountCreateFields .accountPhoneShareBtn{width:86%!important;min-height:36px!important;padding:9px 8px!important;font-size:10px!important;}
-#accountCreateFields #createAccountButton{width:100%!important;margin-bottom:12px!important;}
+#accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow:hidden;}
 #home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px)!important;min-height:0!important;max-height:calc(100vh - 68px);box-sizing:border-box;overflow:hidden!important;}
 #gameScreen{position:relative;padding:0!important;}
 .gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
@@ -2195,7 +2191,7 @@ html,body{
             readonly>
 
           <button
-            class="accountBtn accountPhoneShareBtn"
+            class="accountBtn"
             type="button"
             onclick="shareRegistrationPhone()">
             SHARE PHONE NUMBER THROUGH TELEGRAM
@@ -2866,8 +2862,6 @@ html,body{
         <div class="profileRow"><span>Players Invited</span><strong id="profileInviteCount">0</strong></div>
         <div class="profileRow"><span>Points Earned</span><strong id="profileInviteEarnedPoints">0.00</strong></div>
         <div class="profileRow"><span>Bonus Points</span><strong id="profileBonusPoints">0.00</strong></div>
-        <div class="profileRow"><span>Play Value</span><strong><span id="profileInvitePlayValue">0.00</span> ETB</strong></div>
-        <div class="profileRow"><span>Withdrawal Value</span><strong><span id="profileInviteWithdrawalValue">0.00</span> ETB</strong></div>
         <button class="placeBtn" type="button" onclick="copyInviteLink()">COPY INVITE LINK</button>
         <button class="placeBtn" type="button" onclick="shareInviteLink()">SHARE INVITE</button>
         <div id="inviteStatus" class="walletStatus"></div>
@@ -3475,22 +3469,20 @@ html,body{
       }catch(error){ console.error("Account creation error:",error); message.className="accountMessage error"; message.textContent=error.message || "Could not create account."; }
     }
 
-    /* Keep CREATE ACCOUNT responsive in Telegram/WebView. Registration-only. */
+    /* Keep CREATE ACCOUNT responsive even when an inline handler is affected by
+       Telegram/WebView script scope behavior. This is registration-only. */
     window.createAccount=createAccount;
-    function bindCreateAccountButton(){
+    document.addEventListener("DOMContentLoaded",function(){
       const button=document.getElementById("createAccountButton");
       if(button && !button.__destaCreateBound){
         button.__destaCreateBound=true;
-        button.type="button";
         button.addEventListener("click",function(event){
           event.preventDefault();
           event.stopPropagation();
           createAccount();
         });
       }
-    }
-    if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",bindCreateAccountButton);
-    else bindCreateAccountButton();
+    });
 
     function showHome(){
 
@@ -3932,8 +3924,6 @@ html,body{
         setText("profileInviteCount",Number(data.invitedPlayers||0));
         setText("profileInviteEarnedPoints",Number(data.earnedPoints||0).toFixed(2));
         setText("profileBonusPoints",Number(data.bonusPoints||0).toFixed(2));
-        setText("profileInvitePlayValue",Number(data.playValue||0).toFixed(2));
-        setText("profileInviteWithdrawalValue",Number(data.withdrawalValue||0).toFixed(2));
         state.inviteCode=data.inviteCode || "";
         state.inviteLink=data.inviteLink || "";
       }catch(error){
@@ -3945,7 +3935,7 @@ html,body{
 
     function getInviteLink(){
       if(state.inviteCode){
-        const base="https://t.me/Dasta_play_bot/Dasta";
+        const base="https://t.me/DestaPlaybot/desta";
         return `${base}?startapp=${encodeURIComponent(state.inviteCode)}`;
       }
       return state.inviteLink || "";
@@ -6184,7 +6174,8 @@ html,body{
       ).trim();
     }
 
-    let depositState={amount:0,phone:"",method:"telebirr",ownerName:"",paymentPhone:"",account:""};
+    let depositState={amount:0,phone:"",method:"telebirr",ownerName:"",paymentPhone:"",account:"",requestId:"",expiresAt:""};
+    let depositTimer=null;
 
     function openDeposit(){
       const id=currentPlayerId();
@@ -6193,6 +6184,11 @@ html,body{
       document.getElementById("depositStep2").classList.add("hidden");
       document.getElementById("depositStep3").classList.add("hidden");
       document.getElementById("depositAmount").value="";
+      document.getElementById("depositReference").value="";
+      document.getElementById("depositTimer").textContent="";
+      if(depositTimer){clearInterval(depositTimer);depositTimer=null;}
+      depositState.requestId="";
+      depositState.expiresAt="";
       document.getElementById("depositSender").value=localStorage.getItem("destaDepositPhone") || "";
       setWalletStatus("depositStatus","","");
       document.getElementById("depositModal").classList.remove("hidden");
@@ -6238,10 +6234,51 @@ html,body{
       }
     }
 
-    function depositPaid(){
-      document.getElementById("depositStep2").classList.add("hidden");
-      document.getElementById("depositStep3").classList.remove("hidden");
-      setWalletStatus("depositStatus","Paste the Telegram transaction-message link, then submit.","wait");
+    async function depositPaid(){
+      if(!depositState.amount || !depositState.phone){
+        setWalletStatus("depositStatus","Deposit information is missing. Please start again.","err");
+        return;
+      }
+      const button=document.querySelector('#depositStep2 button[onclick="depositPaid()"]');
+      if(button)button.disabled=true;
+      setWalletStatus("depositStatus","Starting your 30-minute verification window…","wait");
+      try{
+        const data=await postWalletRequest(WALLET_API.deposit,{
+          amount:depositState.amount,recipient:depositState.ownerName,
+          senderPhone:depositState.phone,method:depositState.method
+        },"depositStatus",null);
+        if(!data)return;
+        depositState.requestId=data.requestId||"";
+        depositState.expiresAt=data.expiresAt||"";
+        document.getElementById("depositStep2").classList.add("hidden");
+        document.getElementById("depositStep3").classList.remove("hidden");
+        startDepositCountdown();
+        setWalletStatus("depositStatus","Paste the complete original payment SMS exactly as received, then submit it.","wait");
+      }catch(error){
+        setWalletStatus("depositStatus",error.message || "Could not start deposit verification.","err");
+      }finally{if(button)button.disabled=false;}
+    }
+
+    function startDepositCountdown(){
+      if(depositTimer)clearInterval(depositTimer);
+      const timerEl=document.getElementById("depositTimer");
+      const submitBtn=document.getElementById("depositSubmitBtn");
+      const tick=()=>{
+        const end=new Date(depositState.expiresAt||0).getTime();
+        const left=Math.max(0,end-Date.now());
+        if(left<=0){
+          if(timerEl)timerEl.textContent="TIME EXPIRED";
+          if(submitBtn)submitBtn.disabled=true;
+          if(depositTimer){clearInterval(depositTimer);depositTimer=null;}
+          setWalletStatus("depositStatus","The 30-minute deposit verification window has expired. Please start a new deposit request.","err");
+          return;
+        }
+        const totalSeconds=Math.floor(left/1000);
+        const minutes=Math.floor(totalSeconds/60), seconds=totalSeconds%60;
+        if(timerEl)timerEl.textContent=`TIME REMAINING: ${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
+        if(submitBtn)submitBtn.disabled=false;
+      };
+      tick(); depositTimer=setInterval(tick,1000);
     }
 
     function openWithdraw(){
@@ -6287,24 +6324,19 @@ html,body{
     }
 
     async function submitDeposit(){
-      const link=document.getElementById("depositReference").value.trim();
-      if(!depositState.amount || !depositState.phone || !link){
-        setWalletStatus("depositStatus","Enter the Telegram transaction-message link.","err");
+      const sms=document.getElementById("depositReference").value;
+      if(!depositState.requestId || !sms.trim()){
+        setWalletStatus("depositStatus","Paste the complete original payment SMS exactly as received.","err");
         return;
       }
-      const data=await postWalletRequest(WALLET_API.deposit,{
-        amount:depositState.amount,
-        recipient:depositState.ownerName,
-        transactionId:link,
-        referenceId:link,
-        senderPhone:depositState.phone,
-        method:depositState.method
-      },"depositStatus","depositSubmitBtn");
+      const data=await postWalletRequest("https://desta-play.onrender.com/api/deposit/submit-sms",{requestId:depositState.requestId,smsText:sms},"depositStatus","depositSubmitBtn");
       if(data){
+        if(depositTimer){clearInterval(depositTimer);depositTimer=null;}
         document.getElementById("depositStep3").classList.add("hidden");
         document.getElementById("depositStep1").classList.remove("hidden");
         document.getElementById("depositReference").value="";
-        setWalletStatus("depositStatus","Deposit is PENDING. Balance will be credited only after verification.","ok");
+        depositState.requestId=""; depositState.expiresAt="";
+        setWalletStatus("depositStatus","Payment SMS submitted for manual verification. Your balance will be credited only after admin approval.","ok");
       }
     }
 
@@ -6506,7 +6538,7 @@ html,body{
       if(num>=16 && num<=30) return `አይ ${num}`;
       if(num>=31 && num<=45) return `ኤን ${num}`;
       if(num>=46 && num<=60) return `ጂ ${num}`;
-      if(num>=61 && num<=75) return `O ${num}`;
+      if(num>=61 && num<=75) return `ኦ ቁጥር ${num}`;
       return null;
     }
 
@@ -7372,10 +7404,10 @@ html,body{
         </div>
 
         <div id="depositStep3" class="hidden">
-          <div class="walletHint">Paste the Telegram transaction-message link for the payment you just made.</div>
-          <label class="walletFormLabel">TELEGRAM TRANSACTION-MESSAGE LINK</label>
-          <input id="depositReference" class="walletFormInput" type="text" autocomplete="off" placeholder="Paste transaction message link">
-          <button id="depositSubmitBtn" class="walletSubmit" onclick="submitDeposit()">SUBMIT</button>
+          <div class="walletHint">Paste the complete original payment SMS exactly as received. Do not edit, shorten, or remove anything.</div>
+          <div id="depositTimer" style="text-align:center;font-weight:800;margin:10px 0;">TIME REMAINING: 30:00</div>
+          <textarea id="depositReference" class="walletFormInput" rows="7" autocomplete="off" placeholder="Paste the complete original payment SMS here"></textarea>
+          <button id="depositSubmitBtn" class="walletSubmit" onclick="submitDeposit()">SUBMIT PAYMENT SMS</button>
         </div>
 
         <div id="depositStatus" class="walletStatus"></div>
