@@ -92,6 +92,10 @@ const PAYMENT_PHONE =
 const TELEBIRR_ACCOUNT =
     String(process.env.TELEBIRR_ACCOUNT || "TEST TELEBIRR ACCOUNT").trim();
 
+const MPESA_OWNER_NAME = String(process.env.MPESA_OWNER_NAME || PAYMENT_OWNER_NAME).trim();
+const MPESA_PHONE = String(process.env.MPESA_PHONE || "").trim();
+const MPESA_ACCOUNT = String(process.env.MPESA_ACCOUNT || MPESA_PHONE).trim();
+
 const MIN_DEPOSIT_AMOUNT = 50;
 const DEPOSIT_WINDOW_MS = 30 * 60 * 1000;
 
@@ -106,8 +110,7 @@ const EDITION_STAKES = [
 
 const SUPPORTED_DEPOSIT_METHODS = {
     telebirr: true,
-    mpesa: false,
-    cbe_birr: false
+    mpesa: true
 };
 
 if (!SUPABASE_URL) {
@@ -425,6 +428,73 @@ function parseFirstAmount(text) {
     return null;
 }
 
+function firstLabeledValue(text, labels) {
+    const source = String(text || "");
+    for (const label of labels) {
+        const re = new RegExp("(?:" + label + ")\\s*[:#=-]?\\s*([^\\n\\r]+)", "i");
+        const match = source.match(re);
+        if (match && match[1]) {
+            const value = match[1].trim().replace(/[.]+$/, "").slice(0, 200);
+            if (value) return value;
+        }
+    }
+    return null;
+}
+
+function firstPhoneLike(text) {
+    const matches = String(text || "").match(/(?:\+251|0)9\d{8}|(?:\+251|0)7\d{8}/g) || [];
+    return matches.length ? normalizePhone(matches[0]) : null;
+}
+
+function parsePaymentSmsDetails(text) {
+    const source = String(text || "");
+    const amountMatch = source.match(/(?:amount|paid|received|credited|sent|transferred|you received|you have received|ብር)\s*[:#=-]?\s*([0-9]{1,9}(?:[.,][0-9]{1,2})?)/i);
+    const amount = amountMatch ? Number(amountMatch[1].replace(/,/g, "")) : parseFirstAmount(source);
+    const senderPhone = firstLabeledValue(source, ["sender phone", "sender number", "from phone", "from number", "sender"]) || firstPhoneLike(source);
+    const senderAccountName = firstLabeledValue(source, ["sender account name", "sender name", "sender account", "from account", "from name"]);
+    const senderAccountId = firstLabeledValue(source, ["sender account id", "sender id", "from account id", "payer id"]);
+    const receiverPhone = firstLabeledValue(source, ["receiver phone", "receiver number", "recipient phone", "recipient number", "to phone", "to number"]);
+    const receiverAccount = firstLabeledValue(source, ["receiver account", "receiver account name", "receiver name", "recipient account", "recipient name", "to account", "to name"]);
+    const transactionId = firstLabeledValue(source, ["transaction id", "transaction", "reference id", "reference", "receipt number", "receipt", "ref"]);
+    const paymentTime = firstLabeledValue(source, ["payment time", "transaction time", "date", "time"]);
+    return {
+        amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+        senderPhone: senderPhone ? normalizePhone(senderPhone) : null,
+        senderAccountName,
+        senderAccountId,
+        receiverPhone: receiverPhone ? normalizePhone(receiverPhone) : null,
+        receiverAccount,
+        transactionId: transactionId ? normalizeReference(transactionId) : null,
+        referenceId: transactionId ? normalizeReference(transactionId) : null,
+        paymentTime
+    };
+}
+
+function paymentVerificationReport(transaction, smsDetails, smsText) {
+    const details = smsDetails || {};
+    const stored = depositDescriptionData(transaction);
+    const method = String(stored.method || "telebirr").toLowerCase();
+    return (
+        `<b>DESTA PLAY — DEPOSIT VERIFICATION</b>\n` +
+        `Account ID: ${htmlEscape(transaction.player_id)}\n` +
+        `Player/Telegram Name: ${htmlEscape(transaction.player_name || "Not stored")}\n` +
+        `Payment Method: ${htmlEscape(method === "mpesa" ? "M-Pesa" : "Telebirr")}\n` +
+        `Requested Amount: ${htmlEscape(transaction.amount)} ETB\n` +
+        `Amount Player Entered: ${htmlEscape(transaction.amount)} ETB\n` +
+        `Amount Received: ${htmlEscape(details.amount ?? "Not detected")} ETB\n` +
+        `Sender Phone Number: ${htmlEscape(details.senderPhone || "Not detected")}\n` +
+        `Sender Account Name: ${htmlEscape(details.senderAccountName || "Not detected")}\n` +
+        `Sender Account/ID: ${htmlEscape(details.senderAccountId || "Not detected")}\n` +
+        `Receiver Phone/Number: ${htmlEscape(details.receiverPhone || "Not detected")}\n` +
+        `Receiver Account: ${htmlEscape(details.receiverAccount || "Not detected")}\n` +
+        `Transaction/Reference ID: ${htmlEscape(details.referenceId || details.transactionId || "Not detected")}\n` +
+        `Payment Time: ${htmlEscape(details.paymentTime || "Not detected")}\n` +
+        `Deposit Request ID: ${htmlEscape(transaction.id)}\n` +
+        `Request Time: ${htmlEscape(transaction.created_at || "Not available")}\n\n` +
+        `<b>ORIGINAL PAYMENT SMS</b>\n<pre>${htmlEscape(smsText)}</pre>`
+    );
+}
+
 function extractReferenceCandidates(text) {
     const source = String(text || "");
     const values = new Set();
@@ -678,7 +748,7 @@ async function approveDepositTransaction(transaction, verification) {
             playerId: pending.player_id,
             amount: expectedAmount,
             type: "deposit_credit",
-            description: "Verified Telebirr deposit",
+            description: `Verified ${String(details.method || "telebirr").toLowerCase() === "mpesa" ? "M-Pesa" : "Telebirr"} deposit`,
             roundId: referenceId,
             metadata: {
                 referenceId,
@@ -2333,14 +2403,11 @@ app.get(
                     account: TELEBIRR_ACCOUNT
                 },
                 mpesa: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
-                },
-                cbeBirr: {
-                    available: false,
-                    message:
-                        "Payment method is not available now."
+                    available: Boolean(MPESA_PHONE),
+                    ownerName: MPESA_OWNER_NAME,
+                    phone: MPESA_PHONE,
+                    account: MPESA_ACCOUNT,
+                    message: MPESA_PHONE ? undefined : "M-Pesa is not configured yet."
                 }
             }
         });
@@ -2392,6 +2459,8 @@ app.post(
                         recipient,
                         senderPhone,
                         requestId,
+                        playerName: req.player.username || req.player.first_name || req.player.full_name || "Player",
+                        accountId: req.player.id,
                         requestedAt: createdAt,
                         paymentWindowMinutes: 30
                     }),
@@ -2499,13 +2568,20 @@ async function processDepositAction(action, requestId) {
     const smsText = String(details.smsText || "");
     if (!smsText) throw new Error("No payment SMS is attached to this request");
 
+    const smsDetails = parsePaymentSmsDetails(smsText);
+    const expectedAmount = Number(transaction.amount);
+    if (!Number.isFinite(smsDetails.amount) || smsDetails.amount !== expectedAmount) {
+        throw new Error(`Payment amount mismatch: requested ${expectedAmount} ETB, SMS shows ${smsDetails.amount ?? "an undetected amount"} ETB`);
+    }
+
     const referenceCandidates = extractReferenceCandidates(smsText);
-    const referenceId = normalizeReference(transaction.reference_id || details.paymentReference || referenceCandidates[0]);
+    const referenceId = normalizeReference(
+        transaction.reference_id || details.paymentReference || smsDetails.referenceId || referenceCandidates[0]
+    );
     if (!referenceId) throw new Error("No payment transaction/reference ID was found in the submitted SMS");
 
     if (await hasSuccessfulDepositReference(referenceId)) throw new Error("This payment has already been credited");
 
-    const expectedAmount = Number(transaction.amount);
     const lockKey = `${requestId}:${referenceId}`;
     if (paymentProcessingLocks.has(lockKey)) throw new Error("Payment verification is already being processed");
     paymentProcessingLocks.add(lockKey);
@@ -2523,7 +2599,14 @@ async function processDepositAction(action, requestId) {
                     referenceId,
                     paymentReference: referenceId,
                     smsText,
-                    smsHash: details.smsHash || crypto.createHash("sha256").update(smsText, "utf8").digest("hex")
+                    smsHash: details.smsHash || crypto.createHash("sha256").update(smsText, "utf8").digest("hex"),
+                    receivedAmount: smsDetails.amount,
+                    senderPhone: smsDetails.senderPhone,
+                    senderAccountName: smsDetails.senderAccountName,
+                    senderAccountId: smsDetails.senderAccountId,
+                    receiverPhone: smsDetails.receiverPhone,
+                    receiverAccount: smsDetails.receiverAccount,
+                    paymentTime: smsDetails.paymentTime
                 })
             })
             .eq("id", requestId)
@@ -2540,7 +2623,12 @@ async function processDepositAction(action, requestId) {
             type: "deposit_credit",
             description: "Verified Telebirr deposit",
             roundId: referenceId,
-            metadata: { referenceId, verifiedAmount: expectedAmount, smsHash: details.smsHash || null }
+            metadata: {
+                referenceId, verifiedAmount: expectedAmount, smsHash: details.smsHash || null,
+                senderPhone: smsDetails.senderPhone || null, senderAccountName: smsDetails.senderAccountName || null,
+                senderAccountId: smsDetails.senderAccountId || null, receiverPhone: smsDetails.receiverPhone || null,
+                receiverAccount: smsDetails.receiverAccount || null, paymentTime: smsDetails.paymentTime || null
+            }
         });
 
         try {
@@ -2591,6 +2679,8 @@ app.post("/api/deposit/submit-sms", requirePlayer, async (req, res) => {
             edition: 5,
             requestId,
             requestedAt: transaction.created_at,
+            playerName: req.player.username || req.player.first_name || req.player.full_name || "Player",
+            accountId: req.player.id,
             paymentReference: paymentReference || null,
             referenceId: paymentReference || null,
             transactionId: paymentReference || null,
@@ -2606,15 +2696,13 @@ app.post("/api/deposit/submit-sms", requirePlayer, async (req, res) => {
         if (error) { await dbError("deposit SMS submission", error); throw new Error("Could not save payment SMS"); }
         if (!saved) throw new Error("Deposit request was already changed");
 
+        const smsDetails = parsePaymentSmsDetails(cleanSms);
         const details = depositDescriptionData(saved);
-        const text =
-            `<b>DESTA PLAY — DEPOSIT VERIFICATION</b>\n` +
-            `Player: ${htmlEscape(saved.player_id)}\n` +
-            `Amount: ${htmlEscape(saved.amount)} ETB\n` +
-            `Request ID: ${htmlEscape(saved.id)}\n` +
-            `Reference: ${htmlEscape(paymentReference || "Not detected")}\n` +
-            `Time remaining: ${htmlEscape(depositMinutesRemaining(saved))} minutes\n\n` +
-            `<b>ORIGINAL PAYMENT SMS</b>\n<pre>${htmlEscape(cleanSms)}</pre>`;
+        const text = paymentVerificationReport(
+            saved,
+            { ...smsDetails, referenceId: paymentReference || smsDetails.referenceId },
+            cleanSms
+        ) + `\nTime remaining: ${htmlEscape(depositMinutesRemaining(saved))} minutes`;
 
         await sendAdminTelegramMessage(text, depositApprovalReplyMarkup(saved.id));
 
@@ -2657,6 +2745,22 @@ app.post(
         try {
             const amount =
                 Number(req.body.amount);
+
+            const method =
+                String(req.body.method || "Telebirr")
+                    .trim();
+
+            const allowedWithdrawalMethods = new Set([
+                "Telebirr",
+                "M-Pesa"
+            ]);
+
+            if (!allowedWithdrawalMethods.has(method)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Unsupported withdrawal method"
+                });
+            }
 
             const recipientName =
                 String(
@@ -2763,7 +2867,8 @@ app.post(
                 metadata: {
                     requestId,
                     recipientName,
-                    recipientPhone
+                    recipientPhone,
+                    method
                 }
             });
 
@@ -2792,6 +2897,7 @@ app.post(
                                 recipient:
                                     recipientName,
                                 recipientPhone,
+                                method,
                                 requestId,
                                 requestedAt:
                                     nowIso()
@@ -2832,17 +2938,20 @@ app.post(
             }
 
             const text =
-                `<b>DESTA PLAY — WITHDRAWAL REQUEST</b>\n` +
-                `Telegram name: ${String(req.player.username || "Player")}\n` +
-                `Username: ${String(req.player.telegram_username || "Not available")}\n` +
-                `Account/Player ID: ${String(req.player.id)}\n` +
-                `Recipient: ${recipientName}\n` +
-                `Phone: ${recipientPhone}\n` +
-                `Amount: ${amount} ETB\n` +
-                `Balance before: ${before} ETB\n` +
-                `Balance after: ${after} ETB\n` +
-                `Request ID: ${requestId}\n` +
-                `Request time: ${nowIso()}`;
+                `<b>DESTA PLAY — WITHDRAWAL VERIFICATION</b>\n` +
+                `Account ID: ${htmlEscape(req.player.id)}\n` +
+                `Player/Telegram Name: ${htmlEscape(req.player.username || "Player")}\n` +
+                `Telegram Username: ${htmlEscape(req.player.telegram_username || "Not available")}\n` +
+                `Requested Amount: ${htmlEscape(amount)} ETB\n` +
+                `Amount to Send: ${htmlEscape(amount)} ETB\n` +
+                `Payment Method: ${htmlEscape(method)}\n` +
+                `Recipient Account Name: ${htmlEscape(recipientName)}\n` +
+                `Recipient Phone Number: ${htmlEscape(recipientPhone)}\n` +
+                `Sender/DESTA PLAY Account ID: ${htmlEscape(req.player.id)}\n` +
+                `Balance Before: ${htmlEscape(before)} ETB\n` +
+                `Balance After Reservation: ${htmlEscape(after)} ETB\n` +
+                `Withdrawal Request ID: ${htmlEscape(requestId)}\n` +
+                `Request Time: ${htmlEscape(nowIso())}`;
 
             await sendAdminTelegramMessage(
                 text,
