@@ -2186,15 +2186,15 @@ html,body{
             id="registrationPhone"
             class="accountInput"
             type="tel"
-            autocomplete="tel"
-            placeholder="Share your Telegram phone number"
-            readonly>
+            autocomplete="off"
+            placeholder="Enter your phone number">
 
           <button
+            id="shareRegistrationPhoneButton"
             class="accountBtn"
             type="button"
             onclick="shareRegistrationPhone()">
-            SHARE PHONE NUMBER THROUGH TELEGRAM
+            SHARE PHONE NUMBER FROM TELEGRAM
           </button>
 
           <div id="registrationPhoneStatus" class="accountMessage"></div>
@@ -3176,10 +3176,6 @@ html,body{
       if(!state.telegramName)
         state.telegramName="Player";
 
-      const savedRegistrationPhone=localStorage.getItem("destaRegistrationPhone") || "";
-      const registrationPhoneInput=document.getElementById("registrationPhone");
-      if(registrationPhoneInput) registrationPhoneInput.value=savedRegistrationPhone;
-
       state.playerId=
         createPlayerId(
           state.telegramId
@@ -3269,6 +3265,8 @@ html,body{
 
     function showCreateAccount(){
       document.getElementById("accountWelcome").textContent="Welcome. Create your DESTA PLAY account.";
+      const registrationPhoneInput=document.getElementById("registrationPhone");
+      if(registrationPhoneInput) registrationPhoneInput.value="";
       document.getElementById("accountResetFields").classList.add("hidden");
       document.getElementById("accountLoginFields").classList.add("hidden");
       document.getElementById("accountCreateFields").classList.remove("hidden");
@@ -3284,8 +3282,6 @@ html,body{
       document.getElementById("accountCreateFields").classList.add("hidden");
       document.getElementById("accountResetFields").classList.add("hidden");
       document.getElementById("accountLoginFields").classList.remove("hidden");
-      const input=document.getElementById("loginPhone");
-      if(input && !input.value) input.value=localStorage.getItem("destaRegistrationPhone") || "";
       clearAccountMessage();
     }
 
@@ -3450,9 +3446,8 @@ html,body{
       state.referralCode=registrationReferralCode;
       const registrationPhone=document.getElementById("registrationPhone").value.trim();
       if(!registrationPhone){
-        message.className="accountMessage";
-        message.textContent="Please share your Telegram phone number first.";
-        try{ await shareRegistrationPhone(); }catch(e){}
+        message.className="accountMessage error";
+        message.textContent="Please enter your phone number.";
         return;
       }
       if(!state.telegramId){ message.className="accountMessage error"; message.textContent="Telegram account information is not available."; return; }
@@ -6197,7 +6192,7 @@ html,body{
       if(depositTimer){clearInterval(depositTimer);depositTimer=null;}
       depositState.requestId="";
       depositState.expiresAt="";
-      document.getElementById("depositSender").value=localStorage.getItem("destaDepositPhone") || "";
+      document.getElementById("depositSender").value="";
       setWalletStatus("depositStatus","","");
       document.getElementById("depositModal").classList.remove("hidden");
     }
@@ -6224,7 +6219,6 @@ html,body{
         const min=Number(data.minimumDeposit || 50);
         if(amount<min)throw new Error(`Minimum deposit amount is ${min} ETB`);
         depositState={amount,phone,method,ownerName:selected.ownerName || "",paymentPhone:selected.phone || "",account:selected.account || ""};
-        localStorage.setItem("destaDepositPhone",phone);
         document.getElementById("depositOwnerName").textContent=depositState.ownerName || "—";
         document.getElementById("depositPaymentPhone").textContent=depositState.paymentPhone || depositState.account || "—";
         document.getElementById("depositPaymentCopy").value=depositState.paymentPhone || depositState.account || "";
@@ -7406,7 +7400,7 @@ html,body{
           <label class="walletFormLabel">ACCOUNT ID</label>
           <input id="depositAccountId" class="walletFormInput" readonly>
           <label class="walletFormLabel">YOUR PAYMENT PHONE NUMBER</label>
-          <input id="depositSender" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Your payment phone number">
+          <input id="depositSender" class="walletFormInput" type="tel" autocomplete="off" placeholder="Your payment phone number">
           <label class="walletFormLabel">DEPOSIT AMOUNT (ETB)</label>
           <input id="depositAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
           <label class="walletFormLabel">PAYMENT METHOD</label>
@@ -7451,7 +7445,7 @@ html,body{
         <label class="walletFormLabel">WITHDRAWAL METHOD</label>
         <select id="withdrawMethod" class="walletFormSelect"><option value="Telegram">Telegram</option><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
         <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
-        <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="tel" placeholder="Phone number receiving the money">
+        <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="off" placeholder="Phone number receiving the money">
         <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
 
         <div id="withdrawPasswordBox" class="walletPasswordBox hidden">
