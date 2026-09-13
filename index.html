@@ -7405,9 +7405,8 @@ html,body{
           <input id="depositAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
           <label class="walletFormLabel">PAYMENT METHOD</label>
           <select id="depositMethod" class="walletFormSelect">
-            <option value="telebirr">Telebirr</option>
-            <option value="mpesa">M-Pesa — Payment method is not available now.</option>
-            <option value="cbe_birr">CBE Birr — Payment method is not available now.</option>
+            <option value="telebirr" selected>Telebirr</option>
+            <option value="mpesa">M-Pesa</option>
           </select>
           <button id="depositPayBtn" class="walletSubmit" onclick="startDepositPayment()">PAY</button>
         </div>
@@ -7443,7 +7442,7 @@ html,body{
         <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
         <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
         <label class="walletFormLabel">WITHDRAWAL METHOD</label>
-        <select id="withdrawMethod" class="walletFormSelect"><option value="Telegram">Telegram</option><option value="M-Pesa">M-Pesa</option><option value="Telebirr">Telebirr</option></select>
+        <select id="withdrawMethod" class="walletFormSelect"><option value="Telebirr" selected>Telebirr</option><option value="M-Pesa">M-Pesa</option></select>
         <label class="walletFormLabel">WITHDRAWAL PHONE NUMBER</label>
         <input id="withdrawAccount" class="walletFormInput" type="tel" autocomplete="off" placeholder="Phone number receiving the money">
         <button id="withdrawSubmitBtn" class="walletSubmit" onclick="showWithdrawalPasswordBox()">WITHDRAW</button>
