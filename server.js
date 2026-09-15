@@ -205,6 +205,25 @@ const games = { bingo, keno };
 
 const rounds = {};
 
+/* Serialize balance mutations for the same player. This prevents two near-
+simultaneous independent Keno slots from both reading the same old balance. */
+const playerBalanceLocks = new Map();
+async function withPlayerBalanceLock(playerId, work) {
+    const key = String(playerId);
+    const previous = playerBalanceLocks.get(key) || Promise.resolve();
+    let release;
+    const current = new Promise(resolve => { release = resolve; });
+    const chain = previous.then(() => current);
+    playerBalanceLocks.set(key, chain);
+    await previous;
+    try {
+        return await work();
+    } finally {
+        release();
+        if (playerBalanceLocks.get(key) === chain) playerBalanceLocks.delete(key);
+    }
+}
+
 /* Persistent display sequence for each server-authoritative house game. */
 const roundCounters = {
     keno: 0
@@ -3511,7 +3530,7 @@ function verifyBingoClaim(room, player, submittedCartelaNumber) {
     if (
         !Number.isInteger(cartelaNumber) ||
         cartelaNumber < 1 ||
-        cartelaNumber > 120
+        cartelaNumber > 200
     ) {
         return {
             valid: false,
@@ -3633,12 +3652,19 @@ async function saveBingoRound(tier) {
         current_number:
             room.currentNumber,
         result:
-            room.winner
+            room.status === "FINISHED"
                 ? {
-                    winner:
-                        room.winner.playerId,
-                    prize:
-                        room.winnerPrize
+                    game: "bingo",
+                    grossPool: Number(room.totalPool || 0),
+                    houseRake: Number(room.houseRake || 0),
+                    winnerPool: Number((room.totalPool || 0) * 0.90),
+                    winners: (room.winners || []).map(player => ({
+                        playerId: player.playerId,
+                        telegramName: player.telegramName || "Player",
+                        cartelaNumber: Number(player.cartelaNumber),
+                        rank: Number(player.rank || 1),
+                        amount: Number(player.amount ?? room.winnerPrize ?? 0)
+                    }))
                 }
                 : null,
         engine_state: {
@@ -3670,6 +3696,12 @@ async function saveBingoRound(tier) {
                             room.winner.cartelaNumber
                     }
                     : null,
+
+            occupiedCartelas:
+                Array.from(new Set([
+                    ...(room.cartelaReservations ? Array.from(room.cartelaReservations) : []),
+                    ...room.players.map(player => Number(player.cartelaNumber)).filter(Number.isInteger)
+                ])),
 
             winners:
                 (room.winners || []).map(player => ({
@@ -3800,6 +3832,9 @@ function startNewBingoRound(tier) {
         bettingEndsAt,
 
         players: [],
+
+        /* Cartelas 1–200 are shared globally within this round. */
+        cartelaReservations: new Set(),
 
         secretDraw:
             generateBingoDraw(),
@@ -4002,8 +4037,8 @@ async function resolveBingoWinner(
     room.totalPool = grossPool;
     room.houseRake = houseRake;
     room.winnerPrize = share;
-    room.winners = validWinners;
-    room.winner = validWinners[0] || null;
+    room.winners = validWinners.map(player => ({...player, rank:1, amount:share}));
+    room.winner = room.winners[0] || null;
 
     for (const winningPlayer of validWinners) {
         try {
@@ -4258,12 +4293,12 @@ app.post(
                     selectedCartela
                 ) ||
                 selectedCartela < 1 ||
-                selectedCartela > 120
+                selectedCartela > 200
             ) {
                 return res.status(400).json({
                     success: false,
                     error:
-                        "Cartela number must be between 1 and 120"
+                        "Cartela number must be between 1 and 200"
                 });
             }
 
@@ -4434,7 +4469,7 @@ app.get(
                 return res.status(400).json({
                     success: false,
                     error:
-                        "Cartela number must be between 1 and 120"
+                        "Cartela number must be between 1 and 200"
                 });
             }
 
@@ -4465,7 +4500,8 @@ app.get(
 */
 
 function getPublicBingoRound(
-    tier
+    tier,
+    playerId = null
 ) {
     const room =
         bingoRooms[tier];
@@ -4483,6 +4519,11 @@ function getPublicBingoRound(
             room.bettingEndsAt -
                 now
         );
+
+    const occupiedCartelas = Array.from(new Set([
+        ...(room.cartelaReservations ? Array.from(room.cartelaReservations) : []),
+        ...room.players.map(player => Number(player.cartelaNumber)).filter(Number.isInteger)
+    ])).sort((a,b)=>a-b);
 
     return {
         id:
@@ -4533,6 +4574,17 @@ function getPublicBingoRound(
         playersInRoom:
             room.players.length,
 
+        occupiedCartelas,
+
+        myEntries: room.players
+            .filter(player => playerId != null && String(player.playerId) === String(playerId))
+            .map(player => ({
+                cardIndex: Number(player.cardIndex ?? 0),
+                cartelaNumber: Number(player.cartelaNumber),
+                amount: Number(player.amount || room.entryFee),
+                walletType: player.walletType || "cash"
+            })),
+
         grossPool:
             room.totalPool ||
             room.players.length *
@@ -4561,9 +4613,27 @@ function getPublicBingoRound(
                     playerId:
                         room.winner.playerId,
                     telegramName:
-                        room.winner.telegramName
+                        room.winner.telegramName,
+                    cartelaNumber:
+                        room.winner.cartelaNumber,
+                    amount:
+                        Number(room.winnerPrize || 0)
                 }
-                : null
+                : null,
+
+        result: room.status === "FINISHED" ? {
+            game: "bingo",
+            grossPool: Number(room.totalPool || 0),
+            houseRake: Number(room.houseRake || 0),
+            winnerPool: Number((room.totalPool || 0) * 0.90),
+            winners: (room.winners || []).map(player => ({
+                playerId: player.playerId,
+                telegramName: player.telegramName || "Player",
+                cartelaNumber: Number(player.cartelaNumber),
+                rank: 1,
+                amount: Number(player.amount ?? room.winnerPrize ?? 0)
+            }))
+        } : null
     };
 }
 
@@ -5010,10 +5080,7 @@ function revealNextKenoNumber(
         round.drawIndex >=
         round.secretDraw.length
     ) {
-        finishHouseRound(
-            gameName,
-            round.id
-        );
+        settleKenoRound(round);
 
         return;
     }
@@ -5049,6 +5116,99 @@ function revealNextKenoNumber(
         },
         DRAW_INTERVALS.keno
     );
+}
+
+/*
+|--------------------------------------------------------------------------
+| KENO WINNER SETTLEMENT
+|--------------------------------------------------------------------------
+| Player score = the higher match count from Slot 1 or Slot 2. Rank groups
+| are based on distinct scores. Rank 1 shares 60%, Rank 2 shares 30%, and
+| the house keeps 10%. If no distinct Rank 2 exists, the lower 30% is not
+| redistributed.
+*/
+async function settleKenoRound(round) {
+    if (!round || round.status === "FINISHED" || round.settled) return;
+    round.settled = true;
+    round.status = "FINISHED";
+
+    const bets = Array.isArray(round.bets) ? round.bets : [];
+    const grossPool = bets.reduce((sum, bet) => sum + Number(bet.amount || 0), 0);
+    const houseRake = Number((grossPool * 0.10).toFixed(2));
+
+    const byPlayer = new Map();
+    for (const bet of bets) {
+        const playerId = String(bet.playerId);
+        const numbers = Array.isArray(bet.numbers) ? bet.numbers.map(Number) : [];
+        const matches = numbers.filter(n => round.drawnNumbers.includes(n)).length;
+        const existing = byPlayer.get(playerId);
+        if (!existing || matches > existing.score) {
+            byPlayer.set(playerId, {
+                playerId: bet.playerId,
+                telegramName: bet.telegramName || bet.username || "Player",
+                score: matches
+            });
+        }
+    }
+
+    const ranked = Array.from(byPlayer.values()).sort((a,b)=>b.score-a.score);
+    const scoreGroups = [];
+    for (const player of ranked) {
+        let group = scoreGroups.find(g => g.score === player.score);
+        if (!group) { group = { score: player.score, players: [] }; scoreGroups.push(group); }
+        group.players.push(player);
+    }
+
+    const rank1 = scoreGroups[0]?.players || [];
+    const rank2 = scoreGroups[1]?.players || [];
+    const rank1Total = Number((grossPool * 0.60).toFixed(2));
+    const rank2Total = Number((grossPool * 0.30).toFixed(2));
+    const rank1Share = rank1.length ? Number((rank1Total / rank1.length).toFixed(2)) : 0;
+    const rank2Share = rank2.length ? Number((rank2Total / rank2.length).toFixed(2)) : 0;
+
+    const winners = [];
+    for (const player of rank1) winners.push({...player, rank:1, amount:rank1Share});
+    for (const player of rank2) winners.push({...player, rank:2, amount:rank2Share});
+
+    for (const winner of winners) {
+        if (winner.amount <= 0) continue;
+        try {
+            await changeBalance({
+                playerId: winner.playerId,
+                amount: winner.amount,
+                type: "keno_win",
+                game: "keno",
+                roundId: round.id,
+                description: `Keno prize - Rank ${winner.rank}`,
+                metadata: {
+                    rank: winner.rank, score: winner.score, grossPool,
+                    houseRake, rank1Total, rank2Total, winnerShare: winner.amount
+                }
+            });
+        } catch (error) {
+            console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`, error);
+        }
+    }
+
+    round.result = {
+        game: "keno",
+        grossPool,
+        houseRake,
+        rank1Total,
+        rank2Total,
+        winners,
+        rankings: ranked.map(p=>({playerId:p.playerId,telegramName:p.telegramName,score:p.score})),
+        settledAt: Date.now()
+    };
+
+    await saveRound(round).catch(console.error);
+    console.log(`[KENO] FINISHED ${round.id} | pool=${grossPool} | R1=${rank1Share} x ${rank1.length} | R2=${rank2Share} x ${rank2.length}`);
+
+    setTimeout(() => {
+        const current = rounds.keno;
+        if (!current || current.id !== round.id) return;
+        startHouseRound("keno");
+    }, NEXT_ROUND_DELAY);
 }
 
 /*
@@ -5524,17 +5684,14 @@ app.get(
                 });
             }
 
-            const round = getPublicBingoRound(tier);
+            const round = getPublicBingoRound(tier, req.player?.id || null);
             round.variant = "bingo75";
             round.stake = tier;
             round.totalDraws = 75;
-            round.cards = [0,1].map(i => {
-                const number = editionCartelaNumber(req.player.id, i);
-                return getBingoCartela(number);
-            });
-            round.cardIds = [0,1].map(i =>
-                `cartela-${editionCartelaNumber(req.player.id,i)}`
-            );
+            round.cards = [];
+            round.cardIds = [];
+            round.cartelasTotal = 200;
+            round.myEntries = round.myEntries || [];
 
             return res.json({
                 success:true,
@@ -5678,21 +5835,19 @@ function editionBingoVariant(gameName) {
 }
 
 function editionCartelaNumber(playerId, cardIndex) {
+    /* Legacy helper retained for compatibility. Cartelas are now globally
+       selectable per round, so player identity no longer assigns a Cartela. */
     const hash = crypto
         .createHash("sha256")
         .update(`${String(playerId)}:${Number(cardIndex)}`)
         .digest();
     const value = hash.readUInt32BE(0);
-    return (value % 120) + 1;
+    return (value % 200) + 1;
 }
 
 function editionPublicBingoCards(playerId, variant) {
     if (variant !== "bingo75") return [];
-
-    return [0,1].map(index => {
-        const cartelaNumber = editionCartelaNumber(playerId, index);
-        return getBingoCartela(cartelaNumber);
-    });
+    return [0,1].map(index => getBingoCartela(editionCartelaNumber(playerId, index)));
 }
 
 function editionFindBingoRoom(stake) {
@@ -5743,15 +5898,14 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
 
         const variant = editionBingoVariant(gameName);
         const selectedCartela = Number(req.body?.cartelaNumber);
-        if (!Number.isInteger(selectedCartela) || selectedCartela < 1 || selectedCartela > 120) {
-            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
+        if (!Number.isInteger(selectedCartela) || selectedCartela < 1 || selectedCartela > 200) {
+            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 200"});
         }
         const cartelaNumber = selectedCartela;
         const cartela = getBingoCartela(cartelaNumber);
 
-        const duplicate = room.players.some(p =>
-            Number(p.cartelaNumber) === cartelaNumber
-        );
+        if (!room.cartelaReservations) room.cartelaReservations = new Set();
+        const duplicate = room.players.some(p => Number(p.cartelaNumber) === cartelaNumber) || room.cartelaReservations.has(cartelaNumber);
         if (duplicate) return res.status(400).json({success:false,error:"That Cartela is already in play"});
 
         const playerCartelas = room.players.filter(p => p.playerId === req.player.id);
@@ -5759,26 +5913,36 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             return res.status(400).json({success:false,error:"Maximum 2 cartellas per round"});
         }
 
+        /* Reserve synchronously before the first await. Node's event loop cannot
+           interleave another request between this check and reservation, so the
+           same Cartela cannot be sold twice even on simultaneous taps. */
+        room.cartelaReservations.add(cartelaNumber);
+
         let balanceAfter = Number(req.player.balance || 0);
         let bonusPointsAfter = null;
         if (walletType === "bonus") {
             const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
+            if (stake > bonusPoints) { room.cartelaReservations.delete(cartelaNumber); return res.status(400).json({success:false,error:"Insufficient bonus points"}); }
             await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"bingo",stake,cartelaNumber,cardIndex}),referenceId:room.id});
             bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
         } else {
-            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
-            balanceAfter = await changeBalance({
-                playerId:req.player.id,
-                amount:-stake,
-                type:"bingo_entry",
-                game:"bingo",
-                roundId:room.id,
-                description:`Bingo entry - stake ${stake}`,
-                metadata:{stake,cartelaNumber,cardIndex,variant,walletType}
+            balanceAfter = await withPlayerBalanceLock(req.player.id, async () => {
+                const freshPlayer = await findPlayerById(req.player.id);
+                const freshBalance = Number(freshPlayer?.balance || 0);
+                if (stake > freshBalance) throw new Error("Insufficient balance");
+                return changeBalance({
+                    playerId:req.player.id,
+                    amount:-stake,
+                    type:"bingo_entry",
+                    game:"bingo",
+                    roundId:room.id,
+                    description:`Bingo entry - stake ${stake}`,
+                    metadata:{stake,cartelaNumber,cardIndex,variant,walletType}
+                });
             });
         }
 
+        room.cartelaReservations.delete(cartelaNumber);
         room.players.push({
             playerId:req.player.id,
             telegramName:req.player.username || "Player",
@@ -5786,7 +5950,8 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             cartela,
             cardIndex,
             variant,
-            walletType
+            walletType,
+            amount: stake
         });
 
         await saveBingoRound(stake);
@@ -5805,6 +5970,9 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
             remainingMilliseconds:Math.max(0,room.bettingEndsAt-Date.now())
         });
     } catch (error) {
+        const failedRoom = bingoRooms[Number(req.body?.stake)];
+        const failedCartela = Number(req.body?.cartelaNumber);
+        if (failedRoom?.cartelaReservations && Number.isInteger(failedCartela)) failedRoom.cartelaReservations.delete(failedCartela);
         console.error("Edition Bingo bet error:", error);
         return res.status(400).json({success:false,error:error.message || "Could not place Bingo bet"});
     }
@@ -5824,8 +5992,8 @@ app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) =>
         }
 
         const requestedCartela = Number(req.body?.cartelaNumber);
-        if (!Number.isInteger(requestedCartela) || requestedCartela < 1 || requestedCartela > 120) {
-            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 120"});
+        if (!Number.isInteger(requestedCartela) || requestedCartela < 1 || requestedCartela > 200) {
+            return res.status(400).json({success:false,error:"Cartela number must be between 1 and 200"});
         }
         const cartelaNumber = requestedCartela;
         const stake = EDITION_STAKES.find(t =>
@@ -5905,31 +6073,43 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
         if (playerBets.some(b => Number(b.slotIndex || 1) === slotIndex)) {
             return res.status(400).json({success:false,error:`Keno Slot ${slotIndex} is already placed`});
         }
+        if (!round.betReservations) round.betReservations = new Set();
+        const reservationKey = `${String(req.player.id)}:${slotIndex}`;
+        if (round.betReservations.has(reservationKey)) {
+            return res.status(400).json({success:false,error:`Keno Slot ${slotIndex} is already being placed`});
+        }
+        round.betReservations.add(reservationKey);
 
         let balanceAfter = Number(req.player.balance || 0);
         let bonusPointsAfter = null;
         const betId = makeId("KENOBET");
         if (walletType === "bonus") {
             const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) return res.status(400).json({success:false,error:"Insufficient bonus points"});
+            if (stake > bonusPoints) { round.betReservations.delete(reservationKey); return res.status(400).json({success:false,error:"Insufficient bonus points"}); }
             await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"keno",stake,slotIndex,slots:normalizedSlots,betId}),referenceId:round.id});
             bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
         } else {
-            if (stake > balanceAfter) return res.status(400).json({success:false,error:"Insufficient balance"});
-            balanceAfter = await changeBalance({
-                playerId:req.player.id,
-                amount:-stake,
-                type:"keno_bet",
-                game:"keno",
-                roundId:round.id,
-                description:"Keno bet",
-                metadata:{betId,stake,slotIndex,slots:normalizedSlots,walletType}
+            balanceAfter = await withPlayerBalanceLock(req.player.id, async () => {
+                const freshPlayer = await findPlayerById(req.player.id);
+                const freshBalance = Number(freshPlayer?.balance || 0);
+                if (stake > freshBalance) throw new Error("Insufficient balance");
+                return changeBalance({
+                    playerId:req.player.id,
+                    amount:-stake,
+                    type:"keno_bet",
+                    game:"keno",
+                    roundId:round.id,
+                    description:"Keno bet",
+                    metadata:{betId,stake,slotIndex,slots:normalizedSlots,walletType}
+                });
             });
         }
 
+        round.betReservations.delete(reservationKey);
         round.bets.push({
             betId,
             playerId:req.player.id,
+            telegramName:req.player.username || req.player.first_name || "Player",
             slotIndex,
             numbers:normalizedSlots[0],
             slots:normalizedSlots,
@@ -5943,6 +6123,10 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
         const grossPool = round.bets.reduce((sum,b) => sum + Number(b.amount || 0), 0);
         return res.json({success:true,betId,roundId:round.id,stake,slotIndex,slots:normalizedSlots,walletType,balanceAfter,bonusPointsAfter,playersInRoom,grossPool,bettingEndsAt:round.bettingEndsAt});
     } catch (error) {
+        const failedRound = rounds.keno;
+        const failedSlot = Number(req.body?.slotIndex);
+        const failedKey = `${String(req.player?.id || "")}:${failedSlot}`;
+        if (failedRound?.betReservations) failedRound.betReservations.delete(failedKey);
         console.error("Edition Keno bet error:",error);
         return res.status(400).json({success:false,error:error.message || "Could not place Keno bet"});
     }
