@@ -3511,10 +3511,21 @@ function sameBingoCartela(first, second) {
         return false;
     }
 
-    return first.every(
-        (value, index) =>
-            Number(value) === Number(second[index])
+    const flatten = value => {
+        if (!Array.isArray(value)) return [];
+        return value.flat ? value.flat(Infinity) : value.reduce((out, item) =>
+            out.concat(Array.isArray(item) ? item : [item]), []);
+    };
+
+    const a = flatten(first).map(value =>
+        String(value).toUpperCase() === "FREE" ? "FREE" : Number(value)
     );
+    const b = flatten(second).map(value =>
+        String(value).toUpperCase() === "FREE" ? "FREE" : Number(value)
+    );
+
+    if (a.length !== b.length) return false;
+    return a.every((value, index) => value === b[index]);
 }
 
 function verifyBingoClaim(room, player, submittedCartelaNumber) {
@@ -4042,26 +4053,35 @@ async function resolveBingoWinner(
 
     for (const winningPlayer of validWinners) {
         try {
-            await changeBalance({
-                playerId: winningPlayer.playerId,
-                amount: share,
-                type: "bingo_win",
-                game: "bingo",
-                roundId: room.id,
-                description: `Bingo prize - tier ${tier}`,
-                metadata: {
-                    tier,
-                    grossPool,
-                    houseRake,
-                    winnerPool,
-                    winnersCount: validWinners.length,
-                    winnerShare: share,
-                    cartelaNumber: winningPlayer.cartelaNumber
-                }
-            });
+            const balanceAfter = await withPlayerBalanceLock(
+                winningPlayer.playerId,
+                () => changeBalance({
+                    playerId: winningPlayer.playerId,
+                    amount: share,
+                    type: "bingo_win",
+                    game: "bingo",
+                    roundId: room.id,
+                    description: `Bingo prize - tier ${tier}`,
+                    metadata: {
+                        tier,
+                        grossPool,
+                        houseRake,
+                        winnerPool,
+                        winnersCount: validWinners.length,
+                        winnerShare: share,
+                        cartelaNumber: winningPlayer.cartelaNumber
+                    }
+                })
+            );
+
+            const storedWinner = room.winners.find(
+                w => String(w.playerId) === String(winningPlayer.playerId) &&
+                     Number(w.cartelaNumber) === Number(winningPlayer.cartelaNumber)
+            );
+            if (storedWinner) storedWinner.balanceAfter = Number(balanceAfter);
 
             console.log(
-                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${share} ETB (${validWinners.length} winner(s))`
+                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${share} ETB (${validWinners.length} winner(s)); balance=${balanceAfter}`
             );
         } catch (error) {
             console.error(
@@ -5173,18 +5193,22 @@ async function settleKenoRound(round) {
     for (const winner of winners) {
         if (winner.amount <= 0) continue;
         try {
-            await changeBalance({
-                playerId: winner.playerId,
-                amount: winner.amount,
-                type: "keno_win",
-                game: "keno",
-                roundId: round.id,
-                description: `Keno prize - Rank ${winner.rank}`,
-                metadata: {
-                    rank: winner.rank, score: winner.score, grossPool,
-                    houseRake, rank1Total, rank2Total, winnerShare: winner.amount
-                }
-            });
+            const balanceAfter = await withPlayerBalanceLock(
+                winner.playerId,
+                () => changeBalance({
+                    playerId: winner.playerId,
+                    amount: winner.amount,
+                    type: "keno_win",
+                    game: "keno",
+                    roundId: round.id,
+                    description: `Keno prize - Rank ${winner.rank}`,
+                    metadata: {
+                        rank: winner.rank, score: winner.score, grossPool,
+                        houseRake, rank1Total, rank2Total, winnerShare: winner.amount
+                    }
+                })
+            );
+            winner.balanceAfter = Number(balanceAfter);
         } catch (error) {
             console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`, error);
         }
