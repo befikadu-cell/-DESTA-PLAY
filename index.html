@@ -564,7 +564,19 @@
       color:white;
       font-size:10px;
       font-weight:900;
+      cursor:pointer;
+      touch-action:manipulation;
+      transition:transform .12s ease,filter .12s ease,opacity .18s ease,box-shadow .18s ease;
+      -webkit-tap-highlight-color:transparent;
+      will-change:transform;
     }
+    .placeBtn:active:not(:disabled){transform:scale(.97);filter:brightness(.92);}
+    .placeBtn:not(:disabled):hover{filter:brightness(1.06);}
+    #bingoGame button,#kenoGame button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+    .cartelaPick{transition:transform .1s ease,filter .1s ease,background-color .15s ease,opacity .15s ease;}
+    .cartelaPick:active:not(:disabled){transform:scale(.94);filter:brightness(.92);}
+    .kenoNumber{transition:transform .1s ease,filter .1s ease,background-color .15s ease,border-color .15s ease;}
+    .kenoNumber:active{transform:scale(.94);filter:brightness(.92);}
 
     .placeBtn:disabled{
       opacity:.45;
@@ -5009,23 +5021,31 @@ html,body{
       /* Deterministic fixed 200-card catalogue: the same Cartela number always
          produces the same valid Bingo layout. B=1-15, I=16-30, N=31-45,
          G=46-60, O=61-75; center is FREE. */
-      let value=(Number(seed)||1)>>>0;
-      const rand=()=>{
-        value=(value*1664525+1013904223)>>>0;
-        return value/4294967296;
+      const base=(Number(seed)||1)>>>0;
+      const seededRandom=(initial)=>{
+        let x=(Number(initial)>>>0)||1;
+        return ()=>{
+          x=(Math.imul(1664525,x)+1013904223)>>>0;
+          return x/4294967296;
+        };
       };
-      const pick=(start,end,count)=>{
+      const deterministicShuffle=(values,initial)=>{
+        const array=[...values];
+        const rand=seededRandom(initial);
+        for(let i=array.length-1;i>0;i--){
+          const j=Math.floor(rand()*(i+1));
+          [array[i],array[j]]=[array[j],array[i]];
+        }
+        return array;
+      };
+      const pick=(start,end,count,column)=>{
         const pool=[];
         for(let n=start;n<=end;n++) pool.push(n);
-        for(let i=pool.length-1;i>0;i--){
-          const j=Math.floor(rand()*(i+1));
-          [pool[i],pool[j]]=[pool[j],pool[i]];
-        }
-        return pool.slice(0,count);
+        return deterministicShuffle(pool,base*1009+column*9176+17).slice(0,count);
       };
       const cols=[
-        pick(1,15,5),pick(16,30,5),pick(31,45,5),
-        pick(46,60,5),pick(61,75,5)
+        pick(1,15,5,0),pick(16,30,5,1),pick(31,45,5,2),
+        pick(46,60,5,3),pick(61,75,5,4)
       ];
       const board=[];
       for(let r=0;r<5;r++){
@@ -6995,6 +7015,17 @@ html,body{
       popup.classList.add("show");
       clearTimeout(popup._timer);
       popup._timer=setTimeout(()=>popup.classList.remove("show"),4000);
+
+      /* Apply the server-confirmed post-payout balance immediately. If the
+         server did not include it, fall back to an authoritative account read. */
+      const me=winners.find(w => String(w.playerId||"") === String(state.playerId||""));
+      if(me && Number.isFinite(Number(me.balanceAfter))){
+        state.balance=Number(me.balanceAfter);
+        updateBalance();
+        refreshStakeWallet();
+      }else if(state.authToken && me){
+        loadServerAccount().catch(()=>{});
+      }
     }
 
     function renderServerKeno(round){
