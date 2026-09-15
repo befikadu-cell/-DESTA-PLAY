@@ -340,3 +340,55 @@ export const BINGO_CONFIG = {
   housePercent: 10,
   winnerPoolPercent: 90
 };
+
+// Compatibility exports used by DESTA PLAY server.js.
+// Keeps the existing Bingo engine intact while exposing the Cartela API.
+function seededRandom(seed) {
+  let x = (Number(seed) >>> 0) || 1;
+  return () => {
+    x = (Math.imul(1664525, x) + 1013904223) >>> 0;
+    return x / 4294967296;
+  };
+}
+
+function deterministicShuffle(values, seed) {
+  const array = [...values];
+  const random = seededRandom(seed);
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+export function getCartela(number) {
+  const value = Number(number);
+  if (!Number.isInteger(value) || value < 1 || value > 200) {
+    throw new Error("Invalid Bingo Cartela number");
+  }
+
+  const ranges = [
+    [1, 15], [16, 30], [31, 45], [46, 60], [61, 75]
+  ];
+  const card = Array.from({ length: 5 }, () => Array(5).fill(null));
+
+  for (let column = 0; column < 5; column++) {
+    const [start, end] = ranges[column];
+    const numbers = deterministicShuffle(
+      Array.from({ length: end - start + 1 }, (_, i) => start + i),
+      value * 1009 + column * 9176 + 17
+    ).slice(0, 5);
+    for (let row = 0; row < 5; row++) {
+      card[row][column] = (row === 2 && column === 2) ? "FREE" : numbers[row];
+    }
+  }
+  return card;
+}
+
+export function checkWinningPatterns(card, drawnNumbers) {
+  const marked = getMarkedCard(
+    card,
+    drawnNumbers instanceof Set ? [...drawnNumbers] : drawnNumbers
+  );
+  return checkWinningPattern(marked).winner;
+}
