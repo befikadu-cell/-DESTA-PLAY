@@ -231,7 +231,20 @@
       box-sizing:border-box;
     }
 
-    .gameGrid{
+    
+/* Lightweight game previews — visual only, no game/network state changes. */
+.gamePreview{position:relative;height:72px;margin:8px 0 7px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,rgba(255,255,255,.045),rgba(0,0,0,.28));border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;gap:7px;contain:paint}
+.previewBall{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:900;background:radial-gradient(circle at 30% 25%,#fff 0 9%,#d9d9d9 10% 18%,#777 65%,#222 100%);box-shadow:0 4px 10px rgba(0,0,0,.4);animation:previewFloat 1.7s ease-in-out infinite}
+.previewBall:nth-child(2){animation-delay:-.45s}.previewBall:nth-child(3){animation-delay:-.9s}.previewBall:nth-child(4){animation-delay:-1.35s}
+.previewGrid{display:grid;grid-template-columns:repeat(5,22px);gap:4px;transform:rotate(-3deg)}
+.previewGrid span{height:18px;border-radius:5px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:8px;font-weight:800;animation:previewCell 1.8s ease-in-out infinite}
+.previewGrid span:nth-child(2n){animation-delay:-.5s}.previewGrid span:nth-child(3n){animation-delay:-1s}
+.previewPulse{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(255,212,60,.13),transparent 55%);animation:previewGlow 2.2s ease-in-out infinite}
+@keyframes previewFloat{0%,100%{transform:translateY(7px) scale(.94)}50%{transform:translateY(-7px) scale(1.06)}}
+@keyframes previewCell{0%,100%{transform:scale(.92);opacity:.6}45%{transform:scale(1.08);opacity:1}65%{transform:scale(1);opacity:.85}}
+@keyframes previewGlow{0%,100%{opacity:.25;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.previewBall,.previewGrid span,.previewPulse{animation:none!important}}
+.gameGrid{
       padding:10px;
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -2370,6 +2383,11 @@ html,body{
 
           <h3>BINGO</h3>
 
+          <div class="gamePreview bingoPreview" aria-hidden="true">
+            <div class="previewPulse"></div>
+            <div class="previewBall">7</div><div class="previewBall">30</div><div class="previewBall">52</div><div class="previewBall">71</div>
+          </div>
+
           <div class="bingoHomeBalls">
             <span>7</span>
             <span>30</span>
@@ -2391,6 +2409,11 @@ html,body{
         <div class="gameCard">
 
           <h3>KENO</h3>
+
+          <div class="gamePreview kenoPreview" aria-hidden="true">
+            <div class="previewPulse"></div>
+            <div class="previewGrid"><span>7</span><span>12</span><span>18</span><span>22</span><span>31</span><span>35</span><span>41</span><span>48</span><span>52</span><span>57</span><span>61</span><span>64</span><span>68</span><span>71</span><span>73</span><span>76</span><span>3</span><span>9</span><span>27</span><span>80</span></div>
+          </div>
 
           <div class="kenoHome">
             <span>7</span>
@@ -2995,6 +3018,8 @@ html,body{
       game:"keno",
 
       balance:0,
+      withdrawableBalance:0,
+      lockedDepositBalance:0,
 
       accountCreated:false,
 
@@ -5319,6 +5344,22 @@ html,body{
     }
 
 
+    function showBingoVerificationState(message, ok=false){
+      let el=document.getElementById("bingoVerifyToast");
+      if(!el){
+        el=document.createElement("div");
+        el.id="bingoVerifyToast";
+        el.style.cssText="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.96);z-index:100000;min-width:240px;max-width:88vw;padding:14px 18px;border-radius:16px;background:rgba(10,10,10,.96);border:1px solid rgba(255,212,60,.55);box-shadow:0 14px 45px rgba(0,0,0,.55);color:#fff;text-align:center;font-weight:800;opacity:0;transition:opacity .14s ease,transform .14s ease;pointer-events:none";
+        document.body.appendChild(el);
+      }
+      el.textContent=message;
+      el.style.borderColor=ok?"rgba(76,220,130,.75)":"rgba(255,212,60,.55)";
+      el.style.opacity="1";
+      el.style.transform="translate(-50%,-50%) scale(1)";
+      clearTimeout(el._hide);
+      if(ok) el._hide=setTimeout(()=>{el.style.opacity="0";el.style.transform="translate(-50%,-50%) scale(.96)"},650);
+    }
+
     async function claimBingo(slot){
       const board=state.bingoBoards[slot] || [];
       const cartelaNumber=Number(state.bingoCartelas[slot]);
@@ -5327,15 +5368,27 @@ html,body{
       if(!board.length || !checkBingo(board,slot)){alert("Not BINGO yet — keep playing Cartela "+cartelaNumber+".");return;}
       const tier=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
       const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
+      const btn=document.getElementById("bingoPlaceBtn"+slot);
+      if(btn){btn.disabled=true;btn.textContent="CHECKING…";}
+      showBingoVerificationState("Checking your BINGO securely…");
       try{
         const response=await fetch("https://desta-play.onrender.com/api/bingo/claim",{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken},body:JSON.stringify({tier,cartelaNumber,roundId})});
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success) throw new Error(data.error || "BINGO claim rejected");
-        alert("BINGO! Your valid claim is registered. Waiting for the winner result.");
-        const btn=document.getElementById("bingoPlaceBtn"+slot); if(btn){btn.disabled=true;btn.textContent="BINGO CLAIMED";}
-      }catch(error){alert(error.message || "Could not claim BINGO.");}
+        const me=(Array.isArray(data.winners)?data.winners:[]).find(w=>String(w.playerId||"")===String(state.playerId||""));
+        if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
+        updateBalance();
+        refreshStakeWallet();
+        if(typeof loadWalletData === "function") loadWalletData().catch(()=>{});
+        showBingoVerificationState(me ? `🏆 BINGO VERIFIED — +${Number(me.amount||data.prize||0).toFixed(2)} ETB` : "BINGO VERIFIED — RESULT CONFIRMED", true);
+        if(data.winners) showGameWinners("bingo",data);
+        if(btn){btn.disabled=true;btn.textContent=me?"BINGO WON":"BINGO VERIFIED";}
+      }catch(error){
+        if(btn){btn.disabled=false;btn.textContent="BINGO";}
+        showBingoVerificationState(error.message || "Could not verify BINGO.");
+        setTimeout(()=>{let e=document.getElementById("bingoVerifyToast");if(e){e.style.opacity="0";e.style.transform="translate(-50%,-50%) scale(.96)"}},1200);
+      }
     }
-
 
     /* =========================================================
        ROULETTE
@@ -6326,6 +6379,7 @@ html,body{
     }
 
     function openWithdraw(){
+      if(state.authToken) loadWalletData().catch(()=>{});
       const id=currentPlayerId();
       document.getElementById("withdrawAccountId").value=id || "";
       document.getElementById("withdrawPasswordBox").classList.add("hidden");
@@ -6356,6 +6410,10 @@ html,body{
         const response=await fetch(url,{method:"POST",headers,body:JSON.stringify(payload),cache:"no-store"});
         const data=await safeJsonResponse(response);
         if(!response.ok || !data.success)throw new Error(data.message || data.error || "Request could not be completed.");
+        if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
+        if(Number.isFinite(Number(data.withdrawable))) state.withdrawableBalance=Number(data.withdrawable);
+        if(Number.isFinite(Number(data.lockedDeposit))) state.lockedDepositBalance=Number(data.lockedDeposit);
+        updateBalance();
         setWalletStatus(statusId,data.message || "Request submitted.","ok");
         if(typeof loadWalletData === "function")loadWalletData();
         if(typeof loadServerAccount === "function")await loadServerAccount();
@@ -6419,6 +6477,10 @@ html,body{
         setWalletStatus("withdrawStatus","Enter your password.","err");
         return;
       }
+      if(Number.isFinite(state.withdrawableBalance) && payload.amount > state.withdrawableBalance + 0.000001){
+        setWalletStatus("withdrawStatus",`Only ${Number(state.withdrawableBalance).toFixed(2)} ETB is withdrawable. Keep playing to unlock your deposited balance.`,"err");
+        return;
+      }
       const data=await postWalletRequest(WALLET_API.withdraw,payload,"withdrawStatus","withdrawVerifyBtn");
       if(data){
         document.getElementById("withdrawPasswordBox").classList.add("hidden");
@@ -6440,6 +6502,9 @@ html,body{
         const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
         const withdrawable=Number(wallet.withdrawable ?? wallet.withdrawableBalance ?? 0);
         const locked=Number(wallet.lockedDeposit ?? wallet.lockedBalance ?? Math.max(0,balance-withdrawable));
+        state.balance=balance;
+        state.withdrawableBalance=withdrawable;
+        state.lockedDepositBalance=locked;
         const b=document.getElementById("walletBalance");
         const w=document.getElementById("withdrawableBalance");
         const l=document.getElementById("lockedBalance");
@@ -7023,6 +7088,7 @@ html,body{
         state.balance=Number(me.balanceAfter);
         updateBalance();
         refreshStakeWallet();
+        if(typeof loadWalletData === "function") loadWalletData().catch(()=>{});
       }else if(state.authToken && me){
         loadServerAccount().catch(()=>{});
       }
