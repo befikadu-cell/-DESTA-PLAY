@@ -1131,6 +1131,112 @@ async function getBonusPoints(playerId) {
 
 /*
 |--------------------------------------------------------------------------
+| STRICT CASH ACCOUNTING
+|--------------------------------------------------------------------------
+| Cash is tracked as two logical buckets using the existing transaction
+| ledger, so no database migration is required:
+|   - lockedDeposit: deposited principal still required to be played
+|   - withdrawable: verified winnings that may be withdrawn
+| Game stakes consume locked principal first. Verified game winnings always
+| enter withdrawable immediately. Withdrawal reservations consume only the
+| withdrawable bucket.
+|--------------------------------------------------------------------------
+*/
+const CASH_GAME_BET_TYPES = new Set([
+    "bingo_entry",
+    "keno_bet"
+]);
+const CASH_GAME_WIN_TYPES = new Set([
+    "bingo_win",
+    "keno_win"
+]);
+
+async function getWalletAccounting(playerId, playerOverride = null) {
+    const player = playerOverride || await findPlayerById(playerId);
+    if (!player) throw new Error("Player not found");
+
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("id,type,amount,status,created_at")
+        .eq("player_id", playerId)
+        .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
+        .order("created_at", { ascending: true })
+        .limit(5000);
+
+    if (error) {
+        await dbError("getWalletAccounting", error);
+        throw new Error("Could not calculate wallet accounting");
+    }
+
+    let lockedDeposit = 0;
+    let withdrawable = 0;
+
+    for (const tx of (data || [])) {
+        const amount = Math.abs(Number(tx.amount || 0));
+        if (!Number.isFinite(amount) || amount <= 0) continue;
+
+        if (tx.type === "deposit_credit") {
+            lockedDeposit += amount;
+            continue;
+        }
+
+        if (CASH_GAME_BET_TYPES.has(tx.type)) {
+            const fromLocked = Math.min(lockedDeposit, amount);
+            lockedDeposit -= fromLocked;
+            const fromWithdrawable = amount - fromLocked;
+            withdrawable = Math.max(0, withdrawable - fromWithdrawable);
+            continue;
+        }
+
+        if (CASH_GAME_WIN_TYPES.has(tx.type)) {
+            withdrawable += amount;
+            continue;
+        }
+
+        if (tx.type === "withdrawal_reserve") {
+            withdrawable = Math.max(0, withdrawable - amount);
+            continue;
+        }
+
+        if (tx.type === "withdrawal_reservation_reversal" || tx.type === "withdrawal_reversal") {
+            withdrawable += amount;
+        }
+    }
+
+    /* Never allow accounting buckets to contradict the authoritative cash
+       balance. Unknown historical cash is conservatively treated as locked,
+       never as withdrawable. */
+    const balance = Math.max(0, Number(player.balance || 0));
+    let totalTracked = lockedDeposit + withdrawable;
+    const delta = Number((balance - totalTracked).toFixed(2));
+
+    if (delta > 0) {
+        lockedDeposit += delta;
+    } else if (delta < 0) {
+        let deficit = Math.abs(delta);
+        const fromLocked = Math.min(lockedDeposit, deficit);
+        lockedDeposit -= fromLocked;
+        deficit -= fromLocked;
+        if (deficit > 0) withdrawable = Math.max(0, withdrawable - deficit);
+    }
+
+    lockedDeposit = Number(Math.max(0, lockedDeposit).toFixed(2));
+    withdrawable = Number(Math.min(balance, Math.max(0, withdrawable)).toFixed(2));
+
+    /* Final conservation correction. */
+    totalTracked = Number((lockedDeposit + withdrawable).toFixed(2));
+    const correction = Number((balance - totalTracked).toFixed(2));
+    if (correction > 0) lockedDeposit = Number((lockedDeposit + correction).toFixed(2));
+
+    return {
+        balance: Number(balance.toFixed(2)),
+        lockedDeposit: Number(lockedDeposit.toFixed(2)),
+        withdrawable: Number(withdrawable.toFixed(2))
+    };
+}
+
+/*
+|--------------------------------------------------------------------------
 | BALANCE ENGINE
 |--------------------------------------------------------------------------
 */
@@ -2391,13 +2497,18 @@ app.post(
 app.get(
     "/api/account/balance",
     requirePlayer,
-    (req, res) => {
-        res.json({
-            success: true,
-            balance: Number(
-                req.player.balance || 0
-            )
-        });
+    async (req, res) => {
+        try {
+            const accounting = await getWalletAccounting(req.player.id, req.player);
+            res.json({
+                success: true,
+                balance: accounting.balance,
+                lockedDeposit: accounting.lockedDeposit,
+                withdrawable: accounting.withdrawable
+            });
+        } catch (error) {
+            res.status(500).json({ success:false, error:error.message || "Could not load balance" });
+        }
     }
 );
 
@@ -2812,17 +2923,21 @@ app.post(
                 });
             }
 
-            const before =
-                Number(
-                    req.player.balance || 0
-                );
+            const before = Number(req.player.balance || 0);
+            let accounting;
+            try {
+                accounting = await getWalletAccounting(req.player.id, req.player);
+            } catch (accountingError) {
+                return res.status(500).json({ success:false, error:accountingError.message });
+            }
 
-            if (amount > before) {
+            if (amount > accounting.withdrawable) {
                 return res.status(400).json({
                     success: false,
-                    error:
-                        "Insufficient balance",
-                    balanceBefore: before
+                    error: `Only ${accounting.withdrawable.toFixed(2)} ETB is currently withdrawable. Keep playing to unlock your deposited balance.`,
+                    balanceBefore: before,
+                    withdrawable: accounting.withdrawable,
+                    lockedDeposit: accounting.lockedDeposit
                 });
             }
 
@@ -3391,9 +3506,13 @@ app.get(
                 throw new Error("Could not load wallet transactions");
             }
 
+            const accounting = await getWalletAccounting(req.player.id, req.player);
             return res.json({
                 success: true,
-                balance: Number(req.player.balance || 0),
+                balance: accounting.balance,
+                lockedDeposit: accounting.lockedDeposit,
+                withdrawable: accounting.withdrawable,
+                availableBalance: accounting.balance,
                 transactions: data || []
             });
         } catch (error) {
@@ -3504,10 +3623,6 @@ function isWinningBingoCard(
 */
 function sameBingoCartela(first, second) {
     if (!Array.isArray(first) || !Array.isArray(second)) {
-        return false;
-    }
-
-    if (first.length !== second.length) {
         return false;
     }
 
@@ -4096,6 +4211,11 @@ async function resolveBingoWinner(
     }
 
     await saveBingoRound(tier).catch(console.error);
+    room.settlementComplete = true;
+    if (typeof room._resolveSettlement === "function") {
+        room._resolveSettlement(room.winners || []);
+        room._resolveSettlement = null;
+    }
 
     setTimeout(() => {
         startNewBingoRound(tier);
@@ -4209,7 +4329,11 @@ app.post(
             /* Keep the round open briefly to collect simultaneous valid claims. */
             if (!room.claimWindowOpen) {
                 room.claimWindowOpen = true;
-                room.claimWindowEndsAt = Date.now() + 1500;
+                room.claimWindowEndsAt = Date.now() + 350;
+                room.settlementComplete = false;
+                room.settlementPromise = new Promise(resolve => {
+                    room._resolveSettlement = resolve;
+                });
 
                 setTimeout(async () => {
                     const current = bingoRooms[tier];
@@ -4220,25 +4344,35 @@ app.post(
                         tier,
                         current.claimedPlayers || []
                     );
-                }, 1500);
+                }, 350);
             }
 
             await saveBingoRound(tier).catch(console.error);
 
-            const grossPool = room.players.length * room.entryFee;
-            const winnerPool = grossPool * 0.90;
-            const count = room.claimedPlayers.length;
-            const estimatedShare = winnerPool / count;
+            if (room.settlementPromise) {
+                await Promise.race([
+                    room.settlementPromise,
+                    new Promise(resolve => setTimeout(resolve, 1200))
+                ]);
+            }
+
+            const winner = (room.winners || []).find(w =>
+                String(w.playerId) === String(req.player.id) &&
+                Number(w.cartelaNumber) === cartelaNumber
+            );
 
             return res.json({
                 success: true,
-                winner: true,
-                pending: true,
+                winner: Boolean(winner),
+                verified: true,
+                pending: false,
+                settled: room.status === "FINISHED",
                 roundId: room.id,
-                winnersCount: count,
-                estimatedPrize: estimatedShare,
-                claimWindowEndsAt: room.claimWindowEndsAt,
-                message: "Valid BINGO! Your claim is registered."
+                winners: room.winners || [],
+                winnersCount: (room.winners || []).length,
+                prize: Number(winner?.amount || 0),
+                balanceAfter: Number(winner?.balanceAfter || req.player.balance || 0),
+                message: winner ? "BINGO verified — winner result confirmed." : "BINGO verified — round result confirmed."
             });
         } catch (error) {
             console.error("Bingo claim error:", error);
@@ -6042,23 +6176,40 @@ app.post("/api/game/:game/bingo-claim", requirePlayer, async (req, res, next) =>
         room.claimedPlayers.push({...player,cartela:verification.cartela,cartelaNumber});
         if (!room.claimWindowOpen) {
             room.claimWindowOpen = true;
-            room.claimWindowEndsAt = Date.now() + 1500;
+            room.claimWindowEndsAt = Date.now() + 350;
+            room.settlementComplete = false;
+            room.settlementPromise = new Promise(resolve => {
+                room._resolveSettlement = resolve;
+            });
             setTimeout(async () => {
                 const current = bingoRooms[stake];
                 if (!current || current.id !== room.id || !current.claimWindowOpen) return;
                 await resolveBingoWinner(stake,current.claimedPlayers || []);
-            },1500);
+            },350);
         }
         await saveBingoRound(stake).catch(console.error);
-
+        if (room.settlementPromise) {
+            await Promise.race([
+                room.settlementPromise,
+                new Promise(resolve => setTimeout(resolve, 1200))
+            ]);
+        }
+        const winner = (room.winners || []).find(w =>
+            String(w.playerId) === String(req.player.id) &&
+            Number(w.cartelaNumber) === cartelaNumber
+        );
         return res.json({
             success:true,
-            winner:true,
-            pending:true,
+            winner:Boolean(winner),
+            verified:true,
+            pending:false,
+            settled:room.status === "FINISHED",
             roundId:room.id,
-            winnersCount:room.claimedPlayers.length,
-            claimWindowEndsAt:room.claimWindowEndsAt,
-            message:"Valid BINGO! Your claim is registered."
+            winners:room.winners || [],
+            winnersCount:(room.winners || []).length,
+            prize:Number(winner?.amount || 0),
+            balanceAfter:Number(winner?.balanceAfter || req.player.balance || 0),
+            message:winner ? "BINGO verified — winner result confirmed." : "BINGO verified — round result confirmed."
         });
     } catch (error) {
         console.error("Edition Bingo claim error:", error);
