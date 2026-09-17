@@ -780,41 +780,6 @@ async function approveDepositTransaction(transaction, verification) {
             }
         });
 
-        /* FIRST DEPOSIT BONUS: 300% as bonus points.
-         * Bonus points are separate from cash balance.
-         * Play value: 1 point = 1 ETB. Withdrawal value: 10 points = 1 ETB.
-         */
-        try {
-            const { data: priorCredits, error: priorCreditError } = await supabase
-                .from("transactions")
-                .select("id")
-                .eq("player_id", pending.player_id)
-                .eq("type", "deposit_credit")
-                .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
-                .limit(2);
-
-            if (priorCreditError) throw priorCreditError;
-
-            if (!Array.isArray(priorCredits) || priorCredits.length <= 1) {
-                const bonusPoints = Number((expectedAmount * 3).toFixed(2));
-                if (bonusPoints > 0) {
-                    await writeBonusTransaction({
-                        playerId: pending.player_id,
-                        points: bonusPoints,
-                        type: "first_deposit_bonus",
-                        description: JSON.stringify({
-                            reason: "300% first deposit bonus",
-                            depositAmount: expectedAmount,
-                            bonusPoints
-                        }),
-                        referenceId
-                    });
-                }
-            }
-        } catch (bonusError) {
-            console.error("[BONUS] First deposit bonus could not be recorded:", bonusError);
-        }
-
         await sendAdminGroupAudit(
             `DEPOSIT VERIFIED\nPlayer: ${pending.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`
         );
@@ -1109,14 +1074,13 @@ async function getBonusLedger(playerId) {
         .eq("player_id", playerId)
         .in("type", [
             "invite_bonus_points",
-            "first_deposit_bonus",
             "bonus_play",
             "bonus_win",
             "bonus_adjustment"
         ])
         .eq("status", "SUCCESS")
         .order("created_at", { ascending: true })
-        .limit(500);
+        .limit(10000);
     if (error) {
         await dbError("getBonusLedger", error);
         throw new Error("Could not load bonus points");
@@ -1127,6 +1091,24 @@ async function getBonusLedger(playerId) {
 async function getBonusPoints(playerId) {
     const rows = await getBonusLedger(playerId);
     return Number(rows.reduce((sum, row) => sum + Number(row.amount || 0), 0).toFixed(2));
+}
+
+const BONUS_PLAY_VALUE_PER_POINT = 1;
+const BONUS_WITHDRAW_VALUE_PER_POINT = 0.1;
+const BONUS_WITHDRAWAL_MIN_POINTS = 3000;
+
+async function spendBonusPoints({ playerId, points, game, roundId, metadata = {} }) {
+    const stake = Number(points);
+    if (!Number.isFinite(stake) || stake <= 0) throw new Error("Invalid bonus point amount");
+    return withPlayerBalanceLock(`bonus:${playerId}`, async () => {
+        const before = await getBonusPoints(playerId);
+        if (stake > before) throw new Error("Insufficient bonus points");
+        await writeBonusTransaction({
+            playerId, points: -stake, type: "bonus_play",
+            description: JSON.stringify({ game, stake, ...metadata }), referenceId: roundId
+        });
+        return Number((before - stake).toFixed(2));
+    });
 }
 
 /*
@@ -2352,15 +2334,14 @@ app.get(
 | BONUS POINTS
 |--------------------------------------------------------------------------
 */
-const BONUS_WITHDRAWAL_MIN_POINTS = 3000;
 app.get("/api/bonus", requirePlayer, async (req, res) => {
     try {
         const points = await getBonusPoints(req.player.id);
         return res.json({
             success:true,
             bonusPoints:Math.max(0, points),
-            playValue:Number(Math.max(0, points).toFixed(2)),
-            withdrawalValue:Number((Math.max(0, points) / 10).toFixed(2)),
+            playValue:Number((Math.max(0, points) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
+            withdrawalValue:Number((Math.max(0, points) * BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2)),
             playRate:"1 point = 1 ETB play value",
             withdrawalRate:"10 points = 1 ETB withdrawal value",
             bonusWithdrawalMinimumPoints:BONUS_WITHDRAWAL_MIN_POINTS,
@@ -2399,7 +2380,7 @@ app.get(
                 } catch (_) {}
             }
             const earnedPoints = Number(ledger
-                .filter(r => ["invite_bonus_points", "first_deposit_bonus", "bonus_win", "bonus_adjustment"].includes(r.type))
+                .filter(r => ["invite_bonus_points", "bonus_win", "bonus_adjustment"].includes(r.type))
                 .reduce((sum, r) => sum + Number(r.amount || 0), 0).toFixed(2));
             const usedPoints = Number(ledger
                 .filter(r => r.type === "bonus_play")
@@ -2413,8 +2394,8 @@ app.get(
                 earnedPoints,
                 usedPoints,
                 bonusPoints: Math.max(0, bonusPoints),
-                playValue: Math.max(0, bonusPoints),
-                withdrawalValue: Number((Math.max(0, bonusPoints) / 10).toFixed(2)),
+                playValue: Number((Math.max(0, bonusPoints) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
+                withdrawalValue: Number((Math.max(0, bonusPoints) * BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2)),
                 bonusWithdrawalMinimumPoints: BONUS_WITHDRAWAL_MIN_POINTS,
                 bonusWithdrawalEligible: Math.max(0, bonusPoints) >= BONUS_WITHDRAWAL_MIN_POINTS
             });
@@ -2504,7 +2485,10 @@ app.get(
                 success: true,
                 balance: accounting.balance,
                 lockedDeposit: accounting.lockedDeposit,
-                withdrawable: accounting.withdrawable
+                withdrawable: accounting.withdrawable,
+                bonusPoints: Math.max(0, await getBonusPoints(req.player.id)),
+                bonusPlayValue: Number((Math.max(0, await getBonusPoints(req.player.id)) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
+                bonusWithdrawalValue: Number((Math.max(0, await getBonusPoints(req.player.id)) * BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2))
             });
         } catch (error) {
             res.status(500).json({ success:false, error:error.message || "Could not load balance" });
@@ -2760,17 +2744,6 @@ async function processDepositAction(action, requestId) {
                 receiverAccount: smsDetails.receiverAccount || null, paymentTime: smsDetails.paymentTime || null
             }
         });
-
-        try {
-            const { data: priorCredits, error: priorCreditError } = await supabase
-                .from("transactions").select("id").eq("player_id", transaction.player_id)
-                .eq("type", "deposit_credit").in("status", ["SUCCESS", "APPROVED", "COMPLETED"]).limit(2);
-            if (priorCreditError) throw priorCreditError;
-            if (!Array.isArray(priorCredits) || priorCredits.length <= 1) {
-                const bonusPoints = Number((expectedAmount * 3).toFixed(2));
-                if (bonusPoints > 0) await writeBonusTransaction({ playerId: transaction.player_id, points: bonusPoints, type: "first_deposit_bonus", description: JSON.stringify({ reason: "300% first deposit bonus", depositAmount: expectedAmount, bonusPoints }), referenceId });
-            }
-        } catch (bonusError) { console.error("[BONUS] First deposit bonus could not be recorded:", bonusError); }
 
         await sendAdminGroupAudit(`DEPOSIT VERIFIED\nPlayer: ${transaction.player_id}\nAmount: ${expectedAmount} ETB\nReference: ${referenceId}\nBalance after: ${balanceAfter}`);
         return "APPROVED";
@@ -3507,12 +3480,17 @@ app.get(
             }
 
             const accounting = await getWalletAccounting(req.player.id, req.player);
+            const bonusPoints = await getBonusPoints(req.player.id);
             return res.json({
                 success: true,
                 balance: accounting.balance,
                 lockedDeposit: accounting.lockedDeposit,
                 withdrawable: accounting.withdrawable,
                 availableBalance: accounting.balance,
+                bonusPoints: Math.max(0, bonusPoints),
+                bonusPlayValue: Number((Math.max(0, bonusPoints) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
+                bonusWithdrawalValue: Number((Math.max(0, bonusPoints) * BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2)),
+                bonusWithdrawalMinimumPoints: BONUS_WITHDRAWAL_MIN_POINTS,
                 transactions: data || []
             });
         } catch (error) {
@@ -4150,61 +4128,53 @@ async function resolveBingoWinner(
         ? winners.filter(Boolean)
         : [];
 
-    const grossPool =
-        room.players.length * room.entryFee;
+    const walletGroups = new Map();
+    for (const player of validWinners) {
+        const walletType = String(player.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+        if (!walletGroups.has(walletType)) walletGroups.set(walletType, []);
+        walletGroups.get(walletType).push(player);
+    }
 
-    /* 10% house edge, 90% shared by valid BINGO claimants. */
-    const houseRake = grossPool * 0.10;
-    const winnerPool = grossPool - houseRake;
-    const share = validWinners.length > 0
-        ? winnerPool / validWinners.length
-        : 0;
+    const grossPool = room.players.reduce((sum, player) => sum + Number(player.amount || room.entryFee || 0), 0);
+    const houseRake = Number((grossPool * 0.10).toFixed(2));
+    const allWinners = [];
+
+    for (const [walletType, groupPlayers] of walletGroups.entries()) {
+        const walletPool = room.players.filter(player =>
+            (String(player.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash") === walletType
+        ).reduce((sum, player) => sum + Number(player.amount || room.entryFee || 0), 0);
+        const walletHouseRake = Number((walletPool * 0.10).toFixed(2));
+        const walletWinnerPool = Number((walletPool - walletHouseRake).toFixed(2));
+        const share = groupPlayers.length ? Number((walletWinnerPool / groupPlayers.length).toFixed(2)) : 0;
+
+        for (const winningPlayer of groupPlayers) {
+            const stored = {...winningPlayer, rank:1, amount:share, walletType};
+            try {
+                if (walletType === "bonus") {
+                    stored.bonusPointsAfter = await withPlayerBalanceLock(`bonus:${winningPlayer.playerId}`, async () => {
+                        const before = await getBonusPoints(winningPlayer.playerId);
+                        await writeBonusTransaction({
+                            playerId:winningPlayer.playerId, points:share, type:"bonus_win",
+                            description:JSON.stringify({game:"bingo",tier,roundId:room.id,walletType,share,winnersCount:groupPlayers.length}), referenceId:room.id
+                        });
+                        return Number((before + share).toFixed(2));
+                    });
+                } else {
+                    stored.balanceAfter = Number(await withPlayerBalanceLock(winningPlayer.playerId,()=>changeBalance({
+                        playerId:winningPlayer.playerId, amount:share, type:"bingo_win", game:"bingo", roundId:room.id,
+                        description:`Bingo prize - tier ${tier}`, metadata:{tier,grossPool,houseRake,winnerPool:walletWinnerPool,winnersCount:groupPlayers.length,winnerShare:share,cartelaNumber:winningPlayer.cartelaNumber,walletType}
+                    })));
+                }
+                allWinners.push(stored);
+            } catch (error) { console.error(`[BINGO ${tier}] PAYOUT ERROR for ${winningPlayer.playerId}:`, error); }
+        }
+    }
 
     room.totalPool = grossPool;
     room.houseRake = houseRake;
-    room.winnerPrize = share;
-    room.winners = validWinners.map(player => ({...player, rank:1, amount:share}));
+    room.winnerPrize = allWinners[0]?.amount || 0;
+    room.winners = allWinners;
     room.winner = room.winners[0] || null;
-
-    for (const winningPlayer of validWinners) {
-        try {
-            const balanceAfter = await withPlayerBalanceLock(
-                winningPlayer.playerId,
-                () => changeBalance({
-                    playerId: winningPlayer.playerId,
-                    amount: share,
-                    type: "bingo_win",
-                    game: "bingo",
-                    roundId: room.id,
-                    description: `Bingo prize - tier ${tier}`,
-                    metadata: {
-                        tier,
-                        grossPool,
-                        houseRake,
-                        winnerPool,
-                        winnersCount: validWinners.length,
-                        winnerShare: share,
-                        cartelaNumber: winningPlayer.cartelaNumber
-                    }
-                })
-            );
-
-            const storedWinner = room.winners.find(
-                w => String(w.playerId) === String(winningPlayer.playerId) &&
-                     Number(w.cartelaNumber) === Number(winningPlayer.cartelaNumber)
-            );
-            if (storedWinner) storedWinner.balanceAfter = Number(balanceAfter);
-
-            console.log(
-                `[BINGO ${tier}] WINNER ${winningPlayer.playerId} -> ${share} ETB (${validWinners.length} winner(s)); balance=${balanceAfter}`
-            );
-        } catch (error) {
-            console.error(
-                `[BINGO ${tier}] PAYOUT ERROR for ${winningPlayer.playerId}:`,
-                error
-            );
-        }
-    }
 
     if (!validWinners.length) {
         console.log(`[BINGO ${tier}] No BINGO claim - round complete`);
@@ -5313,40 +5283,41 @@ async function settleKenoRound(round) {
         group.players.push(player);
     }
 
-    const rank1 = scoreGroups[0]?.players || [];
-    const rank2 = scoreGroups[1]?.players || [];
-    const rank1Total = Number((grossPool * 0.60).toFixed(2));
-    const rank2Total = Number((grossPool * 0.30).toFixed(2));
-    const rank1Share = rank1.length ? Number((rank1Total / rank1.length).toFixed(2)) : 0;
-    const rank2Share = rank2.length ? Number((rank2Total / rank2.length).toFixed(2)) : 0;
-
     const winners = [];
-    for (const player of rank1) winners.push({...player, rank:1, amount:rank1Share});
-    for (const player of rank2) winners.push({...player, rank:2, amount:rank2Share});
-
-    for (const winner of winners) {
-        if (winner.amount <= 0) continue;
-        try {
-            const balanceAfter = await withPlayerBalanceLock(
-                winner.playerId,
-                () => changeBalance({
-                    playerId: winner.playerId,
-                    amount: winner.amount,
-                    type: "keno_win",
-                    game: "keno",
-                    roundId: round.id,
-                    description: `Keno prize - Rank ${winner.rank}`,
-                    metadata: {
-                        rank: winner.rank, score: winner.score, grossPool,
-                        houseRake, rank1Total, rank2Total, winnerShare: winner.amount
-                    }
-                })
-            );
-            winner.balanceAfter = Number(balanceAfter);
-        } catch (error) {
-            console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`, error);
+    let totalHouseRake = 0;
+    for (const walletType of ["cash", "bonus"]) {
+        const walletBets = bets.filter(b => (String(b.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash") === walletType);
+        if (!walletBets.length) continue;
+        const ids = new Set(walletBets.map(b=>String(b.playerId)));
+        const walletRanked = ranked.filter(p=>ids.has(String(p.playerId)));
+        const groups=[];
+        for(const player of walletRanked){ let g=groups.find(x=>x.score===player.score); if(!g){g={score:player.score,players:[]};groups.push(g);} g.players.push(player);}
+        const rank1=groups[0]?.players||[]; const rank2=groups[1]?.players||[];
+        const walletGross=walletBets.reduce((sum,b)=>sum+Number(b.amount||0),0);
+        const walletHouse=Number((walletGross*0.10).toFixed(2)); totalHouseRake+=walletHouse;
+        const r1Total=Number((walletGross*0.60).toFixed(2)); const r2Total=Number((walletGross*0.30).toFixed(2));
+        const r1Share=rank1.length?Number((r1Total/rank1.length).toFixed(2)):0; const r2Share=rank2.length?Number((r2Total/rank2.length).toFixed(2)):0;
+        const walletWinners=[...rank1.map(p=>({...p,rank:1,amount:r1Share,walletType})),...rank2.map(p=>({...p,rank:2,amount:r2Share,walletType}))];
+        for(const winner of walletWinners){
+            if(winner.amount<=0) continue;
+            try{
+                if(walletType==="bonus"){
+                    winner.bonusPointsAfter=await withPlayerBalanceLock(`bonus:${winner.playerId}`,async()=>{
+                        const before=await getBonusPoints(winner.playerId);
+                        await writeBonusTransaction({playerId:winner.playerId,points:winner.amount,type:"bonus_win",description:JSON.stringify({game:"keno",roundId:round.id,rank:winner.rank,score:winner.score,walletType,winnerShare:winner.amount}),referenceId:round.id});
+                        return Number((before+winner.amount).toFixed(2));
+                    });
+                }else{
+                    winner.balanceAfter=Number(await withPlayerBalanceLock(winner.playerId,()=>changeBalance({playerId:winner.playerId,amount:winner.amount,type:"keno_win",game:"keno",roundId:round.id,description:`Keno prize - Rank ${winner.rank}`,metadata:{rank:winner.rank,score:winner.score,grossPool:walletGross,houseRake:walletHouse,rank1Total:r1Total,rank2Total:r2Total,winnerShare:winner.amount,walletType}})));
+                }
+                winners.push(winner);
+            }catch(error){console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`,error);}
         }
     }
+    const grossPool=bets.reduce((sum,b)=>sum+Number(b.amount||0),0);
+    const houseRake=Number(totalHouseRake.toFixed(2));
+    const rank1Total=Number(winners.filter(w=>w.rank===1).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
+    const rank2Total=Number(winners.filter(w=>w.rank===2).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
 
     round.result = {
         game: "keno",
@@ -5360,7 +5331,7 @@ async function settleKenoRound(round) {
     };
 
     await saveRound(round).catch(console.error);
-    console.log(`[KENO] FINISHED ${round.id} | pool=${grossPool} | R1=${rank1Share} x ${rank1.length} | R2=${rank2Share} x ${rank2.length}`);
+    console.log(`[KENO] FINISHED ${round.id} | pool=${grossPool} | house=${houseRake} | winners=${winners.length}`);
 
     setTimeout(() => {
         const current = rounds.keno;
@@ -5368,6 +5339,50 @@ async function settleKenoRound(round) {
         startHouseRound("keno");
     }, NEXT_ROUND_DELAY);
 }
+
+/*
+|--------------------------------------------------------------------------
+| DAILY OWNER REPORT — 08:00 AFRICA/ADDIS_ABABA
+|--------------------------------------------------------------------------
+*/
+async function getDailyTransactions(sinceIso) {
+    const {data,error}=await supabase.from("transactions").select("*").gte("created_at",sinceIso).order("created_at",{ascending:true}).limit(10000);
+    if(error){await dbError("daily report transactions",error);throw new Error("Could not load daily report transactions");}
+    return data||[];
+}
+async function buildDailyReport(){
+    const end=new Date(), start=new Date(end.getTime()-86400000);
+    const rows=await getDailyTransactions(start.toISOString());
+    const ok=r=>["SUCCESS","APPROVED","COMPLETED"].includes(String(r.status||"").toUpperCase());
+    const amt=r=>Math.abs(Number(r.amount||0));
+    const cashW=rows.filter(r=>ok(r)&&["bingo_entry","keno_bet"].includes(r.type));
+    const cashWin=rows.filter(r=>ok(r)&&["bingo_win","keno_win"].includes(r.type));
+    const bonusW=rows.filter(r=>ok(r)&&r.type==="bonus_play");
+    const bonusWin=rows.filter(r=>ok(r)&&r.type==="bonus_win");
+    const bingoW=cashW.filter(r=>r.type==="bingo_entry"), kenoW=cashW.filter(r=>r.type==="keno_bet");
+    const gameIds=new Set([...cashW,...bonusW].map(r=>String(r.player_id)));
+    const bingoIds=new Set(bingoW.map(r=>String(r.player_id))), kenoIds=new Set(kenoW.map(r=>String(r.player_id))), bonusIds=new Set(bonusW.map(r=>String(r.player_id)));
+    const deposited=rows.filter(r=>ok(r)&&r.type==="deposit_credit").reduce((s,r)=>s+amt(r),0);
+    const withdrawn=rows.filter(r=>ok(r)&&r.type==="withdrawal").reduce((s,r)=>s+amt(r),0);
+    const realW=cashW.reduce((s,r)=>s+amt(r),0), realWin=cashWin.reduce((s,r)=>s+amt(r),0);
+    const bonusWager=bonusW.reduce((s,r)=>s+amt(r),0), bonusWinAmt=bonusWin.reduce((s,r)=>s+amt(r),0), bonusLost=Math.max(0,bonusWager-bonusWinAmt);
+    const totalW=realW+bonusWager, playerWin=realWin+bonusWinAmt, house=Math.max(0,totalW-playerWin), rtp=totalW?playerWin/totalW*100:0;
+    const {data:players,error:pe}=await supabase.from("players").select("id,balance");
+    if(pe){await dbError("daily report players",pe);throw new Error("Could not load player balances for daily report");}
+    let playerBalance=0,locked=0,withdrawable=0;
+    for(const p of players||[]){playerBalance+=Number(p.balance||0);const a=await getWalletAccounting(p.id,p);locked+=Number(a.lockedDeposit||0);withdrawable+=Number(a.withdrawable||0);}
+    return `📊 DESTA PLAY — DAILY REPORT\n\nPeriod: Last 24 hours\n\n💰 MONEY\n- My/House Balance: ${house.toFixed(2)} ETB (24h net game earnings)\n- Players' Total Balance: ${playerBalance.toFixed(2)} ETB\n- Locked Player Money: ${locked.toFixed(2)} ETB\n- Withdrawable Player Money: ${withdrawable.toFixed(2)} ETB\n- Deposited Today: ${deposited.toFixed(2)} ETB\n- Withdrawn Today: ${withdrawn.toFixed(2)} ETB\n\n🎮 GAMES\n- Players Played: ${gameIds.size}\n- Bingo Players: ${bingoIds.size}\n- Keno Players: ${kenoIds.size}\n- Total Wagered: ${totalW.toFixed(2)} ETB play value\n- Bingo Wagered: ${bingoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n- Keno Wagered: ${kenoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n\n💵 REAL MONEY\n- Real Money Wagered: ${realW.toFixed(2)} ETB\n- Real Money Winnings: ${realWin.toFixed(2)} ETB\n\n🎁 BONUS\n- Players Using Bonus: ${bonusIds.size}\n- Bonus Wagered: ${bonusWager.toFixed(2)} ETB play value\n- Bonus Winnings: ${bonusWinAmt.toFixed(2)} ETB play value\n- Bonus Lost: ${bonusLost.toFixed(2)} ETB play value\n\n📈 RESULT\n- Player Winnings: ${playerWin.toFixed(2)} ETB play value\n- House/Game Earnings: ${house.toFixed(2)} ETB play value\n- RTP: ${rtp.toFixed(2)}%\n\n⏱️ REPORT\n- Report Period: 24 hours\n- Status: ✅ Complete`;
+}
+function msUntilNextAddis0800(){
+    const now=new Date();
+    const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Africa/Addis_Ababa",hour12:false,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(now);
+    const g=t=>Number(parts.find(p=>p.type===t)?.value||0);
+    const today8=Date.UTC(g("year"),g("month")-1,g("day"),5,0,0);
+    let next=today8; if(now.getTime()>=today8) next=Date.UTC(g("year"),g("month")-1,g("day")+1,5,0,0);
+    return Math.max(1000,next-now.getTime());
+}
+async function sendDailyReport(){try{await sendAdminGroupAudit(await buildDailyReport());console.log("[DAILY REPORT] Sent at 08:00 Africa/Addis_Ababa");}catch(error){console.error("[DAILY REPORT] Failed:",error);}}
+function scheduleDailyReport(){setTimeout(async()=>{await sendDailyReport();scheduleDailyReport();},msUntilNextAddis0800());}
 
 /*
 |--------------------------------------------------------------------------
@@ -6079,10 +6094,12 @@ app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
         let balanceAfter = Number(req.player.balance || 0);
         let bonusPointsAfter = null;
         if (walletType === "bonus") {
-            const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) { room.cartelaReservations.delete(cartelaNumber); return res.status(400).json({success:false,error:"Insufficient bonus points"}); }
-            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"bingo",stake,cartelaNumber,cardIndex}),referenceId:room.id});
-            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
+            try {
+                bonusPointsAfter = await spendBonusPoints({playerId:req.player.id,points:stake,game:"bingo",roundId:room.id,metadata:{cartelaNumber,cardIndex}});
+            } catch (bonusError) {
+                room.cartelaReservations.delete(cartelaNumber);
+                return res.status(400).json({success:false,error:bonusError.message || "Insufficient bonus points"});
+            }
         } else {
             balanceAfter = await withPlayerBalanceLock(req.player.id, async () => {
                 const freshPlayer = await findPlayerById(req.player.id);
@@ -6259,10 +6276,12 @@ app.post("/api/game/keno/bet", requirePlayer, async (req, res, next) => {
         let bonusPointsAfter = null;
         const betId = makeId("KENOBET");
         if (walletType === "bonus") {
-            const bonusPoints = await getBonusPoints(req.player.id);
-            if (stake > bonusPoints) { round.betReservations.delete(reservationKey); return res.status(400).json({success:false,error:"Insufficient bonus points"}); }
-            await writeBonusTransaction({playerId:req.player.id,points:-stake,type:"bonus_play",description:JSON.stringify({game:"keno",stake,slotIndex,slots:normalizedSlots,betId}),referenceId:round.id});
-            bonusPointsAfter = Number((bonusPoints - stake).toFixed(2));
+            try {
+                bonusPointsAfter = await spendBonusPoints({playerId:req.player.id,points:stake,game:"keno",roundId:round.id,metadata:{slotIndex,slots:normalizedSlots,betId}});
+            } catch (bonusError) {
+                round.betReservations.delete(reservationKey);
+                return res.status(400).json({success:false,error:bonusError.message || "Insufficient bonus points"});
+            }
         } else {
             balanceAfter = await withPlayerBalanceLock(req.player.id, async () => {
                 const freshPlayer = await findPlayerById(req.player.id);
@@ -6372,6 +6391,8 @@ app.get("/api/voice", async (req, res) => {
         });
     }
 });
+
+scheduleDailyReport();
 
 app.listen(
     PORT,
