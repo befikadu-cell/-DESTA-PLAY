@@ -3532,6 +3532,21 @@ html,body{
       }
     });
 
+    function refreshHomePreviews(){
+      const home=document.getElementById("home");
+      if(!home || home.classList.contains("hidden")) return;
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(()=>{
+          home.querySelectorAll(".gamePreview,.previewBall,.previewGrid span,.previewPulse").forEach(el=>{
+            el.style.visibility="visible";
+            el.style.animationPlayState="paused";
+            void el.offsetWidth;
+            el.style.animationPlayState="running";
+          });
+        });
+      });
+    }
+
     function showHome(){
 
       document
@@ -3545,6 +3560,7 @@ html,body{
       updatePlayerDisplays();
 
       showPage("home");
+      refreshHomePreviews();
 
     }
 
@@ -7541,7 +7557,7 @@ html,body{
         showHome();
       }
 
-      buildKeno(); buildBingo(); showTab("my"); startLiveRoundSync();
+      buildKeno(); buildBingo(); showTab("my"); refreshHomePreviews(); startLiveRoundSync();
 
       if(authenticated && state.commandTarget){
         setTimeout(()=>openTelegramCommandTarget(),80);
