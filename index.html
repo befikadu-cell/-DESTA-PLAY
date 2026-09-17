@@ -1878,6 +1878,16 @@
     .walletPasswordBox{margin-top:12px;padding-top:8px;border-top:1px solid #472020}
     .walletStatus{min-height:18px;margin-top:8px;text-align:center;font-size:11px}
     .walletStatus.ok{color:#18d66b}.walletStatus.err{color:#ff5555}.walletStatus.wait{color:#ffd43c}
+.gameBalanceSelector{cursor:pointer;touch-action:manipulation;border:1px solid #632020!important;background:#171010!important;color:#fff!important;border-radius:9px;padding:7px 9px;font-weight:900;}
+.gameBalanceSelector:active{transform:scale(.97);}
+.gameWalletModal{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;background:rgba(0,0,0,.68);padding:12px;}
+.gameWalletModal.hidden{display:none!important;}
+.gameWalletPanel{width:min(96vw,420px);padding:14px;border-radius:16px;background:#141414;border:1px solid #632020;box-shadow:0 18px 55px rgba(0,0,0,.75);}
+.gameWalletPanel h3{margin:0 0 8px;color:#ffd43c;font-size:16px;text-align:center;}
+.gameWalletOption{width:100%;display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:12px;border:1px solid #482222;border-radius:10px;background:#1b1b1b;color:#ddd;font-weight:900;}
+.gameWalletOption.active{border-color:#ffd43c;background:#3a1a12;color:#fff;}
+.gameWalletClose{width:100%;margin-top:9px;padding:10px;border:0;border-radius:9px;background:#333;color:#fff;font-weight:900;}
+
     .walletStats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
     .walletStat{padding:9px;border:1px solid #472020;border-radius:9px;background:#101010;text-align:center}
     .walletStat small{display:block;color:#999;font-size:9px}.walletStat strong{color:#ffd43c;font-size:12px}
@@ -2455,9 +2465,9 @@ html,body{
 
         <div class="headerRight">
 
-          <div class="balance">
+          <button class="balance gameBalanceSelector" id="gameBalanceBox" type="button" onclick="openGameWalletSelector()" aria-label="Choose wallet">
             💰 <span id="balance">0.00</span> ETB
-          </div>
+          </button>
 
           <button
             class="helpBtn"
@@ -2856,6 +2866,16 @@ html,body{
       </div>
 
       <div class="walletCard">
+        <h3>BONUS POINTS</h3>
+        <div class="walletStats">
+          <div class="walletStat"><small>POINTS</small><strong><span id="walletBonusPoints">0.00</span></strong></div>
+          <div class="walletStat"><small>PLAY VALUE</small><strong><span id="walletBonusPlayValue">0.00</span> ETB</strong></div>
+          <div class="walletStat"><small>WITHDRAW VALUE</small><strong><span id="walletBonusWithdrawalValue">0.00</span> ETB</strong></div>
+          <div class="walletStat"><small>MINIMUM</small><strong>3,000 pts</strong></div>
+        </div>
+      </div>
+
+      <div class="walletCard">
         <h3>TRANSACTIONS</h3>
         <div id="transactions">No transactions yet.</div>
       </div>
@@ -3068,6 +3088,7 @@ html,body{
       selectedWalletType:"cash",
       bonusPoints:0,
       bonusPlayValue:0,
+      bonusWithdrawalValue:0,
 
       activeKenoSlot:1,
 
@@ -4159,6 +4180,7 @@ html,body{
         if(response.ok && data?.success){
           state.bonusPoints=Number(data.bonusPoints||0);
           state.bonusPlayValue=Number(data.playValue||state.bonusPoints||0);
+          state.bonusWithdrawalValue=Number(data.withdrawalValue||0);
         }
       }catch(e){}
 
@@ -4169,6 +4191,8 @@ html,body{
 
       /* Recalculate JOIN using the freshly loaded wallet balance. */
       selectStakeWallet(state.selectedWalletType||"cash",true);
+      updateBalance();
+      renderGameWalletSelector();
     }
 
     function selectStakeWallet(type,silent=false){
@@ -4183,6 +4207,8 @@ html,body{
       const status=document.getElementById("stakeLobbyStatus");
       const join=document.getElementById("stakeLobbyJoin");
       if(join) join.disabled=!(stake>0 && available>=stake);
+      updateBalance();
+      renderGameWalletSelector();
       if(!silent && status){
         status.textContent=stake>0 ? `${type==="bonus"?"Bonus points":"Real money"} selected for ${stake} ETB stake.` : "Select a stake to continue.";
       }
@@ -4399,22 +4425,31 @@ html,body{
     ========================================================= */
 
     function updateBalance(){
+      const value=state.balance.toFixed(2);
+      const top=document.getElementById("balance");
+      if(top) top.textContent=(state.selectedWalletType==="bonus" ? Number(state.bonusPlayValue||0).toFixed(2) : value);
+      const topBox=document.getElementById("gameBalanceBox");
+      if(topBox) topBox.title=state.selectedWalletType==="bonus" ? "Bonus Points wallet" : "Real Money wallet";
+      const wallet=document.getElementById("walletBalance"); if(wallet) wallet.textContent=value;
+      const profile=document.getElementById("profileBalance"); if(profile) profile.textContent=value;
+    }
 
-      const value=
-        state.balance.toFixed(2);
-
-      document
-        .getElementById("balance")
-        .textContent=value;
-
-      document
-        .getElementById("walletBalance")
-        .textContent=value;
-
-      document
-        .getElementById("profileBalance")
-        .textContent=value;
-
+    function openGameWalletSelector(){
+      const modal=document.getElementById("gameWalletModal"); if(!modal)return;
+      refreshStakeWallet().catch(()=>{}); renderGameWalletSelector(); modal.classList.remove("hidden");
+    }
+    function closeGameWalletSelector(){
+      const modal=document.getElementById("gameWalletModal"); if(modal)modal.classList.add("hidden");
+    }
+    function renderGameWalletSelector(){
+      const cash=document.getElementById("gameWalletCashValue"), bonus=document.getElementById("gameWalletBonusValue"), cv=document.getElementById("gameWalletCashOption"), bv=document.getElementById("gameWalletBonusOption");
+      if(cash)cash.textContent=Number(state.balance||0).toFixed(2)+" ETB";
+      if(bonus)bonus.textContent=Number(state.bonusPlayValue||0).toFixed(2)+" Bonus Points";
+      if(cv)cv.classList.toggle("active",state.selectedWalletType!=="bonus");
+      if(bv)bv.classList.toggle("active",state.selectedWalletType==="bonus");
+    }
+    function chooseGameWallet(type){
+      selectStakeWallet(type,true); updateBalance(); renderGameWalletSelector(); closeGameWalletSelector();
     }
 
 
@@ -4604,6 +4639,8 @@ html,body{
         alert("This slot is already placed.");
         return;
       }
+      const available=state.selectedWalletType==="bonus" ? Number(state.bonusPlayValue||0) : Number(state.balance||0);
+      if(amount>available){ alert(state.selectedWalletType==="bonus" ? "Insufficient Bonus Points." : "Insufficient balance."); return; }
 
       const button=document.querySelectorAll("#kenoGame .placeBtn")[slot-1];
       if(button){ button.disabled=true; button.textContent="PLACING..."; }
@@ -4643,7 +4680,8 @@ html,body{
           state.balance=Number(data.balanceAfter);
           updateBalance();
         }
-        if(Number.isFinite(Number(data.bonusPointsAfter))) state.bonusPlayValue=Number(data.bonusPointsAfter);
+        if(Number.isFinite(Number(data.bonusPointsAfter))) { state.bonusPlayValue=Number(data.bonusPointsAfter); state.bonusPoints=Number(data.bonusPointsAfter); }
+        updateBalance();
         refreshStakeWallet();
 
         updateKenoSelectionDisplay();
@@ -5179,7 +5217,8 @@ html,body{
       if(!cartelaNumber){alert("Add a Cartela to Slot "+slot+".");return;}
       if(state.bingoBets[slot]){alert("This slot is already bet.");return;}
       const amount=Number(state.bingoSelectedStake || state.bingoAmounts[slot] || 0);
-      if(amount<=0 || amount>state.balance){alert("Insufficient balance.");return;}
+      const available=state.selectedWalletType==="bonus" ? Number(state.bonusPlayValue||0) : Number(state.balance||0);
+      if(amount<=0 || amount>available){alert(state.selectedWalletType==="bonus" ? "Insufficient Bonus Points." : "Insufficient balance.");return;}
       const roundId=String(state.serverRoundIds?.bingo || state.roundIds?.bingo || "");
       if(!roundId){alert("Waiting for the live Bingo round.");return;}
       const btn=document.querySelectorAll("#bingoGame .placeBtn")[slot-1];
@@ -6521,12 +6560,22 @@ html,body{
         state.balance=balance;
         state.withdrawableBalance=withdrawable;
         state.lockedDepositBalance=locked;
+        state.bonusPoints=Number(wallet.bonusPoints||0);
+        state.bonusPlayValue=Number(wallet.bonusPlayValue ?? wallet.bonusPoints ?? 0);
+        state.bonusWithdrawalValue=Number(wallet.bonusWithdrawalValue ?? 0);
+        updateBalance();
         const b=document.getElementById("walletBalance");
         const w=document.getElementById("withdrawableBalance");
         const l=document.getElementById("lockedBalance");
         if(b)b.textContent=balance.toFixed(2);
         if(w)w.textContent=withdrawable.toFixed(2);
         if(l)l.textContent=locked.toFixed(2);
+        const bp=document.getElementById("walletBonusPoints");
+        const bv=document.getElementById("walletBonusPlayValue");
+        const bw=document.getElementById("walletBonusWithdrawalValue");
+        if(bp)bp.textContent=Number(state.bonusPoints||0).toFixed(2);
+        if(bv)bv.textContent=Number(state.bonusPlayValue||0).toFixed(2);
+        if(bw)bw.textContent=Number(state.bonusWithdrawalValue||0).toFixed(2);
         if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
       }catch(error){console.warn("Wallet connection error:",error)}
     }
@@ -7092,7 +7141,7 @@ html,body{
       const winners=Array.isArray(result.winners)?result.winners:[];
       const title=game.toUpperCase()+" WINNERS";
       popup.innerHTML=`<div class="winnerTitle">${title}</div>` +
-        (winners.length ? winners.map(w=>`<div class="winnerRow"><span>${w.rank===1?"🥇":w.rank===2?"🥈":"🏆"} ${String(w.telegramName||"Player")}</span><span class="winnerAmount">+${Number(w.amount||0).toFixed(2)} ETB</span></div>`).join("") : `<div class="winnerRow"><span>No valid winners</span></div>`);
+        (winners.length ? winners.map(w=>`<div class="winnerRow"><span>${w.rank===1?"🥇":w.rank===2?"🥈":"🏆"} ${String(w.telegramName||"Player")}</span><span class="winnerAmount">+${Number(w.amount||0).toFixed(2)} ${w.walletType==="bonus"?"Bonus Points":"ETB"}</span></div>`).join("") : `<div class="winnerRow"><span>No valid winners</span></div>`);
       popup.classList.add("show");
       clearTimeout(popup._timer);
       popup._timer=setTimeout(()=>popup.classList.remove("show"),4000);
@@ -7100,10 +7149,12 @@ html,body{
       /* Apply the server-confirmed post-payout balance immediately. If the
          server did not include it, fall back to an authoritative account read. */
       const me=winners.find(w => String(w.playerId||"") === String(state.playerId||""));
-      if(me && Number.isFinite(Number(me.balanceAfter))){
-        state.balance=Number(me.balanceAfter);
-        updateBalance();
-        refreshStakeWallet();
+      if(me && me.walletType==="bonus" && Number.isFinite(Number(me.bonusPointsAfter))){
+        state.bonusPlayValue=Number(me.bonusPointsAfter); state.bonusPoints=Number(me.bonusPointsAfter);
+        updateBalance(); refreshStakeWallet();
+        if(typeof loadWalletData === "function") loadWalletData().catch(()=>{});
+      }else if(me && Number.isFinite(Number(me.balanceAfter))){
+        state.balance=Number(me.balanceAfter); updateBalance(); refreshStakeWallet();
         if(typeof loadWalletData === "function") loadWalletData().catch(()=>{});
       }else if(state.authToken && me){
         loadServerAccount().catch(()=>{});
@@ -7566,6 +7617,18 @@ html,body{
     })();
 
     </script>
+
+    <!-- ======================================================
+         IN-GAME WALLET SELECTOR
+    ====================================================== -->
+    <div id="gameWalletModal" class="gameWalletModal hidden" onclick="if(event.target===this)closeGameWalletSelector()">
+      <div class="gameWalletPanel">
+        <h3>CHOOSE WALLET</h3>
+        <button id="gameWalletCashOption" class="gameWalletOption" type="button" onclick="chooseGameWallet('cash')"><span>💰 REAL MONEY</span><span id="gameWalletCashValue">0.00 ETB</span></button>
+        <button id="gameWalletBonusOption" class="gameWalletOption" type="button" onclick="chooseGameWallet('bonus')"><span>⭐ BONUS POINTS</span><span id="gameWalletBonusValue">0.00 Bonus Points</span></button>
+        <button class="gameWalletClose" type="button" onclick="closeGameWalletSelector()">CLOSE</button>
+      </div>
+    </div>
 
     <!-- ======================================================
          WALLET HELP MODAL
