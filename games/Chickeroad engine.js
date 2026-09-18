@@ -1,139 +1,221 @@
-// ============================================================================
-// DESTA PLAY — CHICKEN ROAD ENGINE
-// ============================================================================
-// Server-authoritative Chicken Road outcome engine.
-//
-// RTP model:
-// For a fixed cash-out step n, the multiplier is chosen so that
-// P(reach step n) * multiplier(n) = 0.50.
-// This makes the theoretical return 50% for a fixed stopping step.
-// Actual player return can differ because players choose when to cash out.
-//
-// The crash point is generated server-side and is never sent to the client
-// at round creation. The client advances one step at a time through /tick.
-// ============================================================================
+/*
+ * DESTA PLAY — CHICKEN ROAD ENGINE
+ *
+ * One-file engine: outcome, physics/state, multiplier and settlement math.
+ * The browser never decides the authoritative result.
+ */
+"use strict";
 
-import crypto from "node:crypto";
+import crypto from "crypto";
 
-export const CHICKEN_ROAD_CONFIG = Object.freeze({
-    name: "Chicken Road",
-    minBet: 10,
-    maxBet: 1000,
-    maxSteps: 10,
-    housePercent: 50,
-    rtpPercent: 50,
+const MAX_STEP = 12;
+const RTP = 0.50;
+const HOUSE_EDGE = 0.50;
 
-    // Survival probability after each completed crossing.
-    // The corresponding multiplier is 0.50 / survivalProbability.
-    survivalByStep: Object.freeze([
-        0.4545454545, // 1.10x
-        0.4000000000, // 1.25x
-        0.3333333333, // 1.50x
-        0.2500000000, // 2.00x
-        0.2000000000, // 2.50x
-        0.1666666667, // 3.00x
-        0.1250000000, // 4.00x
-        0.1000000000, // 5.00x
-        0.0800000000, // 6.25x
-        0.0500000000  // 10.00x
-    ]),
+/*
+ * Multiplier schedule. For every fixed cash-out step n:
+ *   P(reach n) * multiplier[n] = 0.50
+ * Therefore the theoretical fixed-step return is 50% before rounding.
+ * This is intentionally a high-house-edge/high-volatility configuration.
+ */
+const MULTIPLIERS = [
+    1.10, 1.25, 1.45, 1.70,
+    2.05, 2.50, 3.10, 3.90,
+    4.90, 6.20, 8.00, 10.00
+];
 
-    multiplierByStep: Object.freeze([
-        1.10, 1.25, 1.50, 2.00, 2.50,
-        3.00, 4.00, 5.00, 6.25, 10.00
-    ])
-});
+const SURVIVAL = MULTIPLIERS.map(m => RTP / m);
 
-function secureUnit() {
-    // 0 <= value < 1
-    const max = 1_000_000_000;
-    return crypto.randomInt(max) / max;
+function assertStep(step) {
+    const n = Number(step);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_STEP) {
+        throw new Error("Invalid Chicken Road step");
+    }
+    return n;
 }
 
-export function validateBet(amount) {
-    const value = Number(amount);
+function randomUnit() {
+    // randomInt avoids modulo bias and is suitable for server-side outcome generation.
+    const n = crypto.randomInt(0, 1_000_000);
+    return n / 1_000_000;
+}
 
-    if (!Number.isFinite(value)) {
-        throw new Error("Invalid Chicken Road bet");
+export const CONFIG = Object.freeze({
+    name: "chicken-road",
+    maxStep: MAX_STEP,
+    rtp: RTP,
+    houseEdge: HOUSE_EDGE,
+    multipliers: [...MULTIPLIERS],
+    bettingSeconds: 0
+});
+
+export function validateBetAmount(amount) {
+    const n = Number(amount);
+    if (!Number.isFinite(n) || n < 10) {
+        throw new Error("Minimum Chicken Road bet is 10 ETB");
     }
-
-    if (value < CHICKEN_ROAD_CONFIG.minBet) {
-        throw new Error(`Minimum Chicken Road bet is ${CHICKEN_ROAD_CONFIG.minBet} ETB`);
-    }
-
-    if (value > CHICKEN_ROAD_CONFIG.maxBet) {
-        throw new Error(`Maximum Chicken Road bet is ${CHICKEN_ROAD_CONFIG.maxBet} ETB`);
-    }
-
-    return Number(value.toFixed(2));
+    return Number(n.toFixed(2));
 }
 
 export function multiplierForStep(step) {
-    const n = Number(step);
-
-    if (!Number.isInteger(n) || n < 1 || n > CHICKEN_ROAD_CONFIG.maxSteps) {
-        return null;
-    }
-
-    return CHICKEN_ROAD_CONFIG.multiplierByStep[n - 1];
+    return MULTIPLIERS[assertStep(step) - 1];
 }
 
 export function survivalProbability(step) {
-    const n = Number(step);
-
-    if (!Number.isInteger(n) || n < 1 || n > CHICKEN_ROAD_CONFIG.maxSteps) {
-        return 0;
-    }
-
-    return CHICKEN_ROAD_CONFIG.survivalByStep[n - 1];
+    return SURVIVAL[assertStep(step) - 1];
 }
 
-export function createRound({ playerId, amount }) {
-    const stake = validateBet(amount);
-
-    // crashStep = n means the chicken crashes while attempting step n.
-    // crashStep = maxSteps + 1 means all steps can be completed.
-    const u = secureUnit();
-
-    let crashStep = CHICKEN_ROAD_CONFIG.maxSteps + 1;
-
-    for (let step = 1; step <= CHICKEN_ROAD_CONFIG.maxSteps; step += 1) {
-        if (u > survivalProbability(step)) {
-            crashStep = step;
-            break;
-        }
+/*
+ * Returns the authoritative crash step.
+ * 1..12 = crash occurs at that step.
+ * 13 = no crash through the maximum step; reaching step 12 completes at 10x.
+ */
+export function generateCrashStep(randomValue = randomUnit()) {
+    const r = Number(randomValue);
+    if (!Number.isFinite(r) || r < 0 || r >= 1) {
+        throw new Error("Invalid random outcome");
     }
 
+    for (let step = 1; step <= MAX_STEP; step++) {
+        const crashThroughStep = 1 - SURVIVAL[step - 1];
+        if (r < crashThroughStep) return step;
+    }
+
+    return MAX_STEP + 1;
+}
+
+export function createRound({ roundId, playerId, stake, walletType = "cash" }) {
+    const amount = validateBetAmount(stake);
+    const crashStep = generateCrashStep();
+
     return {
-        id: `CHICKEN-${crypto.randomBytes(12).toString("hex")}`,
+        id: String(roundId),
         game: "chicken-road",
         playerId: String(playerId),
-        amount: stake,
-        currentStep: 0,
-        crashStep,
+        stake: amount,
+        walletType: String(walletType).toLowerCase() === "bonus" ? "bonus" : "cash",
         status: "ACTIVE",
-        startedAt: Date.now(),
-        finishedAt: null
+        currentStep: 0,
+        multiplier: 1,
+        crashStep,
+        cashedOut: false,
+        payout: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
     };
 }
 
-export function getMultiplier(step) {
-    return multiplierForStep(step);
+export function isCrashAtStep(round, step) {
+    const n = assertStep(step);
+    return n >= Number(round.crashStep) && Number(round.crashStep) <= MAX_STEP;
 }
 
-export function canCashOut(round) {
-    return Boolean(
-        round &&
-        round.status === "ACTIVE" &&
-        Number(round.currentStep) >= 1 &&
-        Number(round.currentStep) < Number(round.crashStep)
-    );
+export function advance(round, step) {
+    const n = assertStep(step);
+    if (round.status !== "ACTIVE") {
+        throw new Error("Chicken Road round is no longer active");
+    }
+    if (n !== Number(round.currentStep) + 1) {
+        throw new Error("Chicken Road step is out of sequence");
+    }
+
+    round.currentStep = n;
+    round.updatedAt = Date.now();
+
+    if (isCrashAtStep(round, n)) {
+        round.status = "LOST";
+        round.multiplier = 0;
+        round.payout = 0;
+        return { state: "CRASH", step: n, multiplier: 0, payout: 0 };
+    }
+
+    round.multiplier = multiplierForStep(n);
+
+    if (n === MAX_STEP) {
+        round.status = "WON";
+        round.payout = calculatePayout(round.stake, n);
+        return { state: "FINISH", step: n, multiplier: round.multiplier, payout: round.payout };
+    }
+
+    return { state: "SAFE", step: n, multiplier: round.multiplier, payout: 0 };
 }
 
-export function cashOutAmount(round) {
-    if (!canCashOut(round)) return 0;
-
-    return Number(
-        (Number(round.amount) * multiplierForStep(round.currentStep)).toFixed(2)
-    );
+export function calculatePayout(stake, step) {
+    const amount = validateBetAmount(stake);
+    const m = multiplierForStep(step);
+    return Number((amount * m).toFixed(2));
 }
+
+export function cashOut(round, step) {
+    const n = assertStep(step);
+    if (round.status !== "ACTIVE") {
+        throw new Error("Round is no longer active");
+    }
+    if (n !== Number(round.currentStep)) {
+        throw new Error("Cash-out step does not match the authoritative game state");
+    }
+    if (isCrashAtStep(round, n)) {
+        throw new Error("The chicken already crashed");
+    }
+
+    const payout = calculatePayout(round.stake, n);
+    round.status = "CASHED_OUT";
+    round.cashedOut = true;
+    round.multiplier = multiplierForStep(n);
+    round.payout = payout;
+    round.updatedAt = Date.now();
+
+    return {
+        state: "CASHED_OUT",
+        step: n,
+        multiplier: round.multiplier,
+        payout
+    };
+}
+
+export function publicRound(round) {
+    return {
+        id: round.id,
+        game: "chicken-road",
+        status: round.status,
+        currentStep: Number(round.currentStep || 0),
+        multiplier: Number(round.multiplier || 1),
+        stake: Number(round.stake || 0),
+        walletType: round.walletType,
+        maxStep: MAX_STEP
+        // crashStep is intentionally NOT returned before the round ends.
+    };
+}
+
+export function finalRound(round) {
+    return {
+        ...publicRound(round),
+        crashStep: Number(round.crashStep),
+        payout: Number(round.payout || 0)
+    };
+}
+
+export function theoreticalRtpTable() {
+    return MULTIPLIERS.map((multiplier, i) => ({
+        step: i + 1,
+        multiplier,
+        probabilityToReachStep: SURVIVAL[i],
+        fixedStepReturn: Number((SURVIVAL[i] * multiplier).toFixed(6))
+    }));
+}
+
+export default {
+    CONFIG,
+    validateBetAmount,
+    multiplierForStep,
+    survivalProbability,
+    generateCrashStep,
+    createRound,
+    isCrashAtStep,
+    advance,
+    calculatePayout,
+    cashOut,
+    publicRound,
+    finalRound,
+    theoreticalRtpTable
+};
