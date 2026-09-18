@@ -5179,7 +5179,7 @@ function startAviatorRound() {
     round.committedSeedHash = aviator.commitHash(round.secretSeed);
     rounds.aviator = round;
 
-    console.log(`[AVIATOR] NEW ROUND ${round.id} #${round.roundNumber} | BETTING ${round.bettingSeconds}s | commit=${round.committedSeedHash}`);
+    console.log(`[AVIATOR] NEW ROUND ${round.id} #${round.roundNumber} | BETTING ${aviator.AVIATOR_CONFIG.bettingSeconds}s | commit=${round.committedSeedHash}`);
 
     saveRound(round).catch(console.error);
 
