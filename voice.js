@@ -148,8 +148,8 @@ const DestaVoice = (() => {
     if (key === lastAnnouncementKey) return false;
     lastAnnouncementKey = key;
 
-    // Draw voice follows the number currently being presented. Never allow
-    // old draw calls to build a backlog behind the live board.
+    /* Never let draw announcements build a backlog. The visual board has
+       already presented this exact number, so speak this number immediately. */
     queue = [];
     requestSeq++;
     if (currentAudio) {
@@ -157,27 +157,44 @@ const DestaVoice = (() => {
       try { currentAudio.currentTime = 0; } catch (_) {}
       currentAudio = null;
     }
-    speaking = false;
-    return queueText(text, lang, false);
+    speaking = true;
+    const seq = requestSeq;
+    const url = VOICE_API_BASE + "/api/voice?lang=" + encodeURIComponent(lang) + "&text=" + encodeURIComponent(text);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    audio.preload = "auto";
+    audio.volume = 1;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (seq === requestSeq) { currentAudio = null; speaking = false; }
+    };
+    audio.onended = finish; audio.onerror = finish; audio.onabort = finish;
+    audio.play().catch(finish);
+    return true;
   }
 
   function unlock() { return true; }
 
+
   function playAviatorVoice(text) {
+    if (!enabled) return false;
     const phrase = String(text || "").trim();
-    if (!phrase || !enabled) return false;
-    try {
-      if (typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined") {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(phrase);
-        u.lang = "en-US";
-        u.rate = 1.05;
-        u.pitch = 1;
-        window.speechSynthesis.speak(u);
-        return true;
-      }
-    } catch (_) {}
-    return false;
+    if (!phrase) return false;
+    const lang = "en";
+    stopVoice();
+    const url = VOICE_API_BASE + "/api/voice?lang=" + encodeURIComponent(lang) + "&text=" + encodeURIComponent(phrase);
+    const audio = new Audio(url);
+    currentAudio = audio;
+    audio.preload = "auto";
+    audio.volume = 1;
+    let done = false;
+    const finish = () => { if (done) return; done = true; currentAudio = null; speaking = false; };
+    audio.onended = finish; audio.onerror = finish; audio.onabort = finish;
+    speaking = true;
+    audio.play().catch(finish);
+    return true;
   }
 
   function playAviatorStart() { return playAviatorVoice("Flight started"); }
@@ -218,15 +235,15 @@ const DestaVoice = (() => {
     announceDraw,
     buildAnnouncement,
     getBingoLetter,
-    playAviatorStart,
-    playAviatorFlying,
-    playAviatorCrash,
     setEnabled,
     toggle,
     stopVoice,
     speakText,
     unlock,
-    getState
+    getState,
+    playAviatorStart,
+    playAviatorFlying,
+    playAviatorCrash
   };
 })();
 
