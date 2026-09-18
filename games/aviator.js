@@ -7,7 +7,7 @@ import crypto from "node:crypto";
 
 export const AVIATOR_CONFIG = {
   name: "Aviator",
-  bettingSeconds: 15,
+  bettingSeconds: 30,
   tickMilliseconds: 100,
   minBet: 10,
   payoutPercent: 50,
