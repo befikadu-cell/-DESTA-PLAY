@@ -28,7 +28,7 @@ import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
-import * as chickenRoad from "./games/chicken-road/chicken-road-engine.js";
+import * as chickenRoad from "./games/chicken-road.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -202,11 +202,7 @@ function getRegistrationContact(telegramId) {
 |--------------------------------------------------------------------------
 */
 
-const games = { bingo, keno };
-
-// Chicken Road is a player-specific round, so it is kept separately from
-// the shared Keno/Bingo house rooms. The existing game engines are untouched.
-const chickenRoadRounds = new Map();
+const games = { bingo, keno, "chicken-road": chickenRoad };
 
 const rounds = {};
 
@@ -267,6 +263,131 @@ const NEXT_ROUND_DELAY = 5000;
 */
 
 const bingoRooms = {};
+
+/*
+|--------------------------------------------------------------------------
+| SERVER-AUTHORITATIVE CHICKEN ROAD
+|--------------------------------------------------------------------------
+| One player owns one active Chicken Road round at a time. The authoritative
+| crash step stays server-side and is never sent to the browser while active.
+| The complete game/physics logic lives in games/chicken-road.js.
+|--------------------------------------------------------------------------
+*/
+const chickenRoadRounds = new Map();
+const chickenRoundLocks = new Map();
+
+async function withChickenRoundLock(roundId, work) {
+    const key = String(roundId);
+    const previous = chickenRoundLocks.get(key) || Promise.resolve();
+    let release;
+    const current = new Promise(resolve => { release = resolve; });
+    const chain = previous.then(() => current);
+    chickenRoundLocks.set(key, chain);
+    await previous;
+    try {
+        return await work();
+    } finally {
+        release();
+        if (chickenRoundLocks.get(key) === chain) chickenRoundLocks.delete(key);
+    }
+}
+
+async function saveChickenRoadRound(round) {
+    const final = ["LOST", "CASHED_OUT", "WON"].includes(round.status);
+    const payload = {
+        id: round.id,
+        round_id: round.id,
+        game: "chicken-road",
+        status: round.status,
+        betting_seconds: 0,
+        betting_started_at: new Date(round.createdAt).toISOString(),
+        betting_ends_at: new Date(round.createdAt).toISOString(),
+        drawn_numbers: [],
+        current_number: Number(round.currentStep || 0),
+        result: final ? {
+            game: "chicken-road",
+            status: round.status,
+            playerId: round.playerId,
+            stake: Number(round.stake),
+            walletType: round.walletType,
+            step: Number(round.currentStep || 0),
+            multiplier: Number(round.multiplier || 0),
+            payout: Number(round.payout || 0),
+            crashStep: Number(round.crashStep)
+        } : null,
+        multiplier: Number(round.multiplier || 1),
+        crash_point: final ? Number(round.crashStep) : null,
+        engine_state: {
+            playerId: round.playerId,
+            stake: Number(round.stake),
+            walletType: round.walletType,
+            currentStep: Number(round.currentStep || 0),
+            multiplier: Number(round.multiplier || 1),
+            secretCrashStep: Number(round.crashStep),
+            status: round.status,
+            cashedOut: !!round.cashedOut,
+            payout: Number(round.payout || 0),
+            createdAt: round.createdAt,
+            updatedAt: round.updatedAt
+        },
+        updated_at: nowIso()
+    };
+
+    const { error } = await supabase
+        .from("game_rounds")
+        .upsert(payload, { onConflict: "id" });
+
+    if (error) {
+        await dbError("saveChickenRoadRound", error);
+        throw new Error("Could not save Chicken Road round");
+    }
+}
+
+async function loadChickenRoadRound(roundId) {
+    const key = String(roundId || "").trim();
+    if (!key) return null;
+
+    if (chickenRoadRounds.has(key)) return chickenRoadRounds.get(key);
+
+    const { data, error } = await supabase
+        .from("game_rounds")
+        .select("id,game,status,current_number,multiplier,crash_point,engine_state,result")
+        .eq("id", key)
+        .eq("game", "chicken-road")
+        .maybeSingle();
+
+    if (error) {
+        await dbError("loadChickenRoadRound", error);
+        throw new Error("Could not load Chicken Road round");
+    }
+    if (!data || !data.engine_state) return null;
+
+    const e = data.engine_state;
+    const round = {
+        id: String(data.id),
+        game: "chicken-road",
+        playerId: String(e.playerId || ""),
+        stake: Number(e.stake || 0),
+        walletType: String(e.walletType || "cash"),
+        status: String(e.status || data.status || "ACTIVE"),
+        currentStep: Number(e.currentStep || data.current_number || 0),
+        multiplier: Number(e.multiplier || data.multiplier || 1),
+        crashStep: Number(e.secretCrashStep || data.crash_point || 0),
+        cashedOut: !!e.cashedOut,
+        payout: Number(e.payout || 0),
+        createdAt: Number(e.createdAt || Date.now()),
+        updatedAt: Number(e.updatedAt || Date.now())
+    };
+
+    chickenRoadRounds.set(key, round);
+    return round;
+}
+
+function chickenPublicRoundForPlayer(round, playerId) {
+    if (!round || String(round.playerId) !== String(playerId)) return null;
+    return chickenRoad.publicRound(round);
+}
+
 
 /*
 |--------------------------------------------------------------------------
@@ -1131,11 +1252,13 @@ async function spendBonusPoints({ playerId, points, game, roundId, metadata = {}
 */
 const CASH_GAME_BET_TYPES = new Set([
     "bingo_entry",
-    "keno_bet"
+    "keno_bet",
+    "chicken_road_bet"
 ]);
 const CASH_GAME_WIN_TYPES = new Set([
     "bingo_win",
-    "keno_win"
+    "keno_win",
+    "chicken_road_win"
 ]);
 
 async function getWalletAccounting(playerId, playerOverride = null) {
@@ -5677,6 +5800,222 @@ app.post(
 
 /*
 |--------------------------------------------------------------------------
+| CHICKEN ROAD — SERVER-AUTHORITATIVE API
+|--------------------------------------------------------------------------
+*/
+
+app.post("/api/chicken-road/start", requirePlayer, async (req, res) => {
+    try {
+        const stake = chickenRoad.validateBetAmount(req.body?.stake);
+        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+        const lockKey = walletType === "bonus" ? `bonus:${req.player.id}` : req.player.id;
+
+        return await withPlayerBalanceLock(lockKey, async () => {
+            const existing = [...chickenRoadRounds.values()].find(r =>
+                String(r.playerId) === String(req.player.id) && r.status === "ACTIVE"
+            );
+            if (existing) {
+                return res.status(400).json({ success: false, error: "You already have an active Chicken Road round" });
+            }
+
+            const roundId = `chicken-road-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
+            const round = chickenRoad.createRound({
+                roundId,
+                playerId: req.player.id,
+                stake,
+                walletType
+            });
+
+            let balanceAfter = Number(req.player.balance || 0);
+            let bonusPointsAfter = null;
+
+            if (walletType === "bonus") {
+                bonusPointsAfter = await spendBonusPoints({
+                    playerId: req.player.id,
+                    points: stake,
+                    game: "chicken-road",
+                    roundId,
+                    metadata: { stake, walletType }
+                });
+            } else {
+                const fresh = await findPlayerById(req.player.id);
+                const freshBalance = Number(fresh?.balance || 0);
+                if (stake > freshBalance) throw new Error("Insufficient balance");
+                balanceAfter = await changeBalance({
+                    playerId: req.player.id,
+                    amount: -stake,
+                    type: "chicken_road_bet",
+                    game: "chicken-road",
+                    roundId,
+                    description: "Chicken Road bet",
+                    metadata: { stake, walletType }
+                });
+            }
+
+            chickenRoadRounds.set(roundId, round);
+            await saveChickenRoadRound(round);
+
+            return res.json({
+                success: true,
+                round: chickenRoad.publicRound(round),
+                balanceAfter,
+                bonusPointsAfter
+            });
+        });
+    } catch (error) {
+        console.error("Chicken Road start error:", error);
+        return res.status(400).json({ success: false, error: error.message || "Could not start Chicken Road" });
+    }
+});
+
+app.get("/api/chicken-road/round/:roundId", requirePlayer, async (req, res) => {
+    try {
+        const round = await loadChickenRoadRound(req.params.roundId);
+        if (!round || String(round.playerId) !== String(req.player.id)) {
+            return res.status(404).json({ success: false, error: "Chicken Road round not found" });
+        }
+        return res.json({
+            success: true,
+            round: ["LOST", "CASHED_OUT", "WON"].includes(round.status)
+                ? chickenRoad.finalRound(round)
+                : chickenRoad.publicRound(round)
+        });
+    } catch (error) {
+        console.error("Chicken Road round error:", error);
+        return res.status(500).json({ success: false, error: "Could not load Chicken Road round" });
+    }
+});
+
+app.post("/api/chicken-road/step", requirePlayer, async (req, res) => {
+    try {
+        const roundId = String(req.body?.roundId || "").trim();
+        const requestedStep = Number(req.body?.step);
+        if (!roundId) return res.status(400).json({ success: false, error: "Round ID is required" });
+
+        return await withChickenRoundLock(roundId, async () => {
+            const round = await loadChickenRoadRound(roundId);
+            if (!round || String(round.playerId) !== String(req.player.id)) {
+                return res.status(404).json({ success: false, error: "Chicken Road round not found" });
+            }
+            if (round.status !== "ACTIVE") {
+                return res.status(400).json({ success: false, error: "Chicken Road round is no longer active" });
+            }
+
+            const result = chickenRoad.advance(round, requestedStep);
+            chickenRoadRounds.set(roundId, round);
+
+            if (result.state === "CRASH") {
+                await saveChickenRoadRound(round);
+                return res.json({
+                    success: true,
+                    state: "CRASH",
+                    round: chickenRoad.finalRound(round),
+                    payout: 0
+                });
+            }
+
+            if (result.state === "FINISH") {
+                await withPlayerBalanceLock(round.walletType === "bonus" ? `bonus:${round.playerId}` : round.playerId, async () => {
+                    if (round.walletType === "bonus") {
+                        await writeBonusTransaction({
+                            playerId: round.playerId,
+                            points: result.payout,
+                            type: "bonus_win",
+                            description: `Chicken Road prize at ${result.multiplier}x`,
+                            referenceId: round.id
+                        });
+                    } else {
+                        await changeBalance({
+                            playerId: round.playerId,
+                            amount: result.payout,
+                            type: "chicken_road_win",
+                            game: "chicken-road",
+                            roundId: round.id,
+                            description: `Chicken Road prize at ${result.multiplier}x`,
+                            metadata: { step: result.step, multiplier: result.multiplier }
+                        });
+                    }
+                });
+                await saveChickenRoadRound(round);
+            } else {
+                await saveChickenRoadRound(round);
+            }
+
+            return res.json({
+                success: true,
+                state: result.state,
+                step: result.step,
+                multiplier: result.multiplier,
+                payout: result.payout,
+                round: result.state === "FINISH" ? chickenRoad.finalRound(round) : chickenRoad.publicRound(round)
+            });
+        });
+    } catch (error) {
+        console.error("Chicken Road step error:", error);
+        return res.status(400).json({ success: false, error: error.message || "Could not advance Chicken Road" });
+    }
+});
+
+app.post("/api/chicken-road/cashout", requirePlayer, async (req, res) => {
+    try {
+        const roundId = String(req.body?.roundId || "").trim();
+        const requestedStep = Number(req.body?.step);
+        if (!roundId) return res.status(400).json({ success: false, error: "Round ID is required" });
+
+        return await withChickenRoundLock(roundId, async () => {
+            const round = await loadChickenRoadRound(roundId);
+            if (!round || String(round.playerId) !== String(req.player.id)) {
+                return res.status(404).json({ success: false, error: "Chicken Road round not found" });
+            }
+
+            const result = chickenRoad.cashOut(round, requestedStep);
+
+            await withPlayerBalanceLock(round.walletType === "bonus" ? `bonus:${round.playerId}` : round.playerId, async () => {
+                if (round.walletType === "bonus") {
+                    await writeBonusTransaction({
+                        playerId: round.playerId,
+                        points: result.payout,
+                        type: "bonus_win",
+                        description: `Chicken Road cash-out at ${result.multiplier}x`,
+                        referenceId: round.id
+                    });
+                } else {
+                    await changeBalance({
+                        playerId: round.playerId,
+                        amount: result.payout,
+                        type: "chicken_road_win",
+                        game: "chicken-road",
+                        roundId: round.id,
+                        description: `Chicken Road cash-out at ${result.multiplier}x`,
+                        metadata: { step: result.step, multiplier: result.multiplier }
+                    });
+                }
+            });
+
+            chickenRoadRounds.set(roundId, round);
+            await saveChickenRoadRound(round);
+
+            const freshPlayer = await findPlayerById(req.player.id);
+            const bonusPointsAfter = round.walletType === "bonus" ? await getBonusPoints(req.player.id) : null;
+            return res.json({
+                success: true,
+                state: "CASHED_OUT",
+                step: result.step,
+                multiplier: result.multiplier,
+                payout: result.payout,
+                balanceAfter: Number(freshPlayer?.balance || 0),
+                bonusPointsAfter,
+                round: chickenRoad.finalRound(round)
+            });
+        });
+    } catch (error) {
+        console.error("Chicken Road cash-out error:", error);
+        return res.status(400).json({ success: false, error: error.message || "Cash-out failed" });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
 | GAME HISTORY
 |--------------------------------------------------------------------------
 */
@@ -6033,223 +6372,6 @@ function editionFindBingoRoom(stake) {
     if (!tier) return null;
     return bingoRooms[tier] || null;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| CHICKEN ROAD — SERVER-AUTHORITATIVE PLAYER ROUND
-|--------------------------------------------------------------------------
-|
-| The client never receives the hidden crash step at round creation.
-| It advances through /tick. Cash-out and prize calculation are performed
-| here from the server-side round state.
-|--------------------------------------------------------------------------
-*/
-
-app.get("/api/chicken-road/config", requirePlayer, (req, res) => {
-    return res.json({
-        success: true,
-        config: {
-            name: chickenRoad.CHICKEN_ROAD_CONFIG.name,
-            minBet: chickenRoad.CHICKEN_ROAD_CONFIG.minBet,
-            maxBet: chickenRoad.CHICKEN_ROAD_CONFIG.maxBet,
-            maxSteps: chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps,
-            rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent,
-            housePercent: chickenRoad.CHICKEN_ROAD_CONFIG.housePercent,
-            multipliers: chickenRoad.CHICKEN_ROAD_CONFIG.multiplierByStep
-        }
-    });
-});
-
-app.post("/api/chicken-road/start", requirePlayer, async (req, res) => {
-    try {
-        const playerId = String(req.player.id);
-
-        if (chickenRoadRounds.has(playerId)) {
-            const active = chickenRoadRounds.get(playerId);
-            if (active && active.status === "ACTIVE") {
-                return res.status(400).json({
-                    success: false,
-                    error: "You already have an active Chicken Road round"
-                });
-            }
-            chickenRoadRounds.delete(playerId);
-        }
-
-        const amount = chickenRoad.validateBet(req.body?.amount);
-
-        const result = await withPlayerBalanceLock(playerId, async () => {
-            const freshPlayer = await findPlayerById(playerId);
-            const currentBalance = Number(freshPlayer?.balance || 0);
-
-            if (amount > currentBalance) {
-                throw new Error("Insufficient balance");
-            }
-
-            const round = chickenRoad.createRound({
-                playerId,
-                amount
-            });
-
-            const balanceAfter = await changeBalance({
-                playerId,
-                amount: -amount,
-                type: "chicken_road_bet",
-                game: "chicken-road",
-                roundId: round.id,
-                description: "Chicken Road bet",
-                metadata: {
-                    amount,
-                    rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent
-                }
-            });
-
-            chickenRoadRounds.set(playerId, round);
-
-            return {
-                round,
-                balanceAfter
-            };
-        });
-
-        return res.json({
-            success: true,
-            roundId: result.round.id,
-            amount: result.round.amount,
-            currentStep: 0,
-            maxSteps: chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps,
-            multipliers: chickenRoad.CHICKEN_ROAD_CONFIG.multiplierByStep,
-            balanceAfter: result.balanceAfter
-        });
-    } catch (error) {
-        console.error("[CHICKEN ROAD] start error:", error);
-        return res.status(400).json({
-            success: false,
-            error: error.message || "Could not start Chicken Road"
-        });
-    }
-});
-
-app.post("/api/chicken-road/tick", requirePlayer, async (req, res) => {
-    try {
-        const playerId = String(req.player.id);
-        const round = chickenRoadRounds.get(playerId);
-        const requestedRoundId = String(req.body?.roundId || "");
-
-        if (!round || round.status !== "ACTIVE" || round.id !== requestedRoundId) {
-            return res.status(400).json({
-                success: false,
-                error: "Chicken Road round is not active"
-            });
-        }
-
-        const nextStep = Number(round.currentStep) + 1;
-
-        if (nextStep > chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps) {
-            return res.status(400).json({
-                success: false,
-                error: "Chicken Road round is already complete"
-            });
-        }
-
-        round.currentStep = nextStep;
-
-        if (nextStep >= round.crashStep) {
-            round.status = "CRASHED";
-            round.finishedAt = Date.now();
-
-            chickenRoadRounds.delete(playerId);
-
-            return res.json({
-                success: true,
-                result: "CRASH",
-                step: nextStep,
-                multiplier: null,
-                payout: 0,
-                balance: Number(req.player.balance || 0)
-            });
-        }
-
-        const multiplier = chickenRoad.getMultiplier(nextStep);
-
-        return res.json({
-            success: true,
-            result: "SAFE",
-            step: nextStep,
-            multiplier,
-            potentialPayout: Number((round.amount * multiplier).toFixed(2))
-        });
-    } catch (error) {
-        console.error("[CHICKEN ROAD] tick error:", error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || "Could not advance Chicken Road"
-        });
-    }
-});
-
-app.post("/api/chicken-road/cashout", requirePlayer, async (req, res) => {
-    try {
-        const playerId = String(req.player.id);
-
-        return await withPlayerBalanceLock(playerId, async () => {
-            const round = chickenRoadRounds.get(playerId);
-            const requestedRoundId = String(req.body?.roundId || "");
-
-            if (!round || round.status !== "ACTIVE" || round.id !== requestedRoundId) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Chicken Road round is not active"
-                });
-            }
-
-            if (!chickenRoad.canCashOut(round)) {
-                return res.status(400).json({
-                    success: false,
-                    error: "Cash out is not available"
-                });
-            }
-
-            const payout = chickenRoad.cashOutAmount(round);
-            const multiplier = chickenRoad.getMultiplier(round.currentStep);
-
-            const balanceAfter = await changeBalance({
-                playerId,
-                amount: payout,
-                type: "chicken_road_win",
-                game: "chicken-road",
-                roundId: round.id,
-                description: `Chicken Road cash out at ${multiplier.toFixed(2)}x`,
-                metadata: {
-                    stake: round.amount,
-                    step: round.currentStep,
-                    multiplier,
-                    payout,
-                    rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent
-                }
-            });
-
-            round.status = "CASHED_OUT";
-            round.finishedAt = Date.now();
-            chickenRoadRounds.delete(playerId);
-
-            return res.json({
-                success: true,
-                result: "CASHED_OUT",
-                step: round.currentStep,
-                multiplier,
-                payout,
-                balanceAfter
-            });
-        });
-    } catch (error) {
-        console.error("[CHICKEN ROAD] cashout error:", error);
-        return res.status(500).json({
-            success: false,
-            error: error.message || "Could not cash out Chicken Road"
-        });
-    }
-});
 
 /*
  * The existing generic round endpoint below is retained as the single
