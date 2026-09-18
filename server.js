@@ -28,6 +28,7 @@ import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
+import * as chickenRoad from "./games/chicken-road/chicken-road-engine.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -202,6 +203,10 @@ function getRegistrationContact(telegramId) {
 */
 
 const games = { bingo, keno };
+
+// Chicken Road is a player-specific round, so it is kept separately from
+// the shared Keno/Bingo house rooms. The existing game engines are untouched.
+const chickenRoadRounds = new Map();
 
 const rounds = {};
 
@@ -6028,6 +6033,223 @@ function editionFindBingoRoom(stake) {
     if (!tier) return null;
     return bingoRooms[tier] || null;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| CHICKEN ROAD — SERVER-AUTHORITATIVE PLAYER ROUND
+|--------------------------------------------------------------------------
+|
+| The client never receives the hidden crash step at round creation.
+| It advances through /tick. Cash-out and prize calculation are performed
+| here from the server-side round state.
+|--------------------------------------------------------------------------
+*/
+
+app.get("/api/chicken-road/config", requirePlayer, (req, res) => {
+    return res.json({
+        success: true,
+        config: {
+            name: chickenRoad.CHICKEN_ROAD_CONFIG.name,
+            minBet: chickenRoad.CHICKEN_ROAD_CONFIG.minBet,
+            maxBet: chickenRoad.CHICKEN_ROAD_CONFIG.maxBet,
+            maxSteps: chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps,
+            rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent,
+            housePercent: chickenRoad.CHICKEN_ROAD_CONFIG.housePercent,
+            multipliers: chickenRoad.CHICKEN_ROAD_CONFIG.multiplierByStep
+        }
+    });
+});
+
+app.post("/api/chicken-road/start", requirePlayer, async (req, res) => {
+    try {
+        const playerId = String(req.player.id);
+
+        if (chickenRoadRounds.has(playerId)) {
+            const active = chickenRoadRounds.get(playerId);
+            if (active && active.status === "ACTIVE") {
+                return res.status(400).json({
+                    success: false,
+                    error: "You already have an active Chicken Road round"
+                });
+            }
+            chickenRoadRounds.delete(playerId);
+        }
+
+        const amount = chickenRoad.validateBet(req.body?.amount);
+
+        const result = await withPlayerBalanceLock(playerId, async () => {
+            const freshPlayer = await findPlayerById(playerId);
+            const currentBalance = Number(freshPlayer?.balance || 0);
+
+            if (amount > currentBalance) {
+                throw new Error("Insufficient balance");
+            }
+
+            const round = chickenRoad.createRound({
+                playerId,
+                amount
+            });
+
+            const balanceAfter = await changeBalance({
+                playerId,
+                amount: -amount,
+                type: "chicken_road_bet",
+                game: "chicken-road",
+                roundId: round.id,
+                description: "Chicken Road bet",
+                metadata: {
+                    amount,
+                    rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent
+                }
+            });
+
+            chickenRoadRounds.set(playerId, round);
+
+            return {
+                round,
+                balanceAfter
+            };
+        });
+
+        return res.json({
+            success: true,
+            roundId: result.round.id,
+            amount: result.round.amount,
+            currentStep: 0,
+            maxSteps: chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps,
+            multipliers: chickenRoad.CHICKEN_ROAD_CONFIG.multiplierByStep,
+            balanceAfter: result.balanceAfter
+        });
+    } catch (error) {
+        console.error("[CHICKEN ROAD] start error:", error);
+        return res.status(400).json({
+            success: false,
+            error: error.message || "Could not start Chicken Road"
+        });
+    }
+});
+
+app.post("/api/chicken-road/tick", requirePlayer, async (req, res) => {
+    try {
+        const playerId = String(req.player.id);
+        const round = chickenRoadRounds.get(playerId);
+        const requestedRoundId = String(req.body?.roundId || "");
+
+        if (!round || round.status !== "ACTIVE" || round.id !== requestedRoundId) {
+            return res.status(400).json({
+                success: false,
+                error: "Chicken Road round is not active"
+            });
+        }
+
+        const nextStep = Number(round.currentStep) + 1;
+
+        if (nextStep > chickenRoad.CHICKEN_ROAD_CONFIG.maxSteps) {
+            return res.status(400).json({
+                success: false,
+                error: "Chicken Road round is already complete"
+            });
+        }
+
+        round.currentStep = nextStep;
+
+        if (nextStep >= round.crashStep) {
+            round.status = "CRASHED";
+            round.finishedAt = Date.now();
+
+            chickenRoadRounds.delete(playerId);
+
+            return res.json({
+                success: true,
+                result: "CRASH",
+                step: nextStep,
+                multiplier: null,
+                payout: 0,
+                balance: Number(req.player.balance || 0)
+            });
+        }
+
+        const multiplier = chickenRoad.getMultiplier(nextStep);
+
+        return res.json({
+            success: true,
+            result: "SAFE",
+            step: nextStep,
+            multiplier,
+            potentialPayout: Number((round.amount * multiplier).toFixed(2))
+        });
+    } catch (error) {
+        console.error("[CHICKEN ROAD] tick error:", error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || "Could not advance Chicken Road"
+        });
+    }
+});
+
+app.post("/api/chicken-road/cashout", requirePlayer, async (req, res) => {
+    try {
+        const playerId = String(req.player.id);
+
+        return await withPlayerBalanceLock(playerId, async () => {
+            const round = chickenRoadRounds.get(playerId);
+            const requestedRoundId = String(req.body?.roundId || "");
+
+            if (!round || round.status !== "ACTIVE" || round.id !== requestedRoundId) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Chicken Road round is not active"
+                });
+            }
+
+            if (!chickenRoad.canCashOut(round)) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Cash out is not available"
+                });
+            }
+
+            const payout = chickenRoad.cashOutAmount(round);
+            const multiplier = chickenRoad.getMultiplier(round.currentStep);
+
+            const balanceAfter = await changeBalance({
+                playerId,
+                amount: payout,
+                type: "chicken_road_win",
+                game: "chicken-road",
+                roundId: round.id,
+                description: `Chicken Road cash out at ${multiplier.toFixed(2)}x`,
+                metadata: {
+                    stake: round.amount,
+                    step: round.currentStep,
+                    multiplier,
+                    payout,
+                    rtpPercent: chickenRoad.CHICKEN_ROAD_CONFIG.rtpPercent
+                }
+            });
+
+            round.status = "CASHED_OUT";
+            round.finishedAt = Date.now();
+            chickenRoadRounds.delete(playerId);
+
+            return res.json({
+                success: true,
+                result: "CASHED_OUT",
+                step: round.currentStep,
+                multiplier,
+                payout,
+                balanceAfter
+            });
+        });
+    } catch (error) {
+        console.error("[CHICKEN ROAD] cashout error:", error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || "Could not cash out Chicken Road"
+        });
+    }
+});
 
 /*
  * The existing generic round endpoint below is retained as the single
