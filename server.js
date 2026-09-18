@@ -255,7 +255,7 @@ const BETTING_TIMERS = {
     keno: 40
 };
 
-const NEXT_ROUND_DELAY = 5000;
+const NEXT_ROUND_DELAY = 0;
 
 /*
 |--------------------------------------------------------------------------
@@ -4964,6 +4964,8 @@ async function saveRound(
                 totalWagered: Number(round.totalWagered || 0),
                 totalPaid: Number(round.totalPaid || 0),
                 flyingStartedAt: round.flyingStartedAt || null,
+                attractMode: Boolean(round.attractMode),
+                attractFlightMs: Number(round.attractFlightMs || 0),
                 committedSeedHash: round.committedSeedHash || null,
                 secretSeed: round.secretSeed || null
             } : {}),
@@ -5098,6 +5100,7 @@ function getPublicRound(
 
         ...(gameName === "aviator" ? {
             flyingStartedAt: round.flyingStartedAt || null,
+            attractMode: Boolean(round.attractMode),
             committedSeedHash: round.committedSeedHash || null,
             activeBets: (round.bets || []).filter(b => !b.cashedOut).length,
             liveCashouts: (round.bets || []).filter(b => b.cashedOut).slice(-25).reverse().map(b => ({
@@ -5195,17 +5198,25 @@ function beginAviatorFlight(roundId) {
     round.payoutCap = aviator.calculatePayoutCap(round.totalWagered);
 
     if (round.totalWagered <= 0) {
-        round.status = "CRASHED";
+        // ATTRACT MODE: there is no wager and therefore no payout calculation.
+        // The shared plane still flies so visitors can watch a complete live round.
+        round.status = "FLYING";
+        round.flyingStartedAt = Date.now();
         round.multiplier = 1.00;
-        round.crashPoint = 1.00;
-        round.result = { game:"aviator", grossPool:0, payoutAllocation:0, houseAllocation:0, totalPaid:0, winners:[], settledAt:Date.now() };
+        round.payoutCap = 0;
+        round.totalPaid = 0;
+        round.cashoutFeed = [];
+        round.attractMode = true;
+        round.attractFlightMs = 8000 + Math.floor(Math.random() * 6001);
+        round.crashPoint = null;
+        round.lastSavedAt = Date.now();
+        console.log(`[AVIATOR] ATTRACT FLIGHT ${round.id} | no players | ${round.attractFlightMs}ms`);
         saveRound(round).catch(console.error);
-        setTimeout(() => {
-            if (rounds.aviator?.id === round.id) startAviatorRound();
-        }, NEXT_ROUND_DELAY);
+        tickAviatorRound(round.id);
         return;
     }
 
+    round.attractMode = false;
     round.status = "FLYING";
     round.flyingStartedAt = Date.now();
     round.multiplier = 1.00;
@@ -5228,7 +5239,12 @@ function tickAviatorRound(roundId) {
         const elapsed = Date.now() - Number(round.flyingStartedAt || Date.now());
         round.multiplier = aviator.multiplierAt(elapsed);
 
-        if (round.multiplier >= Number(round.crashPoint || 50)) {
+        if (round.attractMode && elapsed >= Number(round.attractFlightMs || 10000)) {
+            await finishAviatorCrash(round, "attract_mode");
+            return;
+        }
+
+        if (!round.attractMode && round.multiplier >= Number(round.crashPoint || 50)) {
             await finishAviatorCrash(round, "safety");
             return;
         }
@@ -5256,6 +5272,7 @@ async function finishAviatorCrash(round, reason) {
         totalPaid: Number(round.totalPaid || 0),
         winners: (round.bets || []).filter(b => b.cashedOut).map(b => ({ playerId:b.playerId, amount:b.amount, multiplier:b.cashoutMultiplier, payout:b.payout })),
         crashReason: reason,
+        attractMode: Boolean(round.attractMode),
         crashPoint: Number(round.multiplier || 1),
         committedSeedHash: round.committedSeedHash,
         secretSeed: round.secretSeed,
@@ -5320,6 +5337,8 @@ async function restoreAviatorRound() {
             committedSeedHash:st.committedSeedHash || aviator.commitHash(st.secretSeed || ""),
             result:data.result || null,
             settled:false,
+            attractMode:Boolean(st.attractMode),
+            attractFlightMs:Number(st.attractFlightMs || 0),
             lastSavedAt:0
         };
         roundCounters.aviator=Math.max(roundCounters.aviator,round.roundNumber);
@@ -5521,15 +5540,15 @@ async function settleKenoRound(round) {
             }catch(error){console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`,error);}
         }
     }
-    const grossPool=bets.reduce((sum,b)=>sum+Number(b.amount||0),0);
-    const houseRake=Number(totalHouseRake.toFixed(2));
+    const kenoGrossPool=bets.reduce((sum,b)=>sum+Number(b.amount||0),0);
+    const kenoHouseRake=Number(totalHouseRake.toFixed(2));
     const rank1Total=Number(winners.filter(w=>w.rank===1).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
     const rank2Total=Number(winners.filter(w=>w.rank===2).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
 
     round.result = {
         game: "keno",
-        grossPool,
-        houseRake,
+        grossPool: kenoGrossPool,
+        houseRake: kenoHouseRake,
         rank1Total,
         rank2Total,
         winners,
@@ -5538,7 +5557,7 @@ async function settleKenoRound(round) {
     };
 
     await saveRound(round).catch(console.error);
-    console.log(`[KENO] FINISHED ${round.id} | pool=${grossPool} | house=${houseRake} | winners=${winners.length}`);
+    console.log(`[KENO] FINISHED ${round.id} | pool=${kenoGrossPool} | house=${kenoHouseRake} | winners=${winners.length}`);
 
     setTimeout(() => {
         const current = rounds.keno;
