@@ -7660,10 +7660,6 @@ function handleAviatorOwnCashout(round){
 function renderAviatorRound(round){
   if(!round) return;
   const previous=state.aviatorLastStatus;
-  if(previous!==round.status && window.DestaVoice){
-    if(round.status==="FLYING" && typeof DestaVoice.playAviatorFlying==="function") DestaVoice.playAviatorFlying();
-    if(round.status==="CRASHED" && typeof DestaVoice.playAviatorCrash==="function") DestaVoice.playAviatorCrash();
-  }
   state.aviatorLastStatus=String(round.status||"");
   state.aviatorLastRoundId=String(round.id||"");
   state.aviatorBets=state.aviatorBets||{1:null,2:null};
