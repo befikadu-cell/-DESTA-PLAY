@@ -28,7 +28,7 @@ import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
-import * as chickenRoad from "./games/chicken-road.js";
+import * as aviator from "./games/aviator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -202,7 +202,7 @@ function getRegistrationContact(telegramId) {
 |--------------------------------------------------------------------------
 */
 
-const games = { bingo, keno, "chicken-road": chickenRoad };
+const games = { bingo, keno, aviator };
 
 const rounds = {};
 
@@ -266,128 +266,15 @@ const bingoRooms = {};
 
 /*
 |--------------------------------------------------------------------------
-| SERVER-AUTHORITATIVE CHICKEN ROAD
-|--------------------------------------------------------------------------
-| One player owns one active Chicken Road round at a time. The authoritative
-| crash step stays server-side and is never sent to the browser while active.
-| The complete game/physics logic lives in games/chicken-road.js.
+| SERVER-AUTHORITATIVE AVIATOR — ONE SHARED LIVE ROUND
 |--------------------------------------------------------------------------
 */
-const chickenRoadRounds = new Map();
-const chickenRoundLocks = new Map();
-
-async function withChickenRoundLock(roundId, work) {
-    const key = String(roundId);
-    const previous = chickenRoundLocks.get(key) || Promise.resolve();
-    let release;
-    const current = new Promise(resolve => { release = resolve; });
-    const chain = previous.then(() => current);
-    chickenRoundLocks.set(key, chain);
-    await previous;
-    try {
-        return await work();
-    } finally {
-        release();
-        if (chickenRoundLocks.get(key) === chain) chickenRoundLocks.delete(key);
-    }
-}
-
-async function saveChickenRoadRound(round) {
-    const final = ["LOST", "CASHED_OUT", "WON"].includes(round.status);
-    const payload = {
-        id: round.id,
-        round_id: round.id,
-        game: "chicken-road",
-        status: round.status,
-        betting_seconds: 0,
-        betting_started_at: new Date(round.createdAt).toISOString(),
-        betting_ends_at: new Date(round.createdAt).toISOString(),
-        drawn_numbers: [],
-        current_number: Number(round.currentStep || 0),
-        result: final ? {
-            game: "chicken-road",
-            status: round.status,
-            playerId: round.playerId,
-            stake: Number(round.stake),
-            walletType: round.walletType,
-            step: Number(round.currentStep || 0),
-            multiplier: Number(round.multiplier || 0),
-            payout: Number(round.payout || 0),
-            crashStep: Number(round.crashStep)
-        } : null,
-        multiplier: Number(round.multiplier || 1),
-        crash_point: final ? Number(round.crashStep) : null,
-        engine_state: {
-            playerId: round.playerId,
-            stake: Number(round.stake),
-            walletType: round.walletType,
-            currentStep: Number(round.currentStep || 0),
-            multiplier: Number(round.multiplier || 1),
-            secretCrashStep: Number(round.crashStep),
-            status: round.status,
-            cashedOut: !!round.cashedOut,
-            payout: Number(round.payout || 0),
-            createdAt: round.createdAt,
-            updatedAt: round.updatedAt
-        },
-        updated_at: nowIso()
-    };
-
-    const { error } = await supabase
-        .from("game_rounds")
-        .upsert(payload, { onConflict: "id" });
-
-    if (error) {
-        await dbError("saveChickenRoadRound", error);
-        throw new Error("Could not save Chicken Road round");
-    }
-}
-
-async function loadChickenRoadRound(roundId) {
-    const key = String(roundId || "").trim();
-    if (!key) return null;
-
-    if (chickenRoadRounds.has(key)) return chickenRoadRounds.get(key);
-
-    const { data, error } = await supabase
-        .from("game_rounds")
-        .select("id,game,status,current_number,multiplier,crash_point,engine_state,result")
-        .eq("id", key)
-        .eq("game", "chicken-road")
-        .maybeSingle();
-
-    if (error) {
-        await dbError("loadChickenRoadRound", error);
-        throw new Error("Could not load Chicken Road round");
-    }
-    if (!data || !data.engine_state) return null;
-
-    const e = data.engine_state;
-    const round = {
-        id: String(data.id),
-        game: "chicken-road",
-        playerId: String(e.playerId || ""),
-        stake: Number(e.stake || 0),
-        walletType: String(e.walletType || "cash"),
-        status: String(e.status || data.status || "ACTIVE"),
-        currentStep: Number(e.currentStep || data.current_number || 0),
-        multiplier: Number(e.multiplier || data.multiplier || 1),
-        crashStep: Number(e.secretCrashStep || data.crash_point || 0),
-        cashedOut: !!e.cashedOut,
-        payout: Number(e.payout || 0),
-        createdAt: Number(e.createdAt || Date.now()),
-        updatedAt: Number(e.updatedAt || Date.now())
-    };
-
-    chickenRoadRounds.set(key, round);
-    return round;
-}
-
-function chickenPublicRoundForPlayer(round, playerId) {
-    if (!round || String(round.playerId) !== String(playerId)) return null;
-    return chickenRoad.publicRound(round);
-}
-
+const aviatorRoundLocks=new Map();let aviatorCurrentRound=null;let aviatorRoundNumber=0;
+async function withAviatorLock(key,work){const k=String(key),prev=aviatorRoundLocks.get(k)||Promise.resolve();let release;const cur=new Promise(r=>release=r),chain=prev.then(()=>cur);aviatorRoundLocks.set(k,chain);await prev;try{return await work();}finally{release();if(aviatorRoundLocks.get(k)===chain)aviatorRoundLocks.delete(k);}}
+async function saveAviatorRound(r){const payload={id:r.id,round_id:r.id,game:"aviator",status:r.status,betting_seconds:aviator.CONFIG.bettingSeconds,betting_started_at:new Date(r.bettingStartedAt).toISOString(),betting_ends_at:new Date(r.bettingEndsAt).toISOString(),drawn_numbers:[],current_number:0,result:r.status==="CRASHED"?{game:"aviator",status:"CRASHED",roundNumber:r.roundNumber,crashPoint:r.crashPoint,totalWagered:r.totalWagered,totalPaidOut:r.totalPaidOut}:null,multiplier:Number(r.multiplier||1),crash_point:r.status==="CRASHED"?Number(r.crashPoint):null,engine_state:aviator.serializeRound(r),updated_at:nowIso()};const {error}=await supabase.from("game_rounds").upsert(payload,{onConflict:"id"});if(error)throw new Error("Could not save Aviator round");}
+async function loadLatestAviatorRound(){if(aviatorCurrentRound)return aviatorCurrentRound;const {data,error}=await supabase.from("game_rounds").select("id,game,status,current_number,multiplier,crash_point,engine_state,result").eq("game","aviator").order("updated_at",{ascending:false}).limit(1).maybeSingle();if(error)throw new Error("Could not load Aviator round");if(data?.engine_state){aviatorCurrentRound=aviator.deserializeRound(data.engine_state);aviatorRoundNumber=Number(aviatorCurrentRound.roundNumber||0);return aviatorCurrentRound;}return null;}
+function publicAviatorRound(r,p){return aviator.publicRound(r,p);}
+function ensureAviatorLoop(){if(ensureAviatorLoop.running)return;ensureAviatorLoop.running=true;const tick=async()=>{try{let r=aviatorCurrentRound||await loadLatestAviatorRound();if(!r||(r.status==="CRASHED"&&Date.now()>=Number(r.nextRoundAt||0))){r=aviator.createSharedRound({roundId:`aviator-${Date.now()}-${crypto.randomBytes(5).toString("hex")}`,roundNumber:++aviatorRoundNumber});aviatorCurrentRound=r;await saveAviatorRound(r);}if(r.status==="BETTING"&&Date.now()>=r.bettingEndsAt){aviator.startFlight(r);await saveAviatorRound(r);}if(r.status==="FLYING"){aviator.updateFlight(r,Date.now());if(r.status==="CRASHED")await saveAviatorRound(r);}}catch(e){console.error("Aviator loop error",e);}setTimeout(tick,250);};tick();}ensureAviatorLoop();
 
 /*
 |--------------------------------------------------------------------------
@@ -1253,12 +1140,12 @@ async function spendBonusPoints({ playerId, points, game, roundId, metadata = {}
 const CASH_GAME_BET_TYPES = new Set([
     "bingo_entry",
     "keno_bet",
-    "chicken_road_bet"
+    "aviator_bet"
 ]);
 const CASH_GAME_WIN_TYPES = new Set([
     "bingo_win",
     "keno_win",
-    "chicken_road_win"
+    "aviator_win"
 ]);
 
 async function getWalletAccounting(playerId, playerOverride = null) {
@@ -5798,221 +5685,10 @@ app.post(
 |--------------------------------------------------------------------------
 */
 
-/*
-|--------------------------------------------------------------------------
-| CHICKEN ROAD — SERVER-AUTHORITATIVE API
-|--------------------------------------------------------------------------
-*/
-
-app.post("/api/chicken-road/start", requirePlayer, async (req, res) => {
-    try {
-        const stake = chickenRoad.validateBetAmount(req.body?.stake);
-        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-        const lockKey = walletType === "bonus" ? `bonus:${req.player.id}` : req.player.id;
-
-        return await withPlayerBalanceLock(lockKey, async () => {
-            const existing = [...chickenRoadRounds.values()].find(r =>
-                String(r.playerId) === String(req.player.id) && r.status === "ACTIVE"
-            );
-            if (existing) {
-                return res.status(400).json({ success: false, error: "You already have an active Chicken Road round" });
-            }
-
-            const roundId = `chicken-road-${Date.now()}-${crypto.randomBytes(6).toString("hex")}`;
-            const round = chickenRoad.createRound({
-                roundId,
-                playerId: req.player.id,
-                stake,
-                walletType
-            });
-
-            let balanceAfter = Number(req.player.balance || 0);
-            let bonusPointsAfter = null;
-
-            if (walletType === "bonus") {
-                bonusPointsAfter = await spendBonusPoints({
-                    playerId: req.player.id,
-                    points: stake,
-                    game: "chicken-road",
-                    roundId,
-                    metadata: { stake, walletType }
-                });
-            } else {
-                const fresh = await findPlayerById(req.player.id);
-                const freshBalance = Number(fresh?.balance || 0);
-                if (stake > freshBalance) throw new Error("Insufficient balance");
-                balanceAfter = await changeBalance({
-                    playerId: req.player.id,
-                    amount: -stake,
-                    type: "chicken_road_bet",
-                    game: "chicken-road",
-                    roundId,
-                    description: "Chicken Road bet",
-                    metadata: { stake, walletType }
-                });
-            }
-
-            chickenRoadRounds.set(roundId, round);
-            await saveChickenRoadRound(round);
-
-            return res.json({
-                success: true,
-                round: chickenRoad.publicRound(round),
-                balanceAfter,
-                bonusPointsAfter
-            });
-        });
-    } catch (error) {
-        console.error("Chicken Road start error:", error);
-        return res.status(400).json({ success: false, error: error.message || "Could not start Chicken Road" });
-    }
-});
-
-app.get("/api/chicken-road/round/:roundId", requirePlayer, async (req, res) => {
-    try {
-        const round = await loadChickenRoadRound(req.params.roundId);
-        if (!round || String(round.playerId) !== String(req.player.id)) {
-            return res.status(404).json({ success: false, error: "Chicken Road round not found" });
-        }
-        return res.json({
-            success: true,
-            round: ["LOST", "CASHED_OUT", "WON"].includes(round.status)
-                ? chickenRoad.finalRound(round)
-                : chickenRoad.publicRound(round)
-        });
-    } catch (error) {
-        console.error("Chicken Road round error:", error);
-        return res.status(500).json({ success: false, error: "Could not load Chicken Road round" });
-    }
-});
-
-app.post("/api/chicken-road/step", requirePlayer, async (req, res) => {
-    try {
-        const roundId = String(req.body?.roundId || "").trim();
-        const requestedStep = Number(req.body?.step);
-        if (!roundId) return res.status(400).json({ success: false, error: "Round ID is required" });
-
-        return await withChickenRoundLock(roundId, async () => {
-            const round = await loadChickenRoadRound(roundId);
-            if (!round || String(round.playerId) !== String(req.player.id)) {
-                return res.status(404).json({ success: false, error: "Chicken Road round not found" });
-            }
-            if (round.status !== "ACTIVE") {
-                return res.status(400).json({ success: false, error: "Chicken Road round is no longer active" });
-            }
-
-            const result = chickenRoad.advance(round, requestedStep);
-            chickenRoadRounds.set(roundId, round);
-
-            if (result.state === "CRASH") {
-                await saveChickenRoadRound(round);
-                return res.json({
-                    success: true,
-                    state: "CRASH",
-                    round: chickenRoad.finalRound(round),
-                    payout: 0
-                });
-            }
-
-            if (result.state === "FINISH") {
-                await withPlayerBalanceLock(round.walletType === "bonus" ? `bonus:${round.playerId}` : round.playerId, async () => {
-                    if (round.walletType === "bonus") {
-                        await writeBonusTransaction({
-                            playerId: round.playerId,
-                            points: result.payout,
-                            type: "bonus_win",
-                            description: `Chicken Road prize at ${result.multiplier}x`,
-                            referenceId: round.id
-                        });
-                    } else {
-                        await changeBalance({
-                            playerId: round.playerId,
-                            amount: result.payout,
-                            type: "chicken_road_win",
-                            game: "chicken-road",
-                            roundId: round.id,
-                            description: `Chicken Road prize at ${result.multiplier}x`,
-                            metadata: { step: result.step, multiplier: result.multiplier }
-                        });
-                    }
-                });
-                await saveChickenRoadRound(round);
-            } else {
-                await saveChickenRoadRound(round);
-            }
-
-            return res.json({
-                success: true,
-                state: result.state,
-                step: result.step,
-                multiplier: result.multiplier,
-                payout: result.payout,
-                round: result.state === "FINISH" ? chickenRoad.finalRound(round) : chickenRoad.publicRound(round)
-            });
-        });
-    } catch (error) {
-        console.error("Chicken Road step error:", error);
-        return res.status(400).json({ success: false, error: error.message || "Could not advance Chicken Road" });
-    }
-});
-
-app.post("/api/chicken-road/cashout", requirePlayer, async (req, res) => {
-    try {
-        const roundId = String(req.body?.roundId || "").trim();
-        const requestedStep = Number(req.body?.step);
-        if (!roundId) return res.status(400).json({ success: false, error: "Round ID is required" });
-
-        return await withChickenRoundLock(roundId, async () => {
-            const round = await loadChickenRoadRound(roundId);
-            if (!round || String(round.playerId) !== String(req.player.id)) {
-                return res.status(404).json({ success: false, error: "Chicken Road round not found" });
-            }
-
-            const result = chickenRoad.cashOut(round, requestedStep);
-
-            await withPlayerBalanceLock(round.walletType === "bonus" ? `bonus:${round.playerId}` : round.playerId, async () => {
-                if (round.walletType === "bonus") {
-                    await writeBonusTransaction({
-                        playerId: round.playerId,
-                        points: result.payout,
-                        type: "bonus_win",
-                        description: `Chicken Road cash-out at ${result.multiplier}x`,
-                        referenceId: round.id
-                    });
-                } else {
-                    await changeBalance({
-                        playerId: round.playerId,
-                        amount: result.payout,
-                        type: "chicken_road_win",
-                        game: "chicken-road",
-                        roundId: round.id,
-                        description: `Chicken Road cash-out at ${result.multiplier}x`,
-                        metadata: { step: result.step, multiplier: result.multiplier }
-                    });
-                }
-            });
-
-            chickenRoadRounds.set(roundId, round);
-            await saveChickenRoadRound(round);
-
-            const freshPlayer = await findPlayerById(req.player.id);
-            const bonusPointsAfter = round.walletType === "bonus" ? await getBonusPoints(req.player.id) : null;
-            return res.json({
-                success: true,
-                state: "CASHED_OUT",
-                step: result.step,
-                multiplier: result.multiplier,
-                payout: result.payout,
-                balanceAfter: Number(freshPlayer?.balance || 0),
-                bonusPointsAfter,
-                round: chickenRoad.finalRound(round)
-            });
-        });
-    } catch (error) {
-        console.error("Chicken Road cash-out error:", error);
-        return res.status(400).json({ success: false, error: error.message || "Cash-out failed" });
-    }
-});
+/* AVIATOR — SHARED SERVER-AUTHORITATIVE API */
+app.get("/api/aviator/round",requirePlayer,async(req,res)=>{try{const r=aviatorCurrentRound||await loadLatestAviatorRound();if(!r)return res.status(404).json({success:false,error:"Aviator round not found"});res.json({success:true,round:publicAviatorRound(r,req.player.id)});}catch(e){res.status(500).json({success:false,error:"Could not load Aviator round"});}});
+app.post("/api/aviator/bet",requirePlayer,async(req,res)=>{try{return await withAviatorLock("round",async()=>{const r=aviatorCurrentRound||await loadLatestAviatorRound();if(!r||r.status!=="BETTING")return res.status(400).json({success:false,error:"Betting window is closed. Wait for the next flight."});const amount=aviator.validateBetAmount(req.body?.amount),walletType=String(req.body?.walletType||"cash").toLowerCase()==="bonus"?"bonus":"cash";const existing=r.players.filter(p=>String(p.playerId)===String(req.player.id)&&!p.lossSettled);if(existing.length>=2)return res.status(400).json({success:false,error:"Maximum 2 Aviator bets per player per round."});return await withPlayerBalanceLock(walletType==="bonus"?`bonus:${req.player.id}`:req.player.id,async()=>{let balanceAfter=Number(req.player.balance||0),bonusPointsAfter=null;if(walletType==="bonus")bonusPointsAfter=await spendBonusPoints({playerId:req.player.id,points:amount,game:"aviator",roundId:r.id,metadata:{amount,walletType}});else{const fresh=await findPlayerById(req.player.id);if(amount>Number(fresh?.balance||0))throw new Error("Insufficient balance");balanceAfter=await changeBalance({playerId:req.player.id,amount:-amount,type:"aviator_bet",game:"aviator",roundId:r.id,description:"Aviator bet",metadata:{amount,walletType}});}const bet=aviator.addBet(r,{playerId:req.player.id,amount,walletType,slot:existing.length+1});await saveAviatorRound(r);res.json({success:true,bet,round:publicAviatorRound(r,req.player.id),balanceAfter,bonusPointsAfter});});});}catch(e){res.status(400).json({success:false,error:e.message||"Could not place Aviator bet"});}});
+app.post("/api/aviator/cashout",requirePlayer,async(req,res)=>{try{return await withAviatorLock("round",async()=>{const r=aviatorCurrentRound||await loadLatestAviatorRound();if(!r||String(r.id)!==String(req.body?.roundId||""))return res.status(404).json({success:false,error:"Aviator round not found"});const slot=Number(req.body?.slot||1);const bet=r.players.find(p=>String(p.playerId)===String(req.player.id)&&Number(p.slot)===slot&&!p.cashedOut&&!p.lossSettled);if(!bet)return res.status(400).json({success:false,error:"No active Aviator bet found."});return await withPlayerBalanceLock(bet.walletType==="bonus"?`bonus:${req.player.id}`:req.player.id,async()=>{const result=aviator.cashOut(r,bet,Date.now());let balanceAfter=Number(req.player.balance||0),bonusPointsAfter=null;if(bet.walletType==="bonus"){await writeBonusTransaction({playerId:req.player.id,points:result.payout,type:"bonus_win",description:`Aviator cash-out at ${result.multiplier}x`,referenceId:r.id});bonusPointsAfter=await getBonusPoints(req.player.id);}else balanceAfter=await changeBalance({playerId:req.player.id,amount:result.payout,type:"aviator_win",game:"aviator",roundId:r.id,description:`Aviator cash-out at ${result.multiplier}x`,metadata:{multiplier:result.multiplier,payout:result.payout}});await saveAviatorRound(r);res.json({success:true,state:"CASHED_OUT",payout:result.payout,multiplier:result.multiplier,balanceAfter,bonusPointsAfter,round:publicAviatorRound(r,req.player.id)});});});}catch(e){res.status(400).json({success:false,error:e.message||"Cash-out failed"});}});
 
 /*
 |--------------------------------------------------------------------------
