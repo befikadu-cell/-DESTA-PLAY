@@ -28,8 +28,6 @@ import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
-import * as aviatorModule from "./games/aviator.js";
-const aviator = (aviatorModule.default && typeof aviatorModule.default.createRound === "function") ? aviatorModule.default : aviatorModule;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -156,6 +154,188 @@ app.use(cors());
 app.use(express.json({ limit: "100kb" }));
 app.use(express.static(__dirname));
 
+/*
+|--------------------------------------------------------------------------
+| AVIATOR — SHARED SERVER-AUTHORITATIVE ROUND
+|--------------------------------------------------------------------------
+| Added independently of Keno/Bingo. One round, one multiplier and one
+| crash point are shared by every connected player. The crash point is
+| never sent to clients. Bets are accepted only during the 30s betting
+| phase. For player rounds, the payout pool is exactly 50% of total bets.
+|--------------------------------------------------------------------------
+*/
+const aviator = {
+    roundNo: 0,
+    phase: "betting",
+    startedAt: 0,
+    bettingEndsAt: 0,
+    flightStartedAt: 0,
+    multiplier: 1,
+    crashAt: null,
+    totalWagered: 0,
+    payoutPool: 0,
+    paidOut: 0,
+    bets: new Map(),
+    activity: [],
+    nextRoundTimer: null,
+    tickTimer: null
+};
+
+function aviatorPublicState() {
+    const now = Date.now();
+    let multiplier = aviator.multiplier;
+    if (aviator.phase === "flying") {
+        const elapsed = Math.max(0, now - aviator.flightStartedAt);
+        multiplier = Math.max(1, Math.exp(elapsed / 360000));
+        aviator.multiplier = Number(multiplier.toFixed(2));
+    }
+    return {
+        round: aviator.roundNo,
+        phase: aviator.phase,
+        bettingEndsAt: aviator.bettingEndsAt,
+        flightStartedAt: aviator.flightStartedAt,
+        multiplier: Number(multiplier.toFixed(2)),
+        activity: Array.isArray(aviator.activity) ? aviator.activity.slice(-12) : []
+    };
+}
+
+function aviatorCrashPoint() {
+    /* Server-only random crash point. It is intentionally never included in
+       the public state. */
+    const u = Math.random();
+    return Number(Math.min(25, Math.max(1.05, 1 / Math.max(0.0001, 1 - u))).toFixed(2));
+}
+
+function aviatorStartRound() {
+    if (aviator.nextRoundTimer) { clearTimeout(aviator.nextRoundTimer); aviator.nextRoundTimer = null; }
+    aviator.roundNo += 1;
+    aviator.phase = "betting";
+    aviator.startedAt = Date.now();
+    aviator.bettingEndsAt = aviator.startedAt + 30000;
+    aviator.flightStartedAt = 0;
+    aviator.multiplier = 1;
+    aviator.crashAt = null;
+    aviator.totalWagered = 0;
+    aviator.payoutPool = 0;
+    aviator.paidOut = 0;
+    aviator.bets = new Map();
+    aviator.activity = [];
+    aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, 30000);
+}
+
+function aviatorBeginFlight() {
+    if (aviator.phase !== "betting") return;
+    aviator.phase = "flying";
+    aviator.flightStartedAt = Date.now();
+    aviator.multiplier = 1;
+    aviator.payoutPool = Number((aviator.totalWagered * 0.5).toFixed(2));
+    /* No-player rounds use a normal server-only crash point so the plane
+       still flies and crashes even when nobody bets. */
+    if (aviator.totalWagered <= 0) aviator.crashAt = Number((1.25 + Math.random() * 8.75).toFixed(2));
+    else aviator.crashAt = aviatorCrashPoint();
+    aviator.nextRoundTimer = null;
+}
+
+function aviatorScheduleCrash(delay=0) {
+    if (aviator.nextRoundTimer) clearTimeout(aviator.nextRoundTimer);
+    aviator.nextRoundTimer = setTimeout(() => {
+        if (aviator.phase !== "flying") return;
+        aviator.phase = "crashed";
+        aviator.multiplier = Number((aviator.crashAt || aviator.multiplier).toFixed(2));
+        aviator.nextRoundTimer = setTimeout(aviatorStartRound, 2500);
+    }, Math.max(0, delay));
+}
+
+function aviatorTick() {
+    if (aviator.phase !== "flying") return;
+    const elapsed = Math.max(0, Date.now() - aviator.flightStartedAt);
+    const m = Number(Math.exp(elapsed / 360000).toFixed(2));
+    aviator.multiplier = Math.max(1, m);
+    if (aviator.multiplier >= aviator.crashAt) aviatorScheduleCrash(0);
+}
+
+aviatorStartRound();
+aviator.tickTimer = setInterval(aviatorTick, 100);
+
+function aviatorBetKey(playerId, slot) { return `${String(playerId)}:${Number(slot)}`; }
+
+app.get("/api/game/aviator/round", async (req, res) => {
+    try {
+        const session = getSessionPlayer(req);
+        const playerId = session?.playerId ? String(session.playerId) : null;
+        const ownBets = {};
+        if (playerId) {
+            for (const [key, bet] of aviator.bets.entries()) {
+                if (key.startsWith(playerId + ":")) ownBets[bet.slot] = { ...bet };
+            }
+        }
+        return res.json({ success: true, round: { ...aviatorPublicState(), ownBets } });
+    } catch (error) {
+        console.error("Aviator round error:", error);
+        return res.status(500).json({ success:false, error:"Could not load Aviator round" });
+    }
+});
+
+app.post("/api/game/aviator/bet", requirePlayer, async (req, res) => {
+    try {
+        const slot = Number(req.body?.slot);
+        const amount = Number(req.body?.amount);
+        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid slot"});
+        if (!Number.isFinite(amount) || amount < 1 || amount > 100000) return res.status(400).json({success:false,error:"Invalid bet amount"});
+        if (aviator.phase !== "betting" || Date.now() >= aviator.bettingEndsAt) return res.status(400).json({success:false,error:"Betting is closed"});
+        const key = aviatorBetKey(req.player.id, slot);
+        if (aviator.bets.has(key)) return res.status(400).json({success:false,error:"This slot already has a bet"});
+
+        const accepted = await withPlayerBalanceLock(req.player.id, async () => {
+            const fresh = await findPlayerById(req.player.id);
+            if (!fresh || Number(fresh.balance || 0) < amount) throw new Error("Insufficient balance");
+            return changeBalance({ playerId:req.player.id, amount:-amount, type:"aviator_bet", game:"aviator", roundId:`AVI-${aviator.roundNo}`, description:`Aviator bet | round ${aviator.roundNo} | slot ${slot}` });
+        });
+
+        const bet = { playerId:String(req.player.id), slot, amount:Number(amount.toFixed(2)), acceptedAt:Date.now(), cashedOut:false, payout:0, cashoutMultiplier:null };
+        aviator.bets.set(key, bet);
+        aviator.totalWagered = Number((aviator.totalWagered + bet.amount).toFixed(2));
+        return res.json({success:true, balance:Number(accepted.toFixed(2)), bet:{slot,amount:bet.amount}, round:aviatorPublicState()});
+    } catch (error) {
+        return res.status(400).json({success:false,error:error.message || "Could not place Aviator bet"});
+    }
+});
+
+app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
+    try {
+        const slot = Number(req.body?.slot);
+        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid slot"});
+        const key = aviatorBetKey(req.player.id, slot);
+        const bet = aviator.bets.get(key);
+        if (!bet) return res.status(400).json({success:false,error:"No active bet in this slot"});
+        if (bet.cashedOut) return res.status(400).json({success:false,error:"Already cashed out"});
+        if (aviator.phase !== "flying") return res.status(400).json({success:false,error:"Cash Out is not available"});
+
+        const multiplier = Number(aviator.multiplier.toFixed(2));
+        const requestedPayout = Number((bet.amount * multiplier).toFixed(2));
+        const remaining = Number((aviator.payoutPool - aviator.paidOut).toFixed(2));
+        if (aviator.totalWagered > 0 && requestedPayout > remaining + 0.0001) {
+            return res.status(400).json({success:false,error:"Cash Out is not available at this multiplier"});
+        }
+        if (aviator.totalWagered <= 0) return res.status(400).json({success:false,error:"Cash Out is not available"});
+
+        const after = await withPlayerBalanceLock(req.player.id, async () => changeBalance({
+            playerId:req.player.id, amount:requestedPayout, type:"aviator_win", game:"aviator", roundId:`AVI-${aviator.roundNo}`, description:`Aviator cash out | round ${aviator.roundNo} | slot ${slot} | ${multiplier}x`
+        }));
+        bet.cashedOut = true;
+        bet.payout = requestedPayout;
+        bet.cashoutMultiplier = multiplier;
+        aviator.paidOut = Number((aviator.paidOut + requestedPayout).toFixed(2));
+        aviator.activity.push({ label: `PLAYER • SLOT ${slot}`, payout: requestedPayout, multiplier, at: Date.now() });
+        if (aviator.activity.length > 12) aviator.activity = aviator.activity.slice(-12);
+        if (aviator.paidOut >= aviator.payoutPool - 0.0001) aviatorScheduleCrash(0);
+        return res.json({success:true,balance:Number(after.toFixed(2)),payout:requestedPayout,multiplier,round:aviatorPublicState()});
+    } catch (error) {
+        return res.status(400).json({success:false,error:error.message || "Could not cash out"});
+    }
+});
+
+
 /* SERVER AUDIO VOICE — game engines remain untouched. */
 
 /*
@@ -203,15 +383,13 @@ function getRegistrationContact(telegramId) {
 |--------------------------------------------------------------------------
 */
 
-const games = { bingo, keno, aviator };
+const games = { bingo, keno };
 
 const rounds = {};
 
 /* Serialize balance mutations for the same player. This prevents two near-
 simultaneous independent Keno slots from both reading the same old balance. */
 const playerBalanceLocks = new Map();
-let aviatorRoundQueue = Promise.resolve();
-function withAviatorRoundLock(work){ const run=aviatorRoundQueue.then(work,work); aviatorRoundQueue=run.catch(()=>{}); return run; }
 async function withPlayerBalanceLock(playerId, work) {
     const key = String(playerId);
     const previous = playerBalanceLocks.get(key) || Promise.resolve();
@@ -230,8 +408,7 @@ async function withPlayerBalanceLock(playerId, work) {
 
 /* Persistent display sequence for each server-authoritative house game. */
 const roundCounters = {
-    keno: 0,
-    aviator: 0
+    keno: 0
 };
 
 /* Persistent display sequence for each Bingo stake room. */
@@ -255,7 +432,7 @@ const BETTING_TIMERS = {
     keno: 40
 };
 
-const NEXT_ROUND_DELAY = 0;
+const NEXT_ROUND_DELAY = 5000;
 
 /*
 |--------------------------------------------------------------------------
@@ -1131,11 +1308,13 @@ async function spendBonusPoints({ playerId, points, game, roundId, metadata = {}
 */
 const CASH_GAME_BET_TYPES = new Set([
     "bingo_entry",
-    "keno_bet"
+    "keno_bet",
+    "aviator_bet"
 ]);
 const CASH_GAME_WIN_TYPES = new Set([
     "bingo_win",
-    "keno_win"
+    "keno_win",
+    "aviator_win"
 ]);
 
 async function getWalletAccounting(playerId, playerOverride = null) {
@@ -4959,17 +5138,6 @@ async function saveRound(
             bets:
                 round.bets || [],
 
-            ...(round.game === "aviator" ? {
-                payoutCap: Number(round.payoutCap || 0),
-                totalWagered: Number(round.totalWagered || 0),
-                totalPaid: Number(round.totalPaid || 0),
-                flyingStartedAt: round.flyingStartedAt || null,
-                attractMode: Boolean(round.attractMode),
-                attractFlightMs: Number(round.attractFlightMs || 0),
-                committedSeedHash: round.committedSeedHash || null,
-                secretSeed: round.secretSeed || null
-            } : {}),
-
         },
 
         updated_at:
@@ -5046,7 +5214,7 @@ function getPublicRound(
             ).toISOString(),
 
         bettingSeconds:
-            Number(round.bettingSeconds || (gameName === "aviator" ? aviator.AVIATOR_CONFIG.bettingSeconds : 0)),
+            round.bettingSeconds,
 
         bettingStartedAt:
             round.bettingStartedAt,
@@ -5098,19 +5266,6 @@ function getPublicRound(
         multiplier:
             round.multiplier,
 
-        ...(gameName === "aviator" ? {
-            flyingStartedAt: round.flyingStartedAt || null,
-            attractMode: Boolean(round.attractMode),
-            activeBets: (round.bets || []).filter(b => !b.cashedOut).length,
-            liveCashouts: (round.bets || []).filter(b => b.cashedOut).slice(-25).reverse().map(b => ({
-                name:String(b.telegramName || "Player").slice(0,24),
-                amount:Number(b.amount || 0),
-                multiplier:Number(b.cashoutMultiplier || 0),
-                payout:Number(b.payout || 0),
-                at:Number(b.cashoutAt || 0)
-            }))
-        } : {}),
-
         crashPoint:
             (
                 round.status ===
@@ -5130,7 +5285,6 @@ function getPublicRound(
 */
 
 function startHouseRound(gameName) {
-    if (gameName === "aviator") { startAviatorRound(); return; }
     if (gameName !== "keno") return;
 
     const bettingSeconds = 40;
@@ -5164,211 +5318,6 @@ function startHouseRound(gameName) {
         if (!current || current.id !== round.id || current.status !== "BETTING") return;
         startKenoDraw("keno", round.id);
     }, bettingSeconds * 1000);
-}
-
-/*
-|--------------------------------------------------------------------------
-| AVIATOR — SHARED SERVER-AUTHORITATIVE ROUND
-|--------------------------------------------------------------------------
-*/
-function startAviatorRound() {
-    const now = Date.now();
-    const bettingSeconds = Number(aviator.AVIATOR_CONFIG.bettingSeconds || 30);
-    const round = aviator.createRound();
-    // Keep the betting duration on the live round as well as in the engine
-    // config. The timer must use this value; never read an undefined property.
-    round.bettingSeconds = bettingSeconds;
-    round.bettingStartedAt = now;
-    round.bettingEndsAt = now + bettingSeconds * 1000;
-    round.roundNumber = ++roundCounters.aviator;
-    round.committedSeedHash = aviator.commitHash(round.secretSeed);
-    rounds.aviator = round;
-
-    console.log(`[AVIATOR] NEW ROUND ${round.id} #${round.roundNumber} | BETTING ${aviator.AVIATOR_CONFIG.bettingSeconds}s | commit=${round.committedSeedHash}`);
-
-    saveRound(round).catch(console.error);
-
-    setTimeout(() => {
-        const current = rounds.aviator;
-        if (!current || current.id !== round.id || current.status !== "BETTING") return;
-        beginAviatorFlight(round.id);
-    }, bettingSeconds * 1000);
-}
-
-function beginAviatorFlight(roundId) {
-    const round = rounds.aviator;
-    if (!round || round.id !== roundId || round.status !== "BETTING") return;
-
-    round.totalWagered = Number((round.bets || []).reduce((sum,b) => sum + Number(b.amount || 0), 0).toFixed(2));
-    round.payoutCap = aviator.calculatePayoutCap(round.totalWagered);
-
-    if (round.totalWagered <= 0) {
-        // ATTRACT MODE: there is no wager and therefore no payout calculation.
-        // The shared plane still flies so visitors can watch a complete live round.
-        round.status = "FLYING";
-        round.flyingStartedAt = Date.now();
-        round.multiplier = 1.00;
-        round.payoutCap = 0;
-        round.totalPaid = 0;
-        round.cashoutFeed = [];
-        round.attractMode = true;
-        round.attractFlightMs = 10000 + Math.floor(Math.random() * 5001);
-        round.crashPoint = null;
-        round.lastSavedAt = Date.now();
-        console.log(`[AVIATOR] ATTRACT FLIGHT ${round.id} | no players | ${round.attractFlightMs}ms`);
-        saveRound(round).catch(console.error);
-        tickAviatorRound(round.id);
-        return;
-    }
-
-    round.attractMode = false;
-    round.status = "FLYING";
-    round.flyingStartedAt = Date.now();
-    round.multiplier = 1.00;
-    round.lastSavedAt = Date.now();
-    round.cashoutFeed = [];
-    // This is only a safety ceiling for the no-cashout case. Clients never see it before crash.
-    round.crashPoint = aviator.generateSafetyCrashPoint(round.secretSeed);
-    round.totalPaid = 0;
-
-    console.log(`[AVIATOR] FLYING ${round.id} | pool=${round.totalWagered} | payoutCap=${round.payoutCap}`);
-    saveRound(round).catch(console.error);
-    tickAviatorRound(round.id);
-}
-
-function tickAviatorRound(roundId) {
-    withAviatorRoundLock(async () => {
-        const round = rounds.aviator;
-        if (!round || round.id !== roundId || round.status !== "FLYING") return;
-
-        const elapsed = Date.now() - Number(round.flyingStartedAt || Date.now());
-        round.multiplier = round.attractMode
-            ? aviator.attractMultiplierAt(elapsed, round.attractFlightMs)
-            : aviator.multiplierAt(elapsed);
-
-        if (round.attractMode && elapsed >= Number(round.attractFlightMs || 12000)) {
-            await finishAviatorCrash(round, "attract_mode");
-            return;
-        }
-
-        if (!round.attractMode && round.multiplier >= Number(round.crashPoint || 50)) {
-            await finishAviatorCrash(round, "safety");
-            return;
-        }
-        if (Date.now() - Number(round.lastSavedAt || 0) > 1000) {
-            round.lastSavedAt = Date.now();
-            saveRound(round).catch(console.error);
-        }
-        setTimeout(() => tickAviatorRound(roundId), aviator.AVIATOR_CONFIG.tickMilliseconds);
-    }).catch(error => console.error("[AVIATOR] TICK ERROR:", error));
-}
-
-async function finishAviatorCrash(round, reason) {
-    if (!round || round.status === "CRASHED" || round.status === "FINISHED") return;
-    round.status = "CRASHED";
-    round.result = {
-        game: "aviator",
-        grossPool: Number(round.totalWagered || 0),
-        payoutAllocation: Number(round.payoutCap || 0),
-        houseAllocation: Number(Math.max(0, Number(round.totalWagered || 0) - Number(round.totalPaid || 0)).toFixed(2)),
-        totalPaid: Number(round.totalPaid || 0),
-        winners: (round.bets || []).filter(b => b.cashedOut).map(b => ({ playerId:b.playerId, amount:b.amount, multiplier:b.cashoutMultiplier, payout:b.payout })),
-        crashReason: reason,
-        attractMode: Boolean(round.attractMode),
-        crashPoint: Number(round.multiplier || 1),
-        committedSeedHash: round.committedSeedHash,
-        secretSeed: round.secretSeed,
-        settledAt: Date.now()
-    };
-    round.crashPoint = Number(round.multiplier || 1);
-    await saveRound(round).catch(console.error);
-    console.log(`[AVIATOR] CRASH ${round.id} @ ${round.crashPoint}x | paid=${round.totalPaid}/${round.payoutCap}`);
-    setTimeout(() => { if (rounds.aviator?.id === round.id) startAviatorRound(); }, NEXT_ROUND_DELAY);
-}
-
-async function crashAviatorRound(round, reason) {
-    return withAviatorRoundLock(() => finishAviatorCrash(round, reason));
-}
-
-async function restoreAviatorRound() {
-    try {
-        const { data, error } = await supabase
-            .from("game_rounds")
-            .select("*")
-            .eq("game", "aviator")
-            .order("updated_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (error || !data) {
-            console.log("[AVIATOR] No saved round. Starting new round.");
-            startAviatorRound();
-            return;
-        }
-
-        const st = data.engine_state || {};
-        if (["FINISHED","CRASHED"].includes(data.status)) {
-            roundCounters.aviator = Math.max(roundCounters.aviator, Number(st.roundNumber || 0));
-            startAviatorRound();
-            return;
-        }
-
-        const started = new Date(data.betting_started_at).getTime();
-        const ends = new Date(data.betting_ends_at).getTime();
-        if (!Number.isFinite(started) || !Number.isFinite(ends)) {
-            startAviatorRound();
-            return;
-        }
-
-        const round = {
-            id:data.round_id || data.id,
-            game:"aviator",
-            status:data.status,
-            createdAt:started,
-            bettingSeconds:Number(aviator.AVIATOR_CONFIG.bettingSeconds || 30),
-            bettingStartedAt:started,
-            bettingEndsAt:ends,
-            flyingStartedAt:st.flyingStartedAt || null,
-            multiplier:Number(st.multiplier || data.multiplier || 1),
-            crashPoint:Number(st.secretCrashPoint || data.crash_point || 0) || null,
-            payoutCap:Number(st.payoutCap || 0),
-            totalWagered:Number(st.totalWagered || 0),
-            totalPaid:Number(st.totalPaid || 0),
-            bets:Array.isArray(st.bets) ? st.bets : [],
-            roundNumber:Math.max(1,Number(st.roundNumber || 1)),
-            secretSeed:st.secretSeed || crypto.randomBytes(32).toString("hex"),
-            committedSeedHash:st.committedSeedHash || aviator.commitHash(st.secretSeed || ""),
-            result:data.result || null,
-            settled:false,
-            attractMode:Boolean(st.attractMode),
-            attractFlightMs:Number(st.attractFlightMs || 0),
-            lastSavedAt:0
-        };
-        roundCounters.aviator=Math.max(roundCounters.aviator,round.roundNumber);
-        rounds.aviator=round;
-
-        if (round.status === "BETTING") {
-            const remaining=Math.max(0,round.bettingEndsAt-Date.now());
-            setTimeout(()=>{ if(rounds.aviator?.id===round.id && rounds.aviator.status==="BETTING") beginAviatorFlight(round.id); },remaining);
-        } else if (round.status === "FLYING") {
-            if (!round.flyingStartedAt) { startAviatorRound(); return; }
-            const elapsed=Date.now()-round.flyingStartedAt;
-            round.multiplier=round.attractMode
-                ? aviator.attractMultiplierAt(elapsed, round.attractFlightMs)
-                : aviator.multiplierAt(elapsed);
-            if (round.attractMode) {
-                if (elapsed >= Number(round.attractFlightMs || 12000)) crashAviatorRound(round,"attract_mode");
-                else tickAviatorRound(round.id);
-            } else if (round.multiplier >= Number(round.crashPoint || 50)) {
-                crashAviatorRound(round,"safety");
-            } else tickAviatorRound(round.id);
-        } else {
-            startAviatorRound();
-        }
-    } catch(error) {
-        console.error("[AVIATOR] RESTORE ERROR:",error);
-        startAviatorRound();
-    }
 }
 
 /*
@@ -5549,15 +5498,15 @@ async function settleKenoRound(round) {
             }catch(error){console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`,error);}
         }
     }
-    const kenoGrossPool=bets.reduce((sum,b)=>sum+Number(b.amount||0),0);
-    const kenoHouseRake=Number(totalHouseRake.toFixed(2));
+    const grossPool=bets.reduce((sum,b)=>sum+Number(b.amount||0),0);
+    const houseRake=Number(totalHouseRake.toFixed(2));
     const rank1Total=Number(winners.filter(w=>w.rank===1).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
     const rank2Total=Number(winners.filter(w=>w.rank===2).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
 
     round.result = {
         game: "keno",
-        grossPool: kenoGrossPool,
-        houseRake: kenoHouseRake,
+        grossPool,
+        houseRake,
         rank1Total,
         rank2Total,
         winners,
@@ -5566,7 +5515,7 @@ async function settleKenoRound(round) {
     };
 
     await saveRound(round).catch(console.error);
-    console.log(`[KENO] FINISHED ${round.id} | pool=${kenoGrossPool} | house=${kenoHouseRake} | winners=${winners.length}`);
+    console.log(`[KENO] FINISHED ${round.id} | pool=${grossPool} | house=${houseRake} | winners=${winners.length}`);
 
     setTimeout(() => {
         const current = rounds.keno;
@@ -6119,19 +6068,19 @@ app.get(
             });
         }
 
-        const publicRound = getPublicRound(gameName);
-        if (gameName === "aviator" && publicRound) {
-            const round = rounds.aviator;
-            publicRound.myBets = (round?.bets || []).filter(b => String(b.playerId) === String(req.player.id)).map(b => ({
-                betId:b.betId, slot:Number(b.slot || 1), amount:Number(b.amount || 0), walletType:b.walletType || "cash",
-                cashedOut:Boolean(b.cashedOut), cashoutMultiplier:b.cashoutMultiplier || null, payout:Number(b.payout || 0)
-            }));
-        }
         return res.json({
             success: true,
-            serverTime:Date.now(),
-            serverTimeIso:nowIso(),
-            round:publicRound
+
+            serverTime:
+                Date.now(),
+
+            serverTimeIso:
+                nowIso(),
+
+            round:
+                getPublicRound(
+                    gameName
+                )
         });
     }
 );
@@ -6274,129 +6223,8 @@ function editionFindBingoRoom(stake) {
  * Edition Bingo bet. A successful request is the commitment point.
  * A player may commit up to two cartellas in the same round/stake room.
  */
-async function placeAviatorBet(req, res) {
-    try {
-        const round = rounds.aviator;
-        if (!round || round.status !== "BETTING") return res.status(400).json({success:false,error:"Aviator betting is closed"});
-        const amount = aviator.normalizeBetAmount(req.body?.amount);
-        const walletType = String(req.body?.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
-        const submittedRoundId = String(req.body?.roundId || "").trim();
-        if (submittedRoundId && submittedRoundId !== String(round.id)) return res.status(400).json({success:false,error:"This Aviator round is no longer active"});
-        if (amount < aviator.AVIATOR_CONFIG.minBet) return res.status(400).json({success:false,error:`Minimum Aviator bet is ${aviator.AVIATOR_CONFIG.minBet} ETB`});
-        const slot = Number(req.body?.slot || 1);
-        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
-        if (round.bets.some(b => String(b.playerId) === String(req.player.id) && Number(b.slot || 1) === slot && !b.cashedOut)) return res.status(400).json({success:false,error:`Bet slot ${slot} is already active`});
-        if (!round.betReservations) round.betReservations = new Set();
-        const reservation = String(req.player.id);
-        if (round.betReservations.has(reservation)) return res.status(400).json({success:false,error:"Your bet is already being placed"});
-        round.betReservations.add(reservation);
-
-        const betId = `AVB-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
-        let balanceAfter = Number(req.player.balance || 0);
-        let bonusPointsAfter = null;
-        try {
-            if (walletType === "bonus") {
-                bonusPointsAfter = await spendBonusPoints({playerId:req.player.id,points:amount,game:"aviator",roundId:round.id,metadata:{betId}});
-            } else {
-                balanceAfter = await withPlayerBalanceLock(req.player.id, async () => {
-                    const fresh = await findPlayerById(req.player.id);
-                    const freshBalance = Number(fresh?.balance || 0);
-                    if (amount > freshBalance) throw new Error("Insufficient balance");
-                    return changeBalance({
-                        playerId:req.player.id, amount:-amount, type:"aviator_bet", game:"aviator",
-                        roundId:round.id, description:`Aviator bet ${amount} ETB`,
-                        metadata:{betId,walletType}
-                    });
-                });
-            }
-        } catch (e) {
-            round.betReservations.delete(reservation);
-            return res.status(400).json({success:false,error:e.message || "Could not place Aviator bet"});
-        }
-
-        round.betReservations.delete(reservation);
-        round.bets.push({
-            betId, playerId:req.player.id, telegramName:req.player.username || "Player",
-            slot, amount, walletType, cashedOut:false, payout:0, cashoutMultiplier:null, placedAt:Date.now()
-        });
-        await saveRound(round).catch(console.error);
-
-        return res.json({
-            success:true, betId, roundId:round.id, slot, amount, walletType,
-            balanceAfter, bonusPointsAfter, bettingEndsAt:round.bettingEndsAt,
-            remainingMilliseconds:Math.max(0,round.bettingEndsAt-Date.now())
-        });
-    } catch(error) {
-        console.error("[AVIATOR] BET ERROR:",error);
-        return res.status(400).json({success:false,error:error.message || "Could not place Aviator bet"});
-    }
-}
-
-app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
-    try {
-        return await withAviatorRoundLock(async () => {
-            const round=rounds.aviator;
-            if (!round || round.status !== "FLYING") return res.status(400).json({success:false,error:"The plane has already crashed."});
-            const slot=Number(req.body?.slot || 1);
-            if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
-            const bet=round.bets.find(b=>String(b.playerId)===String(req.player.id) && Number(b.slot || 1)===slot && !b.cashedOut);
-            if (!bet) return res.status(400).json({success:false,error:"You do not have an active Aviator bet."});
-
-            const elapsed=Date.now()-Number(round.flyingStartedAt || Date.now());
-            const multiplier=aviator.multiplierAt(elapsed);
-            round.multiplier=Math.max(Number(round.multiplier||1),multiplier);
-            const check=aviator.canCashOut(round,bet,round.multiplier);
-            if (!check.ok) {
-                return res.status(400).json({success:false,error:check.reason});
-            }
-
-            // Cash-out is immediate at the server-authoritative multiplier.
-            // The hidden 50% RTP rule is determined by the round's private
-            // crash distribution, not by rejecting an otherwise valid cash-out.
-            const payout=Number(check.payout);
-            bet.cashedOut=true;
-            bet.cashoutMultiplier=Number(round.multiplier.toFixed(2));
-            bet.payout=payout;
-            bet.cashoutAt=Date.now();
-            round.totalPaid=Number((Number(round.totalPaid||0)+payout).toFixed(2));
-
-            let balanceAfter=Number(req.player.balance||0), bonusPointsAfter=null;
-            try {
-                if (bet.walletType === "bonus") {
-                    bonusPointsAfter=await writeBonusTransaction({
-                        playerId:req.player.id, points:payout, type:"bonus_win",
-                        description:JSON.stringify({game:"aviator",roundId:round.id,betId:bet.betId,multiplier:bet.cashoutMultiplier,walletType:"bonus"}),
-                        referenceId:round.id
-                    });
-                } else {
-                    balanceAfter=Number(await withPlayerBalanceLock(req.player.id,()=>changeBalance({
-                        playerId:req.player.id, amount:payout, type:"aviator_win", game:"aviator", roundId:round.id,
-                        description:`Aviator cash-out ${bet.cashoutMultiplier}x`,
-                        metadata:{betId:bet.betId,multiplier:bet.cashoutMultiplier,payoutAllocation:round.payoutCap,totalPaid:round.totalPaid,walletType:"cash"}
-                    })));
-                }
-            } catch(error) {
-                bet.cashedOut=false; bet.cashoutMultiplier=null; bet.payout=0; bet.cashoutAt=null;
-                round.totalPaid=Number((round.totalPaid-payout).toFixed(2));
-                return res.status(500).json({success:false,error:"Payout could not be completed. Your bet remains active."});
-            }
-
-            await saveRound(round).catch(console.error);
-            return res.json({success:true,roundId:round.id,slot,multiplier:bet.cashoutMultiplier,payout,balanceAfter,bonusPointsAfter,crashed:round.status==="CRASHED",crashPoint:round.status==="CRASHED"?round.crashPoint:null,message:`Cashed out at ${bet.cashoutMultiplier}x`});
-        });
-    } catch(error) {
-        console.error("[AVIATOR] CASHOUT ERROR:",error);
-        return res.status(400).json({success:false,error:error.message || "Could not cash out"});
-    }
-});
-
-
 app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
     const gameName = String(req.params.game || "").toLowerCase();
-
-    if (gameName === "aviator") {
-        return placeAviatorBet(req, res);
-    }
 
     if (gameName === "keno") {
         return next();
@@ -6822,7 +6650,6 @@ app.listen(
 
         /* Start the two active server-authoritative games only. */
         await restoreHouseRound("keno");
-        await restoreAviatorRound();
 
         for (const tier of EDITION_STAKES) {
             await seedBingoRoundCounter(tier);
