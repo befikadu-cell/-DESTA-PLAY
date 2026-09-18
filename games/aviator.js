@@ -13,7 +13,7 @@ export const AVIATOR_CONFIG = {
   payoutPercent: 50,
   housePercent: 50,
   startingMultiplier: 1.00,
-  growthRate: 0.00075
+  growthRate: 0.0075
 };
 
 export function createRound() {
@@ -22,6 +22,7 @@ export function createRound() {
     id: `aviator-${now}-${crypto.randomBytes(5).toString("hex")}`,
     game: "aviator",
     status: "BETTING",
+    bettingSeconds: AVIATOR_CONFIG.bettingSeconds,
     createdAt: now,
     bettingStartedAt: now,
     bettingEndsAt: now + AVIATOR_CONFIG.bettingSeconds * 1000,
@@ -51,12 +52,20 @@ export function multiplierAt(elapsedMs) {
 }
 
 export function generateSafetyCrashPoint(seed) {
+  // Hidden 50% RTP crash distribution for player rounds. The future point is
+  // server-only and is never sent to the browser before the crash.
   const hash = crypto.createHash("sha256").update(String(seed)).digest("hex");
   const n = parseInt(hash.slice(0, 13), 16);
-  const unit = n / 0x1fffffffffffff;
-  // Safety ceiling only prevents an endless flight when nobody cashes out.
-  // The normal crash trigger is the 50% payout allocation.
-  return Number(Math.min(50, Math.max(1.20, 1 + unit * 18)).toFixed(2));
+  const unit = Math.max(Number.EPSILON, n / 0x1fffffffffffff);
+  const point = 0.5 / unit;
+  return Number(Math.min(1000, Math.max(1.00, point)).toFixed(2));
+}
+
+export function attractMultiplierAt(elapsedMs, flightMs) {
+  const elapsed = Math.max(0, Number(elapsedMs) || 0);
+  const duration = Math.max(1000, Number(flightMs) || 12000);
+  const progress = Math.min(1, elapsed / duration);
+  return Number(Math.pow(10, progress).toFixed(2));
 }
 
 export function normalizeBetAmount(amount) {
@@ -80,12 +89,10 @@ export function canCashOut(round, bet, multiplier) {
   if (!round || round.status !== "FLYING") return { ok:false, reason:"The plane has crashed or betting is not active." };
   if (!bet || bet.cashedOut) return { ok:false, reason:"This bet is already settled." };
   const requested = payoutForBet(bet.amount, multiplier);
-  const remaining = Number((round.payoutCap - round.totalPaid).toFixed(2));
-  if (remaining <= 0) return { ok:false, reason:"The 50% payout allocation has been reached." };
-  if (requested > remaining) {
-    return { ok:false, reason:"Cash-out would exceed the 50% payout allocation.", shouldCrash:true };
-  }
-  return { ok:true, payout:requested, remaining };
+  if (requested <= 0) return { ok:false, reason:"Invalid cash-out amount." };
+  // A valid cash-out is never rejected because of the hidden RTP calculation.
+  // The server settles it immediately at the authoritative multiplier.
+  return { ok:true, payout:requested };
 }
 
 
@@ -96,6 +103,7 @@ export default {
   commitHash,
   multiplierAt,
   generateSafetyCrashPoint,
+  attractMultiplierAt,
   normalizeBetAmount,
   payoutForBet,
   calculatePayoutCap,
