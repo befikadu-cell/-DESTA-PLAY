@@ -1999,6 +1999,55 @@ body{min-height:100vh;height:100vh;padding-bottom:0;overflow:hidden;}
 @media(max-width:360px){.aviatorMultiplier{font-size:48px}.aviatorStage{min-height:260px}.aviatorBetRow{grid-template-columns:1fr}.aviatorRoundMeta{grid-template-columns:1fr 1fr 1fr}}
 
 </style>
+
+    /* AVIATOR PLAYER UI — internal accounting stays server-side */
+    .aviatorPanel{padding:4px 7px 90px;}
+    .aviatorHistoryTop{display:flex;align-items:center;gap:5px;min-height:38px;padding:4px 5px;border:1px solid #3f1c1c;border-radius:10px 10px 0 0;background:#100606;}
+    .aviatorHistoryScroll{display:flex;gap:7px;align-items:center;min-width:0;overflow:hidden;white-space:nowrap;flex:1;}
+    .aviatorHistoryScroll span{flex:0 0 auto;font-size:10px;font-weight:900;color:#ddd;}
+    .aviatorHistoryScroll span.crash{color:#ff7777;}
+    .aviatorHistoryComma{color:#777!important;margin:0 -2px;}
+    .aviatorHistoryExpand{width:32px;height:30px;flex:0 0 32px;border:1px solid #5d2b2b;border-radius:7px;background:#1a0d0d;color:#ffd43c;font-size:18px;font-weight:900;line-height:1;}
+    .aviatorHistoryExpanded{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:7px 6px;background:#0c0505;border:1px solid #3f1c1c;border-top:0;}
+    .aviatorHistoryExpanded.hidden{display:none;}
+    .aviatorHistoryExpanded .mult{padding:6px 2px;border:1px solid #382020;border-radius:7px;background:#151010;color:#ddd;text-align:center;font-size:10px;font-weight:900;}
+    .aviatorStage{position:relative;min-height:285px;border:1px solid #4c2020;border-radius:0 0 16px 16px;overflow:hidden;background:radial-gradient(circle at 70% 20%,#182a43 0,#0a1422 38%,#05080d 78%);}
+    .aviatorSky{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,rgba(26,48,77,.35),rgba(2,6,12,.85));}
+    .aviatorStars{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.8) 0 1px,transparent 1.5px);background-size:63px 47px;opacity:.3;}
+    .aviatorHorizon{position:absolute;left:-10%;right:-10%;bottom:16%;height:2px;background:linear-gradient(90deg,transparent,#ffcf4a,transparent);opacity:.35;transform:rotate(-7deg);}
+    .aviatorTrail{position:absolute;width:55%;height:3px;left:8%;top:60%;transform:rotate(-18deg);background:linear-gradient(90deg,transparent,rgba(255,204,51,.15),rgba(255,204,51,.75));opacity:0;}
+    .aviatorPlane{position:absolute;left:12%;top:61%;font-size:43px;line-height:1;transform:rotate(-18deg);filter:drop-shadow(0 4px 5px rgba(0,0,0,.55));}
+    .aviatorStage.flying .aviatorPlane{animation:aviatorFlight 2.8s linear infinite;}
+    .aviatorStage.flying .aviatorTrail{opacity:1;animation:aviatorTrail 2.8s linear infinite;}
+    .aviatorStage.crashed .aviatorPlane{animation:aviatorCrash .65s ease-in forwards;}
+    @keyframes aviatorFlight{0%{left:10%;top:63%;transform:rotate(-18deg) scale(1)}50%{left:48%;top:42%;transform:rotate(-18deg) scale(1.04)}100%{left:83%;top:18%;transform:rotate(-18deg) scale(1.08)}}
+    @keyframes aviatorTrail{0%{left:3%;top:67%;width:30%}100%{left:62%;top:28%;width:55%}}
+    @keyframes aviatorCrash{0%{opacity:1;transform:rotate(-18deg) translate(0,0)}100%{opacity:0;transform:rotate(35deg) translate(90px,150px)}}
+    .aviatorRoundBadge{position:absolute;z-index:3;left:10px;top:10px;padding:6px 9px;border-radius:8px;background:rgba(0,0,0,.55);color:#ffd43c;font-size:10px;font-weight:900;}
+    .aviatorStatus{position:absolute;z-index:3;left:0;right:0;top:18px;text-align:center;font-size:11px;font-weight:900;color:#ddd;letter-spacing:.7px;}
+    .aviatorMultiplier{position:absolute;z-index:3;left:0;right:0;top:78px;text-align:center;font-size:58px;line-height:1;font-weight:1000;color:#fff;text-shadow:0 4px 18px #000;}
+    .aviatorCrashText{position:absolute;z-index:3;left:0;right:0;top:150px;text-align:center;font-size:22px;font-weight:1000;color:#ff4545;text-shadow:0 3px 12px #000;opacity:0;}
+    .aviatorStage.crashed .aviatorCrashText{opacity:1;}
+    .aviatorSlots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px;}
+    .aviatorSlot{min-width:0;padding:9px;border:1px solid #472020;border-radius:12px;background:linear-gradient(145deg,#1b1111,#0c0c0c);}
+    .aviatorSlot.single{grid-column:1/-1;}
+    .aviatorSlotHead{display:flex;justify-content:space-between;align-items:center;color:#fff;font-size:11px;margin-bottom:7px;}
+    .aviatorSlotToggle{width:30px;height:28px;border:1px solid #5d2b2b;border-radius:7px;background:#160b0b;color:#ffd43c;font-size:18px;font-weight:900;line-height:1;}
+    .aviatorStakeControl{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:5px;align-items:center;}
+    .aviatorStakeBtn{height:44px;border:1px solid #513030;border-radius:8px;background:#171010;color:#ffd43c;font-size:22px;font-weight:900;}
+    .aviatorAmount{width:100%;height:44px;box-sizing:border-box;border-radius:8px;border:1px solid #513030;background:#080808;color:#fff;text-align:center;font-size:17px;font-weight:900;outline:none;}
+    .aviatorAmount:focus{border-color:#ffd43c;}
+    .aviatorSlotInfo{display:flex;justify-content:space-between;gap:5px;margin:7px 1px;color:#aaa;font-size:10px;font-weight:800;}
+    .aviatorSlotInfo span:first-child{color:#ffd43c;}
+    .aviatorBetButton{width:100%;min-height:46px;border:0;border-radius:9px;background:linear-gradient(180deg,#18b95d,#087b3b);color:#fff;font-weight:1000;font-size:14px;}
+    .aviatorCashButton{background:linear-gradient(180deg,#ffbd22,#d77d00)!important;color:#111!important;}
+    .aviatorBetButton:disabled{opacity:.38;filter:grayscale(.5);}
+    .aviatorPlusButton{width:100%;min-height:44px;margin-top:8px;border:1px dashed #6b3b3b;border-radius:10px;background:#130909;color:#ffd43c;font-weight:900;}
+    .aviatorPlusButton.hidden{display:none;}
+    .aviatorActiveLine{margin-top:8px;padding:9px 10px;border:1px solid #332323;border-radius:9px;background:#0d0d0d;color:#aaa;text-align:center;font-size:10px;font-weight:900;}
+    .aviatorActiveLine strong{color:#ffd43c;font-size:13px;}
+    @media(max-width:420px){.aviatorMultiplier{font-size:50px}.aviatorStage{min-height:260px}.aviatorSlot{padding:8px}.aviatorStakeControl{grid-template-columns:32px minmax(0,1fr) 32px}.aviatorHistoryExpanded{grid-template-columns:repeat(4,minmax(0,1fr));}}
+
     <style id="desta-final-game-fix">
 /* FINAL COMPACT MINI-APP / TOUCH FIX — preserves existing structure */
 html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-behavior:none;}
@@ -2847,38 +2896,48 @@ html,body{
         ================================================== -->
         <div id="aviatorGame" class="hidden">
           <div class="aviatorPanel">
-            <div class="selectedStakeBanner">SHARED ROUND • PAYOUT ALLOCATION: <span id="aviatorPayoutCapDisplay">—</span> ETB</div>
+            <div class="aviatorHistoryTop">
+              <div class="aviatorHistoryScroll" id="aviatorHistoryTop"></div>
+              <button id="aviatorHistoryExpand" class="aviatorHistoryExpand" type="button" aria-expanded="false" aria-label="Expand recent Aviator rounds">⌄</button>
+            </div>
+            <div id="aviatorHistoryExpanded" class="aviatorHistoryExpanded hidden"></div>
+
             <section class="aviatorStage" id="aviatorStage" aria-label="Aviator live shared round">
               <div class="aviatorSky"><div class="aviatorStars"></div><div class="aviatorHorizon"></div><div class="aviatorTrail"></div></div>
-              <div class="aviatorStatus" id="aviatorStatus">WAITING FOR BETTING</div>
+              <div class="aviatorRoundBadge">ROUND <span id="aviatorRoundLabel">—</span></div>
+              <div class="aviatorStatus" id="aviatorStatus">WAITING</div>
               <div class="aviatorMultiplier" id="aviatorMultiplier">1.00x</div>
               <div class="aviatorCrashText" id="aviatorCrashText">CRASHED</div>
               <div class="aviatorPlane" id="aviatorPlane" aria-hidden="true">✈️</div>
             </section>
-            <div class="aviatorRoundMeta">
-              <div class="aviatorMetaBox"><span>ROUND</span><strong id="aviatorRoundLabel">—</strong></div>
-              <div class="aviatorMetaBox"><span>TOTAL WAGERED</span><strong id="aviatorTotalWagered">0.00</strong></div>
-              <div class="aviatorMetaBox"><span>PAID OUT</span><strong id="aviatorTotalPaid">0.00</strong></div>
-            </div>
-            <div class="aviatorControls">
-              <div class="aviatorBetRow">
-                <input id="aviatorAmount" class="aviatorAmount" type="number" inputmode="decimal" min="10" step="1" value="10" placeholder="Bet amount">
-                <button id="aviatorBetButton" class="aviatorBetButton" type="button" onclick="placeAviatorBet()">PLACE BET</button>
+
+            <div class="aviatorSlots" id="aviatorSlots">
+              <div class="aviatorSlot" id="aviatorSlot1">
+                <div class="aviatorSlotHead"><strong>BET 1</strong><button class="aviatorSlotToggle aviatorMinus" type="button" data-slot-toggle="2" aria-label="Hide second bet slot">−</button></div>
+                <div class="aviatorStakeControl">
+                  <button type="button" class="aviatorStakeBtn" onclick="adjustAviatorStake(1,-1)" aria-label="Decrease stake">−</button>
+                  <input id="aviatorAmount1" class="aviatorAmount" type="number" inputmode="decimal" min="10" step="1" value="10" aria-label="Bet 1 amount">
+                  <button type="button" class="aviatorStakeBtn" onclick="adjustAviatorStake(1,1)" aria-label="Increase stake">+</button>
+                </div>
+                <div class="aviatorSlotInfo"><span id="aviatorSlotMult1">1.00x</span><span id="aviatorSlotPayout1">—</span></div>
+                <button id="aviatorAction1" class="aviatorBetButton" type="button" onclick="toggleAviatorBet(1)">PLACE BET</button>
               </div>
-              <div class="aviatorBetRow" style="margin-top:8px">
-                <button id="aviatorCashButton" class="aviatorCashButton" type="button" onclick="cashOutAviator()" disabled>CASH OUT —</button>
-                <button class="aviatorBetButton" type="button" onclick="setAviatorAmount(10)">10 ETB</button>
+
+              <div class="aviatorSlot" id="aviatorSlot2">
+                <div class="aviatorSlotHead"><strong>BET 2</strong><button class="aviatorSlotToggle aviatorMinus" type="button" data-slot-toggle="2" aria-label="Hide second bet slot">−</button></div>
+                <div class="aviatorStakeControl">
+                  <button type="button" class="aviatorStakeBtn" onclick="adjustAviatorStake(2,-1)" aria-label="Decrease stake">−</button>
+                  <input id="aviatorAmount2" class="aviatorAmount" type="number" inputmode="decimal" min="10" step="1" value="10" aria-label="Bet 2 amount">
+                  <button type="button" class="aviatorStakeBtn" onclick="adjustAviatorStake(2,1)" aria-label="Increase stake">+</button>
+                </div>
+                <div class="aviatorSlotInfo"><span id="aviatorSlotMult2">1.00x</span><span id="aviatorSlotPayout2">—</span></div>
+                <button id="aviatorAction2" class="aviatorBetButton" type="button" onclick="toggleAviatorBet(2)">PLACE BET</button>
               </div>
-              <div class="aviatorWalletLine"><span>Wallet: <strong id="aviatorWalletName">REAL MONEY</strong></span><span>Balance: <strong id="aviatorWalletBalance">0.00</strong></span><span>Minimum: <strong>10 ETB</strong></span></div>
-              <div class="aviatorMyBet" id="aviatorMyBet">No active bet in this round.</div>
             </div>
-            <div class="aviatorFeed" id="aviatorFeed">
-              <div class="aviatorFeedRow"><span>Round status</span><span>Connecting…</span></div>
-            </div>
-            <div class="historyBox" style="margin-top:8px">
-              <div class="historyHeader">RECENT AVIATOR ROUNDS</div>
-              <div class="aviatorHistory" id="aviatorHistory"></div>
-            </div>
+
+            <button id="aviatorShowSlot2" class="aviatorPlusButton hidden" type="button" aria-label="Show second bet slot">＋ Add second bet</button>
+
+            <div class="aviatorActiveLine">ACTIVE BETS: <strong id="aviatorActiveBets">0</strong></div>
           </div>
         </div>
 
@@ -7171,20 +7230,7 @@ html,body{
         }
       }
 
-      if(game === "aviator"){
-        const multiplier=Number(round.multiplier || 1);
-        const el=document.getElementById("aviatorMultiplier");
-        const flight=document.querySelector(".aviatorFlight");
-        if(el)el.textContent=multiplier.toFixed(2)+"x";
-        if(flight){
-          flight.classList.toggle("flyingActive",round.status === "FLYING");
-          flight.classList.toggle("crashActive",round.status === "CRASHED");
-          if(round.status !== "CRASHED")flight.classList.remove("crashActive");
-        }
-        if(round.status === "CRASHED" && round.crashPoint != null){
-          if(el)el.textContent=Number(round.crashPoint).toFixed(2)+"x CRASH";
-        }
-      }
+      if(game === "aviator") renderAviatorRound(round);
     }
 
     function animateDrawPot(game,round,changed){
@@ -7482,13 +7528,14 @@ html,body{
       try{
         /* While inside a game, watch only that game at high frequency.
            This prevents the other request from delaying the visible draw. */
-        if(state.gameJoined && (state.game==="keno" || state.game==="bingo")){
+        if(state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator")){
           const stake=state.game==="keno" ? state.kenoSelectedStake : state.bingoSelectedStake;
           await fetchLiveRound(state.game,stake);
         }else{
           await Promise.all([
             fetchLiveRound("keno",state.kenoSelectedStake),
-            fetchLiveRound("bingo",state.bingoSelectedStake)
+            fetchLiveRound("bingo",state.bingoSelectedStake),
+            fetchLiveRound("aviator",null)
           ]);
         }
       }finally{
@@ -7554,10 +7601,10 @@ html,body{
       liveRoundSyncActive=true;
       liveRoundBusy=false;
       fetchAllLiveRounds();
-      ["keno","bingo"].forEach(loadRoundHistory);
+      ["keno","bingo","aviator"].forEach(loadRoundHistory);
       const schedule=()=>{
         if(!liveRoundSyncActive) return;
-        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
+        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator") ? 250 : 1000;
         liveRoundTimer=setTimeout(async()=>{
           await fetchAllLiveRounds();
           schedule();
@@ -7734,202 +7781,145 @@ html,body{
 
     
 /* =========================================================
-   AVIATOR CLIENT — display/controller only.
-   The server owns the round, multiplier, bets and payouts.
+   AVIATOR CLIENT — synchronized display/controller only.
+   The server owns the shared round, multiplier, bets and payouts.
 ========================================================= */
-function buildAviator(){
-  renderAviatorWallet();
-  renderAviatorHistory();
-}
-
-function setAviatorAmount(value){
-  const input=document.getElementById("aviatorAmount");
-  if(input) input.value=String(Number(value)||10);
-}
+let aviatorSecondSlotVisible=true;
 
 function aviatorHeaders(){
   const headers={"Accept":"application/json","Content-Type":"application/json"};
   if(state.authToken) headers.Authorization="Bearer "+state.authToken;
   return headers;
 }
-
-function renderAviatorWallet(){
-  const bonus=state.selectedWalletType==="bonus";
-  const value=bonus ? Number(state.bonusPlayValue||0) : Number(state.balance||0);
-  const name=document.getElementById("aviatorWalletName");
-  const bal=document.getElementById("aviatorWalletBalance");
-  if(name) name.textContent=bonus ? "BONUS" : "REAL MONEY";
-  if(bal) bal.textContent=bonus ? `${value.toFixed(2)} ETB` : `${value.toFixed(2)} ETB`;
+function aviatorSlotBet(slot){ return state.aviatorBets?.[slot] || null; }
+function aviatorAmount(slot){
+  const n=Number(document.getElementById("aviatorAmount"+slot)?.value||0);
+  return Number.isFinite(n) ? Math.max(0,n) : 0;
 }
-
+function setAviatorAmount(value,slot=1){ const el=document.getElementById("aviatorAmount"+slot); if(el) el.value=String(Math.max(10,Number(value)||10)); }
+function adjustAviatorStake(slot,dir){
+  const input=document.getElementById("aviatorAmount"+slot); if(!input) return;
+  const current=Math.max(10,Number(input.value)||10);
+  input.value=String(Math.max(10,Math.min(1000000,current+(dir*10))));
+}
+function setAviatorSlot2Visible(visible){
+  aviatorSecondSlotVisible=Boolean(visible);
+  const slot2=document.getElementById("aviatorSlot2"), plus=document.getElementById("aviatorShowSlot2");
+  if(slot2) slot2.classList.toggle("hidden",!aviatorSecondSlotVisible);
+  if(plus) plus.classList.toggle("hidden",aviatorSecondSlotVisible);
+  const slot1=document.getElementById("aviatorSlot1"); if(slot1) slot1.classList.toggle("single",!aviatorSecondSlotVisible);
+}
 function renderAviatorHistory(){
-  const el=document.getElementById("aviatorHistory");
-  if(!el) return;
-  const rows=state.aviatorHistory||[];
-  el.innerHTML=rows.length ? rows.map(x=>`<span>${Number(x).toFixed(2)}x</span>`).join("") : "<span>No completed rounds yet</span>";
+  const top=document.getElementById("aviatorHistoryTop"), expanded=document.getElementById("aviatorHistoryExpanded");
+  const rows=(state.aviatorHistory||[]).slice(0,25);
+  const fmt=x=>Number(x?.multiplier ?? x ?? 0).toFixed(2)+"x";
+  if(top) top.innerHTML=rows.slice(0,10).map(x=>`<span class="${Number(x?.multiplier ?? x)<1.5?'crash':''}">${fmt(x)}</span>`).join('<span class="aviatorHistoryComma">,</span>') || '<span>No completed rounds yet</span>';
+  if(expanded) expanded.innerHTML=rows.map(x=>`<div class="mult">${fmt(x)}</div>`).join("") || '<div class="mult">—</div>';
 }
-
+function toggleAviatorHistory(){
+  const e=document.getElementById("aviatorHistoryExpanded"), b=document.getElementById("aviatorHistoryExpand");
+  const open=e?.classList.toggle("hidden")===false;
+  if(b){b.textContent=open?"⌃":"⌄";b.setAttribute("aria-expanded",String(open));}
+}
+function renderAviatorWallet(){
+  updateBalance();
+}
 function renderAviatorRound(round){
   if(!round) return;
-  const previousStatus=state.aviatorLastStatus;
-  if(previousStatus!==round.status && window.DestaVoice){
+  const previous=state.aviatorLastStatus;
+  if(previous!==round.status && window.DestaVoice){
     if(round.status==="FLYING" && typeof DestaVoice.playAviatorFlying==="function") DestaVoice.playAviatorFlying();
-    if((round.status==="CRASHED" || round.status==="FINISHED") && typeof DestaVoice.playAviatorCrash==="function") DestaVoice.playAviatorCrash();
+    if(round.status==="CRASHED" && typeof DestaVoice.playAviatorCrash==="function") DestaVoice.playAviatorCrash();
   }
   state.aviatorLastStatus=String(round.status||"");
-  const stage=document.getElementById("aviatorStage");
-  const mult=document.getElementById("aviatorMultiplier");
-  const status=document.getElementById("aviatorStatus");
-  const roundEl=document.getElementById("aviatorRoundLabel");
-  const cap=document.getElementById("aviatorPayoutCapDisplay");
-  const wager=document.getElementById("aviatorTotalWagered");
-  const paid=document.getElementById("aviatorTotalPaid");
-  const betBtn=document.getElementById("aviatorBetButton");
-  const cashBtn=document.getElementById("aviatorCashButton");
-  const my=document.getElementById("aviatorMyBet");
-  const feed=document.getElementById("aviatorFeed");
-
-  if(roundEl) roundEl.textContent=String(round.roundNumber||"—");
-  if(cap) cap.textContent=Number(round.payoutCap||0).toFixed(2);
-  if(wager) wager.textContent=Number(round.totalWagered||0).toFixed(2);
-  if(paid) paid.textContent=Number(round.totalPaid||0).toFixed(2);
-
-  const mine=round.myBet || null;
-  state.aviatorBet=mine;
-
-  if(stage) stage.classList.remove("flying","crashed");
-  if(mult) mult.classList.remove("small");
-
-  if(round.status==="BETTING"){
-    const seconds=Math.max(0,Number(round.remainingSeconds||0));
-    if(status) status.textContent=`BETTING OPEN • ${seconds}s`;
-    if(mult) mult.textContent="PLACE YOUR BET";
-    if(betBtn) betBtn.disabled=!!mine;
-    if(cashBtn) cashBtn.disabled=true;
-  }else if(round.status==="FLYING"){
-    if(stage) stage.classList.add("flying");
-    const m=Math.max(1,Number(round.multiplier||1));
-    if(mult) mult.textContent=m.toFixed(2)+"x";
-    if(status) status.textContent="FLYING • CASH OUT BEFORE CRASH";
-    if(betBtn) betBtn.disabled=true;
-    if(cashBtn){
-      cashBtn.disabled=!mine || !!mine.cashedOut;
-      cashBtn.textContent=mine && !mine.cashedOut ? `CASH OUT ${m.toFixed(2)}x` : (mine ? `CASHED OUT ${Number(mine.cashoutMultiplier||0).toFixed(2)}x` : "CASH OUT —");
+  state.aviatorLastRoundId=String(round.id||"");
+  state.aviatorBets=state.aviatorBets||{1:null,2:null};
+  const mine=Array.isArray(round.myBets)?round.myBets:[];
+  state.aviatorBets[1]=mine.find(b=>Number(b.slot)===1)||null;
+  state.aviatorBets[2]=mine.find(b=>Number(b.slot)===2)||null;
+  const m=Math.max(1,Number(round.multiplier||1));
+  const status=String(round.status||"");
+  const stage=document.getElementById("aviatorStage"), mult=document.getElementById("aviatorMultiplier"), stat=document.getElementById("aviatorStatus");
+  if(document.getElementById("aviatorRoundLabel")) document.getElementById("aviatorRoundLabel").textContent=String(round.roundNumber||"—");
+  if(mult) mult.textContent=(status==="CRASHED"?Number(round.crashPoint||m):m).toFixed(2)+"x";
+  if(stat) stat.textContent=status==="BETTING" ? `BETTING • ${Number(round.remainingSeconds||0)}s` : status==="FLYING" ? "FLIGHT LIVE" : "CRASHED";
+  if(stage){stage.classList.toggle("flying",status==="FLYING");stage.classList.toggle("crashed",status==="CRASHED");}
+  const active=Number(round.activeBets||0); const activeEl=document.getElementById("aviatorActiveBets"); if(activeEl) activeEl.textContent=String(active);
+  for(const slot of [1,2]){
+    const bet=state.aviatorBets[slot], btn=document.getElementById("aviatorAction"+slot), amount=document.getElementById("aviatorAmount"+slot), sm=document.getElementById("aviatorSlotMult"+slot), sp=document.getElementById("aviatorSlotPayout"+slot);
+    if(sm) sm.textContent=m.toFixed(2)+"x";
+    if(sp) sp.textContent=bet?.cashedOut ? `+${Number(bet.payout||0).toFixed(2)} ETB` : bet ? `Potential ${(Number(bet.amount||0)*m).toFixed(2)} ETB` : "—";
+    if(btn){
+      if(bet?.cashedOut){btn.textContent=`CASHED OUT ${Number(bet.cashoutMultiplier||0).toFixed(2)}x`;btn.disabled=true;btn.classList.remove("aviatorCashButton");}
+      else if(bet){btn.textContent=`CASH OUT ${m.toFixed(2)}x`;btn.disabled=status!=="FLYING";btn.classList.add("aviatorCashButton");}
+      else {btn.textContent="PLACE BET";btn.disabled=status!=="BETTING";btn.classList.remove("aviatorCashButton");}
     }
-  }else if(round.status==="CRASHED" || round.status==="FINISHED"){
-    if(stage) stage.classList.add("crashed");
-    const crash=Number(round.crashPoint||round.multiplier||1);
-    if(mult) mult.textContent=crash.toFixed(2)+"x";
-    if(status) status.textContent="ROUND CRASHED";
-    if(betBtn) betBtn.disabled=true;
-    if(cashBtn) cashBtn.disabled=true;
+    if(amount) amount.disabled=!!bet || status!=="BETTING";
   }
-
-  if(my){
-    if(mine && mine.cashedOut){
-      my.innerHTML=`<strong>YOUR CASH OUT: ${Number(mine.cashoutMultiplier||0).toFixed(2)}x</strong> • +${Number(mine.payout||0).toFixed(2)} ETB`;
-    }else if(mine){
-      const m=Number(round.multiplier||1);
-      my.innerHTML=`<strong>YOUR BET: ${Number(mine.amount||0).toFixed(2)} ETB</strong> • potential ${(Number(mine.amount||0)*m).toFixed(2)} ETB`;
-    }else{
-      my.textContent="No active bet in this round.";
-    }
-  }
-
-  if(feed){
-    const players=Number(round.playersInRoom||0);
-    feed.innerHTML=[
-      ["STATUS",round.status],
-      ["PLAYERS",players],
-      ["TOTAL WAGERED",Number(round.totalWagered||0).toFixed(2)+" ETB"],
-      ["50% PAYOUT ALLOCATION",Number(round.payoutCap||0).toFixed(2)+" ETB"],
-      ["PAID OUT",Number(round.totalPaid||0).toFixed(2)+" ETB"],
-      ["ACTIVE BETS",Number(round.activeBets||0)]
-    ].map(([a,b])=>`<div class="aviatorFeedRow"><span>${a}</span><span>${b}</span></div>`).join("");
-  }
-
   renderAviatorWallet();
 }
-
 async function fetchAviatorRound(){
   if(state.game!=="aviator" || !state.authToken) return;
   try{
     const response=await fetch("https://desta-play.onrender.com/api/game/aviator/round",{cache:"no-store",headers:aviatorHeaders()});
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success || !data.round) return;
+    const data=await safeJsonResponse(response); if(!response.ok||!data?.success||!data.round)return;
     const round=data.round;
-
     if(state.aviatorLastRoundId && state.aviatorLastRoundId!==String(round.id)){
-      const previousCrash=Number(state.aviatorCrash||0);
-      if(previousCrash>1){
-        state.aviatorHistory.unshift(previousCrash);
-        state.aviatorHistory=state.aviatorHistory.slice(0,12);
-        renderAviatorHistory();
-      }
+      const crash=Number(state.aviatorCrash||0); if(crash>1){state.aviatorHistory.unshift({multiplier:crash});state.aviatorHistory=state.aviatorHistory.slice(0,25);renderAviatorHistory();}
     }
-    state.aviatorLastRoundId=String(round.id);
-    state.aviatorCrash=Number(round.crashPoint||state.aviatorCrash||1);
-    state.aviatorMultiplier=Number(round.multiplier||1);
+    state.aviatorCrash=Number(round.crashPoint||state.aviatorCrash||1); state.aviatorMultiplier=Number(round.multiplier||1);
     renderAviatorRound(round);
-  }catch(error){
-    const feed=document.getElementById("aviatorFeed");
-    if(feed) feed.innerHTML='<div class="aviatorFeedRow"><span>CONNECTION</span><span>RECONNECTING…</span></div>';
-  }
+  }catch(e){ console.warn("Aviator synchronization error:",e); }
 }
-
-async function placeAviatorBet(){
+async function toggleAviatorBet(slot){
+  const bet=aviatorSlotBet(slot);
+  if(bet && !bet.cashedOut){ return cashOutAviator(slot); }
   if(state.game!=="aviator") return;
-  const input=document.getElementById("aviatorAmount");
-  const amount=Math.round(Number(input?.value||0)*100)/100;
-  if(!Number.isFinite(amount) || amount<10){
-    alert("Minimum Aviator bet is 10 ETB.");
+  const amount=Math.round(aviatorAmount(slot)*100)/100;
+  if(!Number.isFinite(amount)||amount<10){alert("Minimum Aviator bet is 10 ETB.");return;}
+  try{
+    const response=await fetch("https://desta-play.onrender.com/api/game/aviator/bet",{method:"POST",headers:aviatorHeaders(),body:JSON.stringify({amount,walletType:state.selectedWalletType==="bonus"?"bonus":"cash",roundId:state.aviatorLastRoundId,slot})});
+    const data=await safeJsonResponse(response); if(!response.ok||!data?.success)throw new Error(data?.error||"Could not place Aviator bet.");
+    if(data.balanceAfter!=null && state.selectedWalletType!=="bonus") state.balance=Number(data.balanceAfter);
+    if(data.bonusPointsAfter!=null && state.selectedWalletType==="bonus"){state.bonusPoints=Number(data.bonusPointsAfter);state.bonusPlayValue=state.bonusPoints;}
+    updateBalance(); await fetchAviatorRound();
+  }catch(e){alert(e.message||"Could not place Aviator bet.");}
+}
+async function placeAviatorBet(slot=1){ return toggleAviatorBet(slot); }
+async function cashOutAviator(slot=1){
+  if(state.game!=="aviator" || !aviatorSlotBet(slot)) return;
+  const button=document.getElementById("aviatorAction"+slot); if(button) button.disabled=true;
+  try{
+    const response=await fetch("https://desta-play.onrender.com/api/game/aviator/cashout",{method:"POST",headers:aviatorHeaders(),body:JSON.stringify({roundId:state.aviatorLastRoundId,slot})});
+    const data=await safeJsonResponse(response); if(!response.ok||!data?.success)throw new Error(data?.error||"Cash-out failed.");
+    if(data.balanceAfter!=null && state.selectedWalletType!=="bonus") state.balance=Number(data.balanceAfter);
+    if(data.bonusPointsAfter!=null && state.selectedWalletType==="bonus"){state.bonusPoints=Number(data.bonusPointsAfter);state.bonusPlayValue=state.bonusPoints;}
+    updateBalance(); await fetchAviatorRound();
+  }catch(e){alert(e.message||"Cash-out failed.");await fetchAviatorRound();}
+}
+function buildAviator(){ setAviatorSlot2Visible(true); renderAviatorHistory(); renderAviatorWallet(); fetchAviatorRound(); }
+
+const _oldOpenGame = openGame;
+openGame = async function(game){
+  if(game==="aviator"){
+    state.game="aviator"; state.gameJoined=true; state.watchOnly=false; state.stakeLobbyGame="aviator";
+    state.aviatorBets={1:null,2:null}; state.aviatorLastRoundId=""; state.aviatorLastStatus=""; aviatorSecondSlotVisible=true;
+    const lobby=document.getElementById("gameStakeLobby"); if(lobby) lobby.classList.add("hidden");
+    showPage("game"); document.getElementById("gameTitle").textContent="AVIATOR"; hideAllGames(); document.getElementById("aviatorGame")?.classList.remove("hidden");
+    buildGame(); buildAviator();
+    if(state.aviatorPollId) clearInterval(state.aviatorPollId);
+    state.aviatorPollId=setInterval(fetchAviatorRound,250);
     return;
   }
-  try{
-    const roundId=state.aviatorLastRoundId;
-    const response=await fetch("https://desta-play.onrender.com/api/game/aviator/bet",{
-      method:"POST",headers:aviatorHeaders(),
-      body:JSON.stringify({amount,walletType:state.selectedWalletType==="bonus"?"bonus":"cash",roundId})
-    });
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success) throw new Error(data.error||"Could not place Aviator bet.");
-    if(data.balanceAfter!=null && state.selectedWalletType!=="bonus") state.balance=Number(data.balanceAfter);
-    if(data.bonusPointsAfter!=null && state.selectedWalletType==="bonus"){
-      state.bonusPoints=Number(data.bonusPointsAfter);
-      state.bonusPlayValue=state.bonusPoints;
-    }
-    updateBalance();
-    await fetchAviatorRound();
-  }catch(error){
-    alert(error.message||"Could not place Aviator bet.");
-  }
-}
+  return _oldOpenGame(game);
+};
 
-async function cashOutAviator(){
-  if(state.game!=="aviator" || !state.aviatorBet) return;
-  const button=document.getElementById("aviatorCashButton");
-  if(button) button.disabled=true;
-  try{
-    const response=await fetch("https://desta-play.onrender.com/api/game/aviator/cashout",{
-      method:"POST",headers:aviatorHeaders(),
-      body:JSON.stringify({roundId:state.aviatorLastRoundId})
-    });
-    const data=await safeJsonResponse(response);
-    if(!response.ok || !data.success){
-      await fetchAviatorRound();
-      throw new Error(data.error||"Cash-out failed.");
-    }
-    if(data.balanceAfter!=null && state.selectedWalletType!=="bonus") state.balance=Number(data.balanceAfter);
-    if(data.bonusPointsAfter!=null && state.selectedWalletType==="bonus"){
-      state.bonusPoints=Number(data.bonusPointsAfter);
-      state.bonusPlayValue=state.bonusPoints;
-    }
-    updateBalance();
-    await fetchAviatorRound();
-  }catch(error){
-    alert(error.message||"Cash-out failed.");
-  }
-}
+document.addEventListener("click",e=>{
+  const t=e.target.closest?.("[data-slot-toggle]");
+  if(t && t.getAttribute("data-slot-toggle")==="2") setAviatorSlot2Visible(false);
+  if(e.target.closest?.("#aviatorShowSlot2")) setAviatorSlot2Visible(true);
+  if(e.target.closest?.("#aviatorHistoryExpand")) toggleAviatorHistory();
+});
 
 </script>
 
