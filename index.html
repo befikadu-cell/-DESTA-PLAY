@@ -6717,11 +6717,25 @@ html,body{
       const generation=box.generation;
       const value=box.queue.shift();
       setLiveDrawNumber(game,value,true);
+
+      // Announce the exact number at the moment it is placed on screen.
+      // This prevents the voice from getting ahead of or behind the visual draw.
+      try{
+        const liveRound=state.lastServerRounds?.[game];
+        if(voiceState.enabled && window.DestaVoice?.announceDraw && liveRound){
+          window.DestaVoice.announceDraw({
+            game, roundId:liveRound.id,
+            stake:liveRound.stake||liveRound.tier||null,
+            number:value, language:state.language||"en"
+          });
+        }
+      }catch(e){}
+
       setTimeout(()=>{
         if(generation!==box.generation){ box.running=false; return; }
         box.running=false;
         presentNextLiveDraw(game);
-      },3000);
+      },1500);
     }
 
     function primeLiveDrawPresentation(game,round){
@@ -6800,11 +6814,6 @@ html,body{
           }catch(e){}
         }
       }
-
-      /* Voice must enter the current live session before the server draw
-         event is announced. Otherwise the first authoritative draw can be
-         discarded as inactive. */
-      announceRoundVoice(round);
 
       const previousId=lastServerRoundId[game];
       const isNewRound=Boolean(previousId && previousId !== round.id);
@@ -7660,6 +7669,16 @@ function handleAviatorOwnCashout(round){
 function renderAviatorRound(round){
   if(!round) return;
   const previous=state.aviatorLastStatus;
+  if(previous!==String(round.status||"")){
+    try{
+      if(String(round.status)==="FLYING" && previous!=="FLYING" && window.DestaVoice?.playAviatorStart){
+        window.DestaVoice.playAviatorStart();
+        setTimeout(()=>window.DestaVoice?.playAviatorFlying?.(),700);
+      }else if(String(round.status)==="CRASHED" && previous!=="CRASHED" && window.DestaVoice?.playAviatorCrash){
+        window.DestaVoice.playAviatorCrash();
+      }
+    }catch(e){}
+  }
   state.aviatorLastStatus=String(round.status||"");
   state.aviatorLastRoundId=String(round.id||"");
   state.aviatorBets=state.aviatorBets||{1:null,2:null};
@@ -7681,10 +7700,10 @@ function renderAviatorRound(round){
   for(const slot of [1,2]){
     const bet=state.aviatorBets[slot], btn=document.getElementById("aviatorAction"+slot), amount=document.getElementById("aviatorAmount"+slot), sm=document.getElementById("aviatorSlotMult"+slot), sp=document.getElementById("aviatorSlotPayout"+slot);
     if(sm) sm.textContent=m.toFixed(2)+"x";
-    if(sp) sp.textContent=bet?.cashedOut ? `+${Number(bet.payout||0).toFixed(2)} ETB` : bet ? `Potential ${(Number(bet.amount||0)*m).toFixed(2)} ETB` : "—";
+    if(sp) sp.textContent=bet?.cashedOut ? `+${Number(bet.payout||0).toFixed(2)} ETB` : bet ? `Cash out ${(Number(bet.amount||0)*m).toFixed(2)} ETB` : "—";
     if(btn){
-      if(bet?.cashedOut){btn.textContent=`CASHED OUT ${Number(bet.cashoutMultiplier||0).toFixed(2)}x`;btn.disabled=true;btn.classList.remove("aviatorCashButton");}
-      else if(bet){btn.textContent=`CASH OUT ${m.toFixed(2)}x`;btn.disabled=status!=="FLYING";btn.classList.add("aviatorCashButton");}
+      if(bet?.cashedOut){btn.textContent=`CASHED OUT +${Number(bet.payout||0).toFixed(2)} ETB`;btn.disabled=true;btn.classList.remove("aviatorCashButton");}
+      else if(bet){btn.textContent=`CASH OUT ${(Number(bet.amount||0)*m).toFixed(2)} ETB`;btn.disabled=status!=="FLYING";btn.classList.add("aviatorCashButton");}
       else {btn.textContent="PLACE BET";btn.disabled=status!=="BETTING";btn.classList.remove("aviatorCashButton");}
     }
     if(amount) amount.disabled=!!bet || status!=="BETTING";
@@ -7701,9 +7720,6 @@ function updateAviatorDisplayClock(){
   if(!el) return;
 
   const serverNow=Date.now()+Number(state.aviatorServerOffsetMs||0);
-
-  // The server timestamps are authoritative. This local clock only fills the
-  // visual gaps between 250ms server polls; it never decides a cash-out/crash.
   if(status==="BETTING"){
     const remaining=Math.max(0,Number(round.bettingEndsAt||0)-serverNow);
     el.textContent="1.00x";
@@ -7712,8 +7728,8 @@ function updateAviatorDisplayClock(){
     if(plane){
       plane.style.animation="none";
       plane.style.opacity="1";
-      plane.style.left="10%";
-      plane.style.top="63%";
+      plane.style.left="8%";
+      plane.style.top="65%";
       plane.style.transform="rotate(-18deg) scale(1)";
     }
     return;
@@ -7721,27 +7737,36 @@ function updateAviatorDisplayClock(){
 
   if(status==="FLYING" && round.flyingStartedAt){
     const elapsed=Math.max(0,serverNow-Number(round.flyingStartedAt));
-    const growth=0.00075;
-    const displayMultiplier=Math.max(1,Math.exp(growth*elapsed/100));
-    // Never display below the last server-authoritative multiplier.
+    const growth=0.0075;
+    const displayMultiplier=round.attractMode
+      ? Math.pow(10,Math.min(1,elapsed/Math.max(1000,Number(round.attractFlightMs||12000))))
+      : Math.exp(growth*elapsed/100);
     const authoritative=Math.max(1,Number(round.multiplier||1));
     const m=Math.max(authoritative,displayMultiplier);
     el.textContent=m.toFixed(2)+"x";
+    for(const slot of [1,2]){
+      const bet=aviatorSlotBet(slot);
+      const btn=document.getElementById("aviatorAction"+slot);
+      const sm=document.getElementById("aviatorSlotMult"+slot);
+      const sp=document.getElementById("aviatorSlotPayout"+slot);
+      if(sm) sm.textContent=m.toFixed(2)+"x";
+      if(sp && bet && !bet.cashedOut) sp.textContent=`Cash out ${(Number(bet.amount||0)*m).toFixed(2)} ETB`;
+      if(btn && bet && !bet.cashedOut) btn.textContent=`CASH OUT ${(Number(bet.amount||0)*m).toFixed(2)} ETB`;
+    }
 
-    const attract=Boolean(round.attractMode);
     const stat=document.getElementById("aviatorStatus");
-    if(stat) stat.textContent=attract ? "WATCH LIVE • FLIGHT" : "FLIGHT LIVE";
-    if(stage) stage.classList.add("flying");
+    if(stat) stat.textContent=round.attractMode ? "WATCH LIVE • FLIGHT" : "FLIGHT LIVE";
+    if(stage){stage.classList.add("flying");stage.classList.remove("crashed");}
     if(plane){
-      // Drive the plane from the same server-time multiplier so the visual
-      // flight continues even between network responses.
+      // Purely visual path driven by the server clock. It never decides
+      // betting, cash-out, or crash.
       plane.style.animation="none";
       plane.style.opacity="1";
-      const progress=Math.min(1,Math.max(0,(m-1)/Math.max(1,(attract?3.2:8)-1)));
+      const progress=Math.min(1,Math.max(0,Math.log(Math.max(1,m))/Math.log(10)));
       const eased=progress*progress*(3-2*progress);
-      plane.style.left=(10+(73*eased)).toFixed(2)+"%";
-      plane.style.top=(63-(45*eased)).toFixed(2)+"%";
-      plane.style.transform=`rotate(-18deg) scale(${(1+0.08*eased).toFixed(3)})`;
+      plane.style.left=(8+(78*eased)).toFixed(2)+"%";
+      plane.style.top=(65-(50*eased)).toFixed(2)+"%";
+      plane.style.transform=`rotate(-18deg) scale(${(1+0.12*eased).toFixed(3)})`;
     }
     return;
   }
@@ -7749,9 +7774,8 @@ function updateAviatorDisplayClock(){
   if(status==="CRASHED"){
     const crash=Number(round.crashPoint||round.multiplier||1);
     el.textContent=crash.toFixed(2)+"x";
-    if(plane){
-      plane.style.animation="aviatorCrash .65s ease-in forwards";
-    }
+    if(stage) stage.classList.remove("flying");
+    if(plane) plane.style.animation="aviatorCrash .65s ease-in forwards";
   }
 }
 async function fetchAviatorRound(){
