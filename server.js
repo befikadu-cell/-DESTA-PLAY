@@ -5101,7 +5101,6 @@ function getPublicRound(
         ...(gameName === "aviator" ? {
             flyingStartedAt: round.flyingStartedAt || null,
             attractMode: Boolean(round.attractMode),
-            committedSeedHash: round.committedSeedHash || null,
             activeBets: (round.bets || []).filter(b => !b.cashedOut).length,
             liveCashouts: (round.bets || []).filter(b => b.cashedOut).slice(-25).reverse().map(b => ({
                 name:String(b.telegramName || "Player").slice(0,24),
@@ -5213,7 +5212,7 @@ function beginAviatorFlight(roundId) {
         round.totalPaid = 0;
         round.cashoutFeed = [];
         round.attractMode = true;
-        round.attractFlightMs = 8000 + Math.floor(Math.random() * 6001);
+        round.attractFlightMs = 10000 + Math.floor(Math.random() * 5001);
         round.crashPoint = null;
         round.lastSavedAt = Date.now();
         console.log(`[AVIATOR] ATTRACT FLIGHT ${round.id} | no players | ${round.attractFlightMs}ms`);
@@ -5243,9 +5242,11 @@ function tickAviatorRound(roundId) {
         if (!round || round.id !== roundId || round.status !== "FLYING") return;
 
         const elapsed = Date.now() - Number(round.flyingStartedAt || Date.now());
-        round.multiplier = aviator.multiplierAt(elapsed);
+        round.multiplier = round.attractMode
+            ? aviator.attractMultiplierAt(elapsed, round.attractFlightMs)
+            : aviator.multiplierAt(elapsed);
 
-        if (round.attractMode && elapsed >= Number(round.attractFlightMs || 10000)) {
+        if (round.attractMode && elapsed >= Number(round.attractFlightMs || 12000)) {
             await finishAviatorCrash(round, "attract_mode");
             return;
         }
@@ -5254,11 +5255,6 @@ function tickAviatorRound(roundId) {
             await finishAviatorCrash(round, "safety");
             return;
         }
-        if (round.totalPaid >= round.payoutCap && round.payoutCap > 0) {
-            await finishAviatorCrash(round, "payout_cap");
-            return;
-        }
-
         if (Date.now() - Number(round.lastSavedAt || 0) > 1000) {
             round.lastSavedAt = Date.now();
             saveRound(round).catch(console.error);
@@ -5357,9 +5353,15 @@ async function restoreAviatorRound() {
         } else if (round.status === "FLYING") {
             if (!round.flyingStartedAt) { startAviatorRound(); return; }
             const elapsed=Date.now()-round.flyingStartedAt;
-            round.multiplier=aviator.multiplierAt(elapsed);
-            if (round.multiplier >= Number(round.crashPoint || 50)) crashAviatorRound(round,"safety");
-            else tickAviatorRound(round.id);
+            round.multiplier=round.attractMode
+                ? aviator.attractMultiplierAt(elapsed, round.attractFlightMs)
+                : aviator.multiplierAt(elapsed);
+            if (round.attractMode) {
+                if (elapsed >= Number(round.attractFlightMs || 12000)) crashAviatorRound(round,"attract_mode");
+                else tickAviatorRound(round.id);
+            } else if (round.multiplier >= Number(round.crashPoint || 50)) {
+                crashAviatorRound(round,"safety");
+            } else tickAviatorRound(round.id);
         } else {
             startAviatorRound();
         }
@@ -6345,22 +6347,18 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
             round.multiplier=Math.max(Number(round.multiplier||1),multiplier);
             const check=aviator.canCashOut(round,bet,round.multiplier);
             if (!check.ok) {
-                if (check.shouldCrash) await finishAviatorCrash(round,"payout_cap");
-                return res.status(400).json({success:false,error:check.reason,crashed:true,roundId:round.id,crashPoint:round.multiplier});
+                return res.status(400).json({success:false,error:check.reason});
             }
 
+            // Cash-out is immediate at the server-authoritative multiplier.
+            // The hidden 50% RTP rule is determined by the round's private
+            // crash distribution, not by rejecting an otherwise valid cash-out.
             const payout=Number(check.payout);
-            const nextTotalPaid=Number((Number(round.totalPaid||0)+payout).toFixed(2));
-            if (nextTotalPaid > Number(round.payoutCap || 0)) {
-                await finishAviatorCrash(round,"payout_cap");
-                return res.status(400).json({success:false,error:"The 50% payout pool has been reached.",crashed:true,roundId:round.id,crashPoint:round.multiplier});
-            }
-
             bet.cashedOut=true;
             bet.cashoutMultiplier=Number(round.multiplier.toFixed(2));
             bet.payout=payout;
             bet.cashoutAt=Date.now();
-            round.totalPaid=nextTotalPaid;
+            round.totalPaid=Number((Number(round.totalPaid||0)+payout).toFixed(2));
 
             let balanceAfter=Number(req.player.balance||0), bonusPointsAfter=null;
             try {
@@ -6384,9 +6382,6 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
             }
 
             await saveRound(round).catch(console.error);
-            const reachedPool=round.payoutCap>0 && round.totalPaid>=round.payoutCap;
-            if(reachedPool) await finishAviatorCrash(round,"payout_cap");
-
             return res.json({success:true,roundId:round.id,slot,multiplier:bet.cashoutMultiplier,payout,balanceAfter,bonusPointsAfter,crashed:round.status==="CRASHED",crashPoint:round.status==="CRASHED"?round.crashPoint:null,message:`Cashed out at ${bet.cashoutMultiplier}x`});
         });
     } catch(error) {
