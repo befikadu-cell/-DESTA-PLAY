@@ -6712,14 +6712,12 @@ html,body{
 
     function presentNextLiveDraw(game){
       const box=liveDrawPresentation[game];
-      if(!box || box.running || !box.queue.length) return;
-      box.running=true;
-      const generation=box.generation;
-      const value=box.queue.shift();
+      if(!box || !box.queue.length) return;
+      /* The server is authoritative. Present the newest server draw immediately
+         so the number on screen and the spoken number are the same event. */
+      const value=box.queue[box.queue.length-1];
+      box.queue=[];
       setLiveDrawNumber(game,value,true);
-
-      // Announce the exact number at the moment it is placed on screen.
-      // This prevents the voice from getting ahead of or behind the visual draw.
       try{
         const liveRound=state.lastServerRounds?.[game];
         if(voiceState.enabled && window.DestaVoice?.announceDraw && liveRound){
@@ -6730,69 +6728,6 @@ html,body{
           });
         }
       }catch(e){}
-
-      setTimeout(()=>{
-        if(generation!==box.generation){ box.running=false; return; }
-        box.running=false;
-        presentNextLiveDraw(game);
-      },1500);
-    }
-
-    function primeLiveDrawPresentation(game,round){
-      const box=liveDrawPresentation[game];
-      if(!box || !round) return;
-      const roundId=String(round.id||"");
-      const nums=Array.isArray(round.drawnNumbers)
-        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
-        : [];
-
-      /* Entering the live game is a synchronization point. The server may
-         already be many draws ahead because its engine never pauses when the
-         player leaves the screen. Discard any old presentation queue and
-         start exactly at the number currently recorded by the server. */
-      box.roundId=roundId;
-      box.seen=nums.length;
-      box.queue=[];
-      box.generation++;
-      box.running=false;
-
-      if(nums.length){
-        setLiveDrawNumber(game,nums[nums.length-1],false);
-      }else{
-        const latestId=document.getElementById(game+"LatestDraw");
-        if(latestId) latestId.textContent="—";
-      }
-    }
-
-    function syncLiveDrawPresentation(game,round){
-      const box=liveDrawPresentation[game];
-      if(!box) return;
-      const roundId=String(round?.id||"");
-      const nums=Array.isArray(round?.drawnNumbers)
-        ? round.drawnNumbers.map(Number).filter(Number.isFinite)
-        : [];
-
-      if(box.roundId!==roundId){
-        box.roundId=roundId;
-        box.seen=0;
-        box.queue=[];
-        box.generation++;
-        box.running=false;
-
-        /* A newly observed round starts from its current authoritative
-           position. Never replay numbers that were drawn before the player
-           entered the live screen. */
-        if(nums.length){
-          setLiveDrawNumber(game,nums[nums.length-1],false);
-          box.seen=nums.length;
-        }
-      }
-
-      if(nums.length>box.seen){
-        for(let i=box.seen;i<nums.length;i++) box.queue.push(nums[i]);
-        box.seen=nums.length;
-        presentNextLiveDraw(game);
-      }
     }
 
     function applyServerRound(round){
@@ -7718,18 +7653,18 @@ function updateAviatorDisplayClock(){
   const stage=document.getElementById("aviatorStage");
   const plane=document.getElementById("aviatorPlane");
   if(!el) return;
-
   const serverNow=Date.now()+Number(state.aviatorServerOffsetMs||0);
+
   if(status==="BETTING"){
     const remaining=Math.max(0,Number(round.bettingEndsAt||0)-serverNow);
     el.textContent="1.00x";
     const stat=document.getElementById("aviatorStatus");
     if(stat) stat.textContent=`BETTING • ${Math.ceil(remaining/1000)}s`;
+    if(stage) { stage.classList.remove("flying","crashed"); }
     if(plane){
       plane.style.animation="none";
+      plane.style.left="10%"; plane.style.top="63%";
       plane.style.opacity="1";
-      plane.style.left="8%";
-      plane.style.top="65%";
       plane.style.transform="rotate(-18deg) scale(1)";
     }
     return;
@@ -7737,13 +7672,20 @@ function updateAviatorDisplayClock(){
 
   if(status==="FLYING" && round.flyingStartedAt){
     const elapsed=Math.max(0,serverNow-Number(round.flyingStartedAt));
-    const growth=0.0075;
-    const displayMultiplier=round.attractMode
-      ? Math.pow(10,Math.min(1,elapsed/Math.max(1000,Number(round.attractFlightMs||12000))))
-      : Math.exp(growth*elapsed/100);
+    const growth=0.00075;
+    const displayMultiplier=Math.exp(growth*elapsed/100);
     const authoritative=Math.max(1,Number(round.multiplier||1));
     const m=Math.max(authoritative,displayMultiplier);
     el.textContent=m.toFixed(2)+"x";
+    const stat=document.getElementById("aviatorStatus");
+    if(stat) stat.textContent=round.attractMode ? "WATCH LIVE • FLIGHT" : "FLIGHT LIVE";
+    if(stage){ stage.classList.add("flying"); stage.classList.remove("crashed"); }
+    /* Let the CSS flight animation move the plane continuously. The server
+       clock controls the multiplier; the animation is presentation only. */
+    if(plane){
+      plane.style.animation="aviatorFlight 2.8s linear infinite";
+      plane.style.opacity="1";
+    }
     for(const slot of [1,2]){
       const bet=aviatorSlotBet(slot);
       const btn=document.getElementById("aviatorAction"+slot);
@@ -7753,31 +7695,20 @@ function updateAviatorDisplayClock(){
       if(sp && bet && !bet.cashedOut) sp.textContent=`Cash out ${(Number(bet.amount||0)*m).toFixed(2)} ETB`;
       if(btn && bet && !bet.cashedOut) btn.textContent=`CASH OUT ${(Number(bet.amount||0)*m).toFixed(2)} ETB`;
     }
-
-    const stat=document.getElementById("aviatorStatus");
-    if(stat) stat.textContent=round.attractMode ? "WATCH LIVE • FLIGHT" : "FLIGHT LIVE";
-    if(stage){stage.classList.add("flying");stage.classList.remove("crashed");}
-    if(plane){
-      // Purely visual path driven by the server clock. It never decides
-      // betting, cash-out, or crash.
-      plane.style.animation="none";
-      plane.style.opacity="1";
-      const progress=Math.min(1,Math.max(0,Math.log(Math.max(1,m))/Math.log(10)));
-      const eased=progress*progress*(3-2*progress);
-      plane.style.left=(8+(78*eased)).toFixed(2)+"%";
-      plane.style.top=(65-(50*eased)).toFixed(2)+"%";
-      plane.style.transform=`rotate(-18deg) scale(${(1+0.12*eased).toFixed(3)})`;
-    }
     return;
   }
 
   if(status==="CRASHED"){
     const crash=Number(round.crashPoint||round.multiplier||1);
     el.textContent=crash.toFixed(2)+"x";
-    if(stage) stage.classList.remove("flying");
-    if(plane) plane.style.animation="aviatorCrash .65s ease-in forwards";
+    if(stage) { stage.classList.remove("flying"); stage.classList.add("crashed"); }
+    if(plane){
+      plane.style.animation="aviatorCrash .65s ease-in forwards";
+      plane.style.opacity="1";
+    }
   }
 }
+
 async function fetchAviatorRound(){
   if(state.game!=="aviator" || !state.authToken) return;
   try{
