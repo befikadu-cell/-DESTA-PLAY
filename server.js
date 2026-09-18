@@ -5131,6 +5131,11 @@ function getPublicRound(
                 ? null
                 : undefined,
 
+        myBets:
+            gameName === "aviator"
+                ? []
+                : undefined,
+
         crashPoint:
             (
                 round.status ===
@@ -6117,15 +6122,18 @@ app.get(
         const publicRound = getPublicRound(gameName);
         if (gameName === "aviator" && publicRound) {
             const round = rounds.aviator;
-            const mine = (round?.bets || []).find(b => String(b.playerId) === String(req.player.id) && !b.cashedOut);
-            publicRound.myBet = mine ? {
-                betId: mine.betId,
-                amount: Number(mine.amount || 0),
-                walletType: mine.walletType || "cash",
-                cashedOut: Boolean(mine.cashedOut),
-                cashoutMultiplier: mine.cashoutMultiplier || null,
-                payout: Number(mine.payout || 0)
-            } : null;
+            publicRound.myBets = (round?.bets || [])
+                .filter(b => String(b.playerId) === String(req.player.id))
+                .map(b => ({
+                    betId: b.betId,
+                    slot: Number(b.slot || 1),
+                    amount: Number(b.amount || 0),
+                    walletType: b.walletType || "cash",
+                    cashedOut: Boolean(b.cashedOut),
+                    cashoutMultiplier: b.cashoutMultiplier || null,
+                    payout: Number(b.payout || 0)
+                }));
+            publicRound.myBet = publicRound.myBets.find(b => !b.cashedOut) || null;
         }
         return res.json({
             success: true,
@@ -6284,7 +6292,9 @@ async function placeAviatorBet(req, res) {
         const submittedRoundId = String(req.body?.roundId || "").trim();
         if (submittedRoundId && submittedRoundId !== String(round.id)) return res.status(400).json({success:false,error:"This Aviator round is no longer active"});
         if (amount < aviator.AVIATOR_CONFIG.minBet) return res.status(400).json({success:false,error:`Minimum Aviator bet is ${aviator.AVIATOR_CONFIG.minBet} ETB`});
-        if (round.bets.some(b => String(b.playerId) === String(req.player.id) && !b.cashedOut)) return res.status(400).json({success:false,error:"You already have a bet in this round"});
+        const slot = Number(req.body?.slot || 1);
+        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
+        if (round.bets.some(b => String(b.playerId) === String(req.player.id) && Number(b.slot || 1) === slot && !b.cashedOut)) return res.status(400).json({success:false,error:`Bet slot ${slot} is already active`});
         if (!round.betReservations) round.betReservations = new Set();
         const reservation = String(req.player.id);
         if (round.betReservations.has(reservation)) return res.status(400).json({success:false,error:"Your bet is already being placed"});
@@ -6316,12 +6326,12 @@ async function placeAviatorBet(req, res) {
         round.betReservations.delete(reservation);
         round.bets.push({
             betId, playerId:req.player.id, telegramName:req.player.username || "Player",
-            amount, walletType, cashedOut:false, payout:0, cashoutMultiplier:null, placedAt:Date.now()
+            slot, amount, walletType, cashedOut:false, payout:0, cashoutMultiplier:null, placedAt:Date.now()
         });
         await saveRound(round).catch(console.error);
 
         return res.json({
-            success:true, betId, roundId:round.id, amount, walletType,
+            success:true, betId, roundId:round.id, slot, amount, walletType,
             balanceAfter, bonusPointsAfter, bettingEndsAt:round.bettingEndsAt,
             remainingMilliseconds:Math.max(0,round.bettingEndsAt-Date.now())
         });
@@ -6335,7 +6345,9 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
     try {
         const round=rounds.aviator;
         if (!round || round.status !== "FLYING") return res.status(400).json({success:false,error:"The plane has already crashed."});
-        const bet=round.bets.find(b=>String(b.playerId)===String(req.player.id) && !b.cashedOut);
+        const slot = Number(req.body?.slot || 1);
+        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
+        const bet=round.bets.find(b=>String(b.playerId)===String(req.player.id) && Number(b.slot || 1)===slot && !b.cashedOut);
         if (!bet) return res.status(400).json({success:false,error:"You do not have an active Aviator bet."});
 
         const elapsed=Date.now()-Number(round.flyingStartedAt || Date.now());
@@ -6383,7 +6395,7 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
         }
 
         return res.json({
-            success:true, roundId:round.id, multiplier:bet.cashoutMultiplier,
+            success:true, roundId:round.id, slot, multiplier:bet.cashoutMultiplier,
             payout, balanceAfter, bonusPointsAfter,
             crashed:round.status==="CRASHED", crashPoint:round.status==="CRASHED"?round.crashPoint:null,
             message:`Cashed out at ${bet.cashoutMultiplier}x`
