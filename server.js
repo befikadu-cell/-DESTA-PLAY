@@ -28,7 +28,12 @@ import argon2 from "argon2";
 import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
-import * as aviator from "./games/aviator.js";
+import * as aviatorModule from "./games/aviator.js";
+
+// Compatibility: support both named-export and default-export Aviator engines.
+const aviator = (aviatorModule.default && typeof aviatorModule.default.createRound === "function")
+    ? aviatorModule.default
+    : aviatorModule;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
