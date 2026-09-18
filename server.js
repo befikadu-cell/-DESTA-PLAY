@@ -5046,7 +5046,7 @@ function getPublicRound(
             ).toISOString(),
 
         bettingSeconds:
-            round.bettingSeconds,
+            Number(round.bettingSeconds || (gameName === "aviator" ? aviator.AVIATOR_CONFIG.bettingSeconds : 0)),
 
         bettingStartedAt:
             round.bettingStartedAt,
@@ -5174,7 +5174,13 @@ function startHouseRound(gameName) {
 */
 function startAviatorRound() {
     const now = Date.now();
+    const bettingSeconds = Number(aviator.AVIATOR_CONFIG.bettingSeconds || 30);
     const round = aviator.createRound();
+    // Keep the betting duration on the live round as well as in the engine
+    // config. The timer must use this value; never read an undefined property.
+    round.bettingSeconds = bettingSeconds;
+    round.bettingStartedAt = now;
+    round.bettingEndsAt = now + bettingSeconds * 1000;
     round.roundNumber = ++roundCounters.aviator;
     round.committedSeedHash = aviator.commitHash(round.secretSeed);
     rounds.aviator = round;
@@ -5187,7 +5193,7 @@ function startAviatorRound() {
         const current = rounds.aviator;
         if (!current || current.id !== round.id || current.status !== "BETTING") return;
         beginAviatorFlight(round.id);
-    }, round.bettingSeconds * 1000);
+    }, bettingSeconds * 1000);
 }
 
 function beginAviatorFlight(roundId) {
@@ -5323,6 +5329,7 @@ async function restoreAviatorRound() {
             game:"aviator",
             status:data.status,
             createdAt:started,
+            bettingSeconds:Number(aviator.AVIATOR_CONFIG.bettingSeconds || 30),
             bettingStartedAt:started,
             bettingEndsAt:ends,
             flyingStartedAt:st.flyingStartedAt || null,
