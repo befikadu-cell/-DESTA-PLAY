@@ -214,6 +214,16 @@ const rounds = {};
 /* Serialize balance mutations for the same player. This prevents two near-
 simultaneous independent Keno slots from both reading the same old balance. */
 const playerBalanceLocks = new Map();
+
+/* Serialize Aviator state transitions. The round is shared by every player,
+   so simultaneous cash-outs must be checked and settled one at a time. */
+let aviatorRoundQueue = Promise.resolve();
+function withAviatorRoundLock(work) {
+    const run = aviatorRoundQueue.then(work, work);
+    aviatorRoundQueue = run.catch(() => {});
+    return run;
+}
+
 async function withPlayerBalanceLock(playerId, work) {
     const key = String(playerId);
     const previous = playerBalanceLocks.get(key) || Promise.resolve();
@@ -5126,6 +5136,21 @@ function getPublicRound(
                 ? (round.bets || []).filter(b => !b.cashedOut).length
                 : 0,
 
+        liveCashouts:
+            gameName === "aviator"
+                ? (round.bets || [])
+                    .filter(b => b.cashedOut)
+                    .slice(-25)
+                    .reverse()
+                    .map(b => ({
+                        name: String(b.telegramName || "Player").slice(0, 24),
+                        amount: Number(b.amount || 0),
+                        multiplier: Number(b.cashoutMultiplier || 0),
+                        payout: Number(b.payout || 0),
+                        at: Number(b.cashoutAt || 0)
+                    }))
+                : [],
+
         myBet:
             gameName === "aviator"
                 ? null
@@ -5240,6 +5265,8 @@ function beginAviatorFlight(roundId) {
     round.status = "FLYING";
     round.flyingStartedAt = Date.now();
     round.multiplier = 1.00;
+    round.lastSavedAt = Date.now();
+    round.cashoutFeed = [];
     // This is only a safety ceiling for the no-cashout case. Clients never see it before crash.
     round.crashPoint = aviator.generateSafetyCrashPoint(round.secretSeed);
     round.totalPaid = 0;
@@ -5250,31 +5277,31 @@ function beginAviatorFlight(roundId) {
 }
 
 function tickAviatorRound(roundId) {
-    const round = rounds.aviator;
-    if (!round || round.id !== roundId || round.status !== "FLYING") return;
+    withAviatorRoundLock(async () => {
+        const round = rounds.aviator;
+        if (!round || round.id !== roundId || round.status !== "FLYING") return;
 
-    const elapsed = Date.now() - Number(round.flyingStartedAt || Date.now());
-    round.multiplier = aviator.multiplierAt(elapsed);
+        const elapsed = Date.now() - Number(round.flyingStartedAt || Date.now());
+        round.multiplier = aviator.multiplierAt(elapsed);
 
-    if (round.multiplier >= Number(round.crashPoint || 50)) {
-        crashAviatorRound(round, "safety");
-        return;
-    }
+        if (round.multiplier >= Number(round.crashPoint || 50)) {
+            await finishAviatorCrash(round, "safety");
+            return;
+        }
+        if (round.totalPaid >= round.payoutCap && round.payoutCap > 0) {
+            await finishAviatorCrash(round, "payout_cap");
+            return;
+        }
 
-    if (round.totalPaid >= round.payoutCap && round.payoutCap > 0) {
-        crashAviatorRound(round, "payout_cap");
-        return;
-    }
-
-    if (Date.now() - round.lastSavedAt > 1000) {
-        round.lastSavedAt = Date.now();
-        saveRound(round).catch(console.error);
-    }
-
-    setTimeout(() => tickAviatorRound(roundId), aviator.AVIATOR_CONFIG.tickMilliseconds);
+        if (Date.now() - Number(round.lastSavedAt || 0) > 1000) {
+            round.lastSavedAt = Date.now();
+            saveRound(round).catch(console.error);
+        }
+        setTimeout(() => tickAviatorRound(roundId), aviator.AVIATOR_CONFIG.tickMilliseconds);
+    }).catch(error => console.error("[AVIATOR] TICK ERROR:", error));
 }
 
-async function crashAviatorRound(round, reason) {
+async function finishAviatorCrash(round, reason) {
     if (!round || round.status === "CRASHED" || round.status === "FINISHED") return;
     round.status = "CRASHED";
     round.result = {
@@ -5283,9 +5310,7 @@ async function crashAviatorRound(round, reason) {
         payoutAllocation: Number(round.payoutCap || 0),
         houseAllocation: Number(Math.max(0, Number(round.totalWagered || 0) - Number(round.totalPaid || 0)).toFixed(2)),
         totalPaid: Number(round.totalPaid || 0),
-        winners: (round.bets || []).filter(b => b.cashedOut).map(b => ({
-            playerId:b.playerId, amount:b.amount, multiplier:b.cashoutMultiplier, payout:b.payout
-        })),
+        winners: (round.bets || []).filter(b => b.cashedOut).map(b => ({ playerId:b.playerId, amount:b.amount, multiplier:b.cashoutMultiplier, payout:b.payout })),
         crashReason: reason,
         crashPoint: Number(round.multiplier || 1),
         committedSeedHash: round.committedSeedHash,
@@ -5295,10 +5320,11 @@ async function crashAviatorRound(round, reason) {
     round.crashPoint = Number(round.multiplier || 1);
     await saveRound(round).catch(console.error);
     console.log(`[AVIATOR] CRASH ${round.id} @ ${round.crashPoint}x | paid=${round.totalPaid}/${round.payoutCap}`);
+    setTimeout(() => { if (rounds.aviator?.id === round.id) startAviatorRound(); }, NEXT_ROUND_DELAY);
+}
 
-    setTimeout(() => {
-        if (rounds.aviator?.id === round.id) startAviatorRound();
-    }, NEXT_ROUND_DELAY);
+async function crashAviatorRound(round, reason) {
+    return withAviatorRoundLock(() => finishAviatorCrash(round, reason));
 }
 
 async function restoreAviatorRound() {
@@ -6343,62 +6369,62 @@ async function placeAviatorBet(req, res) {
 
 app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
     try {
-        const round=rounds.aviator;
-        if (!round || round.status !== "FLYING") return res.status(400).json({success:false,error:"The plane has already crashed."});
-        const slot = Number(req.body?.slot || 1);
-        if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
-        const bet=round.bets.find(b=>String(b.playerId)===String(req.player.id) && Number(b.slot || 1)===slot && !b.cashedOut);
-        if (!bet) return res.status(400).json({success:false,error:"You do not have an active Aviator bet."});
+        return await withAviatorRoundLock(async () => {
+            const round=rounds.aviator;
+            if (!round || round.status !== "FLYING") return res.status(400).json({success:false,error:"The plane has already crashed."});
+            const slot=Number(req.body?.slot || 1);
+            if (![1,2].includes(slot)) return res.status(400).json({success:false,error:"Invalid Aviator bet slot"});
+            const bet=round.bets.find(b=>String(b.playerId)===String(req.player.id) && Number(b.slot || 1)===slot && !b.cashedOut);
+            if (!bet) return res.status(400).json({success:false,error:"You do not have an active Aviator bet."});
 
-        const elapsed=Date.now()-Number(round.flyingStartedAt || Date.now());
-        const multiplier=aviator.multiplierAt(elapsed);
-        round.multiplier=Math.max(Number(round.multiplier||1),multiplier);
-        const check=aviator.canCashOut(round,bet,round.multiplier);
-
-        if (!check.ok) {
-            if (check.shouldCrash) await crashAviatorRound(round,"payout_cap");
-            return res.status(400).json({success:false,error:check.reason,crashed:true,roundId:round.id,crashPoint:round.multiplier});
-        }
-
-        const payout=Number(check.payout);
-        bet.cashedOut=true;
-        bet.cashoutMultiplier=Number(round.multiplier.toFixed(2));
-        bet.payout=payout;
-        round.totalPaid=Number((Number(round.totalPaid||0)+payout).toFixed(2));
-
-        let balanceAfter=Number(req.player.balance||0);
-        let bonusPointsAfter=null;
-        try {
-            if (bet.walletType === "bonus") {
-                bonusPointsAfter=await writeBonusTransaction({
-                    playerId:req.player.id, points:payout, type:"bonus_win",
-                    description:JSON.stringify({game:"aviator",roundId:round.id,betId:bet.betId,multiplier:bet.cashoutMultiplier,walletType:"bonus"}),
-                    referenceId:round.id
-                });
-            } else {
-                balanceAfter=Number(await withPlayerBalanceLock(req.player.id,()=>changeBalance({
-                    playerId:req.player.id, amount:payout, type:"aviator_win", game:"aviator",
-                    roundId:round.id, description:`Aviator cash-out ${bet.cashoutMultiplier}x`,
-                    metadata:{betId:bet.betId,multiplier:bet.cashoutMultiplier,payoutAllocation:round.payoutCap,totalPaid:round.totalPaid,walletType:"cash"}
-                })));
+            const elapsed=Date.now()-Number(round.flyingStartedAt || Date.now());
+            const multiplier=aviator.multiplierAt(elapsed);
+            round.multiplier=Math.max(Number(round.multiplier||1),multiplier);
+            const check=aviator.canCashOut(round,bet,round.multiplier);
+            if (!check.ok) {
+                if (check.shouldCrash) await finishAviatorCrash(round,"payout_cap");
+                return res.status(400).json({success:false,error:check.reason,crashed:true,roundId:round.id,crashPoint:round.multiplier});
             }
-        } catch(error) {
-            bet.cashedOut=false; bet.cashoutMultiplier=null; bet.payout=0;
-            round.totalPaid=Number((round.totalPaid-payout).toFixed(2));
-            return res.status(500).json({success:false,error:"Payout could not be completed. Your bet remains active."});
-        }
 
-        await saveRound(round).catch(console.error);
+            const payout=Number(check.payout);
+            const nextTotalPaid=Number((Number(round.totalPaid||0)+payout).toFixed(2));
+            if (nextTotalPaid > Number(round.payoutCap || 0)) {
+                await finishAviatorCrash(round,"payout_cap");
+                return res.status(400).json({success:false,error:"The 50% payout pool has been reached.",crashed:true,roundId:round.id,crashPoint:round.multiplier});
+            }
 
-        if (round.totalPaid >= round.payoutCap) {
-            await crashAviatorRound(round,"payout_cap");
-        }
+            bet.cashedOut=true;
+            bet.cashoutMultiplier=Number(round.multiplier.toFixed(2));
+            bet.payout=payout;
+            bet.cashoutAt=Date.now();
+            round.totalPaid=nextTotalPaid;
 
-        return res.json({
-            success:true, roundId:round.id, slot, multiplier:bet.cashoutMultiplier,
-            payout, balanceAfter, bonusPointsAfter,
-            crashed:round.status==="CRASHED", crashPoint:round.status==="CRASHED"?round.crashPoint:null,
-            message:`Cashed out at ${bet.cashoutMultiplier}x`
+            let balanceAfter=Number(req.player.balance||0), bonusPointsAfter=null;
+            try {
+                if (bet.walletType === "bonus") {
+                    bonusPointsAfter=await writeBonusTransaction({
+                        playerId:req.player.id, points:payout, type:"bonus_win",
+                        description:JSON.stringify({game:"aviator",roundId:round.id,betId:bet.betId,multiplier:bet.cashoutMultiplier,walletType:"bonus"}),
+                        referenceId:round.id
+                    });
+                } else {
+                    balanceAfter=Number(await withPlayerBalanceLock(req.player.id,()=>changeBalance({
+                        playerId:req.player.id, amount:payout, type:"aviator_win", game:"aviator", roundId:round.id,
+                        description:`Aviator cash-out ${bet.cashoutMultiplier}x`,
+                        metadata:{betId:bet.betId,multiplier:bet.cashoutMultiplier,payoutAllocation:round.payoutCap,totalPaid:round.totalPaid,walletType:"cash"}
+                    })));
+                }
+            } catch(error) {
+                bet.cashedOut=false; bet.cashoutMultiplier=null; bet.payout=0; bet.cashoutAt=null;
+                round.totalPaid=Number((round.totalPaid-payout).toFixed(2));
+                return res.status(500).json({success:false,error:"Payout could not be completed. Your bet remains active."});
+            }
+
+            await saveRound(round).catch(console.error);
+            const reachedPool=round.payoutCap>0 && round.totalPaid>=round.payoutCap;
+            if(reachedPool) await finishAviatorCrash(round,"payout_cap");
+
+            return res.json({success:true,roundId:round.id,slot,multiplier:bet.cashoutMultiplier,payout,balanceAfter,bonusPointsAfter,crashed:round.status==="CRASHED",crashPoint:round.status==="CRASHED"?round.crashPoint:null,message:`Cashed out at ${bet.cashoutMultiplier}x`});
         });
     } catch(error) {
         console.error("[AVIATOR] CASHOUT ERROR:",error);
