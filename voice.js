@@ -148,58 +148,10 @@ const DestaVoice = (() => {
     if (key === lastAnnouncementKey) return false;
     lastAnnouncementKey = key;
 
-    /* Never let draw announcements build a backlog. The visual board has
-       already presented this exact number, so speak this number immediately. */
-    queue = [];
-    requestSeq++;
-    if (currentAudio) {
-      try { currentAudio.pause(); } catch (_) {}
-      try { currentAudio.currentTime = 0; } catch (_) {}
-      currentAudio = null;
-    }
-    speaking = true;
-    const seq = requestSeq;
-    const url = VOICE_API_BASE + "/api/voice?lang=" + encodeURIComponent(lang) + "&text=" + encodeURIComponent(text);
-    const audio = new Audio(url);
-    currentAudio = audio;
-    audio.preload = "auto";
-    audio.volume = 1;
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      if (seq === requestSeq) { currentAudio = null; speaking = false; }
-    };
-    audio.onended = finish; audio.onerror = finish; audio.onabort = finish;
-    audio.play().catch(finish);
-    return true;
+    return queueText(text, lang, false);
   }
 
   function unlock() { return true; }
-
-
-  function playAviatorVoice(text) {
-    if (!enabled) return false;
-    const phrase = String(text || "").trim();
-    if (!phrase) return false;
-    const lang = "en";
-    stopVoice();
-    const url = VOICE_API_BASE + "/api/voice?lang=" + encodeURIComponent(lang) + "&text=" + encodeURIComponent(phrase);
-    const audio = new Audio(url);
-    currentAudio = audio;
-    audio.preload = "auto";
-    audio.volume = 1;
-    let done = false;
-    const finish = () => { if (done) return; done = true; currentAudio = null; speaking = false; };
-    audio.onended = finish; audio.onerror = finish; audio.onabort = finish;
-    speaking = true;
-    audio.play().catch(finish);
-    return true;
-  }
-
-  function playAviatorStart() { return playAviatorVoice("Flight started"); }
-  function playAviatorFlying() { return playAviatorVoice("Flying"); }
-  function playAviatorCrash() { return playAviatorVoice("Crash"); }
 
   function setEnabled(value) {
     enabled = Boolean(value);
@@ -240,10 +192,7 @@ const DestaVoice = (() => {
     stopVoice,
     speakText,
     unlock,
-    getState,
-    playAviatorStart,
-    playAviatorFlying,
-    playAviatorCrash
+    getState
   };
 })();
 
