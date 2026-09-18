@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
     <title>DESTA PLAY</title>
 
-    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <style id="desta-aviator-upgrade">.aviatorGame{padding-bottom:90px}.aviatorStatus{text-align:center;padding:7px;color:#ffd43b;font-size:11px;font-weight:900;background:#120606;border-bottom:1px solid #4b1d1d}.aviatorPool{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:6px;padding:6px;border:1px solid #3b2222;border-radius:10px;background:#100707;text-align:center}.aviatorPool span{display:block;color:#888;font-size:8px}.aviatorPool strong{display:block;color:#fff;font-size:11px;margin-top:3px}.aviatorBetCards{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px}.aviatorBetCard{padding:8px;border:1px solid #4b2424;border-radius:10px;background:#151010}.aviatorBetCard>div:first-child{display:flex;justify-content:space-between;color:#ffd43b;font-size:10px}.aviatorBetCard>div:first-child span{color:#8f9a9f;font-size:8px}.aviatorAmount{width:100%;margin:6px 0;padding:8px;border-radius:7px;border:1px solid #5a2929;background:#090909;color:#fff}.aviatorLivePayout{min-height:18px;color:#19d66b;font-size:9px;text-align:center;margin-bottom:5px}.aviatorMessage{margin:6px;padding:8px;border-radius:9px;background:#0d1118;border:1px solid #273753;color:#cbd5e1;font-size:10px;text-align:center}.aviatorCrashOverlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:62px;background:rgba(255,0,0,.12);z-index:20}.aviatorCrashOverlay.show{display:flex;animation:aviatorCrashFlash .6s ease-out}.aviatorHomePreview{height:82px;position:relative;overflow:hidden;border-radius:12px;background:linear-gradient(160deg,#250000,#050505);border:1px solid #4a2424}.aviatorHomeGrid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:24px 24px;opacity:.35}.aviatorHomePlane{position:absolute;left:18%;bottom:16px;font-size:28px;animation:homePlane 1.6s ease-in-out infinite alternate}.aviatorHomeMultiplier{position:absolute;right:12%;top:16px;color:#ffd43b;font-weight:900;font-size:18px}@keyframes homePlane{to{transform:translate(65px,-24px) rotate(-12deg)}}@keyframes aviatorCrashFlash{0%{opacity:0;transform:scale(.7)}40%{opacity:1;transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}@media(max-width:390px){.aviatorPool{grid-template-columns:1fr}.aviatorFlight{height:270px}}</style>
+<script src="https://telegram.org/js/telegram-web-app.js?63"></script>
     <script src="./voice.js"></script>
 
     <style>
@@ -2191,78 +2192,7 @@ html,body{
 /* Prevent accidental transparent/overlay layers from blocking game controls. */
 #kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
 </style>
-<style id="desta-chicken-road">
-/* =========================================================
-   CHICKEN ROAD — RICH VISUAL CLIENT
-   Visual layer only. Server remains authoritative.
-========================================================= */
-.chickenRoadHomeCard{position:relative;overflow:hidden}
-.chickenPreview{position:relative;height:82px;margin:8px 0;border-radius:12px;background:linear-gradient(180deg,#0b1830 0 42%,#17281d 42% 100%);overflow:hidden;border:1px solid #263b5f}
-.chickenPreview:before{content:"";position:absolute;left:20%;right:20%;bottom:-18px;height:72px;background:#30353b;transform:perspective(120px) rotateX(48deg);border-top:2px solid #f1d35a}
-.chickenRoadMini{position:absolute;left:47%;bottom:21px;font-size:30px;z-index:3;animation:chickenMiniRun 1s ease-in-out infinite alternate}
-.chickenCarMini{position:absolute;right:10%;bottom:26px;font-size:23px;z-index:3;animation:carMiniDrive 1.5s linear infinite}
-.chickenCarMini.c2{right:auto;left:8%;bottom:34px;animation-delay:.6s;animation-direction:reverse}
-.chickenRoadStripeMini{position:absolute;left:31%;right:31%;bottom:31px;height:3px;background:repeating-linear-gradient(90deg,#f7f7f7 0 17px,transparent 17px 34px);opacity:.85;transform:perspective(80px) rotateX(55deg)}
-@keyframes chickenMiniRun{from{transform:translateY(2px)}to{transform:translateY(-4px)}}
-@keyframes carMiniDrive{from{transform:translateX(45px)}to{transform:translateX(-120px)}}
 
-.chickenRoadGame{padding:6px 4px 90px;min-height:100%;box-sizing:border-box}
-.chickenRoadHud{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:6px;margin:6px 4px}
-.chickenRoadHud>div{background:#10151f;border:1px solid #273753;border-radius:10px;padding:7px 4px;text-align:center}
-.chickenRoadHud small{display:block;color:#8d98aa;font-size:8px;font-weight:800}
-.chickenRoadHud strong{display:block;color:#fff;font-size:14px;margin-top:2px}
-.chickenRoadMultiplier strong{color:#ffd43c!important;font-size:20px!important}
-
-/* Main scene: perspective street instead of a flat line. */
-.chickenRoadScene{position:relative;height:330px;margin:7px 4px;border-radius:18px;overflow:hidden;border:1px solid #3a506f;background:#07101d;box-shadow:inset 0 0 45px #000,0 8px 22px rgba(0,0,0,.35)}
-.chickenSky{position:absolute;inset:0 0 45% 0;background:linear-gradient(180deg,#071326 0%,#102b4b 62%,#203c4e 100%)}
-.chickenMoon{position:absolute;width:42px;height:42px;border-radius:50%;right:12%;top:11%;background:#fff4c4;box-shadow:0 0 25px rgba(255,245,190,.45)}
-.chickenCloud{position:absolute;width:90px;height:22px;left:8%;top:18%;border-radius:50%;background:rgba(255,255,255,.07);filter:blur(2px)}
-.chickenCity{position:absolute;left:0;right:0;bottom:42%;height:31%;background:linear-gradient(90deg,transparent 0 4%,#0b1723 4% 11%,transparent 11% 14%,#101d2b 14% 21%,transparent 21% 26%,#0b1723 26% 35%,transparent 35% 39%,#101d2b 39% 47%,transparent 47% 51%,#0b1723 51% 60%,transparent 60% 64%,#101d2b 64% 73%,transparent 73% 77%,#0b1723 77% 86%,transparent 86% 90%,#101d2b 90% 97%,transparent 97%);opacity:.9}
-.chickenCity:after{content:"";position:absolute;inset:18% 0 0;background:repeating-linear-gradient(90deg,transparent 0 13px,rgba(255,210,90,.2) 13px 16px,transparent 16px 34px)}
-.chickenGrass{position:absolute;left:0;right:0;bottom:0;height:48%;background:linear-gradient(180deg,#1d3c25,#0b2114);}
-.chickenGrass:before,.chickenGrass:after{content:"";position:absolute;bottom:8px;width:75px;height:70px;background:radial-gradient(circle at 50% 20%,#3f7a37 0 18%,transparent 19%),radial-gradient(circle at 25% 45%,#315f2d 0 22%,transparent 23%),radial-gradient(circle at 75% 48%,#4a873d 0 22%,transparent 23%);opacity:.65}
-.chickenGrass:before{left:4%}.chickenGrass:after{right:4%}
-.chickenRoadSurface{position:absolute;left:-15%;right:-15%;bottom:-18%;height:68%;background:linear-gradient(180deg,#3a4148,#171b20 78%,#11151a);clip-path:polygon(19% 0,81% 0,100% 100%,0 100%);box-shadow:inset 0 0 25px rgba(0,0,0,.7);overflow:hidden}
-.chickenRoadSurface:before{content:"";position:absolute;left:0;right:0;top:8%;height:3px;background:#e9d15b;box-shadow:0 72px 0 #e9d15b,0 145px 0 rgba(255,255,255,.05)}
-.chickenRoadSurface:after{content:"";position:absolute;left:0;right:0;top:15%;bottom:0;background:repeating-linear-gradient(90deg,transparent 0 13%,rgba(255,255,255,.8) 13% 15%,transparent 15% 30%);opacity:.72;transform:perspective(160px) rotateX(8deg);transform-origin:top}
-.chickenRoadLane{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.13);z-index:1}
-.chickenRoadLane.l1{left:32%}.chickenRoadLane.l2{left:50%}.chickenRoadLane.l3{left:68%}
-.chickenRoadShoulder{position:absolute;top:0;bottom:0;width:12%;background:repeating-linear-gradient(135deg,#68706f 0 7px,#4c5354 7px 14px);opacity:.55;z-index:2}
-.chickenRoadShoulder.left{left:18%}.chickenRoadShoulder.right{right:18%}
-.chickenRoadTraffic{position:absolute;inset:0;z-index:12;pointer-events:none}
-.chickenTrafficCar{position:absolute;width:45px;height:72px;border-radius:11px 11px 7px 7px;background:linear-gradient(90deg,#171b21,#59626a 35%,#222831 65%,#0d1116);border:2px solid #707a83;box-shadow:0 8px 12px rgba(0,0,0,.55);transform:translate(-50%,-50%);transition:transform .65s cubic-bezier(.18,.78,.25,1)}
-.chickenTrafficCar:before{content:"";position:absolute;left:7px;right:7px;top:8px;height:20px;border-radius:5px;background:linear-gradient(180deg,#182d40,#78a5bb);border:1px solid rgba(255,255,255,.22)}
-.chickenTrafficCar:after{content:"";position:absolute;left:5px;right:5px;bottom:7px;height:7px;border-radius:3px;background:linear-gradient(90deg,#ff3838 0 25%,transparent 25% 75%,#ff3838 75%)}
-.chickenTrafficCar.blue{background:linear-gradient(90deg,#10263a,#2877ad 38%,#0e2638 68%,#08131d)}
-.chickenTrafficCar.red{background:linear-gradient(90deg,#351316,#b53636 38%,#401619 68%,#190b0d)}
-.chickenTrafficCar.gold{background:linear-gradient(90deg,#3a2a0d,#c08d27 38%,#4a350f 68%,#171006)}
-.chickenTrafficCar.small{width:36px;height:58px}
-.chickenRoadChicken{position:absolute;z-index:22;left:50%;bottom:21%;font-size:47px;filter:drop-shadow(0 7px 5px #000);will-change:transform;transition:transform .55s cubic-bezier(.2,.8,.2,1)}
-.chickenRoadChicken .chickenBody{display:block;transform:scaleX(-1);animation:chickenIdle .45s ease-in-out infinite alternate}
-@keyframes chickenIdle{from{transform:scaleX(-1) translateY(1px)}to{transform:scaleX(-1) translateY(-3px)}}
-.chickenRoadChicken.running .chickenBody{animation:chickenRun .18s linear infinite alternate}
-@keyframes chickenRun{from{transform:scaleX(-1) translateY(2px) rotate(-4deg)}to{transform:scaleX(-1) translateY(-3px) rotate(4deg)}}
-.chickenRoadChicken.crashed .chickenBody{animation:none}
-.chickenRoadStepGlow{position:absolute;z-index:18;width:54px;height:10px;border-radius:50%;left:50%;bottom:18%;transform:translateX(-50%);background:rgba(255,211,72,.3);filter:blur(5px);transition:left .55s ease}
-.chickenCrashFx,.chickenSmokeFx,.chickenSparks{position:absolute;z-index:35;display:none;left:50%;top:49%;transform:translate(-50%,-50%);pointer-events:none}
-.chickenCrashFx{font-size:58px;animation:crashPop .55s ease-out}
-.chickenSmokeFx{font-size:48px;top:44%;opacity:.85}
-.chickenSparks{font-size:38px;color:#ffd43c}
-.chickenRoadScene.crashed .chickenCrashFx,.chickenRoadScene.crashed .chickenSmokeFx,.chickenRoadScene.crashed .chickenSparks{display:block}
-@keyframes crashPop{0%{transform:translate(-50%,-50%) scale(.35);opacity:0}35%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(.95);opacity:.9}}
-.chickenRoadScene.crashed{animation:sceneImpact .55s ease-out 1}
-@keyframes sceneImpact{0%,100%{transform:translate(0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(2px,0)}}
-
-.chickenRoadStepTrack{position:absolute;left:10px;right:10px;bottom:8px;display:grid;grid-template-columns:repeat(12,1fr);gap:3px;z-index:45}
-.chickenRoadStep{height:7px;border-radius:4px;background:#2d3744;border:1px solid #526177;transition:.2s}
-.chickenRoadStep.safe{background:#39c879;border-color:#73f2a7}.chickenRoadStep.crash{background:#ef4545;border-color:#ff9a9a}.chickenRoadStep.active{box-shadow:0 0 10px #ffd43c;transform:scaleY(1.25)}
-.chickenRoadMessage{margin:6px 4px;padding:8px;border-radius:9px;text-align:center;background:#0e131b;border:1px solid #273753;color:#cbd5e1;font-size:10px;min-height:15px}
-.chickenRoadControls{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px 4px}
-.chickenStartBtn{background:linear-gradient(180deg,#2e8b57,#17613a)!important}.chickenCashoutBtn{background:linear-gradient(180deg,#d7a900,#8c6a00)!important;color:#120f00!important}
-.chickenRoadRules{text-align:center;color:#7f8b9d;font-size:9px;line-height:1.5;padding:8px}
-@media(max-width:390px){.chickenRoadScene{height:300px}.chickenTrafficCar{width:39px;height:63px}.chickenRoadChicken{font-size:42px}.chickenMoon{width:34px;height:34px}}
-</style>
 </head>
 
     <body>
@@ -2516,20 +2446,19 @@ html,body{
         </div>
 
 
-        <div class="gameCard chickenRoadHomeCard">
+        <div class="gameCard aviatorHome">
 
-          <h3>CHICKEN ROAD</h3>
+          <h3>AVIATOR</h3>
 
-          <div class="gamePreview chickenPreview" aria-hidden="true">
-            <div class="chickenRoadMini">🐔</div>
-            <div class="chickenCarMini">🚗</div>
-            <div class="chickenCarMini c2">🚙</div>
-            <div class="chickenRoadStripeMini"></div>
+          <div class="aviatorHomePreview" aria-hidden="true">
+            <div class="aviatorHomeGrid"></div>
+            <div class="aviatorHomePlane">✈️</div>
+            <div class="aviatorHomeMultiplier">2.48x</div>
           </div>
 
-          <small>Road • Cash Out</small>
+          <small>Live Flight • Cash Out</small>
 
-          <button class="gameOpen" onclick="openGame('chicken-road')">PLAY</button>
+          <button class="gameOpen" onclick="openGame('aviator')">PLAY</button>
 
         </div>
 
@@ -2875,54 +2804,17 @@ html,body{
 
 
         <!-- ==================================================
-             CHICKEN ROAD
+             AVIATOR
         ================================================== -->
-
-        <div id="chicken-roadGame" class="hidden chickenRoadGame">
-          <div class="selectedStakeBanner">STAKE: <span id="chickenStakeDisplay">—</span> ETB</div>
-          <div class="countdown" id="chickenStatus">READY — STARTING SERVER ROUND</div>
-
-          <section class="chickenRoadHud">
-            <div><small>STEP</small><strong id="chickenStep">0 / 12</strong></div>
-            <div class="chickenMultiplier"><small>MULTIPLIER</small><strong id="chickenMultiplier">1.00x</strong></div>
-            <div><small>PAYOUT</small><strong id="chickenPayout">0.00 ETB</strong></div>
-          </section>
-
-          <section class="chickenRoadScene" id="chickenRoadScene" aria-label="Chicken Road animation">
-            <div class="chickenSky"></div>
-            <div class="chickenMoon"></div>
-            <div class="chickenCloud"></div>
-            <div class="chickenCity"></div>
-            <div class="chickenGrass"></div>
-            <div class="chickenRoadSurface" id="chickenRoadSurface">
-              <div class="chickenRoadShoulder left"></div>
-              <div class="chickenRoadShoulder right"></div>
-              <div class="chickenRoadLane l1"></div>
-              <div class="chickenRoadLane l2"></div>
-              <div class="chickenRoadLane l3"></div>
-              <div class="chickenRoadTraffic" id="chickenRoadTraffic"></div>
-              <div class="chickenRoadStepGlow" id="chickenRoadStepGlow"></div>
-              <div class="chickenRoadChicken" id="chickenRoadChicken"><span class="chickenBody">🐔</span></div>
-            </div>
-            <div class="chickenCrashFx" id="chickenCrashFx">💥</div>
-            <div class="chickenSmokeFx" id="chickenSmokeFx">💨</div>
-            <div class="chickenSparks" id="chickenSparks">✦ ✧ ✦</div>
-            <div class="chickenRoadStepTrack" id="chickenRoadStepTrack"></div>
-          </section>
-
-          <div class="chickenRoadMessage" id="chickenRoadMessage">The server controls the round result.</div>
-
-          <div class="chickenRoadControls">
-            <button class="placeBtn chickenStartBtn" id="chickenStartBtn" type="button" onclick="startChickenRoadAnimation()">START ROAD</button>
-            <button class="placeBtn chickenCashoutBtn" id="chickenCashoutBtn" type="button" onclick="cashOutChickenRoad()" disabled>CASH OUT</button>
-          </div>
-
-          <div class="chickenRoadHistory" id="chickenRoadHistory">
-            <div class="historyHeader">CHICKEN ROAD</div>
-            <div class="chickenRoadRules">Server-authoritative result • 50% theoretical RTP • 50% house edge</div>
-          </div>
+        <div id="aviatorGame" class="hidden aviatorGame">
+          <div class="aviatorHistoryBar"><div class="aviatorHistoryLine" id="aviatorHistory">—</div><button class="aviatorHistoryExpand" id="aviatorHistoryExpand" type="button" onclick="toggleAviatorHistory()" aria-expanded="false">⌄</button></div>
+          <div class="aviatorHistoryExpanded hidden" id="aviatorHistoryExpanded"></div>
+          <div class="aviatorStatus" id="aviatorCountdown">WAITING FOR BETS</div>
+          <section class="aviatorFlight" id="aviatorFlight" aria-label="Aviator live flight"><div class="gridLines"></div><div class="flightMultiplier" id="aviatorMultiplier">1.00x</div><div class="flightCurve"></div><div class="plane" id="plane">✈️</div><div class="aviatorCrashOverlay" id="aviatorCrashOverlay">💥</div></section>
+          <div class="aviatorPool"><div><span>TOTAL WAGERED</span><strong id="aviatorTotalWagered">0.00 ETB</strong></div><div><span>PAYOUT LIMIT (50%)</span><strong id="aviatorPayoutLimit">0.00 ETB</strong></div><div><span>PAID OUT</span><strong id="aviatorPaidOut">0.00 ETB</strong></div></div>
+          <div class="aviatorBetCards"><div class="aviatorBetCard"><div><b>BET 1</b><span id="aviatorBetState1">NOT PLACED</span></div><input id="a1" class="aviatorAmount" type="number" min="10" step="10" value="10"><div class="aviatorLivePayout" id="aviatorPayout1">0.00 ETB</div><button class="placeBtn" id="aviatorBtn1" type="button" onclick="placeAviatorBet(1)">PLACE BET</button></div><div class="aviatorBetCard"><div><b>BET 2</b><span id="aviatorBetState2">NOT PLACED</span></div><input id="a2" class="aviatorAmount" type="number" min="10" step="10" value="10"><div class="aviatorLivePayout" id="aviatorPayout2">0.00 ETB</div><button class="placeBtn" id="aviatorBtn2" type="button" onclick="placeAviatorBet(2)">PLACE BET</button></div></div>
+          <div class="aviatorMessage" id="aviatorMessage">One shared flight for every player. The server controls the multiplier and crash.</div>
         </div>
-
 
       </main>
 
@@ -3200,7 +3092,7 @@ html,body{
         bingo:0,
         roulette:0,
         aviator:0,
-        "chicken-road":0
+        "aviator":0
       },
 
       displayRoundCounters:{
@@ -3221,7 +3113,7 @@ html,body{
 
       kenoSelectedStake:null,
 
-      chickenSelectedStake:null,
+      aviatorSelectedStake:null,
 
       stakeLobbyGame:"",
       watchOnly:false,
@@ -3357,7 +3249,7 @@ html,body{
 
           const commandTargets = new Set([
             "home","wallet","profile","support","invite","deposit",
-            "withdraw","transactions","bonus","status","bingo","keno","chicken-road"
+            "withdraw","transactions","bonus","status","bingo","keno","aviator"
           ]);
 
           if(commandTargets.has(state.telegramStartApp)){
@@ -4209,7 +4101,7 @@ html,body{
     }
 
     async function openGame(game){
-      if(game!=="bingo" && game!=="keno" && game!=="chicken-road") return;
+      if(game!=="bingo" && game!=="keno" && game!=="aviator") return;
       if(state.watchOnly){ alert("You are watching this game live. Go back and choose a stake to play."); return; }
 
       /* Existing Telegram players must be authenticated automatically.
@@ -4245,10 +4137,8 @@ html,body{
       state.bingoMarks[1][12]=true;
       state.bingoMarks[2][12]=true;
       state.bingoBoards={1:null,2:null};
-      state.chickenRoadRoundId="";
-      state.chickenRoadStep=0;
-      state.chickenRoadBusy=false;
-      state.chickenRoadStarted=false;
+      state.aviatorRoundId="";
+      state.aviatorBusy=false;
       state.bettingOpen=!!state.bettingOpenByGame?.[game];
       showPage("game");
       document.getElementById("gameTitle").textContent=game.toUpperCase();
@@ -4375,7 +4265,7 @@ html,body{
         b.onclick=()=>selectLobbyStake(amount);
         grid.appendChild(b);
       });
-      const selected=game==="bingo" ? state.bingoSelectedStake : game==="keno" ? state.kenoSelectedStake : state.chickenSelectedStake;
+      const selected=game==="bingo" ? state.bingoSelectedStake : game==="keno" ? state.kenoSelectedStake : state.aviatorSelectedStake;
       if(selected) selectLobbyStake(selected);
       else {
         const status=document.getElementById("stakeLobbyStatus");
@@ -4388,7 +4278,7 @@ html,body{
       if(!Number.isFinite(amount)) return;
       if(state.stakeLobbyGame==="bingo") state.bingoSelectedStake=amount;
       if(state.stakeLobbyGame==="keno") state.kenoSelectedStake=amount;
-      if(state.stakeLobbyGame==="chicken-road") state.chickenSelectedStake=amount;
+      if(state.stakeLobbyGame==="aviator") state.aviatorSelectedStake=amount;
       document.querySelectorAll("#stakeLobbyGrid .stakeChoice").forEach(b=>b.classList.toggle("active",Number(b.dataset.stake)===amount));
       const join=document.getElementById("stakeLobbyJoin");
       if(join) join.disabled=false;
@@ -4396,7 +4286,7 @@ html,body{
       if(status) status.textContent=`Selected ${amount} ETB. Tap JOIN to enter the live round.`;
       if(state.stakeLobbyGame==="bingo") selectBingoStake(amount);
       if(state.stakeLobbyGame==="keno") updateKenoStakeDisplays();
-      if(state.stakeLobbyGame==="chicken-road") updateChickenStakeDisplay();
+      
       selectStakeWallet(state.selectedWalletType||"cash",true);
       if(status) status.textContent=`Selected ${amount} ETB. ${state.selectedWalletType==="bonus"?"Bonus points":"Real money"} selected. Tap JOIN to enter the live round.`;
     }
@@ -4404,7 +4294,7 @@ html,body{
     function joinStakeLobby(){
       if(!requirePlayableSession()) return;
       const game=state.stakeLobbyGame;
-      const stake=game==="bingo" ? state.bingoSelectedStake : game==="keno" ? state.kenoSelectedStake : state.chickenSelectedStake;
+      const stake=game==="bingo" ? state.bingoSelectedStake : game==="keno" ? state.kenoSelectedStake : state.aviatorSelectedStake;
       if(!stake) return;
       const wallet=state.selectedWalletType||"cash";
       const available=wallet==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
@@ -4426,10 +4316,7 @@ html,body{
       const lobby=document.getElementById("gameStakeLobby");
       if(lobby) lobby.classList.add("hidden");
       if(game==="bingo") enterBingoWithStake();
-      if(game==="chicken-road") {
-        enterChickenRoadWithStake(stake);
-        return;
-      }
+      if(game==="aviator"){ enterAviatorWithStake(stake); return; }
       if(game==="keno"){
         const g=document.getElementById("kenoGame");
         if(g) g.classList.remove("hidden");
@@ -4527,7 +4414,7 @@ html,body{
       [
         "keno",
         "bingo",
-        "chicken-road"
+        "aviator"
       ].forEach(g=>{
 
         document
@@ -4551,8 +4438,8 @@ html,body{
       if(state.game==="bingo")
         buildBingo();
 
-      if(state.game==="chicken-road")
-        buildChickenRoad();
+      if(state.game==="aviator")
+        buildAviator();
 
     }
 
@@ -5873,349 +5760,11 @@ html,body{
     /* =========================================================
        AVIATOR
     ========================================================= */
-
-    function buildAviator(){
-
-      renderAviatorHistory();
-
-    }
-
-
-    function generateCrashPoint(){
-
-      /*
-        Secure/random server-side outcome must eventually
-        replace this frontend generator.
-
-        This intentionally does not use a fixed crash value.
-      */
-
-      const r=
-        Math.random();
-
-      return Math.max(
-        1.01,
-        Number(
-          (
-            1+
-            (-Math.log(
-              Math.max(
-                0.000001,
-                1-r
-              )
-            )*1.15)
-          ).toFixed(2)
-        )
-      );
-
-    }
-
-
-    function placeAviatorBet(slot){
-
-      if(!state.bettingOpen){
-
-        alert(
-          "The flight has already started."
-        );
-
-        return;
-
-      }
-
-      if(
-        state.aviatorBets[slot]
-      ){
-
-        return;
-
-      }
-
-      const amount=
-        Number(
-          document.getElementById(
-            "a"+slot
-          ).value
-        );
-
-      if(
-        amount<=0 ||
-        amount>state.balance
-      ){
-
-        alert("Invalid amount.");
-
-        return;
-
-      }
-
-      state.balance-=amount;
-
-      state.aviatorBets[slot]={
-        amount,
-        cashed:false,
-        cashout:null
-      };
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASH OUT";
-
-    }
-
-
-    function cashOutAviator(slot){
-
-      const bet=
-        state.aviatorBets[slot];
-
-      if(
-        !bet ||
-        bet.cashed ||
-        state.aviatorMultiplier<1
-      )
-        return;
-
-      const multiplier=
-        state.aviatorMultiplier;
-
-      const payout=
-        Number(
-          (
-            bet.amount*
-            multiplier
-          ).toFixed(2)
-        );
-
-      bet.cashed=true;
-      bet.cashout=multiplier;
-
-      state.balance+=payout;
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorPayout"+slot
-        )
-        .textContent=
-          payout.toFixed(2)+
-          " ETB CASHED OUT";
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASHED OUT";
-
-      setTimeout(()=>{
-
-        document
-          .getElementById(
-            "aviatorPayout"+slot
-          )
-          .textContent="";
-
-      },2000);
-
-    }
-
-
-    function runAviator(){
-
-      state.bettingOpen=true;
-
-      state.aviatorCrash=
-        generateCrashPoint();
-
-      state.aviatorMultiplier=1;
-
-      let seconds=10;
-
-      const countdown=
-        document.getElementById(
-          "aviatorCountdown"
-        );
-
-      const timer=
-        setInterval(()=>{
-
-          countdown.textContent=
-            "BETTING "+
-            seconds+
-            "s";
-
-          seconds--;
-
-          if(seconds<0){
-
-            clearInterval(timer);
-
-            startAviatorFlight();
-
-          }
-
-        },1000);
-
-    }
-
-
-    function startAviatorFlight(){
-
-      state.bettingOpen=false;
-
-      document
-        .getElementById(
-          "aviatorCountdown"
-        )
-        .textContent=
-          "FLIGHT LIVE";
-
-      const timer=
-        setInterval(()=>{
-
-          state.aviatorMultiplier=
-            Number(
-              (
-                state.aviatorMultiplier+
-                0.02+
-                Math.random()*0.08
-              ).toFixed(2)
-            );
-
-          const value=
-            state.aviatorMultiplier;
-
-          document
-            .getElementById(
-              "aviatorMultiplier"
-            )
-            .textContent=
-              value.toFixed(2)+"x";
-
-          const plane=
-            document.getElementById(
-              "plane"
-            );
-
-          plane.style.left=
-            Math.min(
-              88,
-              20+(value-1)*12
-            )+"%";
-
-          plane.style.bottom=
-            Math.min(
-              85,
-              30+(value-1)*8
-            )+"px";
-
-          [1,2].forEach(slot=>{
-
-            const bet=
-              state.aviatorBets[slot];
-
-            if(
-              bet &&
-              !bet.cashed
-            ){
-
-              const live=
-                bet.amount*value;
-
-              document
-                .getElementById(
-                  "aviatorPayout"+slot
-                )
-                .textContent=
-                  live.toFixed(2)+
-                  " ETB @ "+
-                  value.toFixed(2)+"x";
-
-            }
-
-          });
-
-          if(
-            value>=state.aviatorCrash
-          ){
-
-            clearInterval(timer);
-
-            finishAviator();
-
-          }
-
-        },300);
-
-    }
-
-
-    function finishAviator(){
-
-      state.bettingOpen=false;
-
-      const crash=
-        state.aviatorMultiplier;
-
-      document
-        .getElementById(
-          "aviatorCountdown"
-        )
-        .textContent=
-          "CRASHED "+
-          crash.toFixed(2)+"x";
-
-      state.aviatorHistory.unshift(
-        crash.toFixed(2)+"x"
-      );
-
-      state.aviatorHistory=
-        state.aviatorHistory.slice(0,10);
-
-      renderAviatorHistory();
-
-      renderAviatorHistory();
-
-    }
-
-
+    function buildAviator(){renderAviatorHistory();resetAviatorVisual();}
     let aviatorHistoryExpanded=false;
-
-    function aviatorHistoryMultiplier(item){
-      const obj=(item && typeof item === "object") ? item : {multiplier:Number(item)};
-      const mult=Number(obj.multiplier);
-      return Number.isFinite(mult) ? mult.toFixed(2)+"x" : "—";
-    }
-
-    function renderAviatorHistory(){
-      const line=document.getElementById("aviatorHistory");
-      const expanded=document.getElementById("aviatorHistoryExpanded");
-      if(!line) return;
-      const values=state.aviatorHistory.slice(0,25).map(aviatorHistoryMultiplier);
-      line.textContent=values.slice(0,10).join(", ");
-      if(expanded){
-        expanded.innerHTML=values.map(v=>`<div class="mult">${v}</div>`).join("");
-        expanded.classList.toggle("hidden",!aviatorHistoryExpanded);
-      }
-      const button=document.getElementById("aviatorHistoryExpand");
-      if(button){
-        button.textContent=aviatorHistoryExpanded ? "⌃" : "⌄";
-        button.setAttribute("aria-expanded",String(aviatorHistoryExpanded));
-      }
-    }
-
-    function toggleAviatorHistory(){
-      aviatorHistoryExpanded=!aviatorHistoryExpanded;
-      renderAviatorHistory();
-    }
-
+    function aviatorHistoryMultiplier(item){const o=(item&&typeof item==="object")?item:{multiplier:Number(item)};const m=Number(o.multiplier);return Number.isFinite(m)?m.toFixed(2)+"x":"—";}
+    function renderAviatorHistory(){const line=document.getElementById("aviatorHistory"),expanded=document.getElementById("aviatorHistoryExpanded");if(!line)return;const values=(state.aviatorHistory||[]).slice(0,25).map(aviatorHistoryMultiplier);line.textContent=values.slice(0,10).join(", ");if(expanded){expanded.innerHTML=values.map(v=>`<div class="mult">${v}</div>`).join("");expanded.classList.toggle("hidden",!aviatorHistoryExpanded);}const b=document.getElementById("aviatorHistoryExpand");if(b){b.textContent=aviatorHistoryExpanded?"⌃":"⌄";b.setAttribute("aria-expanded",String(aviatorHistoryExpanded));}}
+    function toggleAviatorHistory(){aviatorHistoryExpanded=!aviatorHistoryExpanded;renderAviatorHistory();}
 
     /* =========================================================
        AMOUNT
@@ -7454,7 +7003,9 @@ html,body{
     async function fetchLiveRound(game, tier=null){
       try{
         let url;
-        if(game === "bingo"){
+        if(game === "aviator"){
+          url = `https://desta-play.onrender.com/api/aviator/round`;
+        }else if(game === "bingo"){
           /* Authenticated endpoint returns both global Cartela occupancy and
              this player's accepted entries. Watch-only users fall back to the
              public Bingo endpoint below when authentication is unavailable. */
@@ -7523,7 +7074,7 @@ html,body{
       try{
         /* While inside a game, watch only that game at high frequency.
            This prevents the other request from delaying the visible draw. */
-        if(state.gameJoined && (state.game==="keno" || state.game==="bingo")){
+        if(state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator")){
           const stake=state.game==="keno" ? state.kenoSelectedStake : state.bingoSelectedStake;
           await fetchLiveRound(state.game,stake);
         }else{
@@ -7598,7 +7149,7 @@ html,body{
       ["keno","bingo"].forEach(loadRoundHistory);
       const schedule=()=>{
         if(!liveRoundSyncActive) return;
-        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
+        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator") ? 250 : 1000;
         liveRoundTimer=setTimeout(async()=>{
           await fetchAllLiveRounds();
           schedule();
@@ -7700,7 +7251,7 @@ html,body{
         showHome();
         return;
       }
-      if(target==="bingo" || target==="keno" || target==="chicken-road") {
+      if(target==="bingo" || target==="keno" || target==="aviator") {
         await openGame(target);
         return;
       }
@@ -7765,7 +7316,7 @@ html,body{
         showHome();
       }
 
-      buildKeno(); buildBingo(); buildChickenRoad(); showTab("my"); refreshHomePreviews(); startLiveRoundSync();
+      buildKeno(); buildBingo(); buildAviator(); showTab("my"); refreshHomePreviews(); startLiveRoundSync();
 
       if(authenticated && state.commandTarget){
         setTimeout(()=>openTelegramCommandTarget(),80);
@@ -7776,287 +7327,16 @@ html,body{
 
 
     /* =========================================================
-       CHICKEN ROAD — SERVER-AUTHORITATIVE CLIENT
-       Visuals only. The server decides every safe/crash/cash-out result.
+       AVIATOR — SHARED SERVER-AUTHORITATIVE CLIENT
     ========================================================= */
-    function buildChickenRoad(){
-      const track=document.getElementById("chickenRoadStepTrack");
-      if(track){
-        track.innerHTML="";
-        for(let i=1;i<=12;i++){
-          const el=document.createElement("div");
-          el.className="chickenRoadStep";
-          el.id="chickenStepMark"+i;
-          track.appendChild(el);
-        }
-      }
-      buildChickenTraffic();
-      resetChickenRoadVisual();
-      updateChickenStakeDisplay();
-    }
-
-    function buildChickenTraffic(){
-      const layer=document.getElementById("chickenRoadTraffic");
-      if(!layer || layer.children.length) return;
-      const cars=[
-        {lane:34,top:25,cls:"blue",scale:1},
-        {lane:51,top:15,cls:"red",scale:.82},
-        {lane:68,top:30,cls:"gold",scale:1},
-        {lane:42,top:45,cls:"",scale:.72},
-        {lane:60,top:54,cls:"blue",scale:.78},
-        {lane:76,top:48,cls:"red",scale:.68}
-      ];
-      cars.forEach((c,i)=>{
-        const car=document.createElement("div");
-        car.className="chickenTrafficCar "+c.cls+(c.scale<.8?" small":"");
-        car.dataset.baseLane=c.lane; car.dataset.baseTop=c.top; car.dataset.index=i;
-        car.style.left=c.lane+"%"; car.style.top=c.top+"%";
-        car.style.transform=`translate(-50%,-50%) scale(${c.scale})`;
-        layer.appendChild(car);
-      });
-    }
-
-    function updateChickenStakeDisplay(){
-      const v=document.getElementById("chickenStakeDisplay");
-      if(v) v.textContent=state.chickenSelectedStake ? Number(state.chickenSelectedStake).toFixed(2) : "—";
-    }
-
-    function resetChickenRoadVisual(){
-      const scene=document.getElementById("chickenRoadScene");
-      const chicken=document.getElementById("chickenRoadChicken");
-      const crash=document.getElementById("chickenCrashFx");
-      const smoke=document.getElementById("chickenSmokeFx");
-      const sparks=document.getElementById("chickenSparks");
-      const glow=document.getElementById("chickenRoadStepGlow");
-      if(scene) scene.classList.remove("crashed");
-      if(chicken){chicken.classList.remove("running","crashed");chicken.style.transform="translate(-50%,0)";}
-      if(crash) crash.style.display="none";
-      if(smoke) smoke.style.display="none";
-      if(sparks) sparks.style.display="none";
-      if(glow){glow.style.left="50%";}
-      const cars=document.querySelectorAll(".chickenTrafficCar");
-      cars.forEach(car=>{
-        const lane=Number(car.dataset.baseLane||50),top=Number(car.dataset.baseTop||25);
-        car.style.transition="transform .35s ease";
-        car.style.left=lane+"%"; car.style.top=top+"%";
-        const idx=Number(car.dataset.index||0);
-        const scale=car.classList.contains("small")?.74:1;
-        car.style.transform=`translate(-50%,-50%) scale(${scale})`;
-      });
-      for(let i=1;i<=12;i++){
-        const el=document.getElementById("chickenStepMark"+i);
-        if(el) el.className="chickenRoadStep";
-      }
-      const step=document.getElementById("chickenStep"); if(step) step.textContent="0 / 12";
-      const mult=document.getElementById("chickenMultiplier"); if(mult) mult.textContent="1.00x";
-      const payout=document.getElementById("chickenPayout"); if(payout) payout.textContent="0.00 ETB";
-      const msg=document.getElementById("chickenRoadMessage"); if(msg) msg.textContent="The server controls the round result. Watch the traffic and cash out before the crash.";
-      const cash=document.getElementById("chickenCashoutBtn"); if(cash) cash.disabled=true;
-      const start=document.getElementById("chickenStartBtn"); if(start){start.disabled=false;start.textContent="START ROAD";}
-    }
-
-    function chickenRoadHeaders(){
-      const h={"Content-Type":"application/json","Accept":"application/json"};
-      if(state.authToken) h.Authorization="Bearer "+state.authToken;
-      return h;
-    }
-
-    async function enterChickenRoadWithStake(stake){
-      if(!requirePlayableSession()) return;
-      state.chickenSelectedStake=Number(stake);
-      updateChickenStakeDisplay();
-      const g=document.getElementById("chicken-roadGame"); if(g) g.classList.remove("hidden");
-      document.getElementById("gameTitle").textContent="CHICKEN ROAD";
-      try{
-        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/start",{
-          method:"POST",headers:chickenRoadHeaders(),
-          body:JSON.stringify({stake:Number(stake),walletType:state.selectedWalletType||"cash"})
-        });
-        const data=await safeJsonResponse(response);
-        if(!response.ok || !data.success) throw new Error(data.error||"Could not start Chicken Road.");
-        state.chickenRoadRoundId=String(data.round.id);
-        state.chickenRoadStep=0;
-        state.chickenRoadBusy=false;
-        state.chickenRoadStarted=false;
-        state.chickenRoadWalletType=String(data.round.walletType||state.selectedWalletType||"cash");
-        if(data.balanceAfter!=null) state.balance=Number(data.balanceAfter);
-        if(data.bonusPointsAfter!=null) state.bonusPlayValue=Number(data.bonusPointsAfter);
-        updateBalance();
-        resetChickenRoadVisual();
-        const status=document.getElementById("chickenStatus"); if(status) status.textContent="ROUND READY — TAP START ROAD";
-        const msg=document.getElementById("chickenRoadMessage"); if(msg) msg.textContent="The crash point is held by the server and is not exposed to the browser.";
-        const start=document.getElementById("chickenStartBtn"); if(start) start.disabled=false;
-      }catch(error){
-        alert(error.message||"Could not start Chicken Road.");
-        const lobby=document.getElementById("gameStakeLobby"); if(lobby) lobby.classList.remove("hidden");
-      }
-    }
-
-    function startChickenRoadAnimation(){
-      if(!state.chickenRoadRoundId || state.chickenRoadBusy || state.chickenRoadStarted) return;
-      state.chickenRoadStarted=true;
-      const start=document.getElementById("chickenStartBtn"); if(start) start.disabled=true;
-      const cash=document.getElementById("chickenCashoutBtn"); if(cash) cash.disabled=true;
-      const status=document.getElementById("chickenStatus"); if(status) status.textContent="ROAD ACTIVE";
-      const msg=document.getElementById("chickenRoadMessage"); if(msg) msg.textContent="Crossing... the server is checking each step.";
-      advanceChickenRoadStep();
-    }
-
-    async function advanceChickenRoadStep(){
-      if(!state.chickenRoadRoundId || state.chickenRoadBusy) return;
-      if(state.chickenRoadStep>=12) return;
-      state.chickenRoadBusy=true;
-      const next=state.chickenRoadStep+1;
-      try{
-        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/step",{
-          method:"POST",headers:chickenRoadHeaders(),
-          body:JSON.stringify({roundId:state.chickenRoadRoundId,step:next})
-        });
-        const data=await safeJsonResponse(response);
-        if(!response.ok || !data.success) throw new Error(data.error||"Chicken Road step failed.");
-        state.chickenRoadStep=Number(data.step||next);
-        animateChickenStep(state.chickenRoadStep);
-        const mult=document.getElementById("chickenMultiplier"); if(mult) mult.textContent=Number(data.multiplier||0).toFixed(2)+"x";
-        const step=document.getElementById("chickenStep"); if(step) step.textContent=state.chickenRoadStep+" / 12";
-        const payout=document.getElementById("chickenPayout"); if(payout) payout.textContent=Number(data.payout||0).toFixed(2)+" ETB";
-        if(data.state==="SAFE"){
-          const cash=document.getElementById("chickenCashoutBtn"); if(cash) cash.disabled=false;
-          const status=document.getElementById("chickenStatus"); if(status) status.textContent="SAFE — CASH OUT OR CROSS AGAIN";
-          state.chickenRoadBusy=false;
-          setTimeout(()=>{ if(state.chickenRoadStarted && state.chickenRoadRoundId) advanceChickenRoadStep(); },900);
-          return;
-        }
-        if(data.state==="CRASH"){
-          finishChickenRoadClient(data,"CRASH");
-          return;
-        }
-        if(data.state==="FINISH"){
-          finishChickenRoadClient(data,"FINISH");
-          return;
-        }
-      }catch(error){
-        state.chickenRoadBusy=false;
-        const msg=document.getElementById("chickenRoadMessage"); if(msg) msg.textContent=error.message||"Connection error.";
-        const status=document.getElementById("chickenStatus"); if(status) status.textContent="SERVER CONNECTION ERROR";
-      }
-    }
-
-    function animateChickenStep(step){
-      const chicken=document.getElementById("chickenRoadChicken");
-      const glow=document.getElementById("chickenRoadStepGlow");
-      if(chicken){
-        chicken.classList.add("running");
-        const pct=12 + Math.min(76,step*6.25);
-        const lane=34 + ((step-1)%3)*17;
-        chicken.style.left=lane+"%";
-        chicken.style.transform=`translate(-50%,${Math.sin(step)*3}px)`;
-        if(glow) glow.style.left=lane+"%";
-      }
-      // Traffic continuously shifts so the road looks alive. These are visual-only vehicles.
-      document.querySelectorAll(".chickenTrafficCar").forEach((car,i)=>{
-        const lane=Number(car.dataset.baseLane||50);
-        const drift=((step+i)%4)*7;
-        const direction=i%2===0?1:-1;
-        const x=direction*drift;
-        car.style.transition="transform .8s cubic-bezier(.2,.7,.2,1)";
-        car.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${((step+i)%3)*5}px)) scale(${car.classList.contains("small")?.74:1})`;
-      });
-      for(let i=1;i<=12;i++){
-        const el=document.getElementById("chickenStepMark"+i);
-        if(el) el.className="chickenRoadStep"+(i<=step?" safe":"")+(i===step?" active":"");
-      }
-    }
-
-    function animateChickenCrashImpact(step){
-      const chicken=document.getElementById("chickenRoadChicken");
-      const scene=document.getElementById("chickenRoadScene");
-      const lane=34 + ((Math.max(1,step)-1)%3)*17;
-      if(chicken){
-        chicken.classList.remove("running");
-        chicken.classList.add("crashed");
-        chicken.style.left=lane+"%";
-      }
-      const layer=document.getElementById("chickenRoadTraffic");
-      if(!layer) return;
-      // A dedicated crash car travels into the chicken's exact lane/position.
-      const car=document.createElement("div");
-      car.className="chickenTrafficCar red";
-      car.style.left="112%";
-      car.style.top="53%";
-      car.style.transform="translate(-50%,-50%) scale(1.05)";
-      car.style.transition="left .72s cubic-bezier(.22,.78,.25,1), transform .18s ease";
-      layer.appendChild(car);
-      requestAnimationFrame(()=>{
-        car.style.left=lane+"%";
-        car.style.top="53%";
-      });
-      setTimeout(()=>{
-        car.style.transform="translate(-50%,-50%) scale(1.08) rotate(-8deg)";
-        if(scene) scene.classList.add("crashed");
-      },700);
-    }
-
-    async function cashOutChickenRoad(){
-      if(!state.chickenRoadRoundId || state.chickenRoadBusy || !state.chickenRoadStep) return;
-      state.chickenRoadBusy=true;
-      const cash=document.getElementById("chickenCashoutBtn"); if(cash) cash.disabled=true;
-      try{
-        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/cashout",{
-          method:"POST",headers:chickenRoadHeaders(),
-          body:JSON.stringify({roundId:state.chickenRoadRoundId,step:state.chickenRoadStep})
-        });
-        const data=await safeJsonResponse(response);
-        if(!response.ok || !data.success) throw new Error(data.error||"Cash-out failed.");
-        if(data.balanceAfter!=null) state.balance=Number(data.balanceAfter);
-        if(data.bonusPointsAfter!=null) state.bonusPlayValue=Number(data.bonusPointsAfter);
-        updateBalance();
-        finishChickenRoadClient(data,"CASHED_OUT");
-      }catch(error){
-        state.chickenRoadBusy=false;
-        if(cash) cash.disabled=false;
-        const msg=document.getElementById("chickenRoadMessage"); if(msg) msg.textContent=error.message||"Cash-out failed.";
-      }
-    }
-
-    function finishChickenRoadClient(data,type){
-      state.chickenRoadBusy=false;
-      state.chickenRoadStarted=false;
-      const cash=document.getElementById("chickenCashoutBtn"); if(cash) cash.disabled=true;
-      const start=document.getElementById("chickenStartBtn"); if(start){start.disabled=false;start.textContent="NEW ROUND";start.onclick=()=>newChickenRoadRound();}
-      const status=document.getElementById("chickenStatus");
-      const msg=document.getElementById("chickenRoadMessage");
-      const payout=document.getElementById("chickenPayout");
-      if(type==="CRASH"){
-        const crashStep=Number(data.round?.crashStep||state.chickenRoadStep);
-        animateChickenCrashImpact(crashStep);
-        const crash=document.getElementById("chickenCrashFx"); if(crash) setTimeout(()=>crash.style.display="block",680);
-        const smoke=document.getElementById("chickenSmokeFx"); if(smoke) setTimeout(()=>smoke.style.display="block",720);
-        const sparks=document.getElementById("chickenSparks"); if(sparks) setTimeout(()=>sparks.style.display="block",680);
-        const mark=document.getElementById("chickenStepMark"+crashStep); if(mark) mark.className="chickenRoadStep crash active";
-        if(status) status.textContent="CRASH — ROUND LOST";
-        if(msg) msg.textContent="The server verified the crash. Prize: 0.00 ETB";
-        if(payout) payout.textContent="0.00 ETB";
-      }else if(type==="CASHED_OUT"){
-        if(status) status.textContent="CASHED OUT — WIN VERIFIED";
-        if(msg) msg.textContent=`Server verified your cash-out at ${Number(data.multiplier||0).toFixed(2)}x.`;
-        if(payout) payout.textContent=Number(data.payout||0).toFixed(2)+" ETB";
-      }else{
-        if(status) status.textContent="FINISHED — WIN VERIFIED";
-        if(msg) msg.textContent=`Server verified the maximum run at ${Number(data.multiplier||0).toFixed(2)}x.`;
-        if(payout) payout.textContent=Number(data.payout||0).toFixed(2)+" ETB";
-      }
-      loadWalletData().catch(()=>{});
-    }
-
-    function newChickenRoadRound(){
-      state.chickenRoadRoundId="";
-      state.chickenRoadStep=0;
-      state.chickenRoadBusy=false;
-      state.chickenRoadStarted=false;
-      resetChickenRoadVisual();
-      const start=document.getElementById("chickenStartBtn"); if(start){start.textContent="START ROAD";start.onclick=startChickenRoadAnimation;}
-      enterChickenRoadWithStake(state.chickenSelectedStake);
-    }
+    function aviatorHeaders(){return {"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+state.authToken};}
+    function resetAviatorVisual(){const f=document.getElementById("aviatorFlight"),p=document.getElementById("plane"),c=document.getElementById("aviatorCrashOverlay");if(f)f.classList.remove("flyingActive","crashActive");if(p){p.style.left="18%";p.style.bottom="30px";}if(c)c.classList.remove("show");const m=document.getElementById("aviatorMultiplier");if(m)m.textContent="1.00x";}
+    function enterAviatorWithStake(stake){state.aviatorSelectedStake=Number(stake);state.aviatorRoundId="";state.aviatorBusy=false;state.aviatorBets={1:null,2:null};state.aviatorLastStatus="";resetAviatorVisual();renderAviatorHistory();fetchAviatorRound();if(window.DestaVoice?.enterLiveGame)window.DestaVoice.enterLiveGame("aviator",null,stake);}
+    async function placeAviatorBet(slot){if(state.aviatorBusy||state.aviatorBets[slot])return;const amount=Number(document.getElementById("a"+slot)?.value||0);if(!Number.isFinite(amount)||amount<10){alert("Minimum Aviator bet is 10 ETB.");return;}state.aviatorBusy=true;try{const r=await fetch("https://desta-play.onrender.com/api/aviator/bet",{method:"POST",headers:aviatorHeaders(),body:JSON.stringify({amount,walletType:state.selectedWalletType||"cash"})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Could not place Aviator bet.");state.aviatorRoundId=String(d.round.id);state.aviatorBets[slot]={amount:Number(d.bet.amount),cashed:false,payout:0};if(d.balanceAfter!=null)state.balance=Number(d.balanceAfter);if(d.bonusPointsAfter!=null)state.bonusPlayValue=Number(d.bonusPointsAfter);updateBalance();applyAviatorRound(d.round);}catch(e){alert(e.message||"Aviator bet failed.");}finally{state.aviatorBusy=false;}}
+    async function cashOutAviator(slot){const bet=state.aviatorBets[slot];if(!bet||bet.cashed||state.aviatorBusy)return;state.aviatorBusy=true;try{const r=await fetch("https://desta-play.onrender.com/api/aviator/cashout",{method:"POST",headers:aviatorHeaders(),body:JSON.stringify({roundId:state.aviatorRoundId,slot})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Cash-out failed.");bet.cashed=true;bet.payout=Number(d.payout||0);if(d.balanceAfter!=null)state.balance=Number(d.balanceAfter);if(d.bonusPointsAfter!=null)state.bonusPlayValue=Number(d.bonusPointsAfter);updateBalance();applyAviatorRound(d.round);}catch(e){alert(e.message||"Cash-out failed.");}finally{state.aviatorBusy=false;}}
+    function applyAviatorRound(round){if(!round||round.game!=="aviator")return;state.lastServerRounds=state.lastServerRounds||{};state.lastServerRounds.aviator=round;state.serverRoundIds=state.serverRoundIds||{};state.serverRoundIds.aviator=String(round.id||"");if(round.roundNumber)state.rounds.aviator=Number(round.roundNumber);state.bettingOpenByGame.aviator=round.status==="BETTING";state.bettingOpen=round.status==="BETTING";updateRound();const status=document.getElementById("aviatorCountdown"),mult=document.getElementById("aviatorMultiplier"),flight=document.getElementById("aviatorFlight"),plane=document.getElementById("plane"),crash=document.getElementById("aviatorCrashOverlay");if(status)status.textContent=round.status==="BETTING"?`BETTING ${Math.ceil(Number(round.remainingSeconds||0))}s`:round.status==="FLYING"?"FLIGHT LIVE":round.status==="CRASHED"?`CRASHED ${Number(round.crashPoint||round.multiplier||0).toFixed(2)}x":"WAITING";const m=Number(round.multiplier||1);if(mult)mult.textContent=m.toFixed(2)+"x";if(flight){flight.classList.toggle("flyingActive",round.status==="FLYING");flight.classList.toggle("crashActive",round.status==="CRASHED");}if(plane&&round.status!=="CRASHED"){plane.style.left=(18+Math.min(76,Math.max(0,(m-1)*18)))+"%";plane.style.bottom=Math.min(150,30+(m-1)*22)+"px";}if(crash)crash.classList.toggle("show",round.status==="CRASHED");for(const [id,val] of [["aviatorTotalWagered",round.totalWagered],["aviatorPayoutLimit",round.payoutLimit],["aviatorPaidOut",round.totalPaidOut]]){const el=document.getElementById(id);if(el)el.textContent=Number(val||0).toFixed(2)+" ETB";}if(Array.isArray(round.myBets))round.myBets.forEach(b=>{const slot=Number(b.slot);if(slot===1||slot===2)state.aviatorBets[slot]={amount:Number(b.amount),cashed:!!b.cashedOut,payout:Number(b.payout||0)};});[1,2].forEach(slot=>{const b=state.aviatorBets[slot],btn=document.getElementById("aviatorBtn"+slot),st=document.getElementById("aviatorBetState"+slot),po=document.getElementById("aviatorPayout"+slot);if(!b){if(btn){btn.disabled=round.status!=="BETTING";btn.textContent="PLACE BET";btn.onclick=()=>placeAviatorBet(slot);}if(st)st.textContent="NOT PLACED";if(po)po.textContent="0.00 ETB";return;}if(st)st.textContent=b.cashed?"WIN VERIFIED":"ACCEPTED";if(btn){btn.disabled=b.cashed||round.status!=="FLYING";btn.textContent=b.cashed?"CASHED OUT":"CASH OUT";btn.onclick=()=>cashOutAviator(slot);}if(po)po.textContent=b.cashed?Number(b.payout||0).toFixed(2)+" ETB CASHED OUT":(m*Number(b.amount)).toFixed(2)+" ETB @ "+m.toFixed(2)+"x";});if(round.status==="CRASHED"&&state.aviatorLastStatus!=="CRASHED"){if(round.crashPoint!=null){state.aviatorHistory=state.aviatorHistory||[];state.aviatorHistory.unshift({round:round.roundNumber,multiplier:Number(round.crashPoint)});state.aviatorHistory=state.aviatorHistory.slice(0,25);renderAviatorHistory();}window.DestaVoice?.playAviatorSound?.("crash");}if(round.status==="FLYING"&&state.aviatorLastStatus!=="FLYING")window.DestaVoice?.playAviatorSound?.("flying");state.aviatorLastStatus=round.status;}
+    async function fetchAviatorRound(){try{const r=await fetch("https://desta-play.onrender.com/api/aviator/round",{cache:"no-store",headers:{"Accept":"application/json","Authorization":"Bearer "+(state.authToken||"")}});if(!r.ok)return;const d=await safeJsonResponse(r);if(d?.success&&d.round)applyAviatorRound(d.round);}catch(e){console.warn("Aviator sync error",e);}}
+    setInterval(()=>{if(state.game==="aviator"&&(state.gameJoined||state.watchOnly))fetchAviatorRound();},250);
 
     </script>
 
