@@ -3345,6 +3345,9 @@ html,body{
       aviatorHistory:[],
       aviatorBets:{1:null,2:null},
       aviatorPollId:null,
+      aviatorDisplayTimer:null,
+      aviatorServerOffsetMs:0,
+      aviatorLiveRound:null,
       aviatorLastRoundId:"",
       aviatorLastStatus:"",
 
@@ -4295,8 +4298,10 @@ html,body{
         document.getElementById("aviatorGame")?.classList.remove("hidden");
         buildGame();
         if(state.aviatorPollId) clearInterval(state.aviatorPollId);
+        if(state.aviatorDisplayTimer) clearInterval(state.aviatorDisplayTimer);
         fetchAviatorRound();
         state.aviatorPollId=setInterval(fetchAviatorRound,250);
+        state.aviatorDisplayTimer=setInterval(updateAviatorDisplayClock,50);
         return;
       }
 
@@ -4566,6 +4571,8 @@ html,body{
       liveRoundSyncActive=false;
       clearTimeout(liveRoundTimer);
       if(state.aviatorPollId){ clearInterval(state.aviatorPollId); state.aviatorPollId=null; }
+      if(state.aviatorDisplayTimer){ clearInterval(state.aviatorDisplayTimer); state.aviatorDisplayTimer=null; }
+      state.aviatorLiveRound=null;
       const wheel=document.getElementById("rouletteWheel");
       if(wheel){
         wheel.classList.remove("spinning","resultSpin");
@@ -7667,11 +7674,13 @@ function renderAviatorRound(round){
   state.aviatorBets[2]=mine.find(b=>Number(b.slot)===2)||null;
   const m=Math.max(1,Number(round.multiplier||1));
   const status=String(round.status||"");
+  state.aviatorLiveRound=round;
+  state.aviatorServerOffsetMs=Number(round.serverTime||Date.now())-Date.now();
   const stage=document.getElementById("aviatorStage"), mult=document.getElementById("aviatorMultiplier"), stat=document.getElementById("aviatorStatus");
   if(document.getElementById("aviatorRoundLabel")) document.getElementById("aviatorRoundLabel").textContent=String(round.roundNumber||"—");
   if(mult) mult.textContent=(status==="CRASHED"?Number(round.crashPoint||m):m).toFixed(2)+"x";
-  if(stat) stat.textContent=status==="BETTING" ? `BETTING • ${Number(round.remainingSeconds||0)}s` : status==="FLYING" ? "FLIGHT LIVE" : "CRASHED";
-  if(stage){stage.classList.toggle("flying",status==="FLYING");stage.classList.toggle("crashed",status==="CRASHED");}
+  if(stat) stat.textContent=status==="BETTING" ? `BETTING • ${Number(round.remainingSeconds||0)}s` : status==="FLYING" ? (round.attractMode ? "WATCH LIVE • FLIGHT" : "FLIGHT LIVE") : "CRASHED • NEXT ROUND SOON";
+  if(stage){stage.classList.toggle("flying",status==="FLYING");stage.classList.toggle("crashed",status==="CRASHED");stage.classList.toggle("attract",Boolean(round.attractMode));}
   const active=Number(round.activeBets||0); const activeEl=document.getElementById("aviatorActiveBets"); if(activeEl) activeEl.textContent=String(active);
   for(const slot of [1,2]){
     const bet=state.aviatorBets[slot], btn=document.getElementById("aviatorAction"+slot), amount=document.getElementById("aviatorAmount"+slot), sm=document.getElementById("aviatorSlotMult"+slot), sp=document.getElementById("aviatorSlotPayout"+slot);
@@ -7685,6 +7694,24 @@ function renderAviatorRound(round){
     if(amount) amount.disabled=!!bet || status!=="BETTING";
   }
   renderAviatorWallet();
+}
+function updateAviatorDisplayClock(){
+  const round=state.aviatorLiveRound;
+  if(!round || state.game!=="aviator") return;
+  const status=String(round.status||"");
+  const el=document.getElementById("aviatorMultiplier");
+  if(!el) return;
+  if(status!=="FLYING" || !round.flyingStartedAt){
+    if(status==="BETTING") el.textContent="1.00x";
+    return;
+  }
+  const serverNow=Date.now()+Number(state.aviatorServerOffsetMs||0);
+  const elapsed=Math.max(0,serverNow-Number(round.flyingStartedAt));
+  // Display-only interpolation between authoritative server polls.
+  // Cash-out and crash decisions always remain server-side.
+  const growth=0.00075;
+  const displayMultiplier=Math.max(1,Math.exp(growth*elapsed/100));
+  el.textContent=displayMultiplier.toFixed(2)+"x";
 }
 async function fetchAviatorRound(){
   if(state.game!=="aviator" || !state.authToken) return;
