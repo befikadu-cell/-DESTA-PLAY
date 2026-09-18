@@ -1,15 +1,103 @@
-"use strict";
+// ============================================================================
+// DESTA PLAY — AVIATOR ENGINE
+// Shared, server-authoritative round helpers.
+// ============================================================================
+
 import crypto from "node:crypto";
-export const CONFIG=Object.freeze({name:"aviator",minBet:10,rtp:.5,houseEdge:.5,bettingSeconds:10});
-function rnd(){return crypto.randomInt(0,1000000)/1000000;}
-export function validateBetAmount(a){const n=Number(a);if(!Number.isFinite(n)||n<10)throw new Error("Minimum Aviator bet is 10 ETB");return Number(n.toFixed(2));}
-export function generateCrashPoint(){return Math.max(1.05,Number((1+(-Math.log(Math.max(.000001,1-rnd()))*1.15)).toFixed(2)));}
-export function createSharedRound({roundId,roundNumber}){const now=Date.now();return{id:String(roundId),game:"aviator",roundNumber:Number(roundNumber)||1,status:"BETTING",bettingStartedAt:now,bettingEndsAt:now+10000,startedAt:null,nextRoundAt:null,multiplier:1,crashPoint:generateCrashPoint(),totalWagered:0,payoutLimit:0,totalPaidOut:0,players:[],updatedAt:now};}
-export function addBet(r,x){if(r.status!=="BETTING")throw new Error("Aviator flight has already started");const a=validateBetAmount(x.amount);const b={playerId:String(x.playerId),slot:Number(x.slot),amount:a,walletType:String(x.walletType)==="bonus"?"bonus":"cash",cashedOut:false,payout:0,lossSettled:false};r.players.push(b);r.totalWagered=Number((r.totalWagered+a).toFixed(2));r.payoutLimit=Number((r.totalWagered*.5).toFixed(2));return b;}
-export function startFlight(r,now=Date.now()){r.status="FLYING";r.startedAt=now;r.multiplier=1;}
-export function currentMultiplier(r,now=Date.now()){if(r.status!=="FLYING")return Number(r.multiplier||1);return Math.max(1,Math.min(Number(Math.exp(Math.max(0,now-r.startedAt)/18000).toFixed(2)),Number(r.crashPoint)));}
-export function updateFlight(r,now=Date.now()){if(r.status!=="FLYING")return; r.multiplier=currentMultiplier(r,now);if(r.totalWagered>0&&r.totalPaidOut>=r.payoutLimit)return crash(r,r.multiplier,now,"PAYOUT_LIMIT");if(r.multiplier>=r.crashPoint)return crash(r,r.crashPoint,now,"CRASH_POINT");}
-export function cashOut(r,b,now=Date.now()){if(r.status!=="FLYING")throw new Error("Flight is not active");const m=currentMultiplier(r,now);if(m>=r.crashPoint)throw new Error("The plane has already crashed");const payout=Number((b.amount*m).toFixed(2));b.cashedOut=true;b.payout=payout;r.totalPaidOut=Number((r.totalPaidOut+payout).toFixed(2));r.multiplier=m;if(r.totalPaidOut>=r.payoutLimit)crash(r,m,now,"PAYOUT_LIMIT");return{state:"CASHED_OUT",multiplier:m,payout};}
-export function crash(r,p,now=Date.now(),reason="CRASH_POINT"){r.status="CRASHED";r.multiplier=Number(p);r.crashReason=reason;r.nextRoundAt=now+5000;}
-export function publicRound(r,p){return{id:r.id,game:"aviator",roundNumber:r.roundNumber,status:r.status,remainingSeconds:r.status==="BETTING"?Math.max(0,(r.bettingEndsAt-Date.now())/1000):0,multiplier:Number(r.multiplier||1),totalWagered:Number(r.totalWagered||0),payoutLimit:Number(r.payoutLimit||0),totalPaidOut:Number(r.totalPaidOut||0),playersInRoom:r.players.length,myBets:r.players.filter(x=>String(x.playerId)===String(p)).map(x=>({slot:x.slot,amount:x.amount,walletType:x.walletType,cashedOut:x.cashedOut,payout:x.payout})),crashPoint:r.status==="CRASHED"?Number(r.crashPoint):undefined};}
-export function serializeRound(r){return r;}export function deserializeRound(r){return{...r,players:Array.isArray(r.players)?r.players:[]};}
+
+export const AVIATOR_CONFIG = {
+  name: "Aviator",
+  bettingSeconds: 15,
+  tickMilliseconds: 100,
+  minBet: 10,
+  payoutPercent: 50,
+  housePercent: 50,
+  startingMultiplier: 1.00,
+  growthRate: 0.00075
+};
+
+export function createRound() {
+  const now = Date.now();
+  return {
+    id: `aviator-${now}-${crypto.randomBytes(5).toString("hex")}`,
+    game: "aviator",
+    status: "BETTING",
+    createdAt: now,
+    bettingStartedAt: now,
+    bettingEndsAt: now + AVIATOR_CONFIG.bettingSeconds * 1000,
+    flyingStartedAt: null,
+    multiplier: 1.00,
+    crashPoint: null,
+    payoutCap: 0,
+    totalWagered: 0,
+    totalPaid: 0,
+    bets: [],
+    roundNumber: 1,
+    secretSeed: crypto.randomBytes(32).toString("hex"),
+    committedSeedHash: null,
+    settled: false,
+    result: null
+  };
+}
+
+export function commitHash(secretSeed) {
+  return crypto.createHash("sha256").update(String(secretSeed)).digest("hex");
+}
+
+export function multiplierAt(elapsedMs) {
+  const elapsed = Math.max(0, Number(elapsedMs) || 0);
+  const raw = Math.exp(AVIATOR_CONFIG.growthRate * elapsed / 100);
+  return Number(Math.max(1, raw).toFixed(2));
+}
+
+export function generateSafetyCrashPoint(seed) {
+  const hash = crypto.createHash("sha256").update(String(seed)).digest("hex");
+  const n = parseInt(hash.slice(0, 13), 16);
+  const unit = n / 0x1fffffffffffff;
+  // Safety ceiling only prevents an endless flight when nobody cashes out.
+  // The normal crash trigger is the 50% payout allocation.
+  return Number(Math.min(50, Math.max(1.20, 1 + unit * 18)).toFixed(2));
+}
+
+export function normalizeBetAmount(amount) {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return 0;
+  return Number(Math.max(0, Math.min(1000000, n)).toFixed(2));
+}
+
+export function payoutForBet(amount, multiplier) {
+  const a = normalizeBetAmount(amount);
+  const m = Number(multiplier);
+  if (!a || !Number.isFinite(m) || m < 1) return 0;
+  return Number((a * m).toFixed(2));
+}
+
+export function calculatePayoutCap(totalWagered) {
+  return Number((normalizeBetAmount(totalWagered) * AVIATOR_CONFIG.payoutPercent / 100).toFixed(2));
+}
+
+export function canCashOut(round, bet, multiplier) {
+  if (!round || round.status !== "FLYING") return { ok:false, reason:"The plane has crashed or betting is not active." };
+  if (!bet || bet.cashedOut) return { ok:false, reason:"This bet is already settled." };
+  const requested = payoutForBet(bet.amount, multiplier);
+  const remaining = Number((round.payoutCap - round.totalPaid).toFixed(2));
+  if (remaining <= 0) return { ok:false, reason:"The 50% payout allocation has been reached." };
+  if (requested > remaining) {
+    return { ok:false, reason:"Cash-out would exceed the 50% payout allocation.", shouldCrash:true };
+  }
+  return { ok:true, payout:requested, remaining };
+}
+
+
+// Compatibility export for deployments that load the engine as a default module.
+export default {
+  AVIATOR_CONFIG,
+  createRound,
+  commitHash,
+  multiplierAt,
+  generateSafetyCrashPoint,
+  normalizeBetAmount,
+  payoutForBet,
+  calculatePayoutCap,
+  canCashOut
+};
