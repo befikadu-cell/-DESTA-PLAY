@@ -148,64 +148,41 @@ const DestaVoice = (() => {
     if (key === lastAnnouncementKey) return false;
     lastAnnouncementKey = key;
 
+    // Draw voice follows the number currently being presented. Never allow
+    // old draw calls to build a backlog behind the live board.
+    queue = [];
+    requestSeq++;
+    if (currentAudio) {
+      try { currentAudio.pause(); } catch (_) {}
+      try { currentAudio.currentTime = 0; } catch (_) {}
+      currentAudio = null;
+    }
+    speaking = false;
     return queueText(text, lang, false);
   }
 
-  /* AVIATOR SOUND EFFECTS — added without changing the existing
-     Bingo/Keno voice queue or announcement behavior. */
-  let aviatorAudioContext = null;
-  let aviatorEngine = null;
-
-  function getAviatorAudioContext() {
-    try {
-      const Ctx = window.AudioContext || window.webkitAudioContext;
-      if (!Ctx) return null;
-      if (!aviatorAudioContext) aviatorAudioContext = new Ctx();
-      if (aviatorAudioContext.state === "suspended") aviatorAudioContext.resume().catch(() => {});
-      return aviatorAudioContext;
-    } catch (_) { return null; }
-  }
-
-  function playAviatorFlying() {
-    const ctx = getAviatorAudioContext();
-    if (!ctx || aviatorEngine) return false;
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(115, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(185, ctx.currentTime + 1.8);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.045, ctx.currentTime + 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.8);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 1.85);
-      aviatorEngine = osc;
-      osc.onended = () => { aviatorEngine = null; };
-      return true;
-    } catch (_) { return false; }
-  }
-
-  function playAviatorCrash() {
-    const ctx = getAviatorAudioContext();
-    if (!ctx) return false;
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.setValueAtTime(180, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(48, ctx.currentTime + 0.45);
-      gain.gain.setValueAtTime(0.09, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.52);
-      return true;
-    } catch (_) { return false; }
-  }
-
   function unlock() { return true; }
+
+  function playAviatorVoice(text) {
+    const phrase = String(text || "").trim();
+    if (!phrase || !enabled) return false;
+    try {
+      if (typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined") {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(phrase);
+        u.lang = "en-US";
+        u.rate = 1.05;
+        u.pitch = 1;
+        window.speechSynthesis.speak(u);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  function playAviatorStart() { return playAviatorVoice("Flight started"); }
+  function playAviatorFlying() { return playAviatorVoice("Flying"); }
+  function playAviatorCrash() { return playAviatorVoice("Crash"); }
 
   function setEnabled(value) {
     enabled = Boolean(value);
@@ -241,12 +218,13 @@ const DestaVoice = (() => {
     announceDraw,
     buildAnnouncement,
     getBingoLetter,
+    playAviatorStart,
+    playAviatorFlying,
+    playAviatorCrash,
     setEnabled,
     toggle,
     stopVoice,
     speakText,
-    playAviatorFlying,
-    playAviatorCrash,
     unlock,
     getState
   };
