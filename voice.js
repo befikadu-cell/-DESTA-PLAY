@@ -33,7 +33,7 @@ const DestaVoice = (() => {
       if (!letter) return null;
       if (lang === "am") {
         const am = { B:"ቢ", I:"አይ", N:"ኤን", G:"ጂ" };
-        if (letter === "O") return `O ${number}`;
+        if (letter === "O") return `ኦ ቁጥር ${number}`;
         return `${am[letter]} ${number}`;
       }
       if (letter === "O") return `O, ${number}`;
@@ -151,6 +151,60 @@ const DestaVoice = (() => {
     return queueText(text, lang, false);
   }
 
+  /* AVIATOR SOUND EFFECTS — added without changing the existing
+     Bingo/Keno voice queue or announcement behavior. */
+  let aviatorAudioContext = null;
+  let aviatorEngine = null;
+
+  function getAviatorAudioContext() {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      if (!aviatorAudioContext) aviatorAudioContext = new Ctx();
+      if (aviatorAudioContext.state === "suspended") aviatorAudioContext.resume().catch(() => {});
+      return aviatorAudioContext;
+    } catch (_) { return null; }
+  }
+
+  function playAviatorFlying() {
+    const ctx = getAviatorAudioContext();
+    if (!ctx || aviatorEngine) return false;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(115, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(185, ctx.currentTime + 1.8);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.045, ctx.currentTime + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.8);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 1.85);
+      aviatorEngine = osc;
+      osc.onended = () => { aviatorEngine = null; };
+      return true;
+    } catch (_) { return false; }
+  }
+
+  function playAviatorCrash() {
+    const ctx = getAviatorAudioContext();
+    if (!ctx) return false;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(48, ctx.currentTime + 0.45);
+      gain.gain.setValueAtTime(0.09, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.52);
+      return true;
+    } catch (_) { return false; }
+  }
+
   function unlock() { return true; }
 
   function setEnabled(value) {
@@ -191,6 +245,8 @@ const DestaVoice = (() => {
     toggle,
     stopVoice,
     speakText,
+    playAviatorFlying,
+    playAviatorCrash,
     unlock,
     getState
   };
