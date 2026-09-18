@@ -2190,6 +2190,213 @@ html,body{
 #bingoGame .cartelaPick{height:24px!important;min-height:24px!important;width:28px!important;font-size:8px!important;padding:0!important;touch-action:manipulation!important;}
 /* Prevent accidental transparent/overlay layers from blocking game controls. */
 #kenoBoard,#kenoBoard *,.kenoNumber,#kenoBetSlot1,#kenoBetSlot2,#bingoGame button,.cartelaPick{pointer-events:auto!important;}
+
+/* =========================================================
+   CHICKEN ROAD — ADDITIVE GAME UI
+   Existing DESTA PLAY styles are intentionally untouched.
+========================================================= */
+.chickenRoadPanel{
+  padding:10px 8px 18px;
+}
+.chickenRoadHud{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:6px;
+  margin:8px 0;
+}
+.chickenRoadHudBox{
+  background:#101010;
+  border:1px solid #492020;
+  border-radius:10px;
+  padding:8px 5px;
+  text-align:center;
+}
+.chickenRoadHudBox small{
+  display:block;
+  color:#aaa;
+  font-size:9px;
+}
+.chickenRoadHudBox strong{
+  display:block;
+  color:#ffd43c;
+  font-size:14px;
+  margin-top:3px;
+}
+.chickenRoadStage{
+  position:relative;
+  height:230px;
+  overflow:hidden;
+  border:1px solid #5c2929;
+  border-radius:15px;
+  background:
+    linear-gradient(180deg,#15202a 0 24%,#24302b 24% 28%,#171717 28% 86%,#273328 86%);
+  box-shadow:inset 0 0 35px #000;
+}
+.chickenRoadSky{
+  position:absolute;
+  inset:0 0 72% 0;
+  background:linear-gradient(180deg,#0b1722,#233b4d);
+}
+.chickenRoadRoad{
+  position:absolute;
+  left:0;
+  right:0;
+  top:28%;
+  bottom:14%;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 9%,rgba(255,255,255,.08) 9% 10%),
+    linear-gradient(180deg,#252525,#111);
+  border-top:2px solid #444;
+  border-bottom:2px solid #333;
+}
+.chickenRoadRoad:after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:50%;
+  border-top:3px dashed #d9d9d9;
+  opacity:.35;
+}
+.chickenRoadGrass{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:14%;
+  background:repeating-linear-gradient(120deg,#263b25 0 7px,#1a2c1a 7px 14px);
+}
+.chickenRoadChicken,
+.chickenRoadCar{
+  position:absolute;
+  z-index:4;
+  width:42px;
+  height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  filter:drop-shadow(0 5px 4px rgba(0,0,0,.65));
+  transition:left .55s cubic-bezier(.2,.8,.2,1);
+}
+.chickenRoadChicken{
+  left:4%;
+  top:43%;
+}
+.chickenRoadCar{
+  left:96%;
+  top:43%;
+  transform:translateX(-100%);
+  font-size:38px;
+  transition:left .7s cubic-bezier(.2,.7,.2,1);
+}
+.chickenRoadChicken.run{
+  animation:chickenRun .28s linear infinite alternate;
+}
+@keyframes chickenRun{
+  from{transform:translateY(0) rotate(-3deg)}
+  to{transform:translateY(-5px) rotate(3deg)}
+}
+.chickenRoadCar.drive{
+  animation:carDrive .18s linear infinite alternate;
+}
+@keyframes carDrive{
+  from{transform:translateX(-100%) translateY(0)}
+  to{transform:translateX(-100%) translateY(-2px)}
+}
+.chickenRoadStage.crash{
+  animation:chickenStageShake .16s linear 5;
+}
+@keyframes chickenStageShake{
+  0%,100%{transform:translate(0)}
+  25%{transform:translate(-5px,2px)}
+  75%{transform:translate(5px,-2px)}
+}
+.chickenRoadImpact{
+  position:absolute;
+  z-index:8;
+  left:50%;
+  top:48%;
+  transform:translate(-50%,-50%) scale(.5);
+  opacity:0;
+  font-size:50px;
+  pointer-events:none;
+}
+.chickenRoadStage.crash .chickenRoadImpact{
+  animation:impactPop .7s ease-out forwards;
+}
+@keyframes impactPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.7)}
+}
+.chickenRoadStatus{
+  text-align:center;
+  min-height:22px;
+  margin:9px 0;
+  color:#ddd;
+  font-weight:800;
+  font-size:12px;
+}
+.chickenRoadMultiplier{
+  text-align:center;
+  font-size:28px;
+  font-weight:900;
+  color:#ffd43c;
+  text-shadow:0 2px 8px #000;
+}
+.chickenRoadControls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:8px;
+}
+.chickenRoadControls .placeBtn{
+  min-height:46px;
+}
+.chickenRoadBet{
+  margin:8px 0;
+}
+.chickenRoadBet input{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #5c2929;
+  background:#111;
+  color:#fff;
+  text-align:center;
+  font-weight:900;
+}
+.chickenRoadSteps{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:3px;
+  margin-top:10px;
+}
+.chickenRoadStep{
+  height:23px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:5px;
+  background:#202020;
+  color:#777;
+  font-size:9px;
+  font-weight:900;
+}
+.chickenRoadStep.safe{
+  background:#123d27;
+  color:#50e88c;
+}
+.chickenRoadStep.current{
+  border:1px solid #ffd43c;
+  color:#ffd43c;
+}
+.chickenRoadStep.crashed{
+  background:#5c1010;
+  color:#ff6b6b;
+}
+
 </style>
 </head>
 
@@ -2440,6 +2647,27 @@ html,body{
             onclick="openGame('keno')">
             PLAY
           </button>
+
+
+        <div class="gameCard">
+
+          <h3>CHICKEN ROAD</h3>
+
+          <div class="gamePreview" aria-hidden="true"
+               style="font-size:46px;display:flex;align-items:center;justify-content:center;min-height:92px;background:linear-gradient(145deg,#17251a,#0b0b0b);border-radius:12px;">
+            🐔  🚗
+          </div>
+
+          <small>Cross • Cash Out • Crash</small>
+
+          <button
+            class="gameOpen"
+            onclick="openGame('chicken-road')">
+            PLAY
+          </button>
+
+        </div>
+
 
         </div>
 
@@ -2781,6 +3009,78 @@ html,body{
 
           </div>
 
+
+        </div>
+
+
+        <!-- ==================================================
+             CHICKEN ROAD
+        ================================================== -->
+
+        <div id="chicken-roadGame" class="hidden">
+
+          <div class="chickenRoadPanel">
+
+            <div class="selectedStakeBanner">
+              STAKE: <span id="chickenRoadStakeDisplay">—</span> ETB
+            </div>
+
+            <div class="chickenRoadHud">
+              <div class="chickenRoadHudBox">
+                <small>STEP</small>
+                <strong id="chickenRoadStepHud">0 / 10</strong>
+              </div>
+              <div class="chickenRoadHudBox">
+                <small>MULTIPLIER</small>
+                <strong id="chickenRoadMultiplierHud">1.00x</strong>
+              </div>
+              <div class="chickenRoadHudBox">
+                <small>POTENTIAL</small>
+                <strong id="chickenRoadPotentialHud">0.00 ETB</strong>
+              </div>
+            </div>
+
+            <div class="chickenRoadMultiplier" id="chickenRoadMultiplier">1.00x</div>
+
+            <div class="chickenRoadStage" id="chickenRoadStage">
+              <div class="chickenRoadSky"></div>
+              <div class="chickenRoadRoad"></div>
+              <div class="chickenRoadGrass"></div>
+              <div class="chickenRoadChicken" id="chickenRoadChicken">🐔</div>
+              <div class="chickenRoadCar" id="chickenRoadCar">🚗</div>
+              <div class="chickenRoadImpact" id="chickenRoadImpact">💥</div>
+            </div>
+
+            <div class="chickenRoadSteps" id="chickenRoadSteps"></div>
+
+            <div class="chickenRoadStatus" id="chickenRoadStatus">
+              Choose a stake to start.
+            </div>
+
+            <div class="chickenRoadBet">
+              <input id="chickenRoadBetAmount" type="number" min="10" max="1000" step="1" inputmode="decimal" value="10" placeholder="Bet amount">
+            </div>
+
+            <div class="chickenRoadControls">
+              <button class="placeBtn" id="chickenRoadStartBtn" type="button" onclick="startChickenRoadGame()">
+                START
+              </button>
+              <button class="placeBtn" id="chickenRoadCashoutBtn" type="button" onclick="cashOutChickenRoad()" disabled>
+                CASH OUT
+              </button>
+            </div>
+
+            <div class="feed" style="margin-top:10px">
+              <div class="feedRow"><span>RTP</span><span>50%</span></div>
+              <div class="feedRow"><span>House edge</span><span>50%</span></div>
+              <div class="feedRow"><span>Maximum step</span><span>10</span></div>
+            </div>
+
+          </div>
+
+        </div>
+
+
         </div>
 
 
@@ -3059,7 +3359,8 @@ html,body{
         keno:0,
         bingo:0,
         roulette:0,
-        aviator:0
+        aviator:0,
+        "chicken-road":0
       },
 
       displayRoundCounters:{
@@ -3079,6 +3380,8 @@ html,body{
       bingoSelectedStake:null,
 
       kenoSelectedStake:null,
+
+      chickenSelectedStake:null,
 
       stakeLobbyGame:"",
       watchOnly:false,
@@ -4066,7 +4369,7 @@ html,body{
     }
 
     async function openGame(game){
-      if(game!=="bingo" && game!=="keno") return;
+      if(game!=="bingo" && game!=="keno" && game!=="chicken-road") return;
       if(state.watchOnly){ alert("You are watching this game live. Go back and choose a stake to play."); return; }
 
       /* Existing Telegram players must be authenticated automatically.
@@ -4090,6 +4393,7 @@ html,body{
       state.game=game;
       state.gameJoined=false;
       state.stakeLobbyGame=game;
+      if(game==="chicken-road") state.selectedWalletType="cash";
 
       // A fresh stake screen must never show selections from a previous visit.
       state.kenoSelections={1:[],2:[]};
@@ -4121,8 +4425,10 @@ html,body{
       buildStakeLobby(game);
       refreshStakeWallet();
       updateRound();
-      fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : (state.kenoSelectedStake || null));
-      fetchStakePlayerCounts(game);
+      if(game!=="chicken-road"){
+        fetchLiveRound(game, game==="bingo" ? (state.bingoSelectedStake || null) : (state.kenoSelectedStake || null));
+        fetchStakePlayerCounts(game);
+      }
     }
 
     function watchLiveGame(game){
@@ -4228,7 +4534,10 @@ html,body{
         b.onclick=()=>selectLobbyStake(amount);
         grid.appendChild(b);
       });
-      const selected=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      const selected =
+        game==="bingo" ? state.bingoSelectedStake :
+        game==="keno" ? state.kenoSelectedStake :
+        state.chickenSelectedStake;
       if(selected) selectLobbyStake(selected);
       else {
         const status=document.getElementById("stakeLobbyStatus");
@@ -4241,6 +4550,7 @@ html,body{
       if(!Number.isFinite(amount)) return;
       if(state.stakeLobbyGame==="bingo") state.bingoSelectedStake=amount;
       if(state.stakeLobbyGame==="keno") state.kenoSelectedStake=amount;
+      if(state.stakeLobbyGame==="chicken-road") state.chickenSelectedStake=amount;
       document.querySelectorAll("#stakeLobbyGrid .stakeChoice").forEach(b=>b.classList.toggle("active",Number(b.dataset.stake)===amount));
       const join=document.getElementById("stakeLobbyJoin");
       if(join) join.disabled=false;
@@ -4248,16 +4558,24 @@ html,body{
       if(status) status.textContent=`Selected ${amount} ETB. Tap JOIN to enter the live round.`;
       if(state.stakeLobbyGame==="bingo") selectBingoStake(amount);
       if(state.stakeLobbyGame==="keno") updateKenoStakeDisplays();
+      if(state.stakeLobbyGame==="chicken-road") state.selectedWalletType="cash";
       selectStakeWallet(state.selectedWalletType||"cash",true);
-      if(status) status.textContent=`Selected ${amount} ETB. ${state.selectedWalletType==="bonus"?"Bonus points":"Real money"} selected. Tap JOIN to enter the live round.`;
+      if(status) status.textContent =
+        state.stakeLobbyGame==="chicken-road"
+          ? `Selected ${amount} ETB. Real money selected. Tap JOIN to enter Chicken Road.`
+          : `Selected ${amount} ETB. ${state.selectedWalletType==="bonus"?"Bonus points":"Real money"} selected. Tap JOIN to enter the live round.`;
     }
 
     function joinStakeLobby(){
       if(!requirePlayableSession()) return;
       const game=state.stakeLobbyGame;
-      const stake=game==="bingo" ? state.bingoSelectedStake : state.kenoSelectedStake;
+      const stake =
+        game==="bingo" ? state.bingoSelectedStake :
+        game==="keno" ? state.kenoSelectedStake :
+        state.chickenSelectedStake;
       if(!stake) return;
-      const wallet=state.selectedWalletType||"cash";
+      const wallet=game==="chicken-road" ? "cash" : (state.selectedWalletType||"cash");
+      if(game==="chicken-road") state.selectedWalletType="cash";
       const available=wallet==="bonus"?Number(state.bonusPlayValue||0):Number(state.balance||0);
       if(stake>available){
         alert(wallet==="bonus"?"Insufficient bonus points.":"Insufficient real money balance.");
@@ -4276,6 +4594,18 @@ html,body{
       state.bettingOpen=true;
       const lobby=document.getElementById("gameStakeLobby");
       if(lobby) lobby.classList.add("hidden");
+      if(game==="chicken-road"){
+        const g=document.getElementById("chicken-roadGame");
+        if(g) g.classList.remove("hidden");
+        document.getElementById("gameTitle").textContent="CHICKEN ROAD";
+        const input=document.getElementById("chickenRoadBetAmount");
+        if(input) input.value=String(stake);
+        const display=document.getElementById("chickenRoadStakeDisplay");
+        if(display) display.textContent=Number(stake).toFixed(2);
+        renderChickenRoadSteps(0);
+        setChickenRoadStatus("Ready. Tap START to begin.");
+        return;
+      }
       if(game==="bingo") enterBingoWithStake();
       if(game==="keno"){
         const g=document.getElementById("kenoGame");
@@ -4373,7 +4703,8 @@ html,body{
 
       [
         "keno",
-        "bingo"
+        "bingo",
+        "chicken-road"
       ].forEach(g=>{
 
         document
@@ -4399,6 +4730,280 @@ html,body{
 
     }
 
+
+
+    /* =========================================================
+       CHICKEN ROAD
+    ========================================================= */
+
+    let chickenRoadClient = {
+      roundId:"",
+      stake:0,
+      step:0,
+      multiplier:1,
+      active:false,
+      busy:false
+    };
+
+    function chickenRoadHeaders(){
+      const headers={"Content-Type":"application/json","Accept":"application/json"};
+      if(state.authToken) headers.Authorization="Bearer "+state.authToken;
+      return headers;
+    }
+
+    function setChickenRoadStatus(message, isError=false){
+      const el=document.getElementById("chickenRoadStatus");
+      if(!el) return;
+      el.textContent=message;
+      el.style.color=isError ? "#ff7777" : "#ddd";
+    }
+
+    function renderChickenRoadSteps(currentStep, crashed=false){
+      const wrap=document.getElementById("chickenRoadSteps");
+      if(!wrap) return;
+      const multipliers=[1.10,1.25,1.50,2.00,2.50,3.00,4.00,5.00,6.25,10.00];
+      wrap.innerHTML="";
+      for(let i=1;i<=10;i++){
+        const el=document.createElement("div");
+        el.className="chickenRoadStep";
+        el.textContent=multipliers[i-1].toFixed(2)+"x";
+        if(i<=currentStep) el.classList.add("safe");
+        if(i===currentStep) el.classList.add("current");
+        if(crashed && i===currentStep) el.classList.add("crashed");
+        wrap.appendChild(el);
+      }
+    }
+
+    function updateChickenRoadHud(){
+      const step=Number(chickenRoadClient.step||0);
+      const mult=Number(chickenRoadClient.multiplier||1);
+      const stake=Number(chickenRoadClient.stake||0);
+      const potential=step>0 ? stake*mult : 0;
+      const stepEl=document.getElementById("chickenRoadStepHud");
+      const multEl=document.getElementById("chickenRoadMultiplierHud");
+      const potEl=document.getElementById("chickenRoadPotentialHud");
+      const mainMult=document.getElementById("chickenRoadMultiplier");
+      if(stepEl) stepEl.textContent=`${step} / 10`;
+      if(multEl) multEl.textContent=mult.toFixed(2)+"x";
+      if(potEl) potEl.textContent=potential.toFixed(2)+" ETB";
+      if(mainMult) mainMult.textContent=mult.toFixed(2)+"x";
+    }
+
+    function resetChickenRoadScene(){
+      const stage=document.getElementById("chickenRoadStage");
+      const chicken=document.getElementById("chickenRoadChicken");
+      const car=document.getElementById("chickenRoadCar");
+      if(stage) stage.classList.remove("crash");
+      if(chicken){
+        chicken.style.left="4%";
+        chicken.classList.remove("run");
+      }
+      if(car){
+        car.style.left="96%";
+        car.classList.remove("drive");
+      }
+    }
+
+    async function startChickenRoadGame(){
+      if(!requirePlayableSession()) return;
+      if(chickenRoadClient.active){
+        if(!chickenRoadClient.busy) await chickenRoadNextStep();
+        return;
+      }
+      if(chickenRoadClient.busy){
+        return;
+      }
+
+      const input=document.getElementById("chickenRoadBetAmount");
+      const amount=Number(input?.value || state.chickenSelectedStake || 10);
+
+      if(!Number.isFinite(amount) || amount<10 || amount>1000){
+        setChickenRoadStatus("Bet must be between 10 and 1000 ETB.",true);
+        return;
+      }
+
+      if(amount>Number(state.balance||0)){
+        setChickenRoadStatus("Insufficient real money balance.",true);
+        return;
+      }
+
+      chickenRoadClient.busy=true;
+      const startBtn=document.getElementById("chickenRoadStartBtn");
+      const cashBtn=document.getElementById("chickenRoadCashoutBtn");
+      if(startBtn) startBtn.disabled=true;
+      if(cashBtn) cashBtn.disabled=true;
+
+      resetChickenRoadScene();
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/start",{
+          method:"POST",
+          headers:chickenRoadHeaders(),
+          body:JSON.stringify({amount:Number(amount.toFixed(2))})
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not start Chicken Road.");
+
+        chickenRoadClient={
+          roundId:String(data.roundId||""),
+          stake:Number(data.amount||amount),
+          step:0,
+          multiplier:1,
+          active:true,
+          busy:false
+        };
+
+        state.chickenSelectedStake=Number(amount);
+        state.balance=Number(data.balanceAfter ?? Math.max(0,Number(state.balance||0)-amount));
+        updateBalance();
+        const stakeEl=document.getElementById("chickenRoadStakeDisplay");
+        if(stakeEl) stakeEl.textContent=Number(amount).toFixed(2);
+
+        const chicken=document.getElementById("chickenRoadChicken");
+        if(chicken) chicken.classList.add("run");
+
+        if(startBtn){
+          startBtn.disabled=true;
+          startBtn.textContent="CROSS";
+        }
+        if(cashBtn) cashBtn.disabled=true;
+        renderChickenRoadSteps(0);
+        updateChickenRoadHud();
+        setChickenRoadStatus("The chicken is running. Cross the road and cash out before the crash.");
+
+        await chickenRoadNextStep();
+      }catch(error){
+        chickenRoadClient.busy=false;
+        if(startBtn) startBtn.disabled=false;
+        setChickenRoadStatus(error.message || "Could not start Chicken Road.",true);
+      }
+    }
+
+    async function chickenRoadNextStep(){
+      if(!chickenRoadClient.active || chickenRoadClient.busy) return;
+      chickenRoadClient.busy=true;
+
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/tick",{
+          method:"POST",
+          headers:chickenRoadHeaders(),
+          body:JSON.stringify({roundId:chickenRoadClient.roundId})
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Could not advance Chicken Road.");
+
+        const step=Number(data.step||0);
+        const chicken=document.getElementById("chickenRoadChicken");
+        const car=document.getElementById("chickenRoadCar");
+        const stage=document.getElementById("chickenRoadStage");
+
+        if(chicken){
+          chicken.style.left=`${Math.min(88,4+(step*8.4))}%`;
+          chicken.classList.add("run");
+        }
+
+        if(data.result==="CRASH"){
+          // The car travels to the chicken's exact current point before impact.
+          if(car){
+            car.classList.add("drive");
+            car.style.left=`${Math.min(88,4+(step*8.4)+3)}%`;
+          }
+
+          await new Promise(resolve=>setTimeout(resolve,720));
+
+          if(stage) stage.classList.add("crash");
+          if(chicken) chicken.classList.remove("run");
+
+          chickenRoadClient.step=step;
+          chickenRoadClient.multiplier=1;
+          chickenRoadClient.active=false;
+          chickenRoadClient.busy=false;
+
+          renderChickenRoadSteps(step,true);
+          updateChickenRoadHud();
+          const cashBtn=document.getElementById("chickenRoadCashoutBtn");
+          const startBtn=document.getElementById("chickenRoadStartBtn");
+          if(cashBtn) cashBtn.disabled=true;
+          if(startBtn){
+            startBtn.disabled=false;
+            startBtn.textContent="START";
+          }
+          setChickenRoadStatus(`CRASH! The car hit the chicken at step ${step}. You lost ${chickenRoadClient.stake.toFixed(2)} ETB.`,true);
+          return;
+        }
+
+        chickenRoadClient.step=step;
+        chickenRoadClient.multiplier=Number(data.multiplier||1);
+        chickenRoadClient.busy=false;
+
+        renderChickenRoadSteps(step,false);
+        updateChickenRoadHud();
+
+        if(car){
+          car.style.left=`${Math.min(82,15+(step*6))}%`;
+          setTimeout(()=>{
+            if(chickenRoadClient.active && car) car.style.left="96%";
+          },560);
+        }
+
+        const cashBtn=document.getElementById("chickenRoadCashoutBtn");
+        const startBtn=document.getElementById("chickenRoadStartBtn");
+        if(cashBtn) cashBtn.disabled=false;
+        if(startBtn){
+          startBtn.disabled=false;
+          startBtn.textContent="CROSS";
+        }
+        setChickenRoadStatus(`SAFE! Step ${step} reached. Cash out at ${chickenRoadClient.multiplier.toFixed(2)}x or continue.`);
+      }catch(error){
+        chickenRoadClient.busy=false;
+        setChickenRoadStatus(error.message || "Connection error. The round was not verified.",true);
+      }
+    }
+
+    async function cashOutChickenRoad(){
+      if(!chickenRoadClient.active || chickenRoadClient.busy || chickenRoadClient.step<1) return;
+
+      chickenRoadClient.busy=true;
+      const cashBtn=document.getElementById("chickenRoadCashoutBtn");
+      if(cashBtn) cashBtn.disabled=true;
+
+      try{
+        const response=await fetch("https://desta-play.onrender.com/api/chicken-road/cashout",{
+          method:"POST",
+          headers:chickenRoadHeaders(),
+          body:JSON.stringify({roundId:chickenRoadClient.roundId})
+        });
+        const data=await safeJsonResponse(response);
+        if(!response.ok || !data.success) throw new Error(data.error || "Cash out was rejected.");
+
+        chickenRoadClient.active=false;
+        chickenRoadClient.busy=false;
+        chickenRoadClient.multiplier=Number(data.multiplier||chickenRoadClient.multiplier);
+
+        state.balance=Number(data.balanceAfter ?? state.balance);
+        updateBalance();
+
+        const chicken=document.getElementById("chickenRoadChicken");
+        if(chicken) chicken.classList.remove("run");
+
+        const startBtn=document.getElementById("chickenRoadStartBtn");
+        if(startBtn){
+          startBtn.disabled=false;
+          startBtn.textContent="START";
+        }
+
+        updateChickenRoadHud();
+        setChickenRoadStatus(`CASHED OUT! ${Number(data.payout||0).toFixed(2)} ETB at ${chickenRoadClient.multiplier.toFixed(2)}x.`);
+      }catch(error){
+        chickenRoadClient.busy=false;
+        if(cashBtn) cashBtn.disabled=false;
+        setChickenRoadStatus(error.message || "Cash out could not be verified.",true);
+      }
+    }
+
+    function setChickenRoadStatusAndRefresh(){
+      updateChickenRoadHud();
+      renderChickenRoadSteps(chickenRoadClient.step||0);
+    }
 
     /* =========================================================
        ROUND
@@ -6279,6 +6884,19 @@ html,body{
             <h3>ስዕል</h3><p>20 ቁጥሮች በተከታታይ ይጠራሉ። የተመሳሰሉ ቁጥሮች ይገለጣሉ።</p>
             <h3>አሸነፍ / ተሸነፍ</h3><p>የመጨረሻ ውጤት እና ተመሳሳይ ቁጥሮች ዙሩ ከተጠናቀቀ በኋላ ይታያሉ።</p>`}
         },
+        "chicken-road":{
+          en:{title:"How to Play Chicken Road",html:`
+            <h3>Choose a stake</h3><p>Select a stake, then tap JOIN and START.</p>
+            <h3>Cross the road</h3><p>The chicken advances one step at a time. Each safe step increases the cash-out multiplier.</p>
+            <h3>Cash out</h3><p>After a safe step, CASH OUT asks the server to verify the round and prize. If the car reaches the chicken first, the stake is lost.</p>
+            <h3>Server verification</h3><p>The crash outcome and prize calculation are kept on the server. The browser cannot choose its own winning result.</p>
+          `},
+          am:{title:"Chicken Road እንዴት ይጫወታል?",html:`
+            <h3>ውርርድ ይምረጡ</h3><p>የውርርድ መጠን ይምረጡ፣ JOIN ከዚያ START ይጫኑ።</p>
+            <h3>መንገዱን ይሻገሩ</h3><p>ዶሮው በደረጃ ይሄዳል። ደህና የተሻገረ ደረጃ ማባዣውን ያሳድጋል።</p>
+            <h3>ገንዘብ ይውሰዱ</h3><p>ደህና ከተሻገሩ በኋላ CASH OUT የአሸናፊነት እና የሽልማት ማረጋገጫን በሰርቨር ያደርጋል። መኪናው በፊት ከደረሰ ውርርዱ ይጠፋል።</p>
+          `}
+        },
         bingo:{
           en:{title:"How to Play Bingo",html:`
             <h3>Cartela</h3><p>Enter a Cartela number from 1–120 and press OK. The first Cartela goes to Slot 1. The next goes to Slot 2.</p>
@@ -7295,6 +7913,7 @@ html,body{
     }
 
     async function fetchLiveRound(game, tier=null){
+      if(game==="chicken-road") return;
       try{
         let url;
         if(game === "bingo"){
