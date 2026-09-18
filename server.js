@@ -29,11 +29,7 @@ import { createClient } from "@supabase/supabase-js";
 import * as keno from "./games/keno.js";
 import * as bingo from "./games/bingo.js";
 import * as aviatorModule from "./games/aviator.js";
-
-// Compatibility: support both named-export and default-export Aviator engines.
-const aviator = (aviatorModule.default && typeof aviatorModule.default.createRound === "function")
-    ? aviatorModule.default
-    : aviatorModule;
+const aviator = (aviatorModule.default && typeof aviatorModule.default.createRound === "function") ? aviatorModule.default : aviatorModule;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -214,16 +210,8 @@ const rounds = {};
 /* Serialize balance mutations for the same player. This prevents two near-
 simultaneous independent Keno slots from both reading the same old balance. */
 const playerBalanceLocks = new Map();
-
-/* Serialize Aviator state transitions. The round is shared by every player,
-   so simultaneous cash-outs must be checked and settled one at a time. */
 let aviatorRoundQueue = Promise.resolve();
-function withAviatorRoundLock(work) {
-    const run = aviatorRoundQueue.then(work, work);
-    aviatorRoundQueue = run.catch(() => {});
-    return run;
-}
-
+function withAviatorRoundLock(work){ const run=aviatorRoundQueue.then(work,work); aviatorRoundQueue=run.catch(()=>{}); return run; }
 async function withPlayerBalanceLock(playerId, work) {
     const key = String(playerId);
     const previous = playerBalanceLocks.get(key) || Promise.resolve();
@@ -4952,7 +4940,8 @@ async function saveRound(
                 0,
 
             secretCrashPoint:
-                round.game === "aviator" ? (round.crashPoint || null) : (round.secretCrashPoint || null),
+                round.secretCrashPoint ||
+                null,
 
             flyingStartedAt:
                 round.flyingStartedAt ||
@@ -4970,23 +4959,14 @@ async function saveRound(
             bets:
                 round.bets || [],
 
-            payoutCap:
-                Number(round.payoutCap || 0),
-
-            totalWagered:
-                Number(round.totalWagered || 0),
-
-            totalPaid:
-                Number(round.totalPaid || 0),
-
-            flyingStartedAt:
-                round.flyingStartedAt || null,
-
-            committedSeedHash:
-                round.committedSeedHash || null,
-
-            secretSeed:
-                round.game === "aviator" ? (round.secretSeed || null) : null,
+            ...(round.game === "aviator" ? {
+                payoutCap: Number(round.payoutCap || 0),
+                totalWagered: Number(round.totalWagered || 0),
+                totalPaid: Number(round.totalPaid || 0),
+                flyingStartedAt: round.flyingStartedAt || null,
+                committedSeedHash: round.committedSeedHash || null,
+                secretSeed: round.secretSeed || null
+            } : {}),
 
         },
 
@@ -5077,12 +5057,6 @@ function getPublicRound(
                 round.bettingEndsAt
             ).toISOString(),
 
-        flyingStartedAt:
-            round.flyingStartedAt || null,
-
-        committedSeedHash:
-            gameName === "aviator" ? (round.committedSeedHash || null) : null,
-
         remainingMilliseconds:
             remaining,
 
@@ -5120,46 +5094,20 @@ function getPublicRound(
             round.result,
 
         multiplier:
-            Number(round.multiplier || 1),
+            round.multiplier,
 
-        payoutCap:
-            gameName === "aviator" ? Number(round.payoutCap || 0) : 0,
-
-        totalWagered:
-            gameName === "aviator" ? Number(round.totalWagered || 0) : 0,
-
-        totalPaid:
-            gameName === "aviator" ? Number(round.totalPaid || 0) : 0,
-
-        activeBets:
-            gameName === "aviator"
-                ? (round.bets || []).filter(b => !b.cashedOut).length
-                : 0,
-
-        liveCashouts:
-            gameName === "aviator"
-                ? (round.bets || [])
-                    .filter(b => b.cashedOut)
-                    .slice(-25)
-                    .reverse()
-                    .map(b => ({
-                        name: String(b.telegramName || "Player").slice(0, 24),
-                        amount: Number(b.amount || 0),
-                        multiplier: Number(b.cashoutMultiplier || 0),
-                        payout: Number(b.payout || 0),
-                        at: Number(b.cashoutAt || 0)
-                    }))
-                : [],
-
-        myBet:
-            gameName === "aviator"
-                ? null
-                : undefined,
-
-        myBets:
-            gameName === "aviator"
-                ? []
-                : undefined,
+        ...(gameName === "aviator" ? {
+            flyingStartedAt: round.flyingStartedAt || null,
+            committedSeedHash: round.committedSeedHash || null,
+            activeBets: (round.bets || []).filter(b => !b.cashedOut).length,
+            liveCashouts: (round.bets || []).filter(b => b.cashedOut).slice(-25).reverse().map(b => ({
+                name:String(b.telegramName || "Player").slice(0,24),
+                amount:Number(b.amount || 0),
+                multiplier:Number(b.cashoutMultiplier || 0),
+                payout:Number(b.payout || 0),
+                at:Number(b.cashoutAt || 0)
+            }))
+        } : {}),
 
         crashPoint:
             (
@@ -5180,10 +5128,7 @@ function getPublicRound(
 */
 
 function startHouseRound(gameName) {
-    if (gameName === "aviator") {
-        startAviatorRound();
-        return;
-    }
+    if (gameName === "aviator") { startAviatorRound(); return; }
     if (gameName !== "keno") return;
 
     const bettingSeconds = 40;
@@ -5218,7 +5163,6 @@ function startHouseRound(gameName) {
         startKenoDraw("keno", round.id);
     }, bettingSeconds * 1000);
 }
-
 
 /*
 |--------------------------------------------------------------------------
@@ -5520,6 +5464,8 @@ async function settleKenoRound(round) {
     round.status = "FINISHED";
 
     const bets = Array.isArray(round.bets) ? round.bets : [];
+    const grossPool = bets.reduce((sum, bet) => sum + Number(bet.amount || 0), 0);
+    const houseRake = Number((grossPool * 0.10).toFixed(2));
 
     const byPlayer = new Map();
     for (const bet of bets) {
@@ -5616,11 +5562,11 @@ async function buildDailyReport(){
     const rows=await getDailyTransactions(start.toISOString());
     const ok=r=>["SUCCESS","APPROVED","COMPLETED"].includes(String(r.status||"").toUpperCase());
     const amt=r=>Math.abs(Number(r.amount||0));
-    const cashW=rows.filter(r=>ok(r)&&["bingo_entry","keno_bet","aviator_bet"].includes(r.type));
-    const cashWin=rows.filter(r=>ok(r)&&["bingo_win","keno_win","aviator_win"].includes(r.type));
+    const cashW=rows.filter(r=>ok(r)&&["bingo_entry","keno_bet"].includes(r.type));
+    const cashWin=rows.filter(r=>ok(r)&&["bingo_win","keno_win"].includes(r.type));
     const bonusW=rows.filter(r=>ok(r)&&r.type==="bonus_play");
     const bonusWin=rows.filter(r=>ok(r)&&r.type==="bonus_win");
-    const bingoW=cashW.filter(r=>r.type==="bingo_entry"), kenoW=cashW.filter(r=>r.type==="keno_bet"), aviatorW=cashW.filter(r=>r.type==="aviator_bet");
+    const bingoW=cashW.filter(r=>r.type==="bingo_entry"), kenoW=cashW.filter(r=>r.type==="keno_bet");
     const gameIds=new Set([...cashW,...bonusW].map(r=>String(r.player_id)));
     const bingoIds=new Set(bingoW.map(r=>String(r.player_id))), kenoIds=new Set(kenoW.map(r=>String(r.player_id))), bonusIds=new Set(bonusW.map(r=>String(r.player_id)));
     const deposited=rows.filter(r=>ok(r)&&r.type==="deposit_credit").reduce((s,r)=>s+amt(r),0);
@@ -5632,7 +5578,7 @@ async function buildDailyReport(){
     if(pe){await dbError("daily report players",pe);throw new Error("Could not load player balances for daily report");}
     let playerBalance=0,locked=0,withdrawable=0;
     for(const p of players||[]){playerBalance+=Number(p.balance||0);const a=await getWalletAccounting(p.id,p);locked+=Number(a.lockedDeposit||0);withdrawable+=Number(a.withdrawable||0);}
-    return `📊 DESTA PLAY — DAILY REPORT\n\nPeriod: Last 24 hours\n\n💰 MONEY\n- My/House Balance: ${house.toFixed(2)} ETB (24h net game earnings)\n- Players' Total Balance: ${playerBalance.toFixed(2)} ETB\n- Locked Player Money: ${locked.toFixed(2)} ETB\n- Withdrawable Player Money: ${withdrawable.toFixed(2)} ETB\n- Deposited Today: ${deposited.toFixed(2)} ETB\n- Withdrawn Today: ${withdrawn.toFixed(2)} ETB\n\n🎮 GAMES\n- Players Played: ${gameIds.size}\n- Bingo Players: ${bingoIds.size}\n- Keno Players: ${kenoIds.size}\n- Total Wagered: ${totalW.toFixed(2)} ETB play value\n- Bingo Wagered: ${bingoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n- Keno Wagered: ${kenoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n- Aviator Wagered: ${aviatorW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n\n💵 REAL MONEY\n- Real Money Wagered: ${realW.toFixed(2)} ETB\n- Real Money Winnings: ${realWin.toFixed(2)} ETB\n\n🎁 BONUS\n- Players Using Bonus: ${bonusIds.size}\n- Bonus Wagered: ${bonusWager.toFixed(2)} ETB play value\n- Bonus Winnings: ${bonusWinAmt.toFixed(2)} ETB play value\n- Bonus Lost: ${bonusLost.toFixed(2)} ETB play value\n\n📈 RESULT\n- Player Winnings: ${playerWin.toFixed(2)} ETB play value\n- House/Game Earnings: ${house.toFixed(2)} ETB play value\n- RTP: ${rtp.toFixed(2)}%\n\n⏱️ REPORT\n- Report Period: 24 hours\n- Status: ✅ Complete`;
+    return `📊 DESTA PLAY — DAILY REPORT\n\nPeriod: Last 24 hours\n\n💰 MONEY\n- My/House Balance: ${house.toFixed(2)} ETB (24h net game earnings)\n- Players' Total Balance: ${playerBalance.toFixed(2)} ETB\n- Locked Player Money: ${locked.toFixed(2)} ETB\n- Withdrawable Player Money: ${withdrawable.toFixed(2)} ETB\n- Deposited Today: ${deposited.toFixed(2)} ETB\n- Withdrawn Today: ${withdrawn.toFixed(2)} ETB\n\n🎮 GAMES\n- Players Played: ${gameIds.size}\n- Bingo Players: ${bingoIds.size}\n- Keno Players: ${kenoIds.size}\n- Total Wagered: ${totalW.toFixed(2)} ETB play value\n- Bingo Wagered: ${bingoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n- Keno Wagered: ${kenoW.reduce((s,r)=>s+amt(r),0).toFixed(2)} ETB\n\n💵 REAL MONEY\n- Real Money Wagered: ${realW.toFixed(2)} ETB\n- Real Money Winnings: ${realWin.toFixed(2)} ETB\n\n🎁 BONUS\n- Players Using Bonus: ${bonusIds.size}\n- Bonus Wagered: ${bonusWager.toFixed(2)} ETB play value\n- Bonus Winnings: ${bonusWinAmt.toFixed(2)} ETB play value\n- Bonus Lost: ${bonusLost.toFixed(2)} ETB play value\n\n📈 RESULT\n- Player Winnings: ${playerWin.toFixed(2)} ETB play value\n- House/Game Earnings: ${house.toFixed(2)} ETB play value\n- RTP: ${rtp.toFixed(2)}%\n\n⏱️ REPORT\n- Report Period: 24 hours\n- Status: ✅ Complete`;
 }
 function msUntilNextAddis0800(){
     const now=new Date();
@@ -6148,24 +6094,16 @@ app.get(
         const publicRound = getPublicRound(gameName);
         if (gameName === "aviator" && publicRound) {
             const round = rounds.aviator;
-            publicRound.myBets = (round?.bets || [])
-                .filter(b => String(b.playerId) === String(req.player.id))
-                .map(b => ({
-                    betId: b.betId,
-                    slot: Number(b.slot || 1),
-                    amount: Number(b.amount || 0),
-                    walletType: b.walletType || "cash",
-                    cashedOut: Boolean(b.cashedOut),
-                    cashoutMultiplier: b.cashoutMultiplier || null,
-                    payout: Number(b.payout || 0)
-                }));
-            publicRound.myBet = publicRound.myBets.find(b => !b.cashedOut) || null;
+            publicRound.myBets = (round?.bets || []).filter(b => String(b.playerId) === String(req.player.id)).map(b => ({
+                betId:b.betId, slot:Number(b.slot || 1), amount:Number(b.amount || 0), walletType:b.walletType || "cash",
+                cashedOut:Boolean(b.cashedOut), cashoutMultiplier:b.cashoutMultiplier || null, payout:Number(b.payout || 0)
+            }));
         }
         return res.json({
             success: true,
-            serverTime: Date.now(),
-            serverTimeIso: nowIso(),
-            round: publicRound
+            serverTime:Date.now(),
+            serverTimeIso:nowIso(),
+            round:publicRound
         });
     }
 );
@@ -6308,7 +6246,6 @@ function editionFindBingoRoom(stake) {
  * Edition Bingo bet. A successful request is the commitment point.
  * A player may commit up to two cartellas in the same round/stake room.
  */
-
 async function placeAviatorBet(req, res) {
     try {
         const round = rounds.aviator;
@@ -6432,15 +6369,16 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req,res) => {
     }
 });
 
+
 app.post("/api/game/:game/bet", requirePlayer, async (req, res, next) => {
     const gameName = String(req.params.game || "").toLowerCase();
 
-    if (gameName === "keno") {
-        return next();
-    }
-
     if (gameName === "aviator") {
         return placeAviatorBet(req, res);
+    }
+
+    if (gameName === "keno") {
+        return next();
     }
 
     if (gameName !== "bingo") {
@@ -6820,7 +6758,7 @@ app.listen(
         );
 
         console.log(
-            "Keno / Bingo / Aviator"
+            "Keno / Bingo"
         );
 
         console.log(
@@ -6861,7 +6799,7 @@ app.listen(
             */
         }
 
-        /* Start the active server-authoritative games. */
+        /* Start the two active server-authoritative games only. */
         await restoreHouseRound("keno");
         await restoreAviatorRound();
 
