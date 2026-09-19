@@ -5780,313 +5780,8 @@ html,body{
     ========================================================= */
 
     function buildAviator(){
+      if(typeof window.buildAviator === "function") return window.buildAviator();
       renderAviatorHistory();
-
-    }
-
-
-    function generateCrashPoint(){
-
-      /*
-        Secure/random server-side outcome must eventually
-        replace this frontend generator.
-
-        This intentionally does not use a fixed crash value.
-      */
-
-      const r=
-        Math.random();
-
-      return Math.max(
-        1.01,
-        Number(
-          (
-            1+
-            (-Math.log(
-              Math.max(
-                0.000001,
-                1-r
-              )
-            )*1.15)
-          ).toFixed(2)
-        )
-      );
-
-    }
-
-
-    function placeAviatorBet(slot){
-
-      if(!state.bettingOpen){
-
-        alert(
-          "The flight has already started."
-        );
-
-        return;
-
-      }
-
-      if(
-        state.aviatorBets[slot]
-      ){
-
-        return;
-
-      }
-
-      const amount=
-        Number(
-          document.getElementById(
-            "a"+slot
-          ).value
-        );
-
-      if(
-        amount<=0 ||
-        amount>state.balance
-      ){
-
-        alert("Invalid amount.");
-
-        return;
-
-      }
-
-      state.balance-=amount;
-
-      state.aviatorBets[slot]={
-        amount,
-        cashed:false,
-        cashout:null
-      };
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASH OUT";
-
-    }
-
-
-    function cashOutAviator(slot){
-
-      const bet=
-        state.aviatorBets[slot];
-
-      if(
-        !bet ||
-        bet.cashed ||
-        state.aviatorMultiplier<1
-      )
-        return;
-
-      const multiplier=
-        state.aviatorMultiplier;
-
-      const payout=
-        Number(
-          (
-            bet.amount*
-            multiplier
-          ).toFixed(2)
-        );
-
-      bet.cashed=true;
-      bet.cashout=multiplier;
-
-      state.balance+=payout;
-
-      updateBalance();
-
-      document
-        .getElementById(
-          "aviatorPayout"+slot
-        )
-        .textContent=
-          payout.toFixed(2)+
-          " ETB CASHED OUT";
-
-      document
-        .getElementById(
-          "aviatorBtn"+slot
-        )
-        .textContent=
-          "CASHED OUT";
-
-      setTimeout(()=>{
-
-        document
-          .getElementById(
-            "aviatorPayout"+slot
-          )
-          .textContent="";
-
-      },2000);
-
-    }
-
-
-    function runAviator(){
-
-      state.bettingOpen=true;
-
-      state.aviatorCrash=
-        generateCrashPoint();
-
-      state.aviatorMultiplier=1;
-
-      let seconds=10;
-
-      const countdown=
-        document.getElementById(
-          "aviatorCountdown"
-        );
-
-      const timer=
-        setInterval(()=>{
-
-          countdown.textContent=
-            "BETTING "+
-            seconds+
-            "s";
-
-          seconds--;
-
-          if(seconds<0){
-
-            clearInterval(timer);
-
-            startAviatorFlight();
-
-          }
-
-        },1000);
-
-    }
-
-
-    function startAviatorFlight(){
-
-      state.bettingOpen=false;
-
-      document
-        .getElementById(
-          "aviatorCountdown"
-        )
-        .textContent=
-          "FLIGHT LIVE";
-
-      const timer=
-        setInterval(()=>{
-
-          state.aviatorMultiplier=
-            Number(
-              (
-                state.aviatorMultiplier+
-                0.02+
-                Math.random()*0.08
-              ).toFixed(2)
-            );
-
-          const value=
-            state.aviatorMultiplier;
-
-          document
-            .getElementById(
-              "aviatorMultiplier"
-            )
-            .textContent=
-              value.toFixed(2)+"x";
-
-          const plane=
-            document.getElementById(
-              "plane"
-            );
-
-          plane.style.left=
-            Math.min(
-              88,
-              20+(value-1)*12
-            )+"%";
-
-          plane.style.bottom=
-            Math.min(
-              85,
-              30+(value-1)*8
-            )+"px";
-
-          [1,2].forEach(slot=>{
-
-            const bet=
-              state.aviatorBets[slot];
-
-            if(
-              bet &&
-              !bet.cashed
-            ){
-
-              const live=
-                bet.amount*value;
-
-              document
-                .getElementById(
-                  "aviatorPayout"+slot
-                )
-                .textContent=
-                  live.toFixed(2)+
-                  " ETB @ "+
-                  value.toFixed(2)+"x";
-
-            }
-
-          });
-
-          if(
-            value>=state.aviatorCrash
-          ){
-
-            clearInterval(timer);
-
-            finishAviator();
-
-          }
-
-        },300);
-
-    }
-
-
-    function finishAviator(){
-
-      state.bettingOpen=false;
-
-      const crash=
-        state.aviatorMultiplier;
-
-      document
-        .getElementById(
-          "aviatorCountdown"
-        )
-        .textContent=
-          "CRASHED "+
-          crash.toFixed(2)+"x";
-
-      state.aviatorHistory.unshift(
-        crash.toFixed(2)+"x"
-      );
-
-      state.aviatorHistory=
-        state.aviatorHistory.slice(0,10);
-
-      renderAviatorHistory();
-
-      renderAviatorHistory();
-
     }
 
 
@@ -6773,7 +6468,7 @@ html,body{
       if(num>=16 && num<=30) return `አይ ${num}`;
       if(num>=31 && num<=45) return `ኤን ${num}`;
       if(num>=46 && num<=60) return `ጂ ${num}`;
-      if(num>=61 && num<=75) return `O ${num}`;
+      if(num>=61 && num<=75) return `ኦ ቁጥር ${num}`;
       return null;
     }
 
@@ -7841,39 +7536,129 @@ html,body{
     },700);
   }
   document.addEventListener('pointerdown',()=>{ if(state && state.game==='aviator') aviatorSfxContext(); },{passive:true});
+  let smoothMultiplier=1, targetMultiplier=1, smoothRound=0, smoothPhase="";
+  let smoothFrame=null, smoothLastTime=0;
+  function renderSmoothMultiplier(now){
+    const phase=window.__aviator.state?.phase || smoothPhase;
+    const dt=Math.min(0.1,Math.max(0.001,(now-smoothLastTime)/1000));
+    smoothLastTime=now;
+    if(phase!=="flying") smoothMultiplier=targetMultiplier;
+    else smoothMultiplier += (targetMultiplier-smoothMultiplier) * (1-Math.exp(-18*dt));
+    const shown=Math.max(1,smoothMultiplier);
+    set("aviatorMultiplier",shown.toFixed(2)+"x");
+    const plane=document.getElementById("aviatorPlane");
+    if(plane){
+      const pct=Math.min(82,8+Math.log(Math.max(1,shown))*25);
+      plane.style.left=pct+"%";
+      plane.style.top=(62-Math.min(28,Math.log(Math.max(1,shown))*9))+"%";
+    }
+    if(phase==="flying"){
+      [1,2].forEach(i=>{
+        const b=window.__aviator.state?.ownBets?.[i];
+        if(b && !b.cashedOut){
+          const live=Number(b.amount||0)*shown;
+          set("aviatorResult"+i,live.toFixed(2)+" ETB @ "+shown.toFixed(2)+"x");
+        }
+      });
+    }
+    smoothFrame=requestAnimationFrame(renderSmoothMultiplier);
+  }
+  function ensureSmoothLoop(){
+    if(smoothFrame===null){
+      smoothLastTime=performance.now();
+      smoothFrame=requestAnimationFrame(renderSmoothMultiplier);
+    }
+  }
   function render(d){
     window.__aviator.state=d;
-    state.rounds.aviator=Number(d.roundNumber ?? d.round ?? 0); state.displayRoundCounters.aviator=Number(d.roundNumber ?? d.round ?? 0); updateRound();
-    const m=Number(d.multiplier||1); set("aviatorMultiplier",m.toFixed(2)+"x");
+    state.rounds.aviator=Number(d.roundNumber ?? d.round ?? 0);
+    state.displayRoundCounters.aviator=Number(d.roundNumber ?? d.round ?? 0);
+    updateRound();
+
+    targetMultiplier=Number(d.multiplierExact ?? d.multiplier ?? 1);
+    if(smoothRound!==Number(d.round)){
+      smoothRound=Number(d.round);
+      smoothMultiplier=targetMultiplier;
+    }
+    if(smoothPhase!==d.phase && d.phase!=="flying") smoothMultiplier=targetMultiplier;
+    smoothPhase=d.phase || "";
+    ensureSmoothLoop();
+
     const now=Date.now();
     if(d.phase==="betting"){
-      const sec=Math.max(0,Math.ceil((Number(d.bettingEndsAt)-now)/1000));
+      const sec=Math.max(0,Number(d.remainingSeconds ?? Math.ceil((Number(d.bettingEndsAt)-now)/1000)));
       set("aviatorCountdown","BETTING CLOSES IN "+sec+"s");
       set("aviatorStatus","BETTING OPEN • "+sec+"s");
       set("aviatorNotice","Place your bet before the countdown ends.");
       if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;stopFlightSfx();}
       if(sfxPhase!=="betting") sfxPhase="betting";
-      if([10,5,3,2,1].includes(sec) && lastSfxCountdown!==sec){lastSfxCountdown=sec; countdownSfx(sec);}
+      if([10,5,3,2,1].includes(sec) && lastSfxCountdown!==sec){lastSfxCountdown=sec;countdownSfx(sec);}
     }
     else if(d.phase==="flying"){
-      set("aviatorCountdown","FLIGHT LIVE"); set("aviatorStatus","FLYING"); set("aviatorNotice","Cash Out before the flight crashes.");
+      set("aviatorCountdown","FLIGHT LIVE");
+      set("aviatorStatus","FLYING");
+      set("aviatorNotice","Cash Out before the flight crashes.");
       if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
       if(sfxPhase!=="flying"){sfxPhase="flying";flightStartSfx();startFlightSfx();}
     }
     else {
-      const crash=Number(d.multiplier||1).toFixed(2);
-      set("aviatorCountdown",""); set("aviatorStatus",""); set("aviatorNotice","Next round is preparing.");
+      set("aviatorCountdown","");
+      set("aviatorStatus","");
+      set("aviatorNotice","Next round is preparing.");
       if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
       if(sfxPhase!=="crashed"){sfxPhase="crashed";stopFlightSfx();crashSfx();}
     }
+
     if(Array.isArray(d.history)){
       state.aviatorHistory=d.history.slice().reverse();
       renderAviatorHistory();
     }
-    const plane=document.getElementById("aviatorPlane");if(plane){const pct=Math.min(82,8+Math.log(Math.max(1,m))*25);plane.style.left=pct+"%";plane.style.top=(62-Math.min(28,Math.log(Math.max(1,m))*9))+"%";}
-    [1,2].forEach(i=>{const b=d.ownBets?.[i];const bet=document.getElementById("aviatorBetBtn"+i),cash=document.getElementById("aviatorCashBtn"+i),amt=document.getElementById("aviatorAmount"+i);if(b){if(b.cashedOut){set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");bet?.classList.add("hidden");cash?.classList.add("hidden");}else{set("aviatorResult"+i,Number(b.amount).toFixed(2)+" ETB");bet?.classList.add("hidden");cash?.classList.toggle("hidden",d.phase!=="flying");}}else{bet?.classList.toggle("hidden",d.phase!=="betting");cash?.classList.add("hidden");if(amt)amt.disabled=d.phase!=="betting";}});
-    if(Array.isArray(d.activity)){const sig=JSON.stringify(d.activity);if(sig!==JSON.stringify(lastFeed)){lastFeed=d.activity;const f=document.getElementById("aviatorFeed");if(f){f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';d.activity.slice(-12).reverse().forEach(a=>{const row=document.createElement("div");row.className="aviatorFeedRow";row.innerHTML='<span>'+escapeHtml(a.label||"PLAYER")+'</span><strong>'+Number(a.payout||0).toFixed(2)+' ETB @ '+Number(a.multiplier||0).toFixed(2)+'x</strong>';f.appendChild(row);});}}}
-    if(d.round!==lastRound){lastRound=d.round;slot2Visible=true;document.getElementById("aviatorSlot2")?.classList.remove("hidden");}
+
+    [1,2].forEach(i=>{
+      const b=d.ownBets?.[i];
+      const bet=document.getElementById("aviatorBetBtn"+i);
+      const cash=document.getElementById("aviatorCashBtn"+i);
+      const amt=document.getElementById("aviatorAmount"+i);
+      if(b){
+        if(b.cashedOut){
+          set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");
+          bet?.classList.add("hidden");
+          cash?.classList.add("hidden");
+          if(amt)amt.disabled=true;
+        }else{
+          set("aviatorResult"+i,Number(b.amount).toFixed(2)+" ETB");
+          bet?.classList.add("hidden");
+          cash?.classList.toggle("hidden",d.phase!=="flying");
+          if(amt)amt.disabled=true;
+        }
+      }else{
+        bet?.classList.toggle("hidden",d.phase!=="betting");
+        cash?.classList.add("hidden");
+        if(amt)amt.disabled=d.phase!=="betting";
+      }
+    });
+
+    if(Array.isArray(d.activity)){
+      const sig=JSON.stringify(d.activity);
+      if(sig!==JSON.stringify(lastFeed)){
+        lastFeed=d.activity;
+        const f=document.getElementById("aviatorFeed");
+        if(f){
+          f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';
+          d.activity.slice(-12).reverse().forEach(a=>{
+            const row=document.createElement("div");
+            row.className="aviatorFeedRow";
+            row.innerHTML='<span>'+escapeHtml(a.label||"PLAYER")+'</span><strong>'+Number(a.payout||0).toFixed(2)+' ETB @ '+Number(a.multiplier||0).toFixed(2)+'x</strong>';
+            f.appendChild(row);
+          });
+        }
+      }
+    }
+    if(d.round!==lastRound){
+      lastRound=d.round;
+      slot2Visible=true;
+      document.getElementById("aviatorSlot2")?.classList.remove("hidden");
+    }
   }
   function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   async function sync(){if(state.game!=="aviator")return;try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/round?x="+Date.now(),{cache:"no-store",headers:authHeaders()});if(!r.ok)return;const d=await safeJsonResponse(r);if(d?.success)render(d.round);}catch(e){}}
