@@ -4163,7 +4163,7 @@ html,body{
         state.bettingOpen=true;
         try{ if(window.DestaVoice && typeof window.DestaVoice.enterLiveGame==="function") window.DestaVoice.enterLiveGame("aviator",null,null); }catch(e){}
         updateRound();
-        startAviatorSync();
+        startLiveRoundSync();
         return;
       }
 
@@ -5780,8 +5780,6 @@ html,body{
     ========================================================= */
 
     function buildAviator(){
-    set("aviatorRound","#1");
-
       renderAviatorHistory();
 
     }
@@ -6990,10 +6988,9 @@ html,body{
         }
       }
 
-      /* Voice must enter the current live session before the server draw
-         event is announced. Otherwise the first authoritative draw can be
-         discarded as inactive. */
-      announceRoundVoice(round);
+      /* Keno/Bingo use the shared voice pipeline. Aviator intentionally uses
+         its own SFX only, so it must not enter the announced-voice pipeline. */
+      if(game !== "aviator") announceRoundVoice(round);
 
       const previousId=lastServerRoundId[game];
       const isNewRound=Boolean(previousId && previousId !== round.id);
@@ -7034,6 +7031,11 @@ html,body{
           const el=document.getElementById(`bingoStakePlayers${selected}`);
           if(el) el.textContent=`${Number(round.playersInRoom)||0} players`;
         }
+      }
+
+      if(game === "aviator"){
+        if(window.__aviator && typeof window.__aviator.applyRound === "function") window.__aviator.applyRound(round);
+        return;
       }
 
       if(game === "keno"){
@@ -7429,8 +7431,8 @@ html,body{
       try{
         /* While inside a game, watch only that game at high frequency.
            This prevents the other request from delaying the visible draw. */
-        if(state.gameJoined && (state.game==="keno" || state.game==="bingo")){
-          const stake=state.game==="keno" ? state.kenoSelectedStake : state.bingoSelectedStake;
+        if(state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator")){
+          const stake=state.game==="keno" ? state.kenoSelectedStake : state.game==="bingo" ? state.bingoSelectedStake : null;
           await fetchLiveRound(state.game,stake);
         }else{
           await Promise.all([
@@ -7504,7 +7506,7 @@ html,body{
       ["keno","bingo","aviator"].forEach(loadRoundHistory);
       const schedule=()=>{
         if(!liveRoundSyncActive) return;
-        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
+        const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo" || state.game==="aviator") ? 250 : 1000;
         liveRoundTimer=setTimeout(async()=>{
           await fetchAllLiveRounds();
           schedule();
@@ -7875,6 +7877,7 @@ html,body{
   }
   function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   async function sync(){if(state.game!=="aviator")return;try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/round?x="+Date.now(),{cache:"no-store",headers:authHeaders()});if(!r.ok)return;const d=await safeJsonResponse(r);if(d?.success)render(d.round);}catch(e){}}
+  window.__aviator.applyRound=render;
   window.startAviatorSync=function(){stopAviatorSync();sync();timer=setInterval(sync,250);};
   window.stopAviatorSync=function(){if(timer){clearInterval(timer);timer=null;}};
   window.aviatorAdjust=function(slot,delta){const el=document.getElementById("aviatorAmount"+slot);if(!el)return;const v=Math.max(1,Number(el.value||1)+delta);el.value=v;};
