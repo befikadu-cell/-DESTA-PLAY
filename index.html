@@ -2817,13 +2817,13 @@ html,body{
               <div class="aviatorSlotHead"><strong>SLOT 1</strong><span id="aviatorResult1">—</span></div>
               <input id="aviatorAmount1" class="aviatorAmount" type="number" min="1" step="1" inputmode="decimal" value="10" placeholder="Bet amount">
               <div class="aviatorSlotActions"><button class="aviatorMinus" type="button" onclick="aviatorAdjust(1,-1)">−</button><button class="aviatorBetBtn" id="aviatorBetBtn1" type="button" onclick="placeAviatorBet(1)">PLACE BET</button><button class="aviatorPlus" type="button" onclick="aviatorAdjust(1,1)">+</button></div>
-              <button class="aviatorCashBtn hidden" id="aviatorCashBtn1" type="button" onclick="cashOutAviator(1)">CASH OUT</button>
+              <button class="aviatorCashBtn hidden" id="aviatorCashBtn1" type="button" onclick="cashOutAviator(1)"><span class="aviatorCashSmall">CASH OUT</span><span class="aviatorCashMult" id="aviatorCashMult1">1.00x</span><span class="aviatorCashMoney" id="aviatorCashMoney1">0.00 ETB</span></button>
             </div>
             <div class="aviatorSlot" id="aviatorSlot2">
               <div class="aviatorSlotHead"><strong>SLOT 2</strong><span id="aviatorResult2">—</span></div>
               <input id="aviatorAmount2" class="aviatorAmount" type="number" min="1" step="1" inputmode="decimal" value="10" placeholder="Bet amount">
               <div class="aviatorSlotActions"><button class="aviatorMinus" type="button" onclick="hideAviatorSlot2()">−</button><button class="aviatorBetBtn" id="aviatorBetBtn2" type="button" onclick="placeAviatorBet(2)">PLACE BET</button><button class="aviatorPlus" type="button" onclick="showAviatorSlot2()">+</button></div>
-              <button class="aviatorCashBtn hidden" id="aviatorCashBtn2" type="button" onclick="cashOutAviator(2)">CASH OUT</button>
+              <button class="aviatorCashBtn hidden" id="aviatorCashBtn2" type="button" onclick="cashOutAviator(2)"><span class="aviatorCashSmall">CASH OUT</span><span class="aviatorCashMult" id="aviatorCashMult2">1.00x</span><span class="aviatorCashMoney" id="aviatorCashMoney2">0.00 ETB</span></button>
             </div>
           </div>
           <div class="aviatorFeed" id="aviatorFeed"><div class="aviatorFeedTitle">LIVE ACTIVITY</div></div>
@@ -5780,8 +5780,313 @@ html,body{
     ========================================================= */
 
     function buildAviator(){
-      if(typeof window.buildAviator === "function") return window.buildAviator();
       renderAviatorHistory();
+
+    }
+
+
+    function generateCrashPoint(){
+
+      /*
+        Secure/random server-side outcome must eventually
+        replace this frontend generator.
+
+        This intentionally does not use a fixed crash value.
+      */
+
+      const r=
+        Math.random();
+
+      return Math.max(
+        1.01,
+        Number(
+          (
+            1+
+            (-Math.log(
+              Math.max(
+                0.000001,
+                1-r
+              )
+            )*1.15)
+          ).toFixed(2)
+        )
+      );
+
+    }
+
+
+    function placeAviatorBet(slot){
+
+      if(!state.bettingOpen){
+
+        alert(
+          "The flight has already started."
+        );
+
+        return;
+
+      }
+
+      if(
+        state.aviatorBets[slot]
+      ){
+
+        return;
+
+      }
+
+      const amount=
+        Number(
+          document.getElementById(
+            "a"+slot
+          ).value
+        );
+
+      if(
+        amount<=0 ||
+        amount>state.balance
+      ){
+
+        alert("Invalid amount.");
+
+        return;
+
+      }
+
+      state.balance-=amount;
+
+      state.aviatorBets[slot]={
+        amount,
+        cashed:false,
+        cashout:null
+      };
+
+      updateBalance();
+
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASH OUT";
+
+    }
+
+
+    function cashOutAviator(slot){
+
+      const bet=
+        state.aviatorBets[slot];
+
+      if(
+        !bet ||
+        bet.cashed ||
+        state.aviatorMultiplier<1
+      )
+        return;
+
+      const multiplier=
+        state.aviatorMultiplier;
+
+      const payout=
+        Number(
+          (
+            bet.amount*
+            multiplier
+          ).toFixed(2)
+        );
+
+      bet.cashed=true;
+      bet.cashout=multiplier;
+
+      state.balance+=payout;
+
+      updateBalance();
+
+      document
+        .getElementById(
+          "aviatorPayout"+slot
+        )
+        .textContent=
+          payout.toFixed(2)+
+          " ETB CASHED OUT";
+
+      document
+        .getElementById(
+          "aviatorBtn"+slot
+        )
+        .textContent=
+          "CASHED OUT";
+
+      setTimeout(()=>{
+
+        document
+          .getElementById(
+            "aviatorPayout"+slot
+          )
+          .textContent="";
+
+      },2000);
+
+    }
+
+
+    function runAviator(){
+
+      state.bettingOpen=true;
+
+      state.aviatorCrash=
+        generateCrashPoint();
+
+      state.aviatorMultiplier=1;
+
+      let seconds=10;
+
+      const countdown=
+        document.getElementById(
+          "aviatorCountdown"
+        );
+
+      const timer=
+        setInterval(()=>{
+
+          countdown.textContent=
+            "BETTING "+
+            seconds+
+            "s";
+
+          seconds--;
+
+          if(seconds<0){
+
+            clearInterval(timer);
+
+            startAviatorFlight();
+
+          }
+
+        },1000);
+
+    }
+
+
+    function startAviatorFlight(){
+
+      state.bettingOpen=false;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "FLIGHT LIVE";
+
+      const timer=
+        setInterval(()=>{
+
+          state.aviatorMultiplier=
+            Number(
+              (
+                state.aviatorMultiplier+
+                0.02+
+                Math.random()*0.08
+              ).toFixed(2)
+            );
+
+          const value=
+            state.aviatorMultiplier;
+
+          document
+            .getElementById(
+              "aviatorMultiplier"
+            )
+            .textContent=
+              value.toFixed(2)+"x";
+
+          const plane=
+            document.getElementById(
+              "plane"
+            );
+
+          plane.style.left=
+            Math.min(
+              88,
+              20+(value-1)*12
+            )+"%";
+
+          plane.style.bottom=
+            Math.min(
+              85,
+              30+(value-1)*8
+            )+"px";
+
+          [1,2].forEach(slot=>{
+
+            const bet=
+              state.aviatorBets[slot];
+
+            if(
+              bet &&
+              !bet.cashed
+            ){
+
+              const live=
+                bet.amount*value;
+
+              document
+                .getElementById(
+                  "aviatorPayout"+slot
+                )
+                .textContent=
+                  live.toFixed(2)+
+                  " ETB @ "+
+                  value.toFixed(2)+"x";
+
+            }
+
+          });
+
+          if(
+            value>=state.aviatorCrash
+          ){
+
+            clearInterval(timer);
+
+            finishAviator();
+
+          }
+
+        },300);
+
+    }
+
+
+    function finishAviator(){
+
+      state.bettingOpen=false;
+
+      const crash=
+        state.aviatorMultiplier;
+
+      document
+        .getElementById(
+          "aviatorCountdown"
+        )
+        .textContent=
+          "CRASHED "+
+          crash.toFixed(2)+"x";
+
+      state.aviatorHistory.unshift(
+        crash.toFixed(2)+"x"
+      );
+
+      state.aviatorHistory=
+        state.aviatorHistory.slice(0,10);
+
+      renderAviatorHistory();
+
+      renderAviatorHistory();
+
     }
 
 
@@ -7476,202 +7781,53 @@ html,body{
 })();
 </script>
 
+<style id="desta-aviator-smooth-ui">
+.aviatorPlane{transition:none!important;will-change:left,top,transform}.aviatorMultiplier{will-change:contents}.aviatorCountdown{min-width:210px;box-sizing:border-box;transition:none!important;will-change:contents}.aviatorCashBtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px}.aviatorCashSmall{font-size:10px;line-height:1;text-transform:uppercase;opacity:.78}.aviatorCashMult{font-size:11px;line-height:1.1;font-weight:900}.aviatorCashMoney{font-size:18px;line-height:1.05;font-weight:1000}.aviatorCashBtn.hidden{display:none!important}
+</style>
 <script id="desta-aviator-addition-js">
 (function(){
-  let timer=null, lastRound=0, slot2Visible=true, lastFeed=[];
-  let sfxRound=0, sfxPhase="", lastSfxCountdown=null, sfxTimer=null, sfxCtx=null;
+  let timer=null, raf=null, lastRound=0, slot2Visible=true, lastFeed=[];
+  let sfxRound=0, lastSfxCountdown=null, sfxTimer=null, sfxCtx=null;
+  let model=null, serverOffsetMs=0, lastFramePhase="";
   window.__aviator={state:null};
+  const GROWTH_RATE=0.0075;
   function authHeaders(){const h={"Accept":"application/json","Content-Type":"application/json"};if(state.authToken)h.Authorization="Bearer "+state.authToken;return h;}
-  function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
-  function buildAviator(){
-    set("aviatorMultiplier","1.00x"); set("aviatorCountdown","BETTING CLOSES IN 30s"); set("aviatorStatus","BETTING OPEN");
-    renderAviatorHistory();
-    [1,2].forEach(i=>{set("aviatorResult"+i,"—");document.getElementById("aviatorCashBtn"+i)?.classList.add("hidden");document.getElementById("aviatorBetBtn"+i)?.classList.remove("hidden");});
-    const f=document.getElementById("aviatorFeed");if(f)f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';
-  }
+  function set(id,v){const e=document.getElementById(id);if(e&&e.textContent!==String(v))e.textContent=String(v);}
+  function buildAviator(){model=null;lastFramePhase="";set("aviatorMultiplier","1.00x");set("aviatorCountdown","BETTING CLOSES IN 30s");set("aviatorStatus","BETTING OPEN");renderAviatorHistory();[1,2].forEach(i=>{set("aviatorResult"+i,"—");set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");document.getElementById("aviatorCashBtn"+i)?.classList.add("hidden");document.getElementById("aviatorBetBtn"+i)?.classList.remove("hidden");});const f=document.getElementById("aviatorFeed");if(f)f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';}
   window.buildAviator=buildAviator;
   function toast(msg){const old=document.querySelector(".aviatorOwnToast");if(old)old.remove();const d=document.createElement("div");d.className="aviatorOwnToast";d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2600);}
-  function aviatorSfxContext(){
-    try{
-      if(!sfxCtx){ sfxCtx=new (window.AudioContext||window.webkitAudioContext)(); }
-      if(sfxCtx.state==='suspended') sfxCtx.resume();
-      return sfxCtx;
-    }catch(e){ return null; }
-  }
-  function tone(freq,duration,type='sine',volume=0.045,delay=0){
-    const c=aviatorSfxContext(); if(!c) return;
-    const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
-    o.type=type; o.frequency.setValueAtTime(freq,t);
-    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(volume,t+0.015);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+duration);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+duration+0.03);
-  }
-  function countdownSfx(sec){
-    if(sec===10) tone(520,.12,'sine',.04);
-    else if(sec===5) tone(620,.12,'sine',.045);
-    else if(sec<=3) tone(760,.10,'square',.045);
-  }
-  function flightStartSfx(){
-    const c=aviatorSfxContext(); if(!c) return;
-    const t=c.currentTime, o=c.createOscillator(), g=c.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(330,t+.75);
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.055,t+.12); g.gain.exponentialRampToValueAtTime(.0001,t+.8);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.83);
-  }
-  function crashSfx(){
-    const c=aviatorSfxContext(); if(!c) return;
-    const t=c.currentTime, o=c.createOscillator(), g=c.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(45,t+.55);
-    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.12,t+.025); g.gain.exponentialRampToValueAtTime(.0001,t+.62);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.65);
-    tone(70,.35,'square',.045,.02);
-  }
-  function stopFlightSfx(){ if(sfxTimer){clearInterval(sfxTimer);sfxTimer=null;} }
-  function startFlightSfx(){
-    stopFlightSfx();
-    // Short, subtle engine pulses while the plane is actually flying.
-    sfxTimer=setInterval(()=>{
-      if(state.game==='aviator' && window.__aviator.state && window.__aviator.state.phase==='flying') tone(125,.16,'sawtooth',.012);
-      else stopFlightSfx();
-    },700);
-  }
-  document.addEventListener('pointerdown',()=>{ if(state && state.game==='aviator') aviatorSfxContext(); },{passive:true});
-  let smoothMultiplier=1, targetMultiplier=1, smoothRound=0, smoothPhase="";
-  let smoothFrame=null, smoothLastTime=0;
-  function renderSmoothMultiplier(now){
-    const phase=window.__aviator.state?.phase || smoothPhase;
-    const dt=Math.min(0.1,Math.max(0.001,(now-smoothLastTime)/1000));
-    smoothLastTime=now;
-    if(phase!=="flying") smoothMultiplier=targetMultiplier;
-    else smoothMultiplier += (targetMultiplier-smoothMultiplier) * (1-Math.exp(-18*dt));
-    const shown=Math.max(1,smoothMultiplier);
-    set("aviatorMultiplier",shown.toFixed(2)+"x");
-    const plane=document.getElementById("aviatorPlane");
-    if(plane){
-      const pct=Math.min(82,8+Math.log(Math.max(1,shown))*25);
-      plane.style.left=pct+"%";
-      plane.style.top=(62-Math.min(28,Math.log(Math.max(1,shown))*9))+"%";
-    }
-    if(phase==="flying"){
-      [1,2].forEach(i=>{
-        const b=window.__aviator.state?.ownBets?.[i];
-        if(b && !b.cashedOut){
-          const live=Number(b.amount||0)*shown;
-          set("aviatorResult"+i,live.toFixed(2)+" ETB @ "+shown.toFixed(2)+"x");
-        }
-      });
-    }
-    smoothFrame=requestAnimationFrame(renderSmoothMultiplier);
-  }
-  function ensureSmoothLoop(){
-    if(smoothFrame===null){
-      smoothLastTime=performance.now();
-      smoothFrame=requestAnimationFrame(renderSmoothMultiplier);
-    }
-  }
-  function render(d){
-    window.__aviator.state=d;
-    state.rounds.aviator=Number(d.roundNumber ?? d.round ?? 0);
-    state.displayRoundCounters.aviator=Number(d.roundNumber ?? d.round ?? 0);
-    updateRound();
-
-    targetMultiplier=Number(d.multiplierExact ?? d.multiplier ?? 1);
-    if(smoothRound!==Number(d.round)){
-      smoothRound=Number(d.round);
-      smoothMultiplier=targetMultiplier;
-    }
-    if(smoothPhase!==d.phase && d.phase!=="flying") smoothMultiplier=targetMultiplier;
-    smoothPhase=d.phase || "";
-    ensureSmoothLoop();
-
-    const now=Date.now();
-    if(d.phase==="betting"){
-      const sec=Math.max(0,Number(d.remainingSeconds ?? Math.ceil((Number(d.bettingEndsAt)-now)/1000)));
-      set("aviatorCountdown","BETTING CLOSES IN "+sec+"s");
-      set("aviatorStatus","BETTING OPEN • "+sec+"s");
-      set("aviatorNotice","Place your bet before the countdown ends.");
-      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;stopFlightSfx();}
-      if(sfxPhase!=="betting") sfxPhase="betting";
-      if([10,5,3,2,1].includes(sec) && lastSfxCountdown!==sec){lastSfxCountdown=sec;countdownSfx(sec);}
-    }
-    else if(d.phase==="flying"){
-      set("aviatorCountdown","FLIGHT LIVE");
-      set("aviatorStatus","FLYING");
-      set("aviatorNotice","Cash Out before the flight crashes.");
-      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
-      if(sfxPhase!=="flying"){sfxPhase="flying";flightStartSfx();startFlightSfx();}
-    }
-    else {
-      set("aviatorCountdown","");
-      set("aviatorStatus","");
-      set("aviatorNotice","Next round is preparing.");
-      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
-      if(sfxPhase!=="crashed"){sfxPhase="crashed";stopFlightSfx();crashSfx();}
-    }
-
-    if(Array.isArray(d.history)){
-      state.aviatorHistory=d.history.slice().reverse();
-      renderAviatorHistory();
-    }
-
-    [1,2].forEach(i=>{
-      const b=d.ownBets?.[i];
-      const bet=document.getElementById("aviatorBetBtn"+i);
-      const cash=document.getElementById("aviatorCashBtn"+i);
-      const amt=document.getElementById("aviatorAmount"+i);
-      if(b){
-        if(b.cashedOut){
-          set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");
-          bet?.classList.add("hidden");
-          cash?.classList.add("hidden");
-          if(amt)amt.disabled=true;
-        }else{
-          set("aviatorResult"+i,Number(b.amount).toFixed(2)+" ETB");
-          bet?.classList.add("hidden");
-          cash?.classList.toggle("hidden",d.phase!=="flying");
-          if(amt)amt.disabled=true;
-        }
-      }else{
-        bet?.classList.toggle("hidden",d.phase!=="betting");
-        cash?.classList.add("hidden");
-        if(amt)amt.disabled=d.phase!=="betting";
-      }
-    });
-
-    if(Array.isArray(d.activity)){
-      const sig=JSON.stringify(d.activity);
-      if(sig!==JSON.stringify(lastFeed)){
-        lastFeed=d.activity;
-        const f=document.getElementById("aviatorFeed");
-        if(f){
-          f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';
-          d.activity.slice(-12).reverse().forEach(a=>{
-            const row=document.createElement("div");
-            row.className="aviatorFeedRow";
-            row.innerHTML='<span>'+escapeHtml(a.label||"PLAYER")+'</span><strong>'+Number(a.payout||0).toFixed(2)+' ETB @ '+Number(a.multiplier||0).toFixed(2)+'x</strong>';
-            f.appendChild(row);
-          });
-        }
-      }
-    }
-    if(d.round!==lastRound){
-      lastRound=d.round;
-      slot2Visible=true;
-      document.getElementById("aviatorSlot2")?.classList.remove("hidden");
-    }
-  }
+  function aviatorSfxContext(){try{if(!sfxCtx)sfxCtx=new(window.AudioContext||window.webkitAudioContext)();if(sfxCtx.state==='suspended')sfxCtx.resume();return sfxCtx;}catch(e){return null;}}
+  function tone(freq,duration,type='sine',volume=.045,delay=0){const c=aviatorSfxContext();if(!c)return;const t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(volume,t+.015);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+duration+.03);}
+  function countdownSfx(sec){if(sec===10)tone(520,.12,'sine',.04);else if(sec===5)tone(620,.12,'sine',.045);else if(sec<=3)tone(760,.10,'square',.045);}
+  function flightStartSfx(){const c=aviatorSfxContext();if(!c)return;const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(330,t+.75);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.055,t+.12);g.gain.exponentialRampToValueAtTime(.0001,t+.8);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.83);}
+  function crashSfx(){const c=aviatorSfxContext();if(!c)return;const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(180,t);o.frequency.exponentialRampToValueAtTime(45,t+.55);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+.62);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.65);tone(70,.35,'square',.045,.02);}
+  function stopFlightSfx(){if(sfxTimer){clearInterval(sfxTimer);sfxTimer=null;}}
+  function startFlightSfx(){stopFlightSfx();sfxTimer=setInterval(()=>{if(state.game==='aviator'&&model&&model.phase==='flying')tone(125,.16,'sawtooth',.012);},700);}
+  document.addEventListener('pointerdown',()=>{if(state&&state.game==='aviator')aviatorSfxContext();},{passive:true});
+  function serverNow(){return Date.now()+serverOffsetMs;}
+  function smoothMultiplier(elapsedMs){const elapsed=Math.max(0,Number(elapsedMs)||0);return Math.exp(GROWTH_RATE*elapsed/100);}
+  function currentMultiplier(){if(!model||model.phase!=="flying")return Number(model?.multiplier||1);const elapsed=Math.max(0,serverNow()-Number(model.flightStartedAt||serverNow()));return Math.max(1,smoothMultiplier(elapsed));}
+  function renderCashoutValues(m){[1,2].forEach(i=>{const b=model?.ownBets?.[i];if(!b||b.cashedOut)return;set("aviatorCashMult"+i,m.toFixed(2)+"x");set("aviatorCashMoney"+i,(Number(b.amount||0)*m).toFixed(2)+" ETB");});}
+  function frame(){if(state.game!=="aviator"){raf=null;return;}if(model){const phase=model.phase;if(phase!==lastFramePhase){lastFramePhase=phase;if(phase==="flying"){flightStartSfx();startFlightSfx();}else if(phase==="crashed"){stopFlightSfx();crashSfx();}else stopFlightSfx();}
+      if(phase==="betting"){const remaining=Math.max(0,Number(model.bettingEndsAt||0)-serverNow()),sec=Math.max(0,Math.ceil(remaining/1000));set("aviatorCountdown",sec>0?"BETTING CLOSES IN "+sec+"s":"STARTING FLIGHT");set("aviatorStatus",sec>0?"BETTING OPEN • "+sec+"s":"STARTING FLIGHT");if([10,5,3,2,1].includes(sec)&&lastSfxCountdown!==sec){lastSfxCountdown=sec;countdownSfx(sec);}}
+      else if(phase==="flying"){const m=currentMultiplier();set("aviatorMultiplier",m.toFixed(2)+"x");set("aviatorCountdown","FLIGHT LIVE");set("aviatorStatus","FLYING");set("aviatorNotice","Cash Out before the flight crashes.");const plane=document.getElementById("aviatorPlane");if(plane){const pct=Math.min(82,8+Math.log(Math.max(1,m))*25);plane.style.left=pct+"%";plane.style.top=(62-Math.min(28,Math.log(Math.max(1,m))*9))+"%";}renderCashoutValues(m);}
+      else if(phase==="crashed"){const m=Number(model.multiplier||1);set("aviatorMultiplier",m.toFixed(2)+"x");set("aviatorCountdown","");set("aviatorStatus","CRASHED");set("aviatorNotice","Next round is preparing.");const plane=document.getElementById("aviatorPlane");if(plane){const pct=Math.min(82,8+Math.log(Math.max(1,m))*25);plane.style.left=pct+"%";plane.style.top=(62-Math.min(28,Math.log(Math.max(1,m))*9))+"%";}}
+    }raf=requestAnimationFrame(frame);}
+  function render(d){window.__aviator.state=d;model=d;if(Number.isFinite(Number(d.serverTime)))serverOffsetMs=Number(d.serverTime)-Date.now();state.rounds.aviator=Number(d.roundNumber??d.round??0);state.displayRoundCounters.aviator=Number(d.roundNumber??d.round??0);updateRound();if(d.phase!=="betting")lastSfxCountdown=null;if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);lastSfxCountdown=null;}if(Array.isArray(d.history)){state.aviatorHistory=d.history.slice().reverse();renderAviatorHistory();}
+    [1,2].forEach(i=>{const b=d.ownBets?.[i],bet=document.getElementById("aviatorBetBtn"+i),cash=document.getElementById("aviatorCashBtn"+i),amt=document.getElementById("aviatorAmount"+i);if(b){if(b.cashedOut){set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");bet?.classList.add("hidden");cash?.classList.add("hidden");set("aviatorCashMoney"+i,"0.00 ETB");}else{set("aviatorResult"+i,"BET "+Number(b.amount).toFixed(2)+" ETB");bet?.classList.add("hidden");cash?.classList.toggle("hidden",d.phase!=="flying");if(amt)amt.disabled=true;}}else{bet?.classList.toggle("hidden",d.phase!=="betting");cash?.classList.add("hidden");if(amt)amt.disabled=d.phase!=="betting";set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");}});
+    if(Array.isArray(d.activity)){const sig=JSON.stringify(d.activity);if(sig!==JSON.stringify(lastFeed)){lastFeed=d.activity;const f=document.getElementById("aviatorFeed");if(f){f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';d.activity.slice(-12).reverse().forEach(a=>{const row=document.createElement("div");row.className="aviatorFeedRow";row.innerHTML='<span>'+escapeHtml(a.label||"PLAYER")+'</span><strong>'+Number(a.payout||0).toFixed(2)+' ETB @ '+Number(a.multiplier||0).toFixed(2)+'x</strong>';f.appendChild(row);});}}}if(d.round!==lastRound){lastRound=d.round;slot2Visible=true;document.getElementById("aviatorSlot2")?.classList.remove("hidden");}}
   function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   async function sync(){if(state.game!=="aviator")return;try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/round?x="+Date.now(),{cache:"no-store",headers:authHeaders()});if(!r.ok)return;const d=await safeJsonResponse(r);if(d?.success)render(d.round);}catch(e){}}
   window.__aviator.applyRound=render;
-  window.startAviatorSync=function(){stopAviatorSync();sync();timer=setInterval(sync,250);};
-  window.stopAviatorSync=function(){if(timer){clearInterval(timer);timer=null;}};
-  window.aviatorAdjust=function(slot,delta){const el=document.getElementById("aviatorAmount"+slot);if(!el)return;const v=Math.max(1,Number(el.value||1)+delta);el.value=v;};
+  window.startAviatorSync=function(){stopAviatorSync();sync();timer=setInterval(sync,400);if(!raf)raf=requestAnimationFrame(frame);};
+  window.stopAviatorSync=function(){if(timer){clearInterval(timer);timer=null;}if(raf){cancelAnimationFrame(raf);raf=null;}stopFlightSfx();};
+  window.aviatorAdjust=function(slot,delta){const el=document.getElementById("aviatorAmount"+slot);if(!el)return;el.value=Math.max(10,Number(el.value||10)+delta);};
   window.hideAviatorSlot2=function(){slot2Visible=false;document.getElementById("aviatorSlot2")?.classList.add("hidden");};
   window.showAviatorSlot2=function(){slot2Visible=true;document.getElementById("aviatorSlot2")?.classList.remove("hidden");};
-  window.placeAviatorBet=async function(slot){try{const amount=Number(document.getElementById("aviatorAmount"+slot)?.value||0);if(amount<1)throw new Error("Enter a valid bet amount");const r=await fetch("https://desta-play.onrender.com/api/game/aviator/bet",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot,amount})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Could not place Aviator bet");state.balance=Number(d.balance||state.balance);updateBalance();toast("BET ACCEPTED • SLOT "+slot);await sync();}catch(e){alert(e.message||"Could not place Aviator bet");}};
-  window.cashOutAviator=async function(slot){try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/cashout",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Cash Out unavailable");state.balance=Number(d.balance||state.balance);updateBalance();toast("CASHED OUT • "+Number(d.payout||0).toFixed(2)+" ETB @ "+Number(d.multiplier||0).toFixed(2)+"x");await sync();}catch(e){alert(e.message||"Cash Out unavailable");}};
+  window.placeAviatorBet=async function(slot){try{const amount=Number(document.getElementById("aviatorAmount"+slot)?.value||0);if(amount<10)throw new Error("Minimum Aviator bet is 10 ETB");const r=await fetch("https://desta-play.onrender.com/api/game/aviator/bet",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot,amount})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Could not place Aviator bet");state.balance=Number(d.balance??state.balance);updateBalance();toast("BET ACCEPTED • SLOT "+slot);await sync();}catch(e){alert(e.message||"Could not place Aviator bet");}};
+  window.cashOutAviator=async function(slot){try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/cashout",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Cash Out unavailable");state.balance=Number(d.balance??state.balance);updateBalance();toast("CASHED OUT • "+Number(d.payout||0).toFixed(2)+" ETB @ "+Number(d.multiplier||0).toFixed(2)+"x");await sync();}catch(e){alert(e.message||"Cash Out unavailable");}};
 })();
-</script>
+</script></script>
 </body>
     </html>
 
