@@ -2916,9 +2916,6 @@ html,body{
         <h3>BONUS POINTS</h3>
         <div class="walletStats">
           <div class="walletStat"><small>POINTS</small><strong><span id="walletBonusPoints">0.00</span></strong></div>
-          <div class="walletStat"><small>PLAY VALUE</small><strong><span id="walletBonusPlayValue">0.00</span> ETB</strong></div>
-          <div class="walletStat"><small>WITHDRAW VALUE</small><strong><span id="walletBonusWithdrawalValue">0.00</span> ETB</strong></div>
-          <div class="walletStat"><small>MINIMUM</small><strong>3,000 pts</strong></div>
         </div>
       </div>
 
@@ -6501,6 +6498,7 @@ html,body{
       const id=currentPlayerId();
       document.getElementById("withdrawAccountId").value=id || "";
       document.getElementById("withdrawPasswordBox").classList.add("hidden");
+      document.getElementById("withdrawWalletType").value="cash";
       document.getElementById("withdrawAmount").value="";
       document.getElementById("withdrawAccount").value="";
       setWalletStatus("withdrawStatus","","");
@@ -6583,8 +6581,10 @@ html,body{
     async function submitWithdraw(){
       const payload={
         amount:Number(document.getElementById("withdrawAmount").value),
+        walletType:document.getElementById("withdrawWalletType").value,
         method:document.getElementById("withdrawMethod").value,
-        account:document.getElementById("withdrawAccount").value.trim(),
+        recipientName:state.telegramName || "Player",
+        recipientPhone:document.getElementById("withdrawAccount").value.trim(),
         password:document.getElementById("withdrawPassword").value
       };
       if(!payload.amount || payload.amount<=0 || !payload.account){
@@ -6595,7 +6595,7 @@ html,body{
         setWalletStatus("withdrawStatus","Enter your password.","err");
         return;
       }
-      if(Number.isFinite(state.withdrawableBalance) && payload.amount > state.withdrawableBalance + 0.000001){
+      if(payload.walletType==="cash" && Number.isFinite(state.withdrawableBalance) && payload.amount > state.withdrawableBalance + 0.000001){
         setWalletStatus("withdrawStatus",`Only ${Number(state.withdrawableBalance).toFixed(2)} ETB is withdrawable. Keep playing to unlock your deposited balance.`,"err");
         return;
       }
@@ -6634,11 +6634,7 @@ html,body{
         if(w)w.textContent=withdrawable.toFixed(2);
         if(l)l.textContent=locked.toFixed(2);
         const bp=document.getElementById("walletBonusPoints");
-        const bv=document.getElementById("walletBonusPlayValue");
-        const bw=document.getElementById("walletBonusWithdrawalValue");
         if(bp)bp.textContent=Number(state.bonusPoints||0).toFixed(2);
-        if(bv)bv.textContent=Number(state.bonusPlayValue||0).toFixed(2);
-        if(bw)bw.textContent=Number(state.bonusWithdrawalValue||0).toFixed(2);
         if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
       }catch(error){console.warn("Wallet connection error:",error)}
     }
@@ -7744,6 +7740,11 @@ html,body{
         <div class="walletHint">Enter the amount and the phone number that should receive the withdrawal. After tapping WITHDRAW, a password verification box will appear.</div>
         <label class="walletFormLabel">ACCOUNT ID</label>
         <input id="withdrawAccountId" class="walletFormInput" readonly>
+        <label class="walletFormLabel">WITHDRAW FROM</label>
+        <select id="withdrawWalletType" class="walletFormSelect">
+          <option value="cash" selected>REAL MONEY</option>
+          <option value="bonus">BONUS POINTS</option>
+        </select>
         <label class="walletFormLabel">WITHDRAW AMOUNT (ETB)</label>
         <input id="withdrawAmount" class="walletFormInput" type="number" min="1" step="0.01" inputmode="decimal" placeholder="100">
         <label class="walletFormLabel">WITHDRAWAL METHOD</label>
@@ -7795,7 +7796,7 @@ html,body{
     const fx=document.getElementById("aviatorCrashFx");if(fx)fx.style.display="none";
     document.getElementById("aviatorCrashLabel")?.classList.remove("visible");
     renderAviatorHistory();
-    [1,2].forEach(i=>{set("aviatorResult"+i,"—");set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");document.getElementById("aviatorCashBtn"+i)?.classList.add("hidden");document.getElementById("aviatorBetBtn"+i)?.classList.remove("hidden");});
+    [1,2].forEach(i=>{set("aviatorResult"+i,"—");set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");document.getElementById("aviatorCashBtn"+i)?.classList.add("hidden");document.getElementById("aviatorBetBtn"+i)?.classList.remove("hidden");document.getElementById("aviatorBetBtn"+i)?.removeAttribute("disabled");});
     const f=document.getElementById("aviatorFeed");if(f)f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';
   }
   window.buildAviator=buildAviator;
@@ -7898,9 +7899,9 @@ html,body{
     [1,2].forEach(i=>{
       const b=d.ownBets?.[i],bet=document.getElementById("aviatorBetBtn"+i),cash=document.getElementById("aviatorCashBtn"+i),amt=document.getElementById("aviatorAmount"+i);
       if(b){
-        if(b.cashedOut){set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");bet?.classList.add("hidden");cash?.classList.add("hidden");set("aviatorCashMoney"+i,"0.00 ETB");}
-        else{set("aviatorResult"+i,"BET "+Number(b.amount).toFixed(2)+" ETB");bet?.classList.add("hidden");cash?.classList.toggle("hidden",d.phase!=="flying");if(amt)amt.disabled=true;}
-      }else{bet?.classList.toggle("hidden",d.phase!=="betting");cash?.classList.add("hidden");if(amt)amt.disabled=d.phase!=="betting";set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");}
+        if(b.cashedOut){set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");bet?.classList.remove("hidden");if(bet){bet.disabled=true;bet.textContent="PLACE BET";}cash?.classList.add("hidden");set("aviatorCashMoney"+i,"0.00 ETB");if(amt)amt.disabled=true;}
+        else{set("aviatorResult"+i,"BET "+Number(b.amount).toFixed(2)+" ETB");bet?.classList.remove("hidden");if(bet){bet.disabled=true;bet.textContent="PLACE BET";}cash?.classList.toggle("hidden",d.phase!=="flying");if(amt)amt.disabled=true;}
+      }else{bet?.classList.remove("hidden");if(bet){bet.disabled=d.phase!=="betting";bet.textContent="PLACE BET";}cash?.classList.add("hidden");if(amt)amt.disabled=d.phase!=="betting";set("aviatorCashMult"+i,"1.00x");set("aviatorCashMoney"+i,"0.00 ETB");}
     });
     if(Array.isArray(d.activity)){
       const sig=JSON.stringify(d.activity);
