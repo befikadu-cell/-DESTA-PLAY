@@ -186,6 +186,7 @@ const aviator = {
     bets: new Map(),
     activity: [],
     history: [],
+    lastAttractCrashPoint: 0,
     nextRoundTimer: null,
     tickTimer: null,
     settlementQueue: Promise.resolve(),
@@ -212,6 +213,7 @@ function aviatorPublicState() {
         bettingEndsAt: aviator.bettingEndsAt,
         flightStartedAt: aviator.flightStartedAt,
         multiplier: Number(multiplier.toFixed(2)),
+        multiplierExact: Number(multiplier.toFixed(6)),
         activity: Array.isArray(aviator.activity) ? aviator.activity.slice(-12) : [],
         history: Array.isArray(aviator.history) ? aviator.history.slice(-25) : []
     };
@@ -242,6 +244,27 @@ function aviatorStartRound() {
     aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, aviatorEngine.AVIATOR_CONFIG.bettingSeconds * 1000);
 }
 
+function aviatorAttractCrashPoint() {
+    // No-player attract rounds are display-only: they do not accept bets or
+    // settle player winnings. Keep the outcomes varied so the history does
+    // not repeat the same 10x-style ceiling.
+    const r = Math.random();
+    let min;
+    let max;
+    if (r < 0.28) { [min, max] = [3.00, 9.00]; }
+    else if (r < 0.55) { [min, max] = [7.00, 18.00]; }
+    else if (r < 0.78) { [min, max] = [14.00, 32.00]; }
+    else if (r < 0.94) { [min, max] = [28.00, 65.00]; }
+    else { [min, max] = [55.00, 120.00]; }
+
+    let point = Number((min + Math.random() * (max - min)).toFixed(2));
+    if (Math.abs(point - Number(aviator.lastAttractCrashPoint || 0)) < 0.75) {
+        point = Number(Math.min(max, point + 1.25).toFixed(2));
+    }
+    aviator.lastAttractCrashPoint = point;
+    return point;
+}
+
 function aviatorBeginFlight() {
     if (aviator.phase !== "betting") return;
     aviator.phase = "flying";
@@ -250,7 +273,7 @@ function aviatorBeginFlight() {
     aviator.payoutPool = aviatorEngine.calculatePayoutCap(aviator.totalWagered);
     /* No-player rounds use a normal server-only crash point so the plane
        still flies and crashes even when nobody bets. */
-    if (aviator.totalWagered <= 0) aviator.crashAt = Number((1.25 + Math.random() * 8.75).toFixed(2));
+    if (aviator.totalWagered <= 0) aviator.crashAt = aviatorAttractCrashPoint();
     else aviator.crashAt = aviatorCrashPoint(aviator.secretSeed);
     aviator.nextRoundTimer = null;
     saveAviatorRound("FLYING").catch(console.error);
@@ -327,7 +350,7 @@ async function initializeAviator() {
                         aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, remaining);
                     } else {
                         if (!aviator.flightStartedAt) aviator.flightStartedAt = Date.now();
-                        if (!aviator.crashAt) aviator.crashAt = aviator.totalWagered > 0 ? aviatorCrashPoint(aviator.secretSeed || crypto.randomBytes(32).toString("hex")) : Number((1.25 + Math.random()*8.75).toFixed(2));
+                        if (!aviator.crashAt) aviator.crashAt = aviator.totalWagered > 0 ? aviatorCrashPoint(aviator.secretSeed || crypto.randomBytes(32).toString("hex")) : aviatorAttractCrashPoint();
                         const elapsed = Math.max(0, Date.now() - aviator.flightStartedAt);
                         aviator.multiplier = aviatorEngine.multiplierAt(elapsed);
                         if (aviator.multiplier >= aviator.crashAt) aviatorScheduleCrash(0);
@@ -5659,8 +5682,6 @@ async function settleKenoRound(round) {
 
     const bets = Array.isArray(round.bets) ? round.bets : [];
     const grossPool = bets.reduce((sum, bet) => sum + Number(bet.amount || 0), 0);
-    const houseRake = Number((grossPool * 0.10).toFixed(2));
-
     const byPlayer = new Map();
     for (const bet of bets) {
         const playerId = String(bet.playerId);
