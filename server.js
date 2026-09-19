@@ -164,6 +164,12 @@ app.use(express.static(__dirname));
 | phase. For player rounds, the payout pool is exactly 50% of total bets.
 |--------------------------------------------------------------------------
 */
+/* Persistent display sequence for each server-authoritative house game. */
+const roundCounters = {
+    keno: 0,
+    aviator: 0
+};
+
 const aviator = {
     id: "",
     roundNo: 0,
@@ -196,6 +202,7 @@ function aviatorPublicState() {
         id: aviator.id || `aviator-${aviator.roundNo}`,
         round: Number(aviator.roundNo || 1),
         roundNumber: Number(aviator.roundNo || 1),
+        roundNumberLabel: String(Number(aviator.roundNo || 1)).padStart(3, "0"),
         phase: aviator.phase,
         bettingEndsAt: aviator.bettingEndsAt,
         flightStartedAt: aviator.flightStartedAt,
@@ -270,40 +277,83 @@ async function initializeAviator() {
     try {
         const { data, error } = await supabase
             .from("game_rounds")
-            .select("id,round_id,status,result,multiplier,crash_point,engine_state,created_at,updated_at")
+            .select("*")
             .eq("game", "aviator")
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error || !data) {
+            console.log("[AVIATOR] No saved round. Starting new round.");
+            aviatorStartRound();
+        } else {
+            const state = data.engine_state || {};
+            const savedRound = Math.max(1, Number(state.roundNumber || 1));
+            roundCounters.aviator = Math.max(roundCounters.aviator, savedRound);
+
+            if (["CRASHED", "FINISHED"].includes(String(data.status || "").toUpperCase())) {
+                aviatorStartRound();
+            } else {
+                const bettingStartedAt = new Date(data.betting_started_at).getTime();
+                const bettingEndsAt = new Date(data.betting_ends_at).getTime();
+                if (!Number.isFinite(bettingStartedAt) || !Number.isFinite(bettingEndsAt)) {
+                    aviatorStartRound();
+                } else {
+                    aviator.id = data.round_id || data.id || `aviator-${Date.now()}`;
+                    aviator.roundNo = savedRound;
+                    aviator.phase = String(data.status || "BETTING").toLowerCase() === "flying" ? "flying" : "betting";
+                    aviator.startedAt = bettingStartedAt;
+                    aviator.bettingEndsAt = bettingEndsAt;
+                    aviator.flightStartedAt = Number(state.flyingStartedAt || 0);
+                    aviator.multiplier = Number(state.multiplier || data.multiplier || 1);
+                    aviator.crashAt = Number(state.secretCrashPoint || 0) || null;
+                    aviator.bets = new Map();
+                    for (const b of (Array.isArray(state.bets) ? state.bets : [])) {
+                        if (b && b.playerId != null && b.slot != null) aviator.bets.set(aviatorBetKey(b.playerId,b.slot), {...b});
+                    }
+                    aviator.totalWagered = Array.from(aviator.bets.values()).reduce((sum,b)=>sum+Number(b.amount||0),0);
+                    aviator.payoutPool = Number((aviator.totalWagered * 0.5).toFixed(2));
+                    aviator.paidOut = Array.from(aviator.bets.values()).reduce((sum,b)=>sum+Number(b.payout||0),0);
+                    aviator.activity = [];
+                    console.log(`[AVIATOR] RESTORED ${aviator.id} | ${aviator.phase} | ROUND ${aviator.roundNo}`);
+
+                    if (aviator.phase === "betting") {
+                        const remaining = Math.max(0, aviator.bettingEndsAt - Date.now());
+                        aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, remaining);
+                    } else {
+                        if (!aviator.flightStartedAt) aviator.flightStartedAt = Date.now();
+                        if (!aviator.crashAt) aviator.crashAt = aviator.totalWagered > 0 ? aviatorCrashPoint() : Number((1.25 + Math.random()*8.75).toFixed(2));
+                        const elapsed = Math.max(0, Date.now() - aviator.flightStartedAt);
+                        aviator.multiplier = Number(Math.max(1, Math.exp(elapsed / 360000)).toFixed(2));
+                        if (aviator.multiplier >= aviator.crashAt) aviatorScheduleCrash(0);
+                    }
+                }
+            }
+        }
+
+        const { data: historyRows } = await supabase
+            .from("game_rounds")
+            .select("round_id,id,status,multiplier,crash_point,result,engine_state,created_at,updated_at")
+            .eq("game", "aviator")
+            .eq("status", "CRASHED")
             .order("updated_at", { ascending: false })
             .limit(25);
 
-        if (error) throw error;
-
-        const rows = Array.isArray(data) ? data : [];
-        const latest = rows[0];
-        const latestNumber = latest ? Number(latest.engine_state?.roundNumber || 0) : 0;
-        roundCounters.aviator = Math.max(0, ...rows.map(r => Number(r.engine_state?.roundNumber || 0)).filter(Number.isFinite), latestNumber);
-
-        aviator.history = rows
-            .filter(r => String(r.status || "").toUpperCase() === "CRASHED")
-            .map(r => ({
-                round: Number(r.engine_state?.roundNumber || 0),
-                multiplier: Number(r.multiplier ?? r.crash_point ?? r.result?.multiplier ?? 0),
-                at: new Date(r.updated_at || r.created_at || Date.now()).getTime()
-            }))
-            .filter(h => h.round > 0 && Number.isFinite(h.multiplier))
-            .sort((a,b) => b.at - a.at)
-            .slice(0, 25);
+        aviator.history = (historyRows || []).map(r => ({
+            round: Number(r.engine_state?.roundNumber || 0),
+            multiplier: Number(r.multiplier ?? r.crash_point ?? r.result?.multiplier ?? 0),
+            at: new Date(r.updated_at || r.created_at || Date.now()).getTime()
+        })).filter(h => h.round > 0 && Number.isFinite(h.multiplier));
     } catch (error) {
-        console.error("[AVIATOR] Could not restore DB round sequence/history:", error);
+        console.error("[AVIATOR] Could not restore DB round:", error);
+        aviatorStartRound();
     }
 
-    aviatorStartRound();
     aviator.tickTimer = setInterval(aviatorTick, 100);
 }
 
 initializeAviator().catch(error => {
     console.error("[AVIATOR] Initialization failed:", error);
-    aviatorStartRound();
-    aviator.tickTimer = setInterval(aviatorTick, 100);
 });
 
 function aviatorBetKey(playerId, slot) { return `${String(playerId)}:${Number(slot)}`; }
@@ -344,8 +394,10 @@ async function saveAviatorRound(statusOverride) {
         crash_point: status === "CRASHED" ? Number(aviator.multiplier || 1) : null,
         engine_state: {
             roundNumber: Number(aviator.roundNo || 1),
+            roundNumberLabel: String(Number(aviator.roundNo || 1)).padStart(3, "0"),
             multiplier: Number(aviator.multiplier || 1),
             flyingStartedAt: Number(aviator.flightStartedAt || 0),
+            secretCrashPoint: aviator.crashAt || null,
             bets: Array.from(aviator.bets.values()).map(b => ({ ...b }))
         },
         updated_at: nowIso()
@@ -508,11 +560,6 @@ async function withPlayerBalanceLock(playerId, work) {
     }
 }
 
-/* Persistent display sequence for each server-authoritative house game. */
-const roundCounters = {
-    keno: 0,
-    aviator: 0
-};
 
 /* Persistent display sequence for each Bingo stake room. */
 const bingoRoundCounters = {};
