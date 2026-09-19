@@ -2806,7 +2806,6 @@ html,body{
             <button class="aviatorHistoryExpand" id="aviatorHistoryExpand" type="button" onclick="toggleAviatorHistory()" aria-expanded="false">⌄</button>
           </div>
           <div class="aviatorHistoryExpanded hidden" id="aviatorHistoryExpanded"></div>
-          <div class="aviatorRoundRow"><span class="aviatorRoundLabel">ROUND</span><strong id="aviatorRound">#1</strong><span class="aviatorTopStatus" id="aviatorStatus">BETTING OPEN</span></div>
           <section class="aviatorFlight" id="aviatorFlight">
             <div class="aviatorSky"><div class="aviatorCloud c1"></div><div class="aviatorCloud c2"></div><div class="aviatorCloud c3"></div><div class="aviatorPlane" id="aviatorPlane">✈</div></div>
             <div class="aviatorMultiplier" id="aviatorMultiplier">1.00x</div>
@@ -7502,7 +7501,7 @@ html,body{
       liveRoundSyncActive=true;
       liveRoundBusy=false;
       fetchAllLiveRounds();
-      ["keno","bingo"].forEach(loadRoundHistory);
+      ["keno","bingo","aviator"].forEach(loadRoundHistory);
       const schedule=()=>{
         if(!liveRoundSyncActive) return;
         const delay=state.gameJoined && (state.game==="keno" || state.game==="bingo") ? 250 : 1000;
@@ -7842,7 +7841,7 @@ html,body{
   document.addEventListener('pointerdown',()=>{ if(state && state.game==='aviator') aviatorSfxContext(); },{passive:true});
   function render(d){
     window.__aviator.state=d;
-    state.rounds.aviator=Number(d.round||0); state.displayRoundCounters.aviator=Number(d.round||0); updateRound();
+    state.rounds.aviator=Number(d.roundNumber ?? d.round ?? 0); state.displayRoundCounters.aviator=Number(d.roundNumber ?? d.round ?? 0); updateRound();
     const m=Number(d.multiplier||1); set("aviatorMultiplier",m.toFixed(2)+"x");
     const now=Date.now();
     if(d.phase==="betting"){
@@ -7865,8 +7864,6 @@ html,body{
       if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
       if(sfxPhase!=="crashed"){sfxPhase="crashed";stopFlightSfx();crashSfx();}
     }
-    const roundEl=document.getElementById("aviatorRound");
-    if(roundEl && Number.isFinite(Number(d.round))) roundEl.textContent="#"+Number(d.round);
     if(Array.isArray(d.history)){
       state.aviatorHistory=d.history.slice().reverse();
       renderAviatorHistory();
