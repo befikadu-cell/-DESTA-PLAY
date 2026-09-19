@@ -177,6 +177,7 @@ const aviator = {
     paidOut: 0,
     bets: new Map(),
     activity: [],
+    history: [],
     nextRoundTimer: null,
     tickTimer: null
 };
@@ -190,12 +191,15 @@ function aviatorPublicState() {
         aviator.multiplier = Number(multiplier.toFixed(2));
     }
     return {
+        game: "aviator",
+        id: `AVI-${aviator.roundNo}`,
         round: aviator.roundNo,
         phase: aviator.phase,
         bettingEndsAt: aviator.bettingEndsAt,
         flightStartedAt: aviator.flightStartedAt,
         multiplier: Number(multiplier.toFixed(2)),
-        activity: Array.isArray(aviator.activity) ? aviator.activity.slice(-12) : []
+        activity: Array.isArray(aviator.activity) ? aviator.activity.slice(-12) : [],
+        history: Array.isArray(aviator.history) ? aviator.history.slice(-25) : []
     };
 }
 
@@ -242,6 +246,8 @@ function aviatorScheduleCrash(delay=0) {
         if (aviator.phase !== "flying") return;
         aviator.phase = "crashed";
         aviator.multiplier = Number((aviator.crashAt || aviator.multiplier).toFixed(2));
+        aviator.history.push({ round: aviator.roundNo, multiplier: aviator.multiplier, at: Date.now() });
+        if (aviator.history.length > 25) aviator.history = aviator.history.slice(-25);
         aviator.nextRoundTimer = setTimeout(aviatorStartRound, 2500);
     }, Math.max(0, delay));
 }
