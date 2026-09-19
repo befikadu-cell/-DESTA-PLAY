@@ -5750,7 +5750,7 @@ async function settleKenoRound(round) {
             }catch(error){console.error(`[KENO] PAYOUT ERROR for ${winner.playerId}:`,error);}
         }
     }
-    const houseRake=Number(totalHouseRake.toFixed(2));
+    // houseRake was already calculated from grossPool above. Do not redeclare it here.
     const rank1Total=Number(winners.filter(w=>w.rank===1).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
     const rank2Total=Number(winners.filter(w=>w.rank===2).reduce((sum,w)=>sum+Number(w.amount||0),0).toFixed(2));
 
