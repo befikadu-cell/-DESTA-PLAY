@@ -165,6 +165,7 @@ app.use(express.static(__dirname));
 |--------------------------------------------------------------------------
 */
 const aviator = {
+    id: "",
     roundNo: 0,
     phase: "betting",
     startedAt: 0,
@@ -192,8 +193,9 @@ function aviatorPublicState() {
     }
     return {
         game: "aviator",
-        id: `AVI-${aviator.roundNo}`,
-        round: aviator.roundNo,
+        id: aviator.id || `aviator-${aviator.roundNo}`,
+        round: Number(aviator.roundNo || 1),
+        roundNumber: Number(aviator.roundNo || 1),
         phase: aviator.phase,
         bettingEndsAt: aviator.bettingEndsAt,
         flightStartedAt: aviator.flightStartedAt,
@@ -212,7 +214,8 @@ function aviatorCrashPoint() {
 
 function aviatorStartRound() {
     if (aviator.nextRoundTimer) { clearTimeout(aviator.nextRoundTimer); aviator.nextRoundTimer = null; }
-    aviator.roundNo += 1;
+    aviator.roundNo = ++roundCounters.aviator;
+    aviator.id = `aviator-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
     aviator.phase = "betting";
     aviator.startedAt = Date.now();
     aviator.bettingEndsAt = aviator.startedAt + 30000;
@@ -224,6 +227,7 @@ function aviatorStartRound() {
     aviator.paidOut = 0;
     aviator.bets = new Map();
     aviator.activity = [];
+    saveAviatorRound("BETTING").catch(console.error);
     aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, 30000);
 }
 
@@ -238,6 +242,7 @@ function aviatorBeginFlight() {
     if (aviator.totalWagered <= 0) aviator.crashAt = Number((1.25 + Math.random() * 8.75).toFixed(2));
     else aviator.crashAt = aviatorCrashPoint();
     aviator.nextRoundTimer = null;
+    saveAviatorRound("FLYING").catch(console.error);
 }
 
 function aviatorScheduleCrash(delay=0) {
@@ -248,6 +253,7 @@ function aviatorScheduleCrash(delay=0) {
         aviator.multiplier = Number((aviator.crashAt || aviator.multiplier).toFixed(2));
         aviator.history.push({ round: aviator.roundNo, multiplier: aviator.multiplier, at: Date.now() });
         if (aviator.history.length > 25) aviator.history = aviator.history.slice(-25);
+        saveAviatorRound("CRASHED").catch(console.error);
         aviator.nextRoundTimer = setTimeout(aviatorStartRound, 2500);
     }, Math.max(0, delay));
 }
@@ -260,8 +266,45 @@ function aviatorTick() {
     if (aviator.multiplier >= aviator.crashAt) aviatorScheduleCrash(0);
 }
 
-aviatorStartRound();
-aviator.tickTimer = setInterval(aviatorTick, 100);
+async function initializeAviator() {
+    try {
+        const { data, error } = await supabase
+            .from("game_rounds")
+            .select("id,round_id,status,result,multiplier,crash_point,engine_state,created_at,updated_at")
+            .eq("game", "aviator")
+            .order("updated_at", { ascending: false })
+            .limit(25);
+
+        if (error) throw error;
+
+        const rows = Array.isArray(data) ? data : [];
+        const latest = rows[0];
+        const latestNumber = latest ? Number(latest.engine_state?.roundNumber || 0) : 0;
+        roundCounters.aviator = Math.max(0, ...rows.map(r => Number(r.engine_state?.roundNumber || 0)).filter(Number.isFinite), latestNumber);
+
+        aviator.history = rows
+            .filter(r => String(r.status || "").toUpperCase() === "CRASHED")
+            .map(r => ({
+                round: Number(r.engine_state?.roundNumber || 0),
+                multiplier: Number(r.multiplier ?? r.crash_point ?? r.result?.multiplier ?? 0),
+                at: new Date(r.updated_at || r.created_at || Date.now()).getTime()
+            }))
+            .filter(h => h.round > 0 && Number.isFinite(h.multiplier))
+            .sort((a,b) => b.at - a.at)
+            .slice(0, 25);
+    } catch (error) {
+        console.error("[AVIATOR] Could not restore DB round sequence/history:", error);
+    }
+
+    aviatorStartRound();
+    aviator.tickTimer = setInterval(aviatorTick, 100);
+}
+
+initializeAviator().catch(error => {
+    console.error("[AVIATOR] Initialization failed:", error);
+    aviatorStartRound();
+    aviator.tickTimer = setInterval(aviatorTick, 100);
+});
 
 function aviatorBetKey(playerId, slot) { return `${String(playerId)}:${Number(slot)}`; }
 
@@ -279,6 +322,57 @@ app.get("/api/game/aviator/round", async (req, res) => {
     } catch (error) {
         console.error("Aviator round error:", error);
         return res.status(500).json({ success:false, error:"Could not load Aviator round" });
+    }
+});
+
+async function saveAviatorRound(statusOverride) {
+    if (!aviator.roundNo) return;
+    const status = String(statusOverride || aviator.phase || "BETTING").toUpperCase();
+    const now = Date.now();
+    const payload = {
+        id: aviator.id || `aviator-${aviator.roundNo}`,
+        round_id: aviator.id || `aviator-${aviator.roundNo}`,
+        game: "aviator",
+        status,
+        betting_seconds: 30,
+        betting_started_at: new Date(aviator.startedAt || now).toISOString(),
+        betting_ends_at: new Date(aviator.bettingEndsAt || now).toISOString(),
+        drawn_numbers: [],
+        current_number: null,
+        result: status === "CRASHED" ? { multiplier: Number(aviator.multiplier || 1) } : null,
+        multiplier: Number(aviator.multiplier || 1),
+        crash_point: status === "CRASHED" ? Number(aviator.multiplier || 1) : null,
+        engine_state: {
+            roundNumber: Number(aviator.roundNo || 1),
+            multiplier: Number(aviator.multiplier || 1),
+            flyingStartedAt: Number(aviator.flightStartedAt || 0),
+            bets: Array.from(aviator.bets.values()).map(b => ({ ...b }))
+        },
+        updated_at: nowIso()
+    };
+    const { error } = await supabase.from("game_rounds").upsert(payload, { onConflict: "id" });
+    if (error) throw error;
+}
+
+app.get("/api/game/aviator/history", async (req, res) => {
+    try {
+        const limit = Math.min(25, Math.max(1, Number(req.query.limit || 25)));
+        const { data, error } = await supabase
+            .from("game_rounds")
+            .select("id,round_id,status,result,multiplier,crash_point,engine_state,created_at,updated_at")
+            .eq("game", "aviator")
+            .eq("status", "CRASHED")
+            .order("updated_at", { ascending: false })
+            .limit(limit);
+        if (error) throw error;
+        return res.json({ success:true, history:(data || []).map(r => ({
+            round:Number(r.engine_state?.roundNumber || 0),
+            multiplier:Number(r.multiplier ?? r.crash_point ?? r.result?.multiplier ?? 0),
+            at:new Date(r.updated_at || r.created_at || Date.now()).getTime()
+        })) });
+    } catch (error) {
+        console.error("Aviator history error:", error);
+        return res.status(500).json({success:false,error:"Could not load Aviator history"});
     }
 });
 
@@ -301,6 +395,7 @@ app.post("/api/game/aviator/bet", requirePlayer, async (req, res) => {
         const bet = { playerId:String(req.player.id), slot, amount:Number(amount.toFixed(2)), acceptedAt:Date.now(), cashedOut:false, payout:0, cashoutMultiplier:null };
         aviator.bets.set(key, bet);
         aviator.totalWagered = Number((aviator.totalWagered + bet.amount).toFixed(2));
+        saveAviatorRound("BETTING").catch(console.error);
         return res.json({success:true, balance:Number(accepted.toFixed(2)), bet:{slot,amount:bet.amount}, round:aviatorPublicState()});
     } catch (error) {
         return res.status(400).json({success:false,error:error.message || "Could not place Aviator bet"});
@@ -335,6 +430,7 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
         aviator.activity.push({ label: `PLAYER • SLOT ${slot}`, payout: requestedPayout, multiplier, at: Date.now() });
         if (aviator.activity.length > 12) aviator.activity = aviator.activity.slice(-12);
         if (aviator.paidOut >= aviator.payoutPool - 0.0001) aviatorScheduleCrash(0);
+        saveAviatorRound("FLYING").catch(console.error);
         return res.json({success:true,balance:Number(after.toFixed(2)),payout:requestedPayout,multiplier,round:aviatorPublicState()});
     } catch (error) {
         return res.status(400).json({success:false,error:error.message || "Could not cash out"});
@@ -414,7 +510,8 @@ async function withPlayerBalanceLock(playerId, work) {
 
 /* Persistent display sequence for each server-authoritative house game. */
 const roundCounters = {
-    keno: 0
+    keno: 0,
+    aviator: 0
 };
 
 /* Persistent display sequence for each Bingo stake room. */
