@@ -2905,6 +2905,7 @@ html,body{
       <div class="walletStats">
         <div class="walletStat"><small>WITHDRAWABLE</small><strong><span id="withdrawableBalance">0.00</span> ETB</strong></div>
         <div class="walletStat"><small>LOCKED DEPOSIT</small><strong><span id="lockedBalance">0.00</span> ETB</strong></div>
+        <div class="walletStat"><small>WITHDRAWAL LOCKED</small><strong><span id="withdrawalLockedBalance">0.00</span> ETB</strong></div>
       </div>
 
       <div class="walletButtons">
@@ -3084,6 +3085,7 @@ html,body{
       balance:0,
       withdrawableBalance:0,
       lockedDepositBalance:0,
+      withdrawalLockedBalance:0,
 
       accountCreated:false,
 
@@ -6529,6 +6531,7 @@ html,body{
         if(Number.isFinite(Number(data.balanceAfter))) state.balance=Number(data.balanceAfter);
         if(Number.isFinite(Number(data.withdrawable))) state.withdrawableBalance=Number(data.withdrawable);
         if(Number.isFinite(Number(data.lockedDeposit))) state.lockedDepositBalance=Number(data.lockedDeposit);
+        if(Number.isFinite(Number(data.withdrawalLocked))) state.withdrawalLockedBalance=Number(data.withdrawalLocked);
         updateBalance();
         setWalletStatus(statusId,data.message || "Request submitted.","ok");
         if(typeof loadWalletData === "function")loadWalletData();
@@ -6604,7 +6607,7 @@ html,body{
         document.getElementById("withdrawPasswordBox").classList.add("hidden");
         document.getElementById("withdrawAmount").value="";
         document.getElementById("withdrawAccount").value="";
-        setWalletStatus("withdrawStatus",`Withdrawal pending. Balance updated to ${Number(data.balanceAfter || 0).toFixed(2)} ETB.`,"ok");
+        setWalletStatus("withdrawStatus",`Withdrawal pending. ${Number(data.amount || 0).toFixed(2)} ETB is now locked for this withdrawal.`,"ok");
       }
     }
 
@@ -6620,9 +6623,11 @@ html,body{
         const balance=Number(wallet.balance ?? wallet.availableBalance ?? 0);
         const withdrawable=Number(wallet.withdrawable ?? wallet.withdrawableBalance ?? 0);
         const locked=Number(wallet.lockedDeposit ?? wallet.lockedBalance ?? Math.max(0,balance-withdrawable));
+        const withdrawalLocked=Number(wallet.withdrawalLocked ?? wallet.withdrawalLockedBalance ?? 0);
         state.balance=balance;
         state.withdrawableBalance=withdrawable;
         state.lockedDepositBalance=locked;
+        state.withdrawalLockedBalance=withdrawalLocked;
         state.bonusPoints=Number(wallet.bonusPoints||0);
         state.bonusPlayValue=Number(wallet.bonusPlayValue ?? wallet.bonusPoints ?? 0);
         state.bonusWithdrawalValue=Number(wallet.bonusWithdrawalValue ?? 0);
@@ -6630,9 +6635,11 @@ html,body{
         const b=document.getElementById("walletBalance");
         const w=document.getElementById("withdrawableBalance");
         const l=document.getElementById("lockedBalance");
+        const wl=document.getElementById("withdrawalLockedBalance");
         if(b)b.textContent=balance.toFixed(2);
         if(w)w.textContent=withdrawable.toFixed(2);
         if(l)l.textContent=locked.toFixed(2);
+        if(wl)wl.textContent=withdrawalLocked.toFixed(2);
         const bp=document.getElementById("walletBonusPoints");
         if(bp)bp.textContent=Number(state.bonusPoints||0).toFixed(2);
         if(Array.isArray(wallet.transactions))renderWalletTransactions(wallet.transactions);
