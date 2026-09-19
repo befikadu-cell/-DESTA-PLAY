@@ -3480,8 +3480,6 @@ app.post(
                         `Bonus Points Requested: ${htmlEscape(pointsNeeded)} POINTS\n` +
                         `Bonus Points Debited: ${htmlEscape(pointsNeeded)} POINTS\n` +
                         `ETB Withdrawal Value: ${htmlEscape(amount)} ETB\n` +
-                        `Balance Before: ${htmlEscape(req.player.balance || 0)} ETB\n` +
-                        `Balance After Reservation: ${htmlEscape(req.player.balance || 0)} ETB\n` +
                         `Amount to Send: ${htmlEscape(amount)} ETB\n` +
                         `Payment Method: ${htmlEscape(method)}\n` +
                         `Recipient Account Name: ${htmlEscape(recipientName)}\n` +
