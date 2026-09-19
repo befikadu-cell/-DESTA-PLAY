@@ -1521,7 +1521,9 @@ async function getBonusLedger(playerId) {
             "invite_bonus_points",
             "bonus_play",
             "bonus_win",
-            "bonus_adjustment"
+            "bonus_adjustment",
+            "bonus_withdrawal",
+            "bonus_withdrawal_reversal"
         ])
         .eq("status", "SUCCESS")
         .order("created_at", { ascending: true })
@@ -3296,6 +3298,11 @@ app.post(
             const amount =
                 Number(req.body.amount);
 
+            const walletType =
+                String(req.body.walletType || "cash").trim().toLowerCase() === "bonus"
+                    ? "bonus"
+                    : "cash";
+
             const method =
                 String(req.body.method || "Telebirr")
                     .trim();
@@ -3344,14 +3351,16 @@ app.post(
             }
 
             const before = Number(req.player.balance || 0);
-            let accounting;
-            try {
-                accounting = await getWalletAccounting(req.player.id, req.player);
-            } catch (accountingError) {
-                return res.status(500).json({ success:false, error:accountingError.message });
+            let accounting = null;
+            if (walletType === "cash") {
+                try {
+                    accounting = await getWalletAccounting(req.player.id, req.player);
+                } catch (accountingError) {
+                    return res.status(500).json({ success:false, error:accountingError.message });
+                }
             }
 
-            if (amount > accounting.withdrawable) {
+            if (walletType === "cash" && amount > accounting.withdrawable) {
                 return res.status(400).json({
                     success: false,
                     error: `Only ${accounting.withdrawable.toFixed(2)} ETB is currently withdrawable. Keep playing to unlock your deposited balance.`,
@@ -3400,6 +3409,92 @@ app.post(
                     error:
                         "Incorrect password"
                 });
+            }
+
+            if (walletType === "bonus") {
+                const pointsNeeded = Number((amount / BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2));
+                if (pointsNeeded < BONUS_WITHDRAWAL_MIN_POINTS) {
+                    return res.status(400).json({ success:false, error:"The selected bonus points wallet is not eligible for this withdrawal amount." });
+                }
+                const availablePoints = await getBonusPoints(req.player.id);
+                if (pointsNeeded > availablePoints + 0.000001) {
+                    return res.status(400).json({ success:false, error:"Insufficient bonus points." });
+                }
+
+                const requestId = makeId("WDR");
+                const bonusDescription = JSON.stringify({
+                    walletType:"bonus",
+                    pointsDebited:pointsNeeded,
+                    amountEtb:amount,
+                    requestId,
+                    recipientName,
+                    recipientPhone,
+                    method
+                });
+
+                await withPlayerBalanceLock(`bonus:${req.player.id}`, async () => {
+                    const freshPoints = await getBonusPoints(req.player.id);
+                    if (pointsNeeded > freshPoints + 0.000001) throw new Error("Insufficient bonus points");
+                    await writeBonusTransaction({
+                        playerId:req.player.id,
+                        points:-pointsNeeded,
+                        type:"bonus_withdrawal",
+                        description:bonusDescription,
+                        referenceId:requestId
+                    });
+                });
+
+                try {
+                    const { data, error } = await supabase
+                        .from("transactions")
+                        .insert({
+                            id:requestId,
+                            player_id:req.player.id,
+                            type:"withdrawal",
+                            amount,
+                            balance_before:Number(req.player.balance || 0),
+                            balance_after:Number(req.player.balance || 0),
+                            status:"PENDING",
+                            description:transactionDescription({
+                                edition:5,
+                                walletType:"BONUS_POINTS",
+                                recipient:recipientName,
+                                recipientPhone,
+                                method,
+                                requestId,
+                                requestedAt:nowIso()
+                            }),
+                            reference_id:requestId,
+                            created_at:nowIso()
+                        })
+                        .select("*")
+                        .single();
+                    if(error || !data) throw new Error("Could not create withdrawal request");
+
+                    const text =
+                        `<b>DESTA PLAY — BONUS WITHDRAWAL VERIFICATION</b>\n` +
+                        `Account ID: ${htmlEscape(req.player.id)}\n` +
+                        `Player/Telegram Name: ${htmlEscape(req.player.username || "Player")}\n` +
+                        `Withdrawal Type: BONUS POINTS\n` +
+                        `Requested Amount: ${htmlEscape(amount)} ETB\n` +
+                        `Bonus Points Requested: ${htmlEscape(pointsNeeded)} POINTS\n` +
+                        `Bonus Points Debited: ${htmlEscape(pointsNeeded)} POINTS\n` +
+                        `ETB Withdrawal Value: ${htmlEscape(amount)} ETB\n` +
+                        `Balance Before: ${htmlEscape(req.player.balance || 0)} ETB\n` +
+                        `Balance After Reservation: ${htmlEscape(req.player.balance || 0)} ETB\n` +
+                        `Amount to Send: ${htmlEscape(amount)} ETB\n` +
+                        `Payment Method: ${htmlEscape(method)}\n` +
+                        `Recipient Account Name: ${htmlEscape(recipientName)}\n` +
+                        `Recipient Phone Number: ${htmlEscape(recipientPhone)}\n` +
+                        `Withdrawal Request ID: ${htmlEscape(requestId)}\n` +
+                        `Request Time: ${htmlEscape(nowIso())}`;
+                    await sendAdminTelegramMessage(text, withdrawalReplyMarkup(requestId));
+                    await sendAdminGroupAudit(text.replace(/<[^>]+>/g, ""));
+                    return res.json({success:true,status:"PENDING",requestId,amount,balanceBefore:Number(req.player.balance||0),balanceAfter:Number(req.player.balance||0),bonusPointsAfter:Number((availablePoints-pointsNeeded).toFixed(2))});
+                } catch (error) {
+                    await writeBonusTransaction({playerId:req.player.id,points:pointsNeeded,type:"bonus_withdrawal_reversal",description:`Bonus withdrawal rollback ${requestId}`,referenceId:requestId});
+                    throw error;
+                }
             }
 
             const after =
@@ -3496,6 +3591,7 @@ app.post(
                 `Account ID: ${htmlEscape(req.player.id)}\n` +
                 `Player/Telegram Name: ${htmlEscape(req.player.username || "Player")}\n` +
                 `Telegram Username: ${htmlEscape(req.player.telegram_username || "Not available")}\n` +
+                `Withdrawal Type: REAL MONEY\n` +
                 `Requested Amount: ${htmlEscape(amount)} ETB\n` +
                 `Amount to Send: ${htmlEscape(amount)} ETB\n` +
                 `Payment Method: ${htmlEscape(method)}\n` +
@@ -3614,6 +3710,15 @@ async function processWithdrawalAction(
         if (!player) throw new Error("Player not found");
 
         const amount = Number(transaction.amount);
+        let bonusWithdrawalMeta = null;
+        try {
+            const desc = String(transaction.description || "");
+            const match = desc.match(/\{.*\}/s);
+            if (match) {
+                const parsed = JSON.parse(match[0]);
+                if (parsed.walletType === "BONUS_POINTS") bonusWithdrawalMeta = parsed;
+            }
+        } catch (_) {}
         const before = Number(player.balance || 0);
 
         const { data, error } = await supabase
@@ -3631,13 +3736,24 @@ async function processWithdrawalAction(
 
         if (!data) throw new Error("Withdrawal was already processed");
 
-        await changeBalance({
-            playerId: transaction.player_id,
-            amount,
-            type: "withdrawal_reversal",
-            description: `Withdrawal rejected ${requestId}`,
-            roundId: requestId
-        });
+        if (String(transaction.description || "").includes("BONUS_POINTS")) {
+            const pointsToReturn = Number((amount / BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2));
+            await writeBonusTransaction({
+                playerId:transaction.player_id,
+                points:pointsToReturn,
+                type:"bonus_withdrawal_reversal",
+                description:`Bonus withdrawal rejected ${requestId}`,
+                referenceId:requestId
+            });
+        } else {
+            await changeBalance({
+                playerId: transaction.player_id,
+                amount,
+                type: "withdrawal_reversal",
+                description: `Withdrawal rejected ${requestId}`,
+                roundId: requestId
+            });
+        }
 
         await sendAdminGroupAudit(
             `WITHDRAWAL REJECTED\nRequest: ${requestId}\nAmount returned: ${amount} ETB\nBalance before return: ${before} ETB`
