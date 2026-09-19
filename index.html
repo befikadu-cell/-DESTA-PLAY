@@ -2196,6 +2196,7 @@ html,body{
 .aviatorPreview{position:relative;background:linear-gradient(135deg,#071d36,#102f52);overflow:hidden}.aviatorPreviewPlane{font-size:27px;transform:rotate(-8deg);animation:aviatorPreviewFly 2.2s linear infinite}.aviatorPreviewX{font-size:12px;font-weight:900;color:#ffd43c}.aviatorPreview:after{content:"";position:absolute;inset:auto -20% 8px 20%;height:1px;background:rgba(255,255,255,.25);transform:rotate(-8deg)}@keyframes aviatorPreviewFly{0%{transform:translateX(-35px) rotate(-8deg)}100%{transform:translateX(35px) rotate(-8deg)}}
 #aviatorGame{padding:6px 4px 16px}.aviatorTopStatus{text-align:center;font-weight:900;font-size:13px;margin:4px 0 7px;color:#ffd43c}.aviatorFlight{position:relative;height:230px;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 75% 25%,rgba(76,160,255,.25),transparent 35%),linear-gradient(180deg,#071b32,#05080d 78%);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 -30px 50px rgba(0,0,0,.35)}.aviatorSky{position:absolute;inset:0;overflow:hidden}.aviatorCloud{position:absolute;width:90px;height:24px;border-radius:50%;background:rgba(255,255,255,.11);filter:blur(2px);animation:aviatorCloudMove 7s linear infinite}.aviatorCloud:before,.aviatorCloud:after{content:"";position:absolute;background:inherit;border-radius:50%}.aviatorCloud:before{width:38px;height:38px;left:18px;top:-14px}.aviatorCloud:after{width:45px;height:45px;right:12px;top:-20px}.c1{top:28px;left:-100px}.c2{top:88px;left:30%;animation-delay:-3s;transform:scale(.7)}.c3{top:145px;left:80%;animation-delay:-5s;transform:scale(.55)}@keyframes aviatorCloudMove{to{left:110%}}.aviatorPlane{position:absolute;left:8%;top:58%;font-size:40px;filter:drop-shadow(0 5px 5px rgba(0,0,0,.5));transform:rotate(-8deg);transition:left .12s linear,top .12s linear}.aviatorMultiplier{position:absolute;z-index:3;left:0;right:0;top:73px;text-align:center;font-size:43px;font-weight:1000;letter-spacing:-1px;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.55)}.aviatorCountdown{position:absolute;z-index:4;left:0;right:0;top:16px;text-align:center;font-size:20px;font-weight:1000;color:#ffd43c}.aviatorNotice{text-align:center;color:#aaa;font-size:11px;padding:7px 4px}.aviatorSlots{display:grid;grid-template-columns:1fr 1fr;gap:8px}.aviatorSlot{background:#111;border:1px solid #3b2424;border-radius:13px;padding:9px;min-width:0}.aviatorSlotHead{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px}.aviatorSlotHead span{color:#ffd43c;font-weight:900}.aviatorAmount{width:100%;box-sizing:border-box;background:#090909;color:#fff;border:1px solid #444;border-radius:9px;padding:10px;text-align:center;font-weight:900;font-size:16px}.aviatorSlotActions{display:grid;grid-template-columns:34px 1fr 34px;gap:5px;margin-top:7px}.aviatorSlotActions button,.aviatorCashBtn{border:0;border-radius:8px;padding:9px;font-weight:1000;cursor:pointer}.aviatorMinus,.aviatorPlus{background:#333;color:#fff}.aviatorBetBtn{background:#ffd43c;color:#111}.aviatorCashBtn{width:100%;margin-top:7px;background:#25c77a;color:#07130d}.aviatorFeed{margin-top:9px;background:#0d0d0d;border:1px solid #292929;border-radius:12px;padding:8px;max-height:130px;overflow:auto}.aviatorFeedTitle{text-align:center;font-size:10px;color:#888;font-weight:900;margin-bottom:4px}.aviatorFeedRow{display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #1d1d1d;font-size:11px}.aviatorFeedRow:last-child{border-bottom:0}.aviatorOwnToast{position:fixed;z-index:10001;left:50%;top:12px;transform:translateX(-50%);background:#18a866;color:#fff;border-radius:12px;padding:11px 15px;font-weight:1000;box-shadow:0 10px 35px rgba(0,0,0,.45);animation:aviatorToastIn .2s ease-out}.hidden{display:none!important}@keyframes aviatorToastIn{from{opacity:0;transform:translate(-50%,-20px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:420px){.aviatorFlight{height:205px}.aviatorMultiplier{font-size:38px}.aviatorPlane{font-size:34px}}
+.aviatorHistoryBar{position:relative;z-index:5}.aviatorCountdown{background:rgba(0,0,0,.28);padding:4px 8px;border-radius:8px;width:max-content;margin:auto;right:0}.aviatorHistoryLine{overflow-x:auto;text-overflow:clip}
 </style>
 </head>
 
@@ -2800,6 +2801,11 @@ html,body{
              AVIATOR — ADDITIVE FEATURE
         ================================================== -->
         <div id="aviatorGame" class="hidden">
+          <div class="aviatorHistoryBar" aria-label="Aviator round history">
+            <div class="aviatorHistoryLine" id="aviatorHistory">No completed rounds yet</div>
+            <button class="aviatorHistoryExpand" id="aviatorHistoryExpand" type="button" onclick="toggleAviatorHistory()" aria-expanded="false">⌄</button>
+          </div>
+          <div class="aviatorHistoryExpanded hidden" id="aviatorHistoryExpanded"></div>
           <div class="aviatorTopStatus" id="aviatorStatus">BETTING OPEN</div>
           <section class="aviatorFlight" id="aviatorFlight">
             <div class="aviatorSky"><div class="aviatorCloud c1"></div><div class="aviatorCloud c2"></div><div class="aviatorCloud c3"></div><div class="aviatorPlane" id="aviatorPlane">✈</div></div>
@@ -4156,6 +4162,7 @@ html,body{
         if(lobby) lobby.classList.add("hidden");
         state.gameJoined=true;
         state.bettingOpen=true;
+        try{ if(window.DestaVoice && typeof window.DestaVoice.enterLiveGame==="function") window.DestaVoice.enterLiveGame("aviator",null,null); }catch(e){}
         updateRound();
         startAviatorSync();
         return;
@@ -7775,24 +7782,92 @@ html,body{
 <script id="desta-aviator-addition-js">
 (function(){
   let timer=null, lastRound=0, slot2Visible=true, lastFeed=[];
+  let sfxRound=0, sfxPhase="", lastSfxCountdown=null, sfxTimer=null, sfxCtx=null;
   window.__aviator={state:null};
   function authHeaders(){const h={"Accept":"application/json","Content-Type":"application/json"};if(state.authToken)h.Authorization="Bearer "+state.authToken;return h;}
   function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
   function buildAviator(){
-    set("aviatorMultiplier","1.00x"); set("aviatorCountdown","30"); set("aviatorStatus","BETTING OPEN");
+    set("aviatorMultiplier","1.00x"); set("aviatorCountdown","BETTING CLOSES IN 30s"); set("aviatorStatus","BETTING OPEN");
+    renderAviatorHistory();
     [1,2].forEach(i=>{set("aviatorResult"+i,"—");document.getElementById("aviatorCashBtn"+i)?.classList.add("hidden");document.getElementById("aviatorBetBtn"+i)?.classList.remove("hidden");});
     const f=document.getElementById("aviatorFeed");if(f)f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';
   }
   window.buildAviator=buildAviator;
   function toast(msg){const old=document.querySelector(".aviatorOwnToast");if(old)old.remove();const d=document.createElement("div");d.className="aviatorOwnToast";d.textContent=msg;document.body.appendChild(d);setTimeout(()=>d.remove(),2600);}
+  function aviatorSfxContext(){
+    try{
+      if(!sfxCtx){ sfxCtx=new (window.AudioContext||window.webkitAudioContext)(); }
+      if(sfxCtx.state==='suspended') sfxCtx.resume();
+      return sfxCtx;
+    }catch(e){ return null; }
+  }
+  function tone(freq,duration,type='sine',volume=0.045,delay=0){
+    const c=aviatorSfxContext(); if(!c) return;
+    const t=c.currentTime+delay, o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(volume,t+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+duration);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+duration+0.03);
+  }
+  function countdownSfx(sec){
+    if(sec===10) tone(520,.12,'sine',.04);
+    else if(sec===5) tone(620,.12,'sine',.045);
+    else if(sec<=3) tone(760,.10,'square',.045);
+  }
+  function flightStartSfx(){
+    const c=aviatorSfxContext(); if(!c) return;
+    const t=c.currentTime, o=c.createOscillator(), g=c.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(330,t+.75);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.055,t+.12); g.gain.exponentialRampToValueAtTime(.0001,t+.8);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.83);
+  }
+  function crashSfx(){
+    const c=aviatorSfxContext(); if(!c) return;
+    const t=c.currentTime, o=c.createOscillator(), g=c.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(45,t+.55);
+    g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.12,t+.025); g.gain.exponentialRampToValueAtTime(.0001,t+.62);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+.65);
+    tone(70,.35,'square',.045,.02);
+  }
+  function stopFlightSfx(){ if(sfxTimer){clearInterval(sfxTimer);sfxTimer=null;} }
+  function startFlightSfx(){
+    stopFlightSfx();
+    // Short, subtle engine pulses while the plane is actually flying.
+    sfxTimer=setInterval(()=>{
+      if(state.game==='aviator' && window.__aviator.state && window.__aviator.state.phase==='flying') tone(125,.16,'sawtooth',.012);
+      else stopFlightSfx();
+    },700);
+  }
+  document.addEventListener('pointerdown',()=>{ if(state && state.game==='aviator') aviatorSfxContext(); },{passive:true});
   function render(d){
     window.__aviator.state=d;
     state.rounds.aviator=Number(d.round||0); state.displayRoundCounters.aviator=Number(d.round||0); updateRound();
     const m=Number(d.multiplier||1); set("aviatorMultiplier",m.toFixed(2)+"x");
     const now=Date.now();
-    if(d.phase==="betting"){const sec=Math.max(0,Math.ceil((Number(d.bettingEndsAt)-now)/1000));set("aviatorCountdown",sec);set("aviatorStatus","BETTING OPEN • "+sec+"s");set("aviatorNotice","Place your bet before the countdown ends.");}
-    else if(d.phase==="flying"){set("aviatorCountdown","FLYING");set("aviatorStatus","FLYING");set("aviatorNotice","Cash Out before the flight crashes.");}
-    else {set("aviatorCountdown","CRASH");set("aviatorStatus","CRASHED");set("aviatorNotice","Next round is preparing.");}
+    if(d.phase==="betting"){
+      const sec=Math.max(0,Math.ceil((Number(d.bettingEndsAt)-now)/1000));
+      set("aviatorCountdown","BETTING CLOSES IN "+sec+"s");
+      set("aviatorStatus","BETTING OPEN • "+sec+"s");
+      set("aviatorNotice","Place your bet before the countdown ends.");
+      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;stopFlightSfx();}
+      if(sfxPhase!=="betting") sfxPhase="betting";
+      if([10,5,3,2,1].includes(sec) && lastSfxCountdown!==sec){lastSfxCountdown=sec; countdownSfx(sec);}
+    }
+    else if(d.phase==="flying"){
+      set("aviatorCountdown","FLIGHT LIVE"); set("aviatorStatus","FLYING"); set("aviatorNotice","Cash Out before the flight crashes.");
+      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
+      if(sfxPhase!=="flying"){sfxPhase="flying";flightStartSfx();startFlightSfx();}
+    }
+    else {
+      const crash=Number(d.multiplier||1).toFixed(2);
+      set("aviatorCountdown","CRASHED AT "+crash+"x"); set("aviatorStatus","CRASHED"); set("aviatorNotice","Next round is preparing.");
+      if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
+      if(sfxPhase!=="crashed"){sfxPhase="crashed";stopFlightSfx();crashSfx();}
+    }
+    if(Array.isArray(d.history)){
+      state.aviatorHistory=d.history.slice().reverse();
+      renderAviatorHistory();
+    }
     const plane=document.getElementById("aviatorPlane");if(plane){const pct=Math.min(82,8+Math.log(Math.max(1,m))*25);plane.style.left=pct+"%";plane.style.top=(62-Math.min(28,Math.log(Math.max(1,m))*9))+"%";}
     [1,2].forEach(i=>{const b=d.ownBets?.[i];const bet=document.getElementById("aviatorBetBtn"+i),cash=document.getElementById("aviatorCashBtn"+i),amt=document.getElementById("aviatorAmount"+i);if(b){if(b.cashedOut){set("aviatorResult"+i,Number(b.payout||0).toFixed(2)+" ETB @ "+Number(b.cashoutMultiplier||0).toFixed(2)+"x");bet?.classList.add("hidden");cash?.classList.add("hidden");}else{set("aviatorResult"+i,Number(b.amount).toFixed(2)+" ETB");bet?.classList.add("hidden");cash?.classList.toggle("hidden",d.phase!=="flying");}}else{bet?.classList.toggle("hidden",d.phase!=="betting");cash?.classList.add("hidden");if(amt)amt.disabled=d.phase!=="betting";}});
     if(Array.isArray(d.activity)){const sig=JSON.stringify(d.activity);if(sig!==JSON.stringify(lastFeed)){lastFeed=d.activity;const f=document.getElementById("aviatorFeed");if(f){f.innerHTML='<div class="aviatorFeedTitle">LIVE ACTIVITY</div>';d.activity.slice(-12).reverse().forEach(a=>{const row=document.createElement("div");row.className="aviatorFeedRow";row.innerHTML='<span>'+escapeHtml(a.label||"PLAYER")+'</span><strong>'+Number(a.payout||0).toFixed(2)+' ETB @ '+Number(a.multiplier||0).toFixed(2)+'x</strong>';f.appendChild(row);});}}}
