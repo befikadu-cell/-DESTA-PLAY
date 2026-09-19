@@ -186,7 +186,6 @@ const aviator = {
     bets: new Map(),
     activity: [],
     history: [],
-    lastAttractCrashPoint: 0,
     nextRoundTimer: null,
     tickTimer: null,
     settlementQueue: Promise.resolve(),
@@ -213,15 +212,31 @@ function aviatorPublicState() {
         bettingEndsAt: aviator.bettingEndsAt,
         flightStartedAt: aviator.flightStartedAt,
         multiplier: Number(multiplier.toFixed(2)),
-        multiplierExact: Number(multiplier.toFixed(6)),
+        serverTime: now,
+        strictPool: aviatorUsesStrictPool(),
         activity: Array.isArray(aviator.activity) ? aviator.activity.slice(-12) : [],
         history: Array.isArray(aviator.history) ? aviator.history.slice(-25) : []
     };
 }
 
+function aviatorPlayerCount() {
+    return new Set(Array.from(aviator.bets.values()).map(b => String(b.playerId))).size;
+}
+
+function aviatorUsesStrictPool() {
+    // Small/solo rounds are capped at 3x for the attract/low-liquidity rule.
+    // Once a round has more than one player and more than 500 ETB wagered,
+    // the strict 50% payout pool applies.
+    return aviator.totalWagered > 500 && aviatorPlayerCount() > 1;
+}
+
 function aviatorCrashPoint(seed) {
     /* Server-only crash point. The future value is never exposed to clients. */
-    return aviatorEngine.generateSafetyCrashPoint(seed);
+    const generated = aviatorEngine.generateSafetyCrashPoint(seed);
+    if (aviator.totalWagered <= 500 || aviatorPlayerCount() <= 1) {
+        return Number(Math.min(3, Math.max(1.01, generated)).toFixed(2));
+    }
+    return generated;
 }
 
 function aviatorStartRound() {
@@ -244,37 +259,25 @@ function aviatorStartRound() {
     aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, aviatorEngine.AVIATOR_CONFIG.bettingSeconds * 1000);
 }
 
-function aviatorAttractCrashPoint() {
-    // No-player attract rounds are display-only: they do not accept bets or
-    // settle player winnings. Keep the outcomes varied so the history does
-    // not repeat the same 10x-style ceiling.
-    const r = Math.random();
-    let min;
-    let max;
-    if (r < 0.28) { [min, max] = [3.00, 9.00]; }
-    else if (r < 0.55) { [min, max] = [7.00, 18.00]; }
-    else if (r < 0.78) { [min, max] = [14.00, 32.00]; }
-    else if (r < 0.94) { [min, max] = [28.00, 65.00]; }
-    else { [min, max] = [55.00, 120.00]; }
-
-    let point = Number((min + Math.random() * (max - min)).toFixed(2));
-    if (Math.abs(point - Number(aviator.lastAttractCrashPoint || 0)) < 0.75) {
-        point = Number(Math.min(max, point + 1.25).toFixed(2));
-    }
-    aviator.lastAttractCrashPoint = point;
-    return point;
-}
-
 function aviatorBeginFlight() {
     if (aviator.phase !== "betting") return;
     aviator.phase = "flying";
     aviator.flightStartedAt = Date.now();
     aviator.multiplier = 1;
-    aviator.payoutPool = aviatorEngine.calculatePayoutCap(aviator.totalWagered);
-    /* No-player rounds use a normal server-only crash point so the plane
-       still flies and crashes even when nobody bets. */
-    if (aviator.totalWagered <= 0) aviator.crashAt = aviatorAttractCrashPoint();
-    else aviator.crashAt = aviatorCrashPoint(aviator.secretSeed);
+    aviator.payoutPool = aviatorUsesStrictPool()
+        ? aviatorEngine.calculatePayoutCap(aviator.totalWagered)
+        : 0;
+    /* No-player rounds are pure attract mode. Player/low-liquidity rounds
+       are capped at 3x; larger multi-player rounds use the strict 50% pool. */
+    if (aviator.totalWagered <= 0) {
+        // Attract mode: no player money is involved, so show varied/high
+        // results instead of repeatedly stopping around one fixed value.
+        aviator.attractFlightMs = 0;
+        aviator.crashAt = Number((3 + Math.random() * 9).toFixed(2));
+    } else {
+        aviator.attractFlightMs = 0;
+        aviator.crashAt = aviatorCrashPoint(aviator.secretSeed);
+    }
     aviator.nextRoundTimer = null;
     saveAviatorRound("FLYING").catch(console.error);
 }
@@ -350,7 +353,14 @@ async function initializeAviator() {
                         aviator.nextRoundTimer = setTimeout(aviatorBeginFlight, remaining);
                     } else {
                         if (!aviator.flightStartedAt) aviator.flightStartedAt = Date.now();
-                        if (!aviator.crashAt) aviator.crashAt = aviator.totalWagered > 0 ? aviatorCrashPoint(aviator.secretSeed || crypto.randomBytes(32).toString("hex")) : aviatorAttractCrashPoint();
+                        if (!aviator.crashAt) {
+                            if (aviator.totalWagered > 0) {
+                                aviator.crashAt = aviatorCrashPoint(aviator.secretSeed || crypto.randomBytes(32).toString("hex"));
+                            } else {
+                                aviator.attractFlightMs = 0;
+                                aviator.crashAt = Number((3 + Math.random() * 9).toFixed(2));
+                            }
+                        }
                         const elapsed = Math.max(0, Date.now() - aviator.flightStartedAt);
                         aviator.multiplier = aviatorEngine.multiplierAt(elapsed);
                         if (aviator.multiplier >= aviator.crashAt) aviatorScheduleCrash(0);
@@ -537,10 +547,12 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
             );
             if (!validation.ok) throw new Error(validation.reason);
 
-            const remaining = Number((aviator.payoutPool - aviator.paidOut).toFixed(2));
             const requestedPayout = Number(validation.payout.toFixed(2));
-            if (aviator.totalWagered <= 0 || requestedPayout > remaining + 0.0001) {
-                throw new Error("Cash Out is not available at this multiplier");
+            if (aviatorUsesStrictPool()) {
+                const remaining = Number((aviator.payoutPool - aviator.paidOut).toFixed(2));
+                if (requestedPayout > remaining + 0.0001) {
+                    throw new Error("Cash Out is not available at this multiplier");
+                }
             }
 
             const after = await withPlayerBalanceLock(req.player.id, async () => changeBalance({
@@ -568,7 +580,7 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
                 round:aviatorPublicState()
             };
 
-            if (aviator.paidOut >= aviator.payoutPool - 0.0001) aviatorScheduleCrash(0);
+            if (aviatorUsesStrictPool() && aviator.paidOut >= aviator.payoutPool - 0.0001) aviatorScheduleCrash(0);
         }).catch(error => { failure = error; });
 
         await aviator.actionQueue;
@@ -5682,6 +5694,8 @@ async function settleKenoRound(round) {
 
     const bets = Array.isArray(round.bets) ? round.bets : [];
     const grossPool = bets.reduce((sum, bet) => sum + Number(bet.amount || 0), 0);
+    const houseRake = Number((grossPool * 0.10).toFixed(2));
+
     const byPlayer = new Map();
     for (const bet of bets) {
         const playerId = String(bet.playerId);
