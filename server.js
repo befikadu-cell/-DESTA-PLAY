@@ -1590,7 +1590,7 @@ async function getWalletAccounting(playerId, playerOverride = null) {
         .from("transactions")
         .select("id,type,amount,status,created_at")
         .eq("player_id", playerId)
-        .in("status", ["SUCCESS", "APPROVED", "COMPLETED"])
+        .in("status", ["PENDING", "SUCCESS", "APPROVED", "COMPLETED"])
         .order("created_at", { ascending: true })
         .limit(5000);
 
@@ -1601,6 +1601,7 @@ async function getWalletAccounting(playerId, playerOverride = null) {
 
     let lockedDeposit = 0;
     let withdrawable = 0;
+    let withdrawalLocked = 0;
 
     for (const tx of (data || [])) {
         const amount = Math.abs(Number(tx.amount || 0));
@@ -1626,6 +1627,17 @@ async function getWalletAccounting(playerId, playerOverride = null) {
 
         if (tx.type === "withdrawal_reserve") {
             withdrawable = Math.max(0, withdrawable - amount);
+            continue;
+        }
+
+        if (tx.type === "withdrawal") {
+            /* A PENDING/APPROVED withdrawal is a separate reservation. The
+               corresponding withdrawal_reserve transaction has already
+               removed the amount from the usable balance, so this bucket
+               only exposes how much is currently reserved for withdrawal. */
+            if (tx.status === "PENDING" || tx.status === "APPROVED") {
+                withdrawalLocked += amount;
+            }
             continue;
         }
 
@@ -1659,10 +1671,13 @@ async function getWalletAccounting(playerId, playerOverride = null) {
     const correction = Number((balance - totalTracked).toFixed(2));
     if (correction > 0) lockedDeposit = Number((lockedDeposit + correction).toFixed(2));
 
+    withdrawalLocked = Number(Math.max(0, withdrawalLocked).toFixed(2));
+
     return {
         balance: Number(balance.toFixed(2)),
         lockedDeposit: Number(lockedDeposit.toFixed(2)),
-        withdrawable: Number(withdrawable.toFixed(2))
+        withdrawable: Number(withdrawable.toFixed(2)),
+        withdrawalLocked
     };
 }
 
@@ -2935,6 +2950,7 @@ app.get(
                 balance: accounting.balance,
                 lockedDeposit: accounting.lockedDeposit,
                 withdrawable: accounting.withdrawable,
+                withdrawalLocked: accounting.withdrawalLocked,
                 bonusPoints: Math.max(0, await getBonusPoints(req.player.id)),
                 bonusPlayValue: Number((Math.max(0, await getBonusPoints(req.player.id)) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
                 bonusWithdrawalValue: Number((Math.max(0, await getBonusPoints(req.player.id)) * BONUS_WITHDRAW_VALUE_PER_POINT).toFixed(2))
@@ -3286,6 +3302,74 @@ app.post("/api/payment/sms", async (_req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| CASH WITHDRAWAL RESERVATION
+|--------------------------------------------------------------------------
+| A withdrawal request reserves only the currently withdrawable cash. The
+| existing deposit/game locked bucket is never moved by this operation.
+| The reservation is serialized per player so two simultaneous withdrawals
+| cannot reserve the same withdrawable money.
+|--------------------------------------------------------------------------
+*/
+async function reserveCashWithdrawal({
+    playerId, amount, recipientName, recipientPhone, method
+}) {
+    return withPlayerBalanceLock(playerId, async () => {
+        const freshPlayer = await findPlayerById(playerId);
+        if (!freshPlayer) throw new Error("Player not found");
+
+        const accounting = await getWalletAccounting(playerId, freshPlayer);
+        if (amount > accounting.withdrawable + 0.000001) {
+            const error = new Error(`Only ${accounting.withdrawable.toFixed(2)} ETB is currently withdrawable. Keep playing to unlock your deposited balance.`);
+            error.statusCode = 400;
+            error.withdrawable = accounting.withdrawable;
+            error.lockedDeposit = accounting.lockedDeposit;
+            error.withdrawalLocked = accounting.withdrawalLocked;
+            throw error;
+        }
+
+        const before = Number(freshPlayer.balance || 0);
+        const after = Number((before - amount).toFixed(2));
+        const requestId = makeId("WDR");
+
+        await changeBalance({
+            playerId, amount: -amount, type: "withdrawal_reserve",
+            description: `Withdrawal reservation ${requestId}`,
+            roundId: requestId,
+            metadata: {requestId, recipientName, recipientPhone, method}
+        });
+
+        const { data, error } = await supabase
+            .from("transactions")
+            .insert({
+                id: requestId, player_id: playerId, type: "withdrawal", amount,
+                balance_before: before, balance_after: after, status: "PENDING",
+                description: transactionDescription({edition: 5, recipient: recipientName, recipientPhone, method, requestId, requestedAt: nowIso()}),
+                reference_id: requestId, created_at: nowIso()
+            })
+            .select("*").single();
+
+        if (error || !data) {
+            await dbError("withdrawal request insert", error);
+            await changeBalance({
+                playerId, amount, type: "withdrawal_reservation_reversal",
+                description: `Withdrawal request rollback ${requestId}`, roundId: requestId
+            });
+            throw new Error("Could not create withdrawal request");
+        }
+
+        const refreshedPlayer = await findPlayerById(playerId);
+        const refreshedAccounting = await getWalletAccounting(playerId, refreshedPlayer);
+        return {
+            requestId, before, after,
+            withdrawalLocked: refreshedAccounting.withdrawalLocked,
+            withdrawable: refreshedAccounting.withdrawable,
+            lockedDeposit: refreshedAccounting.lockedDeposit
+        };
+    });
+}
+
+/*
+|--------------------------------------------------------------------------
 | EDITION 5 — WITHDRAWAL REQUEST
 |--------------------------------------------------------------------------
 */
@@ -3495,95 +3579,17 @@ app.post(
                 }
             }
 
-            const after =
-                before - amount;
-
-            const requestId =
-                makeId("WDR");
-
-            await changeBalance({
-                playerId:
-                    req.player.id,
-                amount: -amount,
-                type:
-                    "withdrawal_reserve",
-                description:
-                    `Withdrawal reservation ${requestId}`,
-                roundId:
-                    requestId,
-                metadata: {
-                    requestId,
-                    recipientName,
-                    recipientPhone,
-                    method
-                }
+            const reservation = await reserveCashWithdrawal({
+                playerId: req.player.id,
+                amount,
+                recipientName,
+                recipientPhone,
+                method
             });
 
-            const {
-                data,
-                error
-            } =
-                await supabase
-                    .from("transactions")
-                    .insert({
-                        id: requestId,
-                        player_id:
-                            req.player.id,
-                        type:
-                            "withdrawal",
-                        amount,
-                        balance_before:
-                            before,
-                        balance_after:
-                            after,
-                        status:
-                            "PENDING",
-                        description:
-                            transactionDescription({
-                                edition: 5,
-                                recipient:
-                                    recipientName,
-                                recipientPhone,
-                                method,
-                                requestId,
-                                requestedAt:
-                                    nowIso()
-                            }),
-                        reference_id:
-                            requestId,
-                        created_at:
-                            nowIso()
-                    })
-                    .select("*")
-                    .single();
-
-            if (error) {
-                await dbError(
-                    "withdrawal request insert",
-                    error
-                );
-
-                /*
-                 * Reservation was already recorded; return it so a failed
-                 * request insert does not silently consume player funds.
-                 */
-                await changeBalance({
-                    playerId:
-                        req.player.id,
-                    amount,
-                    type:
-                        "withdrawal_reservation_reversal",
-                    description:
-                        `Withdrawal request rollback ${requestId}`,
-                    roundId:
-                        requestId
-                });
-
-                throw new Error(
-                    "Could not create withdrawal request"
-                );
-            }
-
+            const requestId = reservation.requestId;
+            const before = reservation.before;
+            const after = reservation.after;
             const text =
                 `<b>DESTA PLAY — WITHDRAWAL VERIFICATION</b>\n` +
                 `Account ID: ${htmlEscape(req.player.id)}\n` +
@@ -3621,7 +3627,10 @@ app.post(
                 requestId,
                 amount,
                 balanceBefore: before,
-                balanceAfter: after
+                balanceAfter: after,
+                withdrawable: reservation.withdrawable,
+                lockedDeposit: reservation.lockedDeposit,
+                withdrawalLocked: reservation.withdrawalLocked
             });
         } catch (error) {
             console.error(
@@ -3629,11 +3638,12 @@ app.post(
                 error
             );
 
-            return res.status(500).json({
+            return res.status(Number(error?.statusCode) || 500).json({
                 success: false,
-                error:
-                    error.message ||
-                    "Could not create withdrawal request"
+                error: error.message || "Could not create withdrawal request",
+                ...(Number.isFinite(Number(error?.withdrawable)) ? { withdrawable: Number(error.withdrawable) } : {}),
+                ...(Number.isFinite(Number(error?.lockedDeposit)) ? { lockedDeposit: Number(error.lockedDeposit) } : {}),
+                ...(Number.isFinite(Number(error?.withdrawalLocked)) ? { withdrawalLocked: Number(error.withdrawalLocked) } : {})
             });
         }
     }
@@ -4047,6 +4057,7 @@ app.get(
                 balance: accounting.balance,
                 lockedDeposit: accounting.lockedDeposit,
                 withdrawable: accounting.withdrawable,
+                withdrawalLocked: accounting.withdrawalLocked,
                 availableBalance: accounting.balance,
                 bonusPoints: Math.max(0, bonusPoints),
                 bonusPlayValue: Number((Math.max(0, bonusPoints) * BONUS_PLAY_VALUE_PER_POINT).toFixed(2)),
