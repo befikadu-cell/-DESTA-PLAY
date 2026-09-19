@@ -539,6 +539,17 @@ app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
             if (bet.cashedOut) throw new Error("Already cashed out");
             if (aviator.phase !== "flying") throw new Error("Cash Out is not available");
 
+            /* Recompute the authoritative multiplier at the exact server time
+               of the cash-out request. The browser may animate between snapshots,
+               but settlement always uses the server timeline. */
+            const elapsed = Math.max(0, Date.now() - Number(aviator.flightStartedAt || Date.now()));
+            const liveMultiplier = aviatorEngine.multiplierAt(elapsed);
+            if (aviator.crashAt && liveMultiplier >= Number(aviator.crashAt)) {
+                aviator.multiplier = Number(aviator.crashAt);
+                aviatorScheduleCrash(0);
+                throw new Error("Cash Out is not available");
+            }
+            aviator.multiplier = Number(liveMultiplier.toFixed(2));
             const multiplier = Number(aviator.multiplier.toFixed(2));
             const validation = aviatorEngine.canCashOut(
                 { status: String(aviator.phase || "").toUpperCase() },
