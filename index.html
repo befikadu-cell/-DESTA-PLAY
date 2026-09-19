@@ -6587,7 +6587,7 @@ html,body{
         recipientPhone:document.getElementById("withdrawAccount").value.trim(),
         password:document.getElementById("withdrawPassword").value
       };
-      if(!payload.amount || payload.amount<=0 || !payload.account){
+      if(!payload.amount || payload.amount<=0 || !payload.recipientPhone){
         setWalletStatus("withdrawStatus","Enter a valid withdrawal amount and withdrawal phone number.","err");
         return;
       }
