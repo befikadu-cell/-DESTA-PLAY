@@ -4164,6 +4164,7 @@ html,body{
         state.bettingOpen=true;
         try{ if(window.DestaVoice && typeof window.DestaVoice.enterLiveGame==="function") window.DestaVoice.enterLiveGame("aviator",null,null); }catch(e){}
         updateRound();
+        if(window.startAviatorSync) window.startAviatorSync();
         startLiveRoundSync();
         return;
       }
@@ -6837,6 +6838,11 @@ html,body{
 
     function updateCountdownFromServer(round){
       const game = round.game;
+
+      // Aviator owns its own smooth visual countdown/flight timeline.
+      // Do not let the shared Keno/Bingo countdown renderer overwrite it.
+      if(game === "aviator") return;
+
       const el = document.getElementById(game + "Countdown") ||
                  document.getElementById(game + "Status");
       if(!el) return;
@@ -6865,7 +6871,7 @@ html,body{
           : Math.max(0, endsAt - Date.now());
 
         const seconds = Math.ceil(remaining / 1000);
-        el.textContent = "BETTING " + seconds + "s";
+        el.textContent = String(seconds);
         el.classList.toggle("closed", seconds <= 0);
         if(game==="bingo" && seconds<=0 && typeof renderCartelaPicker === "function") renderCartelaPicker();
       };
