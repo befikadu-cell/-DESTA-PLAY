@@ -1183,7 +1183,7 @@
        AVIATOR
     ========================================================= */
 
-    .aviatorHistoryBar{
+    .aviatorRoundRow{display:flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:5px 8px;border-bottom:1px solid #3b1717;background:#0f0505}.aviatorRoundLabel{font-size:10px;font-weight:900;color:#888;letter-spacing:.7px}.aviatorRoundRow strong{font-size:13px;color:#ffd43b}.aviatorRoundRow .aviatorTopStatus{margin-left:4px;font-size:10px}.aviatorHistoryBar{
       display:flex;
       align-items:center;
       gap:4px;
@@ -2806,7 +2806,7 @@ html,body{
             <button class="aviatorHistoryExpand" id="aviatorHistoryExpand" type="button" onclick="toggleAviatorHistory()" aria-expanded="false">⌄</button>
           </div>
           <div class="aviatorHistoryExpanded hidden" id="aviatorHistoryExpanded"></div>
-          <div class="aviatorTopStatus" id="aviatorStatus">BETTING OPEN</div>
+          <div class="aviatorRoundRow"><span class="aviatorRoundLabel">ROUND</span><strong id="aviatorRound">#1</strong><span class="aviatorTopStatus" id="aviatorStatus">BETTING OPEN</span></div>
           <section class="aviatorFlight" id="aviatorFlight">
             <div class="aviatorSky"><div class="aviatorCloud c1"></div><div class="aviatorCloud c2"></div><div class="aviatorCloud c3"></div><div class="aviatorPlane" id="aviatorPlane">✈</div></div>
             <div class="aviatorMultiplier" id="aviatorMultiplier">1.00x</div>
@@ -5781,6 +5781,7 @@ html,body{
     ========================================================= */
 
     function buildAviator(){
+    set("aviatorRound","#1");
 
       renderAviatorHistory();
 
@@ -6105,7 +6106,7 @@ html,body{
       const expanded=document.getElementById("aviatorHistoryExpanded");
       if(!line) return;
       const values=state.aviatorHistory.slice(0,25).map(aviatorHistoryMultiplier);
-      line.textContent=values.slice(0,10).join(", ");
+      line.textContent=values.length ? values.slice(0,10).join(", ") : "No completed rounds yet";
       if(expanded){
         expanded.innerHTML=values.map(v=>`<div class="mult">${v}</div>`).join("");
         expanded.classList.toggle("hidden",!aviatorHistoryExpanded);
@@ -7860,10 +7861,12 @@ html,body{
     }
     else {
       const crash=Number(d.multiplier||1).toFixed(2);
-      set("aviatorCountdown","CRASHED AT "+crash+"x"); set("aviatorStatus","CRASHED"); set("aviatorNotice","Next round is preparing.");
+      set("aviatorCountdown",""); set("aviatorStatus",""); set("aviatorNotice","Next round is preparing.");
       if(sfxRound!==Number(d.round)){sfxRound=Number(d.round);sfxPhase="";lastSfxCountdown=null;}
       if(sfxPhase!=="crashed"){sfxPhase="crashed";stopFlightSfx();crashSfx();}
     }
+    const roundEl=document.getElementById("aviatorRound");
+    if(roundEl && Number.isFinite(Number(d.round))) roundEl.textContent="#"+Number(d.round);
     if(Array.isArray(d.history)){
       state.aviatorHistory=d.history.slice().reverse();
       renderAviatorHistory();
