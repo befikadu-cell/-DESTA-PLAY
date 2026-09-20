@@ -1244,11 +1244,61 @@ function withdrawalReplyMarkup(requestId) {
         inline_keyboard: [
             [
                 { text: "ACCEPT", callback_data: `dpw:accept:${requestId}` },
-                { text: "REJECT", callback_data: `dpw:reject:${requestId}` },
-                { text: "COMPLETED", callback_data: `dpw:completed:${requestId}` }
+                { text: "REJECT", callback_data: `dpw:reject:${requestId}` }
             ]
         ]
     };
+}
+
+function withdrawalUndoMarkup(requestId) {
+    return {
+        inline_keyboard: [
+            [
+                { text: "↩ BACK / UNDO", callback_data: `dpw:undo:${requestId}` }
+            ]
+        ]
+    };
+}
+
+const WITHDRAWAL_UNDO_WINDOW_MS = 60 * 1000;
+const withdrawalUndoTimers = new Map();
+
+function scheduleWithdrawalUndoExpiry(requestId, chatId, messageId, acceptedAt) {
+    const key = String(requestId);
+    const old = withdrawalUndoTimers.get(key);
+    if (old) clearTimeout(old);
+
+    const remaining = Math.max(0, WITHDRAWAL_UNDO_WINDOW_MS - (Date.now() - Number(acceptedAt)));
+    const timer = setTimeout(async () => {
+        withdrawalUndoTimers.delete(key);
+        try {
+            const tx = await findTransactionById(key);
+            if (!tx || tx.status !== "APPROVED") return;
+            const acceptedAtFromTx = getWithdrawalAcceptedAt(tx);
+            if (!acceptedAtFromTx || Date.now() - acceptedAtFromTx < WITHDRAWAL_UNDO_WINDOW_MS) {
+                scheduleWithdrawalUndoExpiry(key, chatId, messageId, acceptedAtFromTx || Date.now());
+                return;
+            }
+            await telegramApi("editMessageReplyMarkup", {
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: { inline_keyboard: [] }
+            });
+        } catch (error) {
+            console.error("Withdrawal undo expiry error:", error);
+        }
+    }, remaining);
+    withdrawalUndoTimers.set(key, timer);
+}
+
+function getWithdrawalAcceptedAt(transaction) {
+    try {
+        const parsed = JSON.parse(String(transaction?.description || "{}"));
+        const value = Date.parse(parsed.acceptedAt || "");
+        return Number.isFinite(value) ? value : null;
+    } catch (_) {
+        return null;
+    }
 }
 
 /*
@@ -3571,7 +3621,6 @@ app.post(
                         `Withdrawal Request ID: ${htmlEscape(requestId)}\n` +
                         `Request Time: ${htmlEscape(nowIso())}`;
                     await sendAdminTelegramMessage(text, withdrawalReplyMarkup(requestId));
-                    await sendAdminGroupAudit(text.replace(/<[^>]+>/g, ""));
                     return res.json({success:true,status:"PENDING",requestId,amount,balanceBefore:Number(req.player.balance||0),balanceAfter:Number(req.player.balance||0),bonusPointsAfter:Number((availablePoints-pointsNeeded).toFixed(2))});
                 } catch (error) {
                     await writeBonusTransaction({playerId:req.player.id,points:pointsNeeded,type:"bonus_withdrawal_reversal",description:`Bonus withdrawal rollback ${requestId}`,referenceId:requestId});
@@ -3611,13 +3660,6 @@ app.post(
                 text,
                 withdrawalReplyMarkup(
                     requestId
-                )
-            );
-
-            await sendAdminGroupAudit(
-                text.replace(
-                    /<[^>]+>/g,
-                    ""
                 )
             );
 
@@ -3679,17 +3721,18 @@ async function processWithdrawalAction(
     }
 
     if (action === "accept") {
-        if (
-            transaction.status !==
-            "PENDING"
-        ) {
-            throw new Error(
-                `Cannot ACCEPT withdrawal in ${transaction.status} status`
-            );
+        if (transaction.status !== "PENDING") {
+            throw new Error(`Cannot ACCEPT withdrawal in ${transaction.status} status`);
         }
-                const { data, error } = await supabase
+
+        const acceptedAt = new Date().toISOString();
+        let description = {};
+        try { description = JSON.parse(String(transaction.description || "{}")); } catch (_) {}
+        description.acceptedAt = acceptedAt;
+
+        const { data, error } = await supabase
             .from("transactions")
-            .update({ status: "APPROVED" })
+            .update({ status: "APPROVED", description: JSON.stringify(description) })
             .eq("id", requestId)
             .eq("status", "PENDING")
             .select("*")
@@ -3702,11 +3745,11 @@ async function processWithdrawalAction(
 
         if (!data) throw new Error("Withdrawal was already processed");
 
-        await sendAdminGroupAudit(
-            `WITHDRAWAL ACCEPTED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
-
-        return "ACCEPTED";
+        return {
+            message: "APPROVED — money sent. BACK / UNDO is available for 60 seconds.",
+            status: "APPROVED",
+            acceptedAt
+        };
     }
 
     if (action === "reject") {
@@ -3763,38 +3806,43 @@ async function processWithdrawalAction(
             });
         }
 
-        await sendAdminGroupAudit(
-            `WITHDRAWAL REJECTED\nRequest: ${requestId}\nAmount returned: ${amount} ETB\nBalance before return: ${before} ETB`
-        );
-
         return "REJECTED";
     }
 
-    if (action === "completed") {
+    if (action === "undo") {
         if (transaction.status !== "APPROVED") {
-            throw new Error("COMPLETED is allowed only after ACCEPT");
+            throw new Error(`Cannot UNDO withdrawal in ${transaction.status} status`);
         }
+
+        const acceptedAt = getWithdrawalAcceptedAt(transaction);
+        if (!acceptedAt || Date.now() - acceptedAt > WITHDRAWAL_UNDO_WINDOW_MS) {
+            const expiredTimer = withdrawalUndoTimers.get(String(requestId));
+            if (expiredTimer) { clearTimeout(expiredTimer); withdrawalUndoTimers.delete(String(requestId)); }
+            throw new Error("The 60-second undo window has expired");
+        }
+
+        let description = {};
+        try { description = JSON.parse(String(transaction.description || "{}")); } catch (_) {}
+        delete description.acceptedAt;
 
         const { data, error } = await supabase
             .from("transactions")
-            .update({ status: "COMPLETED" })
+            .update({ status: "PENDING", description: JSON.stringify(description) })
             .eq("id", requestId)
             .eq("status", "APPROVED")
             .select("*")
             .maybeSingle();
 
         if (error) {
-            await dbError("withdrawal completed", error);
-            throw new Error("Could not complete withdrawal");
+            await dbError("withdrawal undo", error);
+            throw new Error("Could not undo withdrawal approval");
         }
-
         if (!data) throw new Error("Withdrawal was already processed");
 
-        await sendAdminGroupAudit(
-            `WITHDRAWAL COMPLETED\nRequest: ${requestId}\nAmount: ${transaction.amount} ETB`
-        );
+        const timer = withdrawalUndoTimers.get(String(requestId));
+        if (timer) { clearTimeout(timer); withdrawalUndoTimers.delete(String(requestId)); }
 
-        return "COMPLETED";
+        return "BACK — withdrawal returned to PENDING";
     }
 
     throw new Error("Unknown withdrawal action");
@@ -3985,7 +4033,7 @@ app.post(
                 return res.json({ success: true, result });
             }
 
-            const match = String(callback.data || "").match(/^dpw:(accept|reject|completed):(.+)$/);
+            const match = String(callback.data || "").match(/^dpw:(accept|reject|undo):(.+)$/);
             if (!match) return res.json({ success: true });
 
             const action = match[1];
@@ -3995,16 +4043,34 @@ app.post(
 
             await telegramApi("answerCallbackQuery", {
                 callback_query_id: callback.id,
-                text: result,
+                text: typeof result === "string" ? result : result.message,
                 show_alert: false
             });
 
-            if (callback.message?.chat?.id && callback.message?.message_id) {
-                await telegramApi("editMessageReplyMarkup", {
-                    chat_id: callback.message.chat.id,
-                    message_id: callback.message.message_id,
-                    reply_markup: { inline_keyboard: [] }
-                });
+            const chatId = callback.message?.chat?.id;
+            const messageId = callback.message?.message_id;
+            if (chatId && messageId) {
+                if (action === "accept") {
+                    const acceptedAt = result.acceptedAt;
+                    await telegramApi("editMessageReplyMarkup", {
+                        chat_id: chatId,
+                        message_id: messageId,
+                        reply_markup: withdrawalUndoMarkup(requestId)
+                    });
+                    scheduleWithdrawalUndoExpiry(requestId, chatId, messageId, Date.parse(acceptedAt));
+                } else if (action === "undo") {
+                    await telegramApi("editMessageReplyMarkup", {
+                        chat_id: chatId,
+                        message_id: messageId,
+                        reply_markup: withdrawalReplyMarkup(requestId)
+                    });
+                } else if (action === "reject") {
+                    await telegramApi("editMessageReplyMarkup", {
+                        chat_id: chatId,
+                        message_id: messageId,
+                        reply_markup: { inline_keyboard: [] }
+                    });
+                }
             }
 
             return res.json({ success: true, result });
