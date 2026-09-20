@@ -525,6 +525,110 @@ app.post("/api/game/aviator/bet", requirePlayer, async (req, res) => {
     }
 });
 
+app.post("/api/game/:game/cancel-bet", requirePlayer, async (req, res) => {
+    const game = String(req.params.game || "").toLowerCase();
+    const slot = Number(req.body?.slot ?? req.body?.slotIndex ?? 0);
+    try {
+        if (!["aviator", "keno", "bingo"].includes(game)) {
+            return res.status(404).json({success:false,error:"Game cancellation is not available"});
+        }
+        if (![1,2].includes(slot)) {
+            return res.status(400).json({success:false,error:"Invalid slot"});
+        }
+
+        if (game === "aviator") {
+            let result, failure;
+            aviator.actionQueue = aviator.actionQueue.then(async () => {
+                if (aviator.phase !== "betting" || Date.now() >= aviator.bettingEndsAt) throw new Error("Bet cancellation is closed");
+                const key = aviatorBetKey(req.player.id, slot);
+                const bet = aviator.bets.get(key);
+                if (!bet) throw new Error("No active bet in this slot");
+                if (bet.cashedOut) throw new Error("This bet cannot be cancelled");
+                const amount = Number(bet.amount || 0);
+                const accounting = await getWalletAccounting(req.player.id);
+                const restoreLockedDeposit = Number(Math.min(accounting.lockedDeposit, amount).toFixed(2));
+                const restoreWithdrawable = Number((amount - restoreLockedDeposit).toFixed(2));
+                const balanceAfter = await withPlayerBalanceLock(req.player.id, () => changeBalance({
+                    playerId:req.player.id, amount, type:"aviator_bet_cancel", game:"aviator", roundId:`AVI-${aviator.roundNo}`,
+                    description:JSON.stringify({game:"aviator",roundId:`AVI-${aviator.roundNo}`,slot,restoreLockedDeposit,restoreWithdrawable})
+                }));
+                aviator.bets.delete(key);
+                aviator.totalWagered = Number(Math.max(0, aviator.totalWagered - amount).toFixed(2));
+                aviator.payoutPool = aviatorEngine.calculatePayoutCap(aviator.totalWagered);
+                await saveAviatorRound("BETTING");
+                result={success:true,game,slot,amount,balanceAfter,round:aviatorPublicState()};
+            }).catch(error => { failure=error; });
+            await aviator.actionQueue;
+            if (failure) return res.status(400).json({success:false,error:failure.message || "Could not cancel bet"});
+            return res.json(result);
+        }
+
+        if (game === "keno") {
+            const round = rounds.keno;
+            if (!round || round.status !== "BETTING" || Date.now() >= round.bettingEndsAt) {
+                return res.status(400).json({success:false,error:"Bet cancellation is closed"});
+            }
+            const index = (round.bets || []).findIndex(b => String(b.playerId) === String(req.player.id) && Number(b.slotIndex) === slot);
+            if (index < 0) return res.status(400).json({success:false,error:"No active bet in this slot"});
+            const bet = round.bets[index];
+            const amount = Number(bet.amount || 0);
+            const walletType = String(bet.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+            let balanceAfter = null, bonusPointsAfter = null;
+            if (walletType === "bonus") {
+                bonusPointsAfter = await withPlayerBalanceLock(`bonus:${req.player.id}`, async () => {
+                    const before = await getBonusPoints(req.player.id);
+                    await writeBonusTransaction({playerId:req.player.id,points:amount,type:"bonus_bet_reversal",description:JSON.stringify({game:"keno",roundId:round.id,slotIndex:slot,betId:bet.betId}),referenceId:bet.betId || round.id});
+                    return Number((before + amount).toFixed(2));
+                });
+            } else {
+                const accounting = await getWalletAccounting(req.player.id);
+                const restoreLockedDeposit = Number(Math.min(accounting.lockedDeposit, amount).toFixed(2));
+                const restoreWithdrawable = Number((amount - restoreLockedDeposit).toFixed(2));
+                balanceAfter = await withPlayerBalanceLock(req.player.id, () => changeBalance({
+                    playerId:req.player.id, amount, type:"keno_bet_cancel", game:"keno", roundId:round.id,
+                    description:JSON.stringify({game:"keno",roundId:round.id,slotIndex:slot,betId:bet.betId,restoreLockedDeposit,restoreWithdrawable})
+                }));
+            }
+            round.bets.splice(index,1);
+            await saveRound(round);
+            const playersInRoom = new Set(round.bets.map(b => String(b.playerId))).size;
+            return res.json({success:true,game,slot,amount,walletType,balanceAfter,bonusPointsAfter,roundId:round.id,playersInRoom});
+        }
+
+        const stake = editionStakeIsValid(req.body?.stake);
+        if (!stake) return res.status(400).json({success:false,error:"Invalid stake"});
+        const room = bingoRooms[stake];
+        if (!room || room.status !== "BETTING" || Date.now() >= room.bettingEndsAt) return res.status(400).json({success:false,error:"Bet cancellation is closed"});
+        const index = room.players.findIndex(p => String(p.playerId) === String(req.player.id) && Number(p.cardIndex) + 1 === slot);
+        if (index < 0) return res.status(400).json({success:false,error:"No active bet in this slot"});
+        const player = room.players[index];
+        const amount = Number(player.amount || room.entryFee || 0);
+        const walletType = String(player.walletType || "cash").toLowerCase() === "bonus" ? "bonus" : "cash";
+        let balanceAfter = null, bonusPointsAfter = null;
+        if (walletType === "bonus") {
+            bonusPointsAfter = await withPlayerBalanceLock(`bonus:${req.player.id}`, async () => {
+                const before = await getBonusPoints(req.player.id);
+                await writeBonusTransaction({playerId:req.player.id,points:amount,type:"bonus_bet_reversal",description:JSON.stringify({game:"bingo",roundId:room.id,cardIndex:Number(player.cardIndex),cartelaNumber:Number(player.cartelaNumber)}),referenceId:room.id});
+                return Number((before + amount).toFixed(2));
+            });
+        } else {
+            const accounting = await getWalletAccounting(req.player.id);
+            const restoreLockedDeposit = Number(Math.min(accounting.lockedDeposit, amount).toFixed(2));
+            const restoreWithdrawable = Number((amount - restoreLockedDeposit).toFixed(2));
+            balanceAfter = await withPlayerBalanceLock(req.player.id, () => changeBalance({
+                playerId:req.player.id, amount, type:"bingo_entry_cancel", game:"bingo", roundId:room.id,
+                description:JSON.stringify({game:"bingo",roundId:room.id,cardIndex:Number(player.cardIndex),cartelaNumber:Number(player.cartelaNumber),restoreLockedDeposit,restoreWithdrawable})
+            }));
+        }
+        room.players.splice(index,1);
+        await saveBingoRound(stake);
+        return res.json({success:true,game,slot,amount,walletType,balanceAfter,bonusPointsAfter,roundId:room.id});
+    } catch (error) {
+        console.error(`[${game.toUpperCase()}] Cancel bet error:`, error);
+        return res.status(400).json({success:false,error:error.message || "Could not cancel bet"});
+    }
+});
+
 app.post("/api/game/aviator/cashout", requirePlayer, async (req, res) => {
     try {
         const slot = Number(req.body?.slot);
@@ -1573,7 +1677,8 @@ async function getBonusLedger(playerId) {
             "bonus_win",
             "bonus_adjustment",
             "bonus_withdrawal",
-            "bonus_withdrawal_reversal"
+            "bonus_withdrawal_reversal",
+            "bonus_bet_reversal"
         ])
         .eq("status", "SUCCESS")
         .order("created_at", { ascending: true })
@@ -1626,6 +1731,11 @@ const CASH_GAME_BET_TYPES = new Set([
     "keno_bet",
     "aviator_bet"
 ]);
+const CASH_GAME_BET_REVERSAL_TYPES = new Set([
+    "bingo_entry_cancel",
+    "keno_bet_cancel",
+    "aviator_bet_cancel"
+]);
 const CASH_GAME_WIN_TYPES = new Set([
     "bingo_win",
     "keno_win",
@@ -1638,7 +1748,7 @@ async function getWalletAccounting(playerId, playerOverride = null) {
 
     const { data, error } = await supabase
         .from("transactions")
-        .select("id,type,amount,status,created_at")
+        .select("id,type,amount,status,description,created_at")
         .eq("player_id", playerId)
         .in("status", ["PENDING", "SUCCESS", "APPROVED", "COMPLETED"])
         .order("created_at", { ascending: true })
@@ -1667,6 +1777,19 @@ async function getWalletAccounting(playerId, playerOverride = null) {
             lockedDeposit -= fromLocked;
             const fromWithdrawable = amount - fromLocked;
             withdrawable = Math.max(0, withdrawable - fromWithdrawable);
+            continue;
+        }
+
+        if (CASH_GAME_BET_REVERSAL_TYPES.has(tx.type)) {
+            let restoreLocked = 0;
+            let restoreWithdrawable = amount;
+            try {
+                const meta = JSON.parse(String(tx.description || "{}"));
+                restoreLocked = Math.max(0, Number(meta.restoreLockedDeposit || 0));
+                restoreWithdrawable = Math.max(0, Number(meta.restoreWithdrawable || (amount - restoreLocked)));
+            } catch (_) {}
+            lockedDeposit += restoreLocked;
+            withdrawable += restoreWithdrawable;
             continue;
         }
 
@@ -6546,19 +6669,18 @@ app.get(
             });
         }
 
+        const round = getPublicRound(gameName);
+        if (gameName === "keno" && round) {
+            const playerId = String(req.player.id);
+            round.myBets = (rounds.keno.bets || [])
+                .filter(b => String(b.playerId) === playerId)
+                .map(b => ({slotIndex:Number(b.slotIndex),amount:Number(b.amount || 0),numbers:Array.isArray(b.numbers)?b.numbers:[],betId:b.betId,walletType:b.walletType || "cash"}));
+        }
         return res.json({
             success: true,
-
-            serverTime:
-                Date.now(),
-
-            serverTimeIso:
-                nowIso(),
-
-            round:
-                getPublicRound(
-                    gameName
-                )
+            serverTime: Date.now(),
+            serverTimeIso: nowIso(),
+            round
         });
     }
 );
