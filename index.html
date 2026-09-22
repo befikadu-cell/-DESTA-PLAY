@@ -1954,7 +1954,6 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden!important;overscroll-b
 body{min-height:100vh;height:100vh;padding:0!important;}
 button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #accountScreen{height:100vh;min-height:0;box-sizing:border-box;overflow:hidden;}
-.accountPanel{height:50vh;max-height:50vh;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;}
 #home,#gameScreen,#walletScreen,#profileScreen{height:calc(100vh - 68px)!important;min-height:0!important;max-height:calc(100vh - 68px);box-sizing:border-box;overflow:hidden!important;}
 #gameScreen{position:relative;padding:0!important;}
 .gameHeader{position:relative!important;min-height:58px;height:58px;box-sizing:border-box;flex:none;}
@@ -2195,6 +2194,9 @@ html,body{
 
 <style id="desta-aviator-addition">
 .aviatorPreview{position:relative;background:linear-gradient(135deg,#071d36,#102f52);overflow:hidden}.aviatorPreviewPlane{font-size:27px;transform:rotate(-8deg);animation:aviatorPreviewFly 2.2s linear infinite}.aviatorPreviewX{font-size:12px;font-weight:900;color:#ffd43c}.aviatorPreview:after{content:"";position:absolute;inset:auto -20% 8px 20%;height:1px;background:rgba(255,255,255,.25);transform:rotate(-8deg)}@keyframes aviatorPreviewFly{0%{transform:translateX(-35px) rotate(-8deg)}100%{transform:translateX(35px) rotate(-8deg)}}
+/* Home Aviator preview only — display follows the preview flight animation. No live-game state is used. */
+@keyframes aviatorPreviewMultiplier{0%{transform:scale(.96);opacity:.86}50%{transform:scale(1.04);opacity:1}100%{transform:scale(.98);opacity:.92}}
+.aviatorPreviewX{animation:aviatorPreviewMultiplier 2.2s ease-in-out infinite;}
 #aviatorGame{padding:6px 4px 16px}.aviatorTopStatus{text-align:center;font-weight:900;font-size:13px;margin:4px 0 7px;color:#ffd43c}.aviatorFlight{position:relative;height:230px;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 75% 25%,rgba(76,160,255,.25),transparent 35%),linear-gradient(180deg,#071b32,#05080d 78%);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 -30px 50px rgba(0,0,0,.35)}.aviatorSky{position:absolute;inset:0;overflow:hidden}.aviatorCloud{position:absolute;width:90px;height:24px;border-radius:50%;background:rgba(255,255,255,.11);filter:blur(2px);animation:aviatorCloudMove 7s linear infinite}.aviatorCloud:before,.aviatorCloud:after{content:"";position:absolute;background:inherit;border-radius:50%}.aviatorCloud:before{width:38px;height:38px;left:18px;top:-14px}.aviatorCloud:after{width:45px;height:45px;right:12px;top:-20px}.c1{top:28px;left:110%}.c2{top:88px;left:30%;animation-delay:-3s;transform:scale(.7)}.c3{top:145px;left:80%;animation-delay:-5s;transform:scale(.55)}@keyframes aviatorCloudMove{from{left:110%}to{left:-120%}}.aviatorPlane{position:absolute;left:8%;top:58%;font-size:40px;filter:drop-shadow(0 5px 5px rgba(0,0,0,.5));transform:rotate(-8deg);transition:left .12s linear,top .12s linear}.aviatorMultiplier{position:absolute;z-index:3;left:0;right:0;top:73px;text-align:center;font-size:43px;font-weight:1000;letter-spacing:-1px;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.55)}.aviatorCountdown{position:absolute;z-index:4;right:10px;left:auto;top:10px;text-align:right;font-size:18px;line-height:1;font-weight:1000;color:#ffd43c;background:rgba(0,0,0,.28);padding:7px 9px;border-radius:8px;min-width:22px;box-sizing:border-box}.aviatorNotice{text-align:center;color:#aaa;font-size:11px;padding:7px 4px}.aviatorSlots{display:grid;grid-template-columns:1fr 1fr;gap:8px;transition:grid-template-columns .15s ease}.aviatorSlots.slot2Hidden{grid-template-columns:1fr}.aviatorSlot{position:relative;background:#111;border:1px solid #3b2424;border-radius:13px;padding:9px;min-width:0}.aviatorSlotHead{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:7px;padding-right:32px}.aviatorSlotCornerBtn{position:absolute;top:7px;right:7px;width:30px;height:30px;border:0;border-radius:8px;background:#333;color:#fff;font-size:20px;line-height:1;font-weight:1000;cursor:pointer}.aviatorSlotCornerBtn:disabled{opacity:.45;cursor:not-allowed}.aviatorAmountRow{display:grid;grid-template-columns:36px 1fr 36px;gap:5px;align-items:center}.aviatorAmountAdjust{border:0;border-radius:8px;padding:9px;font-weight:1000;cursor:pointer;background:#333;color:#fff;min-height:40px}.aviatorAmountAdjust:disabled{opacity:.45;cursor:not-allowed}.aviatorSlotHead span{color:#ffd43c;font-weight:900}.aviatorAmount{width:100%;box-sizing:border-box;background:#090909;color:#fff;border:1px solid #444;border-radius:9px;padding:10px;text-align:center;font-weight:900;font-size:16px}.aviatorSlotActions{display:grid;grid-template-columns:34px 1fr 34px;gap:5px;margin-top:7px}.aviatorSlotActions button,.aviatorCashBtn{border:0;border-radius:8px;padding:9px;font-weight:1000;cursor:pointer}.aviatorActionSpacer{display:block;min-width:34px}.aviatorMinus,.aviatorPlus{background:#333;color:#fff}.aviatorBetBtn{background:#ffd43c;color:#111}.aviatorCashBtn{width:100%;margin-top:7px;background:#25c77a;color:#07130d}.aviatorFeed{margin-top:9px;background:#0d0d0d;border:1px solid #292929;border-radius:12px;padding:8px;max-height:130px;overflow:auto}.aviatorFeedTitle{text-align:center;font-size:10px;color:#888;font-weight:900;margin-bottom:4px}.aviatorFeedRow{display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #1d1d1d;font-size:11px}.aviatorFeedRow:last-child{border-bottom:0}.aviatorOwnToast{position:fixed;z-index:10001;left:50%;top:12px;transform:translateX(-50%);background:#18a866;color:#fff;border-radius:12px;padding:11px 15px;font-weight:1000;box-shadow:0 10px 35px rgba(0,0,0,.45);animation:aviatorToastIn .2s ease-out}.hidden{display:none!important}@keyframes aviatorToastIn{from{opacity:0;transform:translate(-50%,-20px)}to{opacity:1;transform:translate(-50%,0)}}
 @media(max-width:420px){.aviatorFlight{height:205px}.aviatorMultiplier{font-size:38px}.aviatorPlane{font-size:34px}}
 .aviatorHistoryBar{position:relative;z-index:5}.aviatorHistoryLine{overflow-x:auto;text-overflow:clip}.aviatorCrashLabel{position:absolute;z-index:9;left:0;right:0;top:52%;transform:translateY(-50%);text-align:center;font-size:30px;font-weight:1000;letter-spacing:1px;color:#ff5a3d;text-shadow:0 3px 18px rgba(0,0,0,.8);opacity:0;pointer-events:none}.aviatorFlight.crashActive .aviatorCrashLabel{opacity:1;animation:aviatorCrashLabelIn .28s ease-out forwards}@keyframes aviatorCrashLabelIn{from{opacity:0;transform:translateY(-45%) scale(.82)}to{opacity:1;transform:translateY(-50%) scale(1)}}.aviatorHistoryBar{position:relative;z-index:5}.aviatorHistoryLine{overflow-x:auto;text-overflow:clip}.aviatorCrashFx{position:absolute;z-index:8;left:0;top:0;width:100%;height:100%;pointer-events:none;display:none}.aviatorCrashFx .aviatorFire,.aviatorCrashFx .aviatorBlast{position:absolute;opacity:0}.aviatorCrashFx .aviatorFire{font-size:54px;left:72%;top:43%;transform:scale(.3) rotate(-12deg)}.aviatorCrashFx .aviatorBlast{font-size:76px;left:69%;top:30%;color:#ffd43b;transform:scale(.2)}.aviatorFlight.crashActive .aviatorCrashFx{display:block}.aviatorFlight.crashActive .aviatorCrashFx .aviatorFire{animation:aviatorFireBurst .75s ease-out forwards}.aviatorFlight.crashActive .aviatorCrashFx .aviatorBlast{animation:aviatorBlastBurst .55s ease-out forwards}.aviatorFlight.crashActive .aviatorPlane{animation:aviatorPlaneCrash .72s cubic-bezier(.3,.0,1,1) forwards}.aviatorFlight.crashActive{animation:aviatorCrashShake .45s ease-in-out 1}.aviatorFlight.flyingActive:after{animation:flightSpeedLines .55s linear infinite}@keyframes aviatorFireBurst{0%{opacity:0;transform:scale(.25) rotate(-12deg)}18%{opacity:1;transform:scale(1.25) rotate(-4deg)}100%{opacity:0;transform:translate(35px,55px) scale(.75) rotate(18deg)}}@keyframes aviatorBlastBurst{0%{opacity:0;transform:scale(.2)}20%{opacity:1;transform:scale(1.35)}100%{opacity:0;transform:scale(1.8)}}@keyframes aviatorPlaneCrash{0%{transform:rotate(-8deg) scale(1)}35%{transform:translate(18px,4px) rotate(12deg) scale(1.05)}100%{transform:translate(105px,120px) rotate(58deg) scale(.55);opacity:0}}@keyframes aviatorCrashShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
@@ -2454,7 +2456,7 @@ html,body{
 
         <div class="gameCard">
           <h3>AVIATOR</h3>
-          <div class="gamePreview aviatorPreview" aria-hidden="true"><div class="aviatorPreviewPlane">✈</div><div class="aviatorPreviewX">1.00x</div></div>
+          <div class="gamePreview aviatorPreview" aria-hidden="true"><div class="aviatorPreviewPlane">✈</div><div class="aviatorPreviewX" id="aviatorPreviewX">1.00x</div></div>
           <small>Shared flight • Cash Out</small>
           <button class="gameOpen" onclick="openGame('aviator')">PLAY</button>
         </div>
@@ -6414,6 +6416,20 @@ html,body{
             <h3>ቁጥሮችን ምልክት ያድርጉ</h3><p>የተጠራ ቁጥር በካርቴላዎ ላይ ሲታይ ተመሳሳዩን ሳጥን ይንኩ።</p>
             <h3>ቢንጎ</h3><p>አግድም፣ ቁመት ወይም ሰያፍ መስመር ያጠናቅቁ። ዙሩ ካሸነፉ የተዛማጅ ካርቴላውን BINGO ቁልፍ ይጫኑ።</p>
             <h3>ዙር</h3><p>ቆጣሪው ወደ ዜሮ ሲደርስ ውርርድ ይዘጋል። ከዚያ ቁጥሮች በተከታታይ ይጠራሉ።</p>`}
+        },
+        aviator:{
+          en:{title:"How to Play Aviator",html:`
+            <h3>Choose your stake</h3><p>Select the amount you want to play before the flight starts.</p>
+            <h3>Place your bet</h3><p>Use Slot 1 or Slot 2 to place a bet during the betting period.</p>
+            <h3>Watch the multiplier</h3><p>The multiplier increases while the plane is flying.</p>
+            <h3>Cash Out</h3><p>Cash out before the plane crashes to receive the payout shown for your bet.</p>
+            <h3>Crash</h3><p>If the plane crashes before you cash out, that bet does not receive a payout.</p>`},
+          am:{title:"አቪዬተርን እንዴት መጫወት ይቻላል?",html:`
+            <h3>የውርርድ መጠን ይምረጡ</h3><p>በረራው ከመጀመሩ በፊት መጫወት የሚፈልጉትን መጠን ይምረጡ።</p>
+            <h3>ውርርድ ያስገቡ</h3><p>በውርርድ ጊዜ ስሎት 1 ወይም ስሎት 2ን በመጠቀም ውርርድዎን ያስገቡ።</p>
+            <h3>ማባዣውን ይመልከቱ</h3><p>አውሮፕላኑ በሚበርበት ጊዜ ማባዣው ይጨምራል።</p>
+            <h3>ገንዘብ ውሰድ</h3><p>አውሮፕላኑ ከመውደቁ በፊት ገንዘብ ውሰድ በመጫን በውርርድዎ ላይ የሚታየውን ክፍያ ይቀበሉ።</p>
+            <h3>ብልሽት</h3><p>ገንዘብ ከመውሰድዎ በፊት አውሮፕላኑ ከወደቀ፣ ያ ውርርድ ክፍያ አያገኝም።</p>`}
         }
       };
 
@@ -8048,6 +8064,22 @@ html,body{
   window.placeAviatorBet=async function(slot){try{const amount=Number(document.getElementById("aviatorAmount"+slot)?.value||0);if(amount<10)throw new Error("Minimum Aviator bet is 10 ETB");const r=await fetch("https://desta-play.onrender.com/api/game/aviator/bet",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot,amount})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Could not place Aviator bet");state.balance=Number(d.balance??state.balance);updateBalance();toast("BET ACCEPTED • SLOT "+slot);await sync();}catch(e){alert(e.message||"Could not place Aviator bet");}};
   window.cancelAviatorBet=async function(slot){try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/cancel-bet",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Could not cancel Aviator bet");state.balance=Number(d.balanceAfter??state.balance);updateBalance();toast("BET CANCELLED • SLOT "+slot);await sync();}catch(e){alert(e.message||"Could not cancel Aviator bet");}};
   window.cashOutAviator=async function(slot){try{const r=await fetch("https://desta-play.onrender.com/api/game/aviator/cashout",{method:"POST",headers:authHeaders(),body:JSON.stringify({slot})});const d=await safeJsonResponse(r);if(!r.ok||!d.success)throw new Error(d.error||"Cash Out unavailable");state.balance=Number(d.balance??state.balance);updateBalance();toast("CASHED OUT • "+Number(d.payout||0).toFixed(2)+" ETB @ "+Number(d.multiplier||0).toFixed(2)+"x");await sync();}catch(e){alert(e.message||"Cash Out unavailable");}};
+
+  /* HOME AVIATOR PREVIEW ONLY — independent visual animation. */
+  (function initAviatorHomePreview(){
+    const el=document.getElementById("aviatorPreviewX");
+    if(!el)return;
+    const started=performance.now();
+    const duration=2200;
+    const tick=()=>{
+      const t=((performance.now()-started)%duration)/duration;
+      const eased=t*t*(3-2*t);
+      const multiplier=1+eased*1.80;
+      el.textContent=multiplier.toFixed(2)+"x";
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  })();
 })();
 </script>
 </body>
