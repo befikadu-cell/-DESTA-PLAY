@@ -2818,7 +2818,7 @@ html,body{
           </section>
           <div class="aviatorSlots">
             <div class="aviatorSlot" id="aviatorSlot1">
-              <div class="aviatorSlotHead"><strong>SLOT 1</strong><span id="aviatorResult1">—</span></div>
+              <div class="aviatorSlotHead"><strong>SLOT 1</strong></div>
               <button class="aviatorSlotCornerBtn aviatorPlus hidden" id="aviatorSlot1Plus" type="button" onclick="showAviatorSlot2()" aria-label="Add Slot 2">+</button>
               <div class="aviatorAmountRow">
                 <button class="aviatorAmountAdjust" id="aviatorAmountMinus1" type="button" onclick="aviatorAdjust(1,-10)" aria-label="Decrease Slot 1 amount">−</button>
@@ -2829,7 +2829,8 @@ html,body{
               <button class="aviatorCashBtn hidden" id="aviatorCashBtn1" type="button" onclick="cashOutAviator(1)"><span class="aviatorCashSmall">CASH OUT</span><span class="aviatorCashMult" id="aviatorCashMult1">1.00x</span><span class="aviatorCashMoney" id="aviatorCashMoney1">0.00 ETB</span></button>
             </div>
             <div class="aviatorSlot" id="aviatorSlot2">
-              <div class="aviatorSlotHead"><strong>SLOT 2</strong><span id="aviatorResult2">—</span></div>
+              <div class="aviatorSlotHead"><strong>SLOT 2</strong></div>
+              <button class="aviatorSlotCornerBtn aviatorMinus" id="aviatorSlot2Minus" type="button" onclick="hideAviatorSlot2()" aria-label="Remove Slot 2">−</button>
               <div class="aviatorAmountRow">
                 <button class="aviatorAmountAdjust" id="aviatorAmountMinus2" type="button" onclick="aviatorAdjust(2,-10)" aria-label="Decrease Slot 2 amount">−</button>
                 <input id="aviatorAmount2" class="aviatorAmount" type="number" min="10" step="1" inputmode="decimal" value="10" placeholder="Bet amount">
