@@ -3621,7 +3621,7 @@ app.post(
                 return res.status(400).json({
                     success: false,
                     error: `Only ${accounting.withdrawable.toFixed(2)} ETB is currently withdrawable. Keep playing to unlock your deposited balance.`,
-                    balanceBefore: before,
+                    balanceBefore: reservationBefore,
                     withdrawable: accounting.withdrawable,
                     lockedDeposit: accounting.lockedDeposit
                 });
@@ -3760,7 +3760,7 @@ app.post(
             });
 
             const requestId = reservation.requestId;
-            const before = reservation.before;
+            const reservationBefore = reservation.before;
             const after = reservation.after;
             const text =
                 `<b>DESTA PLAY — WITHDRAWAL VERIFICATION</b>\n` +
@@ -3774,7 +3774,7 @@ app.post(
                 `Recipient Account Name: ${htmlEscape(recipientName)}\n` +
                 `Recipient Phone Number: ${htmlEscape(recipientPhone)}\n` +
                 `Sender/DESTA PLAY Account ID: ${htmlEscape(req.player.id)}\n` +
-                `Balance Before: ${htmlEscape(before)} ETB\n` +
+                `Balance Before: ${htmlEscape(reservationBefore)} ETB\n` +
                 `Balance After Reservation: ${htmlEscape(after)} ETB\n` +
                 `Withdrawal Request ID: ${htmlEscape(requestId)}\n` +
                 `Request Time: ${htmlEscape(nowIso())}`;
